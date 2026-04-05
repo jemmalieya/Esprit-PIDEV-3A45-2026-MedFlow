@@ -27,6 +27,7 @@ public class Evenement {
     private String visibilite_event;
     private Date date_creation_event;
     private Date date_mise_a_jour_event;
+    private Integer user_id;
 
     public Evenement() {
     }
@@ -37,7 +38,7 @@ public class Evenement {
                      int nb_participants_max_event, boolean inscription_obligatoire_event,
                      Date date_limite_inscription_event, String email_contact_event, String tel_contact_event,
                      String nom_organisateur_event, String image_couverture_event, String visibilite_event,
-                     Date date_creation_event, Date date_mise_a_jour_event) {
+                     Date date_creation_event, Date date_mise_a_jour_event, Integer user_id) {
         this.id = id;
         this.demandes_json = demandes_json;
         this.titre_event = titre_event;
@@ -61,6 +62,7 @@ public class Evenement {
         this.visibilite_event = visibilite_event;
         this.date_creation_event = date_creation_event;
         this.date_mise_a_jour_event = date_mise_a_jour_event;
+        this.user_id = user_id;
     }
 
     public int getId() {
@@ -70,7 +72,6 @@ public class Evenement {
     public void setId(int id) {
         this.id = id;
     }
-
 
     public String getDemandes_json() {
         return demandes_json;
@@ -248,6 +249,14 @@ public class Evenement {
         this.date_mise_a_jour_event = date_mise_a_jour_event;
     }
 
+    public Integer getUser_id() {
+        return user_id;
+    }
+
+    public void setUser_id(Integer user_id) {
+        this.user_id = user_id;
+    }
+
     @Override
     public String toString() {
         return "Evenement{" +
@@ -274,6 +283,7 @@ public class Evenement {
                 ", visibilite_event='" + visibilite_event + '\'' +
                 ", date_creation_event=" + date_creation_event +
                 ", date_mise_a_jour_event=" + date_mise_a_jour_event +
+                ", user_id=" + user_id +
                 '}';
     }
 }

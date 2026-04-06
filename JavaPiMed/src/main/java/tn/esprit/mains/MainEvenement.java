@@ -16,7 +16,7 @@ public class MainEvenement {
         // =========================
         Evenement e = new Evenement();
 
-        e.setTitre_event("Forum santé");
+        e.setTitre_event("Forum santépppppjhh");
         e.setSlug_event("forum-sante");
         e.setType_event("Conférence");
         e.setDescription_event("Evenement sur la santé");
@@ -56,44 +56,45 @@ public class MainEvenement {
         }
 
         // =========================
-        // MODIFICATION
+        // MODIFICATION (choisir un événement par ID)
         // =========================
-        if (!service.recuperer().isEmpty()) {
-            Evenement first = service.recuperer().get(0);
+        int idEvenementToModify = 6;  // Choisis ici l'ID de l'événement que tu veux modifier
 
-            first.setTitre_event("Evenement modifié");
-            first.setSlug_event("evenement-modifie");
-            first.setType_event("Atelier");
-            first.setDescription_event("Description modifiée");
-            first.setObjectif_event("Nouvel objectif");
-            first.setStatut_event("Brouillon");
+        Evenement evenementToModify = findEvenementById(service, idEvenementToModify);
+        if (evenementToModify != null) {
+            evenementToModify.setTitre_event("Evenement modifiépppppjjjj");
+            evenementToModify.setSlug_event("evenement-modifie");
+            evenementToModify.setType_event("Atelier");
+            evenementToModify.setDescription_event("Description modifiée");
+            evenementToModify.setObjectif_event("Nouvel objectif");
+            evenementToModify.setStatut_event("Brouillon");
 
-            first.setDate_debut_event(sdf.parse("2026-06-01"));
-            first.setDate_fin_event(sdf.parse("2026-06-05"));
+            evenementToModify.setDate_debut_event(sdf.parse("2026-06-01"));
+            evenementToModify.setDate_fin_event(sdf.parse("2026-06-05"));
 
-            first.setNom_lieu_event("ESPRIT Ghazela");
-            first.setAdresse_event("Ariana Sup");
-            first.setVille_event("Sfax");
+            evenementToModify.setNom_lieu_event("ESPRIT Ghazela");
+            evenementToModify.setAdresse_event("Ariana Sup");
+            evenementToModify.setVille_event("Sfax");
 
-            first.setNb_participants_max_event(250);
-            first.setInscription_obligatoire_event(false);
+            evenementToModify.setNb_participants_max_event(250);
+            evenementToModify.setInscription_obligatoire_event(false);
 
-            first.setDate_limite_inscription_event(sdf.parse("2026-05-28"));
+            evenementToModify.setDate_limite_inscription_event(sdf.parse("2026-05-28"));
 
-            first.setEmail_contact_event("newmail@test.com");
-            first.setTel_contact_event("99887766");
-            first.setNom_organisateur_event("Nouvel organisateur");
+            evenementToModify.setEmail_contact_event("newmail@test.com");
+            evenementToModify.setTel_contact_event("99887766");
+            evenementToModify.setNom_organisateur_event("Nouvel organisateur");
 
-            first.setImage_couverture_event("newimage.jpg");
-            first.setVisibilite_event("Privé");
+            evenementToModify.setImage_couverture_event("newimage.jpg");
+            evenementToModify.setVisibilite_event("Privé");
 
-            first.setDate_mise_a_jour_event(new java.util.Date());
+            evenementToModify.setDate_mise_a_jour_event(new java.util.Date());
 
-            service.modifier(first);
+            service.modifier(evenementToModify);
         }
 
         // =========================
-        // AFFICHAGE APRES MODIF
+        // AFFICHAGE APRES MODIFICATION
         // =========================
         System.out.println("\n===== APRES MODIFICATION =====");
         for (Evenement ev : service.recuperer()) {
@@ -101,11 +102,13 @@ public class MainEvenement {
         }
 
         // =========================
-        // SUPPRESSION
+        // SUPPRESSION (choisir un événement par ID)
         // =========================
-        if (!service.recuperer().isEmpty()) {
-            Evenement first = service.recuperer().get(0);
-            service.supprimer(first);
+        int idEvenementToDelete = 13;  // Choisis ici l'ID de l'événement que tu veux supprimer
+
+        Evenement evenementToDelete = findEvenementById(service, idEvenementToDelete);
+        if (evenementToDelete != null) {
+            service.supprimer(evenementToDelete);
         }
 
         // =========================
@@ -115,5 +118,16 @@ public class MainEvenement {
         for (Evenement ev : service.recuperer()) {
             System.out.println(ev);
         }
+    }
+
+    // Méthode pour trouver un événement par ID
+    public static Evenement findEvenementById(EvenementService service, int id) {
+        for (Evenement e : service.recuperer()) {
+            if (e.getId() == id) {
+                return e;
+            }
+        }
+        System.out.println("❌ Evenement avec ID " + id + " non trouvé");
+        return null;
     }
 }

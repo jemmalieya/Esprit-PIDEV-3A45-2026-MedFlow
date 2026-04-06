@@ -21,7 +21,7 @@ public class MyDataBase {
     public static MyDataBase getInstance()
     {
         if(myDB==null) {
-            MyDataBase myDB = new MyDataBase();
+            myDB = new MyDataBase();
 
         }
         return myDB;

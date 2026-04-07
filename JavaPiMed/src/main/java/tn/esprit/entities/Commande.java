@@ -1,6 +1,7 @@
 package tn.esprit.entities;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 public class Commande {
@@ -15,6 +16,8 @@ public class Commande {
     private List<CommandeProduit> commande_produits;
 
     public Commande() {
+        this.commande_produits = new ArrayList<>(); // Initialisation de la liste pour éviter la NullPointerException
+
     }
 
     public Commande(User user, LocalDateTime date_creation_commande, String statut_commande,
@@ -36,6 +39,9 @@ public class Commande {
         this.stripe_session_id = stripe_session_id;
         this.paid_at = paid_at;
         this.montant_total_cents = montant_total_cents;
+    }
+
+    public Commande(int commandeId) {
     }
 
     public int getId_commande() {

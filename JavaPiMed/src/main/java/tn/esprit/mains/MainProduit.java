@@ -4,16 +4,15 @@ import tn.esprit.entities.Produit;
 import tn.esprit.services.ProduitService;
 
 public class MainProduit {
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
 
         ProduitService service = new ProduitService();
 
         // =========================
-        // AJOUT
+        // AJOUTER
         // =========================
         Produit p = new Produit();
-
-        p.setNom_produit("fokmatest");
+        p.setNom_produit("fokmatesttestest");
         p.setDescription_produit("test testt test test");
         p.setPrix_produit(100);
         p.setQuantite_produit(3);
@@ -24,7 +23,7 @@ public class MainProduit {
         service.ajouter(p);
 
         // =========================
-        // AFFICHAGE
+        // AFFICHER TOUS
         // =========================
         System.out.println("\n===== LISTE DES PRODUITS =====");
         for (Produit produit : service.recuperer()) {
@@ -32,13 +31,28 @@ public class MainProduit {
         }
 
         // =========================
-        // MODIFICATION (choisir un produit par ID)
+        // AFFICHER UN SEUL PRODUIT
         // =========================
-        int idProduitToModify = 6;  // Choisis ici l'ID du produit que tu veux modifier
+        int idProduitAAfficher = 40;
 
-        Produit produitToModify = findProduitById(service, idProduitToModify);
+        Produit produitUnique = service.recupererParId(idProduitAAfficher);
+
+        System.out.println("\n===== PRODUIT PAR ID =====");
+        if (produitUnique != null) {
+            System.out.println(produitUnique);
+        } else {
+            System.out.println(" Produit avec ID " + idProduitAAfficher + " non trouvé");
+        }
+
+        // =========================
+        // MODIFIER (avec recupererParId)
+        // =========================
+        int idProduitToModify = 40;
+
+        Produit produitToModify = service.recupererParId(idProduitToModify);
+
         if (produitToModify != null) {
-            produitToModify.setNom_produit("Aspirin");
+            produitToModify.setNom_produit("help");
             produitToModify.setDescription_produit("not so good");
             produitToModify.setPrix_produit(6.00);
             produitToModify.setQuantite_produit(25);
@@ -47,10 +61,29 @@ public class MainProduit {
             produitToModify.setStatus_produit("Disponible");
 
             service.modifier(produitToModify);
+        } else {
+            System.out.println(" Produit avec ID " + idProduitToModify + " non trouvé");
         }
 
+        /*
         // =========================
-        // AFFICHAGE APRES MODIF
+        // MODIFIER (sans recupererParId)
+        // =========================
+        Produit produitToModify = new Produit();
+        produitToModify.setId_produit(40);
+        produitToModify.setNom_produit("help");
+        produitToModify.setDescription_produit("not so good");
+        produitToModify.setPrix_produit(6.00);
+        produitToModify.setQuantite_produit(25);
+        produitToModify.setImage_produit("tramadol-modifie.jpg");
+        produitToModify.setCategorie_produit("Médicament");
+        produitToModify.setStatus_produit("Disponible");
+
+        service.modifier(produitToModify);
+        */
+
+        // =========================
+        // AFFICHER APRES MODIFICATION
         // =========================
         System.out.println("\n===== APRES MODIFICATION =====");
         for (Produit produit : service.recuperer()) {
@@ -58,32 +91,34 @@ public class MainProduit {
         }
 
         // =========================
-        // SUPPRESSION (choisir un produit par ID)
+        // SUPPRIMER (avec recupererParId)
         // =========================
-        int idProduitToDelete =34;  // Choisis ici l'ID du produit que tu veux supprimer
+        int idProduitToDelete = 41;
 
-        Produit produitToDelete = findProduitById(service, idProduitToDelete);
+        Produit produitToDelete = service.recupererParId(idProduitToDelete);
+
         if (produitToDelete != null) {
             service.supprimer(produitToDelete);
+        } else {
+            System.out.println(" Produit avec ID " + idProduitToDelete + " non trouvé");
         }
 
+        /*
         // =========================
-        // AFFICHAGE FINAL
+        // SUPPRIMER (sans recupererParId)
+        // =========================
+        Produit produitToDelete = new Produit();
+        produitToDelete.setId_produit(41);
+
+        service.supprimer(produitToDelete);
+        */
+
+        // =========================
+        // AFFICHER APRES SUPPRESSION
         // =========================
         System.out.println("\n===== APRES SUPPRESSION =====");
         for (Produit produit : service.recuperer()) {
             System.out.println(produit);
         }
-    }
-
-    // Méthode pour trouver un produit par ID
-    public static Produit findProduitById(ProduitService service, int id) {
-        for (Produit p : service.recuperer()) {
-            if (p.getId_produit() == id) {
-                return p;
-            }
-        }
-        System.out.println("❌ Produit avec ID " + id + " non trouvé");
-        return null;
     }
 }

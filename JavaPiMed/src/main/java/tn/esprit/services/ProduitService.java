@@ -32,10 +32,10 @@ public class ProduitService implements IGeneralService<Produit> {
             ps.setString(7, p.getStatus_produit());
 
             ps.executeUpdate();
-            System.out.println("✅ Produit ajouté");
+            System.out.println(" Produit ajouté avec succès");
 
         } catch (SQLException ex) {
-            ex.printStackTrace();
+            System.out.println(" Erreur lors de l'ajout du produit : " + ex.getMessage());
         }
     }
 
@@ -46,9 +46,10 @@ public class ProduitService implements IGeneralService<Produit> {
         try (PreparedStatement ps = cn.prepareStatement(sql)) {
             ps.setInt(1, p.getId_produit());
             ps.executeUpdate();
-            System.out.println("🗑️ Produit supprimé avec succès");
+            System.out.println(" Produit supprimé avec succès");
+
         } catch (SQLException ex) {
-            ex.printStackTrace();
+            System.out.println(" Erreur lors de la suppression : " + ex.getMessage());
         }
     }
 
@@ -57,6 +58,7 @@ public class ProduitService implements IGeneralService<Produit> {
         String sql = "UPDATE produit SET nom_produit = ?, description_produit = ?, prix_produit = ?, quantite_produit = ?, image_produit = ?, categorie_produit = ?, status_produit = ? WHERE id_produit = ?";
 
         try (PreparedStatement ps = cn.prepareStatement(sql)) {
+
             ps.setString(1, p.getNom_produit());
             ps.setString(2, p.getDescription_produit());
             ps.setDouble(3, p.getPrix_produit());
@@ -67,40 +69,72 @@ public class ProduitService implements IGeneralService<Produit> {
             ps.setInt(8, p.getId_produit());
 
             ps.executeUpdate();
-            System.out.println("✏️ Produit modifié avec succès");
+            System.out.println("✏ Produit modifié avec succès");
 
         } catch (SQLException ex) {
-            ex.printStackTrace();
+            System.out.println(" Erreur lors de la modification : " + ex.getMessage());
         }
     }
 
     @Override
     public List<Produit> recuperer() {
-        List<Produit> list = new ArrayList<>();
+        List<Produit> produits = new ArrayList<>();
         String sql = "SELECT * FROM produit";
 
         try (Statement st = cn.createStatement();
              ResultSet rs = st.executeQuery(sql)) {
 
             while (rs.next()) {
-                Produit p = new Produit();
+                Produit p = new Produit(
+                        rs.getInt("id_produit"),
+                        rs.getString("nom_produit"),
+                        rs.getString("description_produit"),
+                        rs.getDouble("prix_produit"),
+                        rs.getInt("quantite_produit"),
+                        rs.getString("image_produit"),
+                        rs.getString("categorie_produit"),
+                        rs.getString("status_produit")
+                );
 
-                p.setId_produit(rs.getInt("id_produit"));
-                p.setNom_produit(rs.getString("nom_produit"));
-                p.setDescription_produit(rs.getString("description_produit"));
-                p.setPrix_produit(rs.getDouble("prix_produit"));
-                p.setQuantite_produit(rs.getInt("quantite_produit"));
-                p.setImage_produit(rs.getString("image_produit"));
-                p.setCategorie_produit(rs.getString("categorie_produit"));
-                p.setStatus_produit(rs.getString("status_produit"));
+                produits.add(p);
+            }
 
-                list.add(p);
+            System.out.println(" Liste des produits récupérée avec succès");
+
+        } catch (SQLException ex) {
+            System.out.println(" Erreur lors de la récupération : " + ex.getMessage());
+        }
+
+        return produits;
+    }
+
+
+    @Override
+    public Produit recupererParId(int id) {
+        String sql = "SELECT * FROM produit WHERE id_produit = ?";
+
+        try (PreparedStatement ps = cn.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                return new Produit(
+                        rs.getInt("id_produit"),
+                        rs.getString("nom_produit"),
+                        rs.getString("description_produit"),
+                        rs.getDouble("prix_produit"),
+                        rs.getInt("quantite_produit"),
+                        rs.getString("image_produit"),
+                        rs.getString("categorie_produit"),
+                        rs.getString("status_produit")
+                );
             }
 
         } catch (SQLException ex) {
-            ex.printStackTrace();
+            System.out.println(" Erreur : " + ex.getMessage());
         }
 
-        return list;
+        System.out.println("Produit non trouvé");
+        return null;
     }
 }

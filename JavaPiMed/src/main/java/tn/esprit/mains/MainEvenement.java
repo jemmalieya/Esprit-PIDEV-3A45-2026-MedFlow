@@ -11,12 +11,10 @@ public class MainEvenement {
         EvenementService service = new EvenementService();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 
-        // =========================
-        // AJOUT
-        // =========================
+      
         Evenement e = new Evenement();
 
-        e.setTitre_event("Forum santépppppjhh");
+        e.setTitre_event("Forum santécha&mess");
         e.setSlug_event("forum-sante");
         e.setType_event("Conférence");
         e.setDescription_event("Evenement sur la santé");
@@ -47,18 +45,13 @@ public class MainEvenement {
 
         service.ajouter(e);
 
-        // =========================
-        // AFFICHAGE
-        // =========================
         System.out.println("\n===== LISTE DES EVENEMENTS =====");
         for (Evenement ev : service.recuperer()) {
             System.out.println(ev);
         }
 
-        // =========================
-        // MODIFICATION (choisir un événement par ID)
-        // =========================
-        int idEvenementToModify = 6;  // Choisis ici l'ID de l'événement que tu veux modifier
+
+        int idEvenementToModify = 19;
 
         Evenement evenementToModify = findEvenementById(service, idEvenementToModify);
         if (evenementToModify != null) {
@@ -93,41 +86,35 @@ public class MainEvenement {
             service.modifier(evenementToModify);
         }
 
-        // =========================
-        // AFFICHAGE APRES MODIFICATION
-        // =========================
+
         System.out.println("\n===== APRES MODIFICATION =====");
         for (Evenement ev : service.recuperer()) {
             System.out.println(ev);
         }
 
-        // =========================
-        // SUPPRESSION (choisir un événement par ID)
-        // =========================
-        int idEvenementToDelete = 13;  // Choisis ici l'ID de l'événement que tu veux supprimer
+
+        int idEvenementToDelete = 13;
 
         Evenement evenementToDelete = findEvenementById(service, idEvenementToDelete);
         if (evenementToDelete != null) {
             service.supprimer(evenementToDelete);
         }
 
-        // =========================
-        // AFFICHAGE FINAL
-        // =========================
+
         System.out.println("\n===== APRES SUPPRESSION =====");
         for (Evenement ev : service.recuperer()) {
             System.out.println(ev);
         }
     }
 
-    // Méthode pour trouver un événement par ID
+
     public static Evenement findEvenementById(EvenementService service, int id) {
         for (Evenement e : service.recuperer()) {
             if (e.getId() == id) {
                 return e;
             }
         }
-        System.out.println("❌ Evenement avec ID " + id + " non trouvé");
+        System.out.println(" Evenement avec ID " + id + " non trouvé");
         return null;
     }
 }

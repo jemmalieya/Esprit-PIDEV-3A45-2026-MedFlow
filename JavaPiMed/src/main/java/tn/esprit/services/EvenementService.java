@@ -61,7 +61,7 @@ public class EvenementService implements IGeneralService<Evenement> {
             ps.setDate(21, new java.sql.Date(e.getDate_mise_a_jour_event().getTime()));
 
             ps.executeUpdate();
-            System.out.println("✅ Evenement ajouté");
+            System.out.println("Evenement ajouté");
 
         } catch (SQLException ex) {
             ex.printStackTrace();
@@ -74,7 +74,7 @@ public class EvenementService implements IGeneralService<Evenement> {
         try (PreparedStatement ps = cn.prepareStatement(sql)) {
             ps.setInt(1, e.getId());
             ps.executeUpdate();
-            System.out.println("🗑️ Evenement supprimé avec succès");
+            System.out.println(" Evenement supprimé avec succès");
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
@@ -97,7 +97,7 @@ public class EvenementService implements IGeneralService<Evenement> {
             ps.setInt(10, e.getId());
 
             ps.executeUpdate();
-            System.out.println("✏️ Evenement modifié avec succès");
+            System.out.println(" Evenement modifié avec succès");
 
         } catch (SQLException ex) {
             ex.printStackTrace();

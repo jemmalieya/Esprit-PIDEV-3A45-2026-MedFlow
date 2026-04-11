@@ -82,4 +82,9 @@ public class ReclamationService implements IGeneralService<Reclamation> {
 
         return reclamations;
     }
+
+    @Override
+    public Reclamation recupererParId(int id) {
+        return null;
+    }
 }

@@ -58,7 +58,7 @@ public class ReclamationMain {
         // =========================
         // SUPPRESSION (choisir une réclamation par ID)
         // =========================
-        int idReclamationToDelete = 41;  // Choisis ici l'ID réel de la réclamation à supprimer
+        int idReclamationToDelete = 43;  // Choisis ici l'ID réel de la réclamation à supprimer
 
         Reclamation recToDelete = findReclamationById(service, idReclamationToDelete);
         if (recToDelete != null) {

@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            prefWidth="1400.0"
+            prefHeight="820.0"
+            stylesheets="@../CSS/booking.css"
+            fx:controller="tn.esprit.controllers.ReclamationController"
+            styleClass="root-pane">
+
+    <!-- LEFT SIDEBAR -->
+    <left>
+        <fx:include source="Sidebar.fxml"/>
+    </left>
+
+    <!-- MAIN BODY -->
+    <center>
+        <ScrollPane pannable="true"
+                    fitToWidth="true"
+                    hbarPolicy="NEVER"
+                    vbarPolicy="AS_NEEDED"
+                    styleClass="main-scroll">
+
+            <content>
+                <VBox spacing="24" styleClass="main-area">
+                    <padding>
+                        <Insets top="26" right="28" bottom="26" left="28"/>
+                    </padding>
+
+                    <!-- HEADER -->
+                    <VBox spacing="6" styleClass="page-header">
+                        <Label text="Réclamation" styleClass="page-title"/>
+                        <Label text="Créer, modifier et suivre les réclamations dans une interface moderne et claire."
+                               wrapText="true"
+                               styleClass="page-subtitle"/>
+                    </VBox>
+
+                    <!-- CONTENT -->
+                    <HBox spacing="20.0" VBox.vgrow="ALWAYS">
+
+                        <!-- FORM -->
+                        <VBox spacing="15.0"
+                              prefWidth="420.0"
+                              style="-fx-background-color: white; -fx-background-radius: 18; -fx-border-color: #dbeafe; -fx-border-radius: 18;">
+                            <padding>
+                                <Insets top="25" right="25" bottom="25" left="25"/>
+                            </padding>
+
+                            <Label text="Gestion des Réclamations"
+                                   style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #0f172a;"/>
+
+                            <Label text="Créer ou modifier une réclamation"
+                                   style="-fx-font-size: 13px; -fx-text-fill: #64748b;"/>
+
+                            <Label text="Contenu"
+                                   style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
+                            <TextField fx:id="tfContenu"
+                                       promptText="Saisir le contenu"
+                                       prefHeight="40"
+                                       style="-fx-background-radius: 10; -fx-border-radius: 10; -fx-border-color: #cbd5e1;"/>
+
+                            <Label text="Description"
+                                   style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
+                            <TextArea fx:id="taDescription"
+                                      promptText="Saisir la description"
+                                      prefHeight="120"
+                                      wrapText="true"
+                                      style="-fx-background-radius: 10; -fx-border-radius: 10; -fx-border-color: #cbd5e1;"/>
+
+                            <Label text="Type"
+                                   style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
+                            <ComboBox fx:id="cbType"
+                                      prefHeight="40"
+                                      prefWidth="370"
+                                      style="-fx-background-radius: 10; -fx-border-radius: 10;"/>
+
+                            <Label text="Priorité"
+                                   style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
+                            <ComboBox fx:id="cbPriorite"
+                                      prefHeight="40"
+                                      prefWidth="370"
+                                      style="-fx-background-radius: 10; -fx-border-radius: 10;"/>
+
+                            <HBox spacing="10">
+                                <Button text="Ajouter"
+                                        onAction="#ajouterReclamation"
+                                        prefWidth="85"
+                                        prefHeight="40"
+                                        style="-fx-background-color: #16a34a; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-cursor: hand;"/>
+
+                                <Button text="Modifier"
+                                        onAction="#modifierReclamation"
+                                        prefWidth="85"
+                                        prefHeight="40"
+                                        style="-fx-background-color: #f59e0b; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-cursor: hand;"/>
+
+                                <Button text="Supprimer"
+                                        onAction="#supprimerReclamation"
+                                        prefWidth="85"
+                                        prefHeight="40"
+                                        style="-fx-background-color: #dc2626; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-cursor: hand;"/>
+
+                                <Button text="Vider"
+                                        onAction="#viderChamps"
+                                        prefWidth="85"
+                                        prefHeight="40"
+                                        style="-fx-background-color: #334155; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-cursor: hand;"/>
+                            </HBox>
+
+                            <Label fx:id="lblMessage"
+                                   text=""
+                                   wrapText="true"
+                                   style="-fx-font-size: 13px; -fx-font-weight: bold;"/>
+                        </VBox>
+
+                        <!-- TABLE -->
+                        <VBox spacing="15.0"
+                              HBox.hgrow="ALWAYS"
+                              style="-fx-background-color: white; -fx-background-radius: 18; -fx-border-color: #dbeafe; -fx-border-radius: 18;">
+                            <padding>
+                                <Insets top="25" right="25" bottom="25" left="25"/>
+                            </padding>
+
+                            <Label text="Liste des Réclamations"
+                                   style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #0f172a;"/>
+
+                            <TableView fx:id="tableReclamations"
+                                       VBox.vgrow="ALWAYS"
+                                       style="-fx-background-radius: 12; -fx-border-radius: 12; -fx-border-color: #cbd5e1;">
+                                <columns>
+                                    <TableColumn fx:id="colId" text="ID" prefWidth="60"/>
+                                    <TableColumn fx:id="colReference" text="Référence" prefWidth="160"/>
+                                    <TableColumn fx:id="colContenu" text="Contenu" prefWidth="170"/>
+                                    <TableColumn fx:id="colDescription" text="Description" prefWidth="240"/>
+                                    <TableColumn fx:id="colType" text="Type" prefWidth="130"/>
+                                    <TableColumn fx:id="colStatut" text="Statut" prefWidth="120"/>
+                                    <TableColumn fx:id="colPriorite" text="Priorité" prefWidth="120"/>
+                                </columns>
+                            </TableView>
+                        </VBox>
+
+                    </HBox>
+                </VBox>
+            </content>
+        </ScrollPane>
+    </center>
+
+</BorderPane>

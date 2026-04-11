@@ -1,0 +1,289 @@
+.root-pane {
+    -fx-background-color: #eef7fb;
+    -fx-font-family: "Segoe UI", Arial, sans-serif;
+}
+
+.main-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-border-color: transparent;
+}
+
+.main-scroll > .viewport {
+    -fx-background-color: #eef7fb;
+}
+
+.main-area {
+    -fx-background-color: #eef7fb;
+}
+
+/* HEADER */
+.page-header {
+    -fx-background-color: linear-gradient(to right, #10a5c5, #1492c9);
+    -fx-background-radius: 28px;
+    -fx-padding: 28 32 28 32;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 16, 0.2, 0, 4);
+}
+
+.page-title {
+    -fx-text-fill: white;
+    -fx-font-size: 32px;
+    -fx-font-weight: bold;
+}
+
+.page-subtitle {
+    -fx-text-fill: #e6fbff;
+    -fx-font-size: 16px;
+}
+
+/* HERO */
+.hero-card {
+    -fx-background-color: white;
+    -fx-background-radius: 24px;
+    -fx-padding: 22 24 22 24;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 12, 0.12, 0, 2);
+}
+
+.hero-title {
+    -fx-font-size: 26px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #16375e;
+}
+
+.hero-subtitle {
+    -fx-font-size: 15px;
+    -fx-text-fill: #657790;
+}
+
+.hero-cart-btn {
+    -fx-background-color: linear-gradient(to right, #0fa2bf, #118fc2);
+    -fx-text-fill: white;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 18px;
+    -fx-padding: 14 22 14 22;
+    -fx-cursor: hand;
+}
+
+.hero-cart-btn:hover {
+    -fx-effect: dropshadow(gaussian, rgba(17,143,194,0.35), 12, 0.2, 0, 2);
+}
+
+/* INFO */
+.info-card {
+    -fx-background-color: white;
+    -fx-background-radius: 24px;
+    -fx-padding: 22 24 22 24;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 12, 0.12, 0, 2);
+}
+
+.info-icon {
+    -fx-font-size: 24px;
+}
+
+.info-title {
+    -fx-font-size: 17px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #18345d;
+}
+
+.info-subtitle {
+    -fx-font-size: 14px;
+    -fx-text-fill: #6d8098;
+}
+
+.info-badge {
+    -fx-background-color: #dff4f3;
+    -fx-text-fill: #0d92aa;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-padding: 10 16 10 16;
+    -fx-background-radius: 999px;
+}
+
+/* FILTERS */
+.filter-card {
+    -fx-background-color: white;
+    -fx-background-radius: 24px;
+    -fx-padding: 20 22 20 22;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 12, 0.12, 0, 2);
+}
+
+.search-box {
+    -fx-background-color: white;
+    -fx-border-color: #d8e5ef;
+    -fx-border-radius: 18px;
+    -fx-background-radius: 18px;
+    -fx-padding: 8 12 8 12;
+}
+
+.search-icon {
+    -fx-font-size: 22px;
+    -fx-text-fill: #71839a;
+}
+
+.search-field {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-font-size: 15px;
+}
+
+.voice-btn {
+    -fx-background-color: #f2fbff;
+    -fx-border-color: #b4e4f1;
+    -fx-text-fill: #0e9cc3;
+    -fx-background-radius: 14px;
+    -fx-border-radius: 14px;
+    -fx-font-size: 16px;
+    -fx-padding: 8 14 8 14;
+    -fx-cursor: hand;
+}
+
+.filter-combo {
+    -fx-background-color: white;
+    -fx-border-color: #d8e5ef;
+    -fx-border-radius: 16px;
+    -fx-background-radius: 16px;
+    -fx-font-size: 15px;
+    -fx-pref-height: 48px;
+    -fx-pref-width: 190px;
+    -fx-padding: 0 12 0 12;
+}
+
+.result-icon {
+    -fx-font-size: 17px;
+    -fx-text-fill: #7c8ca2;
+}
+
+.result-label {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #0d92b7;
+}
+
+/* GRID */
+.product-grid {
+    -fx-padding: 6 0 10 0;
+}
+
+.product-card {
+    -fx-background-color: white;
+    -fx-background-radius: 22px;
+    -fx-border-color: #e4edf3;
+    -fx-border-radius: 22px;
+    -fx-pref-width: 260px;
+    -fx-max-width: 260px;
+    -fx-min-width: 260px;
+    -fx-padding: 0;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 10, 0.12, 0, 2);
+}
+
+.product-card:hover {
+    -fx-effect: dropshadow(gaussian, rgba(15,162,191,0.16), 16, 0.18, 0, 4);
+}
+
+.card-image-box {
+    -fx-background-color: #f4f9fc;
+    -fx-background-radius: 22 22 0 0;
+    -fx-pref-height: 170px;
+    -fx-min-height: 170px;
+    -fx-alignment: center;
+}
+
+.stock-badge-top {
+    -fx-background-color: #d45454;
+    -fx-text-fill: white;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-padding: 10 18 10 18;
+    -fx-background-radius: 999px;
+}
+
+.price-badge-top {
+    -fx-background-color: #0e9bb8;
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-padding: 10 18 10 18;
+    -fx-background-radius: 999px;
+}
+
+.card-content {
+    -fx-padding: 18 18 18 18;
+    -fx-spacing: 12;
+}
+
+.product-name {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #16345c;
+}
+
+.category-chip {
+    -fx-background-color: #dff4f3;
+    -fx-text-fill: #0291b2;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-padding: 10 14 10 14;
+    -fx-background-radius: 999px;
+}
+
+.stock-text {
+    -fx-font-size: 14px;
+    -fx-text-fill: #7b8798;
+}
+
+.status-chip-ok {
+    -fx-background-color: #dff4ec;
+    -fx-text-fill: #1d8f63;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-padding: 10 14 10 14;
+    -fx-background-radius: 999px;
+}
+
+.status-chip-ko {
+    -fx-background-color: #f8e1e1;
+    -fx-text-fill: #c45656;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-padding: 10 14 10 14;
+    -fx-background-radius: 999px;
+}
+
+.action-bar {
+    -fx-spacing: 10;
+    -fx-alignment: center-left;
+}
+
+.add-btn {
+    -fx-background-color: linear-gradient(to right, #0fa2bf, #118fc2);
+    -fx-text-fill: white;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 18px;
+    -fx-padding: 14 22 14 22;
+    -fx-cursor: hand;
+}
+
+.add-btn-disabled {
+    -fx-background-color: #d7dce3;
+    -fx-text-fill: #8e97a5;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 18px;
+    -fx-padding: 14 22 14 22;
+}
+
+.icon-btn {
+    -fx-background-color: white;
+    -fx-border-color: #9fd9e7;
+    -fx-text-fill: #0e9ab7;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 18px;
+    -fx-border-radius: 18px;
+    -fx-pref-width: 50px;
+    -fx-pref-height: 50px;
+    -fx-cursor: hand;
+}

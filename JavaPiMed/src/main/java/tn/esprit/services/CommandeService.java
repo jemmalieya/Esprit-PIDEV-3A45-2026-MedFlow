@@ -28,9 +28,7 @@ public class CommandeService implements IGeneralService<Commande> {
         return total;
     }
 
-    // =========================
-    // AJOUTER
-    // =========================
+
     @Override
     public void ajouter(Commande c) {
 
@@ -64,7 +62,6 @@ public class CommandeService implements IGeneralService<Commande> {
             if (rs.next()) {
                 c.setId_commande(rs.getInt(1));
 
-                // ----- lignes commande -----
                 String sqlLigne = "INSERT INTO commande_produit (quantite_commandee, commande_id, produit_id) VALUES (?, ?, ?)";
                 try (PreparedStatement psL = cn.prepareStatement(sqlLigne)) {
                     for (CommandeProduit cp : c.getCommande_produits()) {
@@ -75,7 +72,6 @@ public class CommandeService implements IGeneralService<Commande> {
                         psL.executeUpdate();
                     }
                 }
-                // ---------------------------
 
                 System.out.println("Commande ajoutée. ID = " + c.getId_commande());
             }
@@ -85,9 +81,7 @@ public class CommandeService implements IGeneralService<Commande> {
         }
     }
 
-    // =========================
-    // MODIFIER
-    // =========================
+
     @Override
     public void modifier(Commande c) {
 
@@ -113,13 +107,11 @@ public class CommandeService implements IGeneralService<Commande> {
             int rows = ps.executeUpdate();
             if (rows == 0) { System.out.println("Commande introuvable."); return; }
 
-            // ----- supprimer anciennes lignes -----
             try (PreparedStatement psDel = cn.prepareStatement("DELETE FROM commande_produit WHERE commande_id=?")) {
                 psDel.setInt(1, c.getId_commande());
                 psDel.executeUpdate();
             }
 
-            // ----- réinsérer nouvelles lignes -----
             String sqlLigne = "INSERT INTO commande_produit (quantite_commandee, commande_id, produit_id) VALUES (?, ?, ?)";
             try (PreparedStatement psL = cn.prepareStatement(sqlLigne)) {
                 for (CommandeProduit cp : c.getCommande_produits()) {
@@ -130,7 +122,6 @@ public class CommandeService implements IGeneralService<Commande> {
                     psL.executeUpdate();
                 }
             }
-            // --------------------------------------
 
             System.out.println("Commande modifiée avec succès.");
 
@@ -139,19 +130,15 @@ public class CommandeService implements IGeneralService<Commande> {
         }
     }
 
-    // =========================
-    // SUPPRIMER
-    // =========================
+
     @Override
     public void supprimer(Commande c) {
 
         try {
-            // ----- supprimer lignes d'abord -----
             try (PreparedStatement psDel = cn.prepareStatement("DELETE FROM commande_produit WHERE commande_id=?")) {
                 psDel.setInt(1, c.getId_commande());
                 psDel.executeUpdate();
             }
-            // ------------------------------------
 
             try (PreparedStatement ps = cn.prepareStatement("DELETE FROM commande WHERE id_commande=?")) {
                 ps.setInt(1, c.getId_commande());
@@ -164,9 +151,7 @@ public class CommandeService implements IGeneralService<Commande> {
         }
     }
 
-    // =========================
-    // RECUPERER
-    // =========================
+
     @Override
     public List<Commande> recuperer() {
 
@@ -188,7 +173,6 @@ public class CommandeService implements IGeneralService<Commande> {
                 c.setStatut_commande(rs.getString("statut_commande"));
                 c.setMontant_total_cents(rs.getInt("montant_total_cents"));
 
-                // ----- charger lignes inline -----
                 List<CommandeProduit> lignes = new ArrayList<>();
                 try (PreparedStatement psL = cn.prepareStatement("SELECT * FROM commande_produit WHERE commande_id=?")) {
                     psL.setInt(1, c.getId_commande());
@@ -221,7 +205,6 @@ public class CommandeService implements IGeneralService<Commande> {
                     }
                 }
                 c.setCommande_produits(lignes);
-                // ----------------------------------
 
                 liste.add(c);
             }
@@ -299,9 +282,7 @@ public class CommandeService implements IGeneralService<Commande> {
         return null;
     }
 
-    // =========================
-    // VALIDATIONS
-    // =========================
+
     private boolean isUserValid(User user) {
         try (PreparedStatement ps = cn.prepareStatement("SELECT id FROM user WHERE id=?")) {
             ps.setInt(1, user.getId());

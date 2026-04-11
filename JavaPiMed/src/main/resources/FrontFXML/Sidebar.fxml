@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Priority?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox xmlns:fx="http://javafx.com/fxml/1"
+      prefWidth="245.0"
+      styleClass="sidebar"
+      fx:controller="tn.esprit.controllers.NavigationController">
+
+    <padding>
+        <Insets top="28" right="18" bottom="28" left="18"/>
+    </padding>
+
+    <HBox alignment="CENTER_LEFT" spacing="12">
+        <ImageView fitWidth="44" fitHeight="44" preserveRatio="true">
+            <image>
+                <Image url="/images/logo.png"/>
+            </image>
+        </ImageView>
+        <VBox spacing="2">
+            <Label text="MEDFLOW" styleClass="logo-text"/>
+            <Label text="Healthcare Platform" styleClass="logo-subtext"/>
+        </VBox>
+    </HBox>
+
+    <VBox spacing="12" styleClass="menu-box">
+        <padding>
+            <Insets top="35"/>
+        </padding>
+
+        <Button fx:id="accueilButton" text="Accueil" styleClass="menu-button" onAction="#handleAccueil"/>
+        <Button fx:id="reclamationButton" text="Réclamation" styleClass="menu-button" onAction="#handleRéclamation"/>
+        <Button fx:id="blogButton" text="Blog" styleClass="menu-button" onAction="#handleBlog"/>
+        <Button fx:id="pharmacieButton" text="Pharmacie" styleClass="menu-button" onAction="#handlePharmacie"/>
+        <Button fx:id="evenementButton" text="Événement" styleClass="menu-button" onAction="#handleÉvénement"/>
+        <Button fx:id="consultationButton" text="Consultation" styleClass="menu-button" onAction="#handleRendezVous"/>
+        <Button fx:id="compteButton" text="Compte" styleClass="menu-button" onAction="#handleCompte"/>
+    </VBox>
+
+    <VBox VBox.vgrow="ALWAYS"/>
+
+    <VBox spacing="10">
+        <Button text="Mon Compte" styleClass="menu-button"/>
+        <Button text="Se déconnecter" styleClass="menu-button"/>
+    </VBox>
+</VBox>

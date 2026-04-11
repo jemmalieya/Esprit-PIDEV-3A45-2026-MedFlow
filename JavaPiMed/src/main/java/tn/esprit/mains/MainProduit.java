@@ -8,9 +8,7 @@ public class MainProduit {
 
         ProduitService service = new ProduitService();
 
-        // =========================
-        // AJOUTER
-        // =========================
+
         Produit p = new Produit();
         p.setNom_produit("fokmatesttestest");
         p.setDescription_produit("test testt test test");
@@ -22,17 +20,12 @@ public class MainProduit {
 
         service.ajouter(p);
 
-        // =========================
-        // AFFICHER TOUS
-        // =========================
         System.out.println("\n===== LISTE DES PRODUITS =====");
         for (Produit produit : service.recuperer()) {
             System.out.println(produit);
         }
 
-        // =========================
-        // AFFICHER UN SEUL PRODUIT
-        // =========================
+
         int idProduitAAfficher = 40;
 
         Produit produitUnique = service.recupererParId(idProduitAAfficher);
@@ -44,9 +37,7 @@ public class MainProduit {
             System.out.println(" Produit avec ID " + idProduitAAfficher + " non trouvé");
         }
 
-        // =========================
-        // MODIFIER (avec recupererParId)
-        // =========================
+
         int idProduitToModify = 40;
 
         Produit produitToModify = service.recupererParId(idProduitToModify);
@@ -82,17 +73,12 @@ public class MainProduit {
         service.modifier(produitToModify);
         */
 
-        // =========================
-        // AFFICHER APRES MODIFICATION
-        // =========================
         System.out.println("\n===== APRES MODIFICATION =====");
         for (Produit produit : service.recuperer()) {
             System.out.println(produit);
         }
 
-        // =========================
-        // SUPPRIMER (avec recupererParId)
-        // =========================
+
         int idProduitToDelete = 41;
 
         Produit produitToDelete = service.recupererParId(idProduitToDelete);
@@ -113,9 +99,7 @@ public class MainProduit {
         service.supprimer(produitToDelete);
         */
 
-        // =========================
-        // AFFICHER APRES SUPPRESSION
-        // =========================
+
         System.out.println("\n===== APRES SUPPRESSION =====");
         for (Produit produit : service.recuperer()) {
             System.out.println(produit);

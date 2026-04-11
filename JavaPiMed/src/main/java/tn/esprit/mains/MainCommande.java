@@ -18,9 +18,7 @@ public class MainCommande {
 
     public static void main(String[] args) {
 
-        // =========================
-        // AJOUTER
-        // =========================
+
         System.out.println("\n========== AJOUTER ==========");
 
         Produit p1 = produitService.recupererParId(6);
@@ -46,17 +44,12 @@ public class MainCommande {
 
         commandeService.ajouter(c);
 
-        // =========================
-        // AFFICHER TOUTES LES COMMANDES
-        // =========================
+
         System.out.println("\n========== LISTE DES COMMANDES ==========");
         for (Commande commande : commandeService.recuperer()) {
             System.out.println(commande);
         }
 
-        // =========================
-        // AFFICHER UNE SEULE COMMANDE
-        // =========================
         System.out.println("\n========== COMMANDE PAR ID ==========");
 
         int idCommandeAAfficher = 42;
@@ -68,9 +61,6 @@ public class MainCommande {
             System.out.println("Commande avec ID " + idCommandeAAfficher + " non trouvée");
         }
 
-        // =========================
-        // MODIFIER (avec recupererParId)
-        // =========================
         System.out.println("\n========== MODIFIER ==========");
 
         int idAModifier = 2;
@@ -146,17 +136,13 @@ public class MainCommande {
         commandeService.modifier(aModifier);
         */
 
-        // =========================
-        // AFFICHAGE APRES MODIFICATION
-        // =========================
+
         System.out.println("\n========== APRES MODIFICATION ==========");
         for (Commande commande : commandeService.recuperer()) {
             System.out.println(commande);
         }
 
-        // =========================
-        // SUPPRIMER (avec recupererParId)
-        // =========================
+
         System.out.println("\n========== SUPPRIMER ==========");
 
         int idASupprimer = 40;
@@ -180,9 +166,6 @@ public class MainCommande {
         commandeService.supprimer(aSupprimer);
         */
 
-        // =========================
-        // AFFICHAGE APRES SUPPRESSION
-        // =========================
         System.out.println("\n========== APRES SUPPRESSION ==========");
         for (Commande commande : commandeService.recuperer()) {
             System.out.println(commande);

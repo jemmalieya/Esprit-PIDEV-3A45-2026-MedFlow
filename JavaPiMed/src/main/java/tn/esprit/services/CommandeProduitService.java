@@ -42,10 +42,10 @@ public class CommandeProduitService implements IGeneralService<CommandeProduit> 
             ps.setInt(1, cp.getId_ligne_commande());
 
             ps.executeUpdate();
-            System.out.println("🗑️ Ligne de commande supprimée avec succès");
+            System.out.println("🗑 Ligne de commande supprimée avec succès");
 
         } catch (SQLException ex) {
-            System.out.println("❌ Erreur lors de la suppression de la ligne de commande : " + ex.getMessage());
+            System.out.println(" Erreur lors de la suppression de la ligne de commande : " + ex.getMessage());
         }
     }
 
@@ -60,7 +60,7 @@ public class CommandeProduitService implements IGeneralService<CommandeProduit> 
             ps.setInt(4, cp.getId_ligne_commande());
 
             ps.executeUpdate();
-            System.out.println("✏️ Ligne de commande modifiée avec succès");
+            System.out.println("✏ Ligne de commande modifiée avec succès");
 
         } catch (SQLException ex) {
             System.out.println("❌ Erreur lors de la modification de la ligne de commande : " + ex.getMessage());

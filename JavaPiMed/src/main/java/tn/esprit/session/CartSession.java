@@ -1,7 +1,9 @@
 package tn.esprit.session;
 
 import tn.esprit.entities.Produit;
+
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 public class CartSession {
@@ -13,11 +15,42 @@ public class CartSession {
     }
 
     public static void supprimerProduit(Produit produit) {
-        panier.remove(produit);
+        supprimerToutesOccurrences(produit);
+    }
+
+    public static void supprimerUneOccurrence(Produit produit) {
+        Iterator<Produit> iterator = panier.iterator();
+        while (iterator.hasNext()) {
+            Produit p = iterator.next();
+            if (p.getId_produit() == produit.getId_produit()) {
+                iterator.remove();
+                break;
+            }
+        }
+    }
+
+    public static void supprimerToutesOccurrences(Produit produit) {
+        Iterator<Produit> iterator = panier.iterator();
+        while (iterator.hasNext()) {
+            Produit p = iterator.next();
+            if (p.getId_produit() == produit.getId_produit()) {
+                iterator.remove();
+            }
+        }
+    }
+
+    public static int getQuantiteProduit(Produit produit) {
+        int count = 0;
+        for (Produit p : panier) {
+            if (p.getId_produit() == produit.getId_produit()) {
+                count++;
+            }
+        }
+        return count;
     }
 
     public static List<Produit> getPanier() {
-        return panier;
+        return new ArrayList<>(panier);
     }
 
     public static void viderPanier() {

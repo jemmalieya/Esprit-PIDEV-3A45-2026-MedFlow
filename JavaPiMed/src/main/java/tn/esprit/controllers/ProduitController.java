@@ -21,6 +21,7 @@ import tn.esprit.session.CartSession;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -223,8 +224,14 @@ public class ProduitController {
         if (filteredList.isEmpty()) {
             VBox emptyBox = new VBox(10);
             emptyBox.setAlignment(Pos.CENTER);
+            emptyBox.getStyleClass().add("empty-box");
+
             Label title = new Label("Aucun produit trouvé");
+            title.getStyleClass().add("empty-title");
+
             Label text = new Label("Essayez une autre recherche ou changez le tri.");
+            text.getStyleClass().add("empty-text");
+
             emptyBox.getChildren().addAll(title, text);
             produitsListContainer.getChildren().add(emptyBox);
             return;
@@ -240,61 +247,125 @@ public class ProduitController {
     private HBox createProduitRow(Produit produit, boolean even) {
         HBox row = new HBox();
         row.setAlignment(Pos.CENTER_LEFT);
-        row.setSpacing(8);
-        row.setPadding(new Insets(14, 14, 14, 14));
+        row.setSpacing(12);
+        row.setPadding(new Insets(16, 18, 16, 18));
+        row.setMaxWidth(Double.MAX_VALUE);
+        row.getStyleClass().add("product-row");
 
+        if (even) {
+            row.getStyleClass().add("product-row-even");
+        }
+
+        // IMAGE
         StackPane imageBox = new StackPane();
-        imageBox.setPrefSize(50, 50);
+        imageBox.setPrefSize(64, 64);
+        imageBox.setMinSize(64, 64);
+        imageBox.setMaxSize(64, 64);
+        imageBox.getStyleClass().add("row-image-box");
 
-        String imagePathProduit = produit.getImage_produit();
-        if (imagePathProduit != null && !imagePathProduit.trim().isEmpty()) {
+        String imagePathProduit = safe(produit.getImage_produit());
+        if (!imagePathProduit.isEmpty()) {
             try {
                 File file = new File(imagePathProduit);
                 if (file.exists()) {
                     ImageView imageView = new ImageView(new Image(file.toURI().toString()));
-                    imageView.setFitWidth(42);
-                    imageView.setFitHeight(42);
+                    imageView.setFitWidth(52);
+                    imageView.setFitHeight(52);
                     imageView.setPreserveRatio(true);
                     imageBox.getChildren().add(imageView);
                 } else {
-                    imageBox.getChildren().add(new Label("🖼"));
+                    Label imgFallback = new Label("🖼");
+                    imgFallback.getStyleClass().add("row-image-icon");
+                    imageBox.getChildren().add(imgFallback);
                 }
             } catch (Exception e) {
-                imageBox.getChildren().add(new Label("🖼"));
+                Label imgFallback = new Label("🖼");
+                imgFallback.getStyleClass().add("row-image-icon");
+                imageBox.getChildren().add(imgFallback);
             }
         } else {
-            imageBox.getChildren().add(new Label("🖼"));
+            Label imgFallback = new Label("🖼");
+            imgFallback.getStyleClass().add("row-image-icon");
+            imageBox.getChildren().add(imgFallback);
         }
 
-        Label nomLabel = new Label("🏷 " + safe(produit.getNom_produit()));
-        VBox nomBox = wrapBox(nomLabel, 110);
+        VBox imageWrap = wrapBox(imageBox, 100);
 
-        Label prixLabel = new Label("💰 " + formatPrix(produit.getPrix_produit()));
-        VBox prixBox = wrapBox(prixLabel, 100);
+        // NOM
+        Label nomLabel = new Label(safe(produit.getNom_produit()));
+        nomLabel.getStyleClass().add("row-main-text");
+        nomLabel.setWrapText(true);
+        VBox nomBox = wrapBox(nomLabel, 180);
 
-        Label qteBadge = new Label("📦 " + produit.getQuantite_produit() + " Qté");
-        VBox qteBox = wrapBox(qteBadge, 110);
+        // PRIX
+        Label prixLabel = new Label(formatPrix(produit.getPrix_produit()));
+        prixLabel.getStyleClass().add("row-price-text");
+        VBox prixBox = wrapBox(prixLabel, 140);
 
-        Label catBadge = new Label("🗂 " + safe(produit.getCategorie_produit()));
-        VBox catBox = wrapBox(catBadge, 150);
+        // QUANTITE
+        Label qteBadge = new Label(produit.getQuantite_produit() + " Qté");
 
+        if (produit.getQuantite_produit() <= 5) {
+            qteBadge.getStyleClass().add("qty-badge-red");
+        } else if (produit.getQuantite_produit() <= 15) {
+            qteBadge.getStyleClass().add("qty-badge-soft-red");
+        } else {
+            qteBadge.getStyleClass().add("qty-badge-blue");
+        }
+
+        VBox qteBox = wrapBox(qteBadge, 130);
+
+        // CATEGORIE
+        Label catBadge = new Label(safe(produit.getCategorie_produit()));
+        catBadge.getStyleClass().add("category-badge");
+        catBadge.setWrapText(true);
+        VBox catBox = wrapBox(catBadge, 220);
+
+        // STATUT
         Label statutBadge = new Label(getStatutIcon(produit.getStatus_produit()) + " " + safe(produit.getStatus_produit()));
-        VBox statutBox = wrapBox(statutBadge, 135);
+        String statut = safe(produit.getStatus_produit()).toLowerCase(Locale.ROOT);
 
-        Label descLabel = new Label("📝 " + shortText(safe(produit.getDescription_produit()), 22));
+        if (statut.contains("rupture")) {
+            statutBadge.getStyleClass().add("statut-badge-rupture");
+        } else if (statut.contains("indisponible")) {
+            statutBadge.getStyleClass().add("statut-badge-indisponible");
+        } else {
+            statutBadge.getStyleClass().add("statut-badge-disponible");
+        }
+
+        VBox statutBox = wrapBox(statutBadge, 170);
+
+        // DESCRIPTION
+        Label descLabel = new Label(safe(produit.getDescription_produit()));
+        descLabel.getStyleClass().add("row-description-text");
         descLabel.setWrapText(true);
-        VBox descBox = wrapBox(descLabel, 120);
+        descLabel.setMaxWidth(320);
+        VBox descBox = wrapBox(descLabel, 340);
 
+        // ACTIONS
         Button editBtn = new Button("✏");
-        Button deleteBtn = new Button("🗑");
-
+        editBtn.getStyleClass().add("action-blue-btn");
         editBtn.setOnAction(e -> ouvrirPageModifier(produit));
+
+        Button deleteBtn = new Button("🗑");
+        deleteBtn.getStyleClass().add("action-red-btn");
         deleteBtn.setOnAction(e -> supprimerProduitAvecConfirmation(produit));
 
-        HBox actionsBox = new HBox(8, editBtn, deleteBtn);
-        VBox actionsWrap = wrapBox(actionsBox, 90);
+        HBox actionsBox = new HBox(10, editBtn, deleteBtn);
+        actionsBox.setAlignment(Pos.CENTER_LEFT);
+        VBox actionsWrap = wrapBox(actionsBox, 120);
 
-        row.getChildren().addAll(imageBox, nomBox, prixBox, qteBox, catBox, statutBox, descBox, actionsWrap);
+        row.getChildren().addAll(
+                imageWrap,
+                nomBox,
+                prixBox,
+                qteBox,
+                catBox,
+                statutBox,
+                descBox,
+                actionsWrap
+        );
+
         return row;
     }
 
@@ -303,10 +374,8 @@ public class ProduitController {
         box.setAlignment(Pos.CENTER_LEFT);
         box.setPrefWidth(width);
         box.setMinWidth(width);
-        box.setMaxWidth(width);
         return box;
     }
-
     private void updateStats() {
         int total = filteredList.size();
         int disponibles = 0;
@@ -328,32 +397,39 @@ public class ProduitController {
         if (alerteInventaireLabel != null) alerteInventaireLabel.setText("🔔 Alerte Inventaire " + rupture);
     }
 
-    // ===================== PHARMACIE FRONT =====================
     private void initPharmacieIfExists() {
         if (productGrid == null) return;
 
-        triPrixCombo.setItems(FXCollections.observableArrayList(
-                "Trier prix", "Prix croissant", "Prix décroissant"
-        ));
-        triPrixCombo.setValue("Trier prix");
+        if (triPrixCombo != null) {
+            triPrixCombo.setItems(FXCollections.observableArrayList(
+                    "Trier prix", "Prix croissant", "Prix décroissant"
+            ));
+            triPrixCombo.setValue("Trier prix");
+        }
 
-        triStockCombo.setItems(FXCollections.observableArrayList(
-                "Trier stock", "Stock croissant", "Stock décroissant"
-        ));
-        triStockCombo.setValue("Trier stock");
+        if (triStockCombo != null) {
+            triStockCombo.setItems(FXCollections.observableArrayList(
+                    "Trier stock", "Stock croissant", "Stock décroissant"
+            ));
+            triStockCombo.setValue("Trier stock");
+        }
 
-        categorieCombo.setItems(FXCollections.observableArrayList(
-                "Toutes catégories", "Médicament", "Parapharmacie", "Matériel"
-        ));
-        categorieCombo.setValue("Toutes catégories");
+        if (categorieCombo != null) {
+            categorieCombo.setItems(FXCollections.observableArrayList(
+                    "Toutes catégories", "Médicament", "Parapharmacie", "Matériel"
+            ));
+            categorieCombo.setValue("Toutes catégories");
+        }
 
         allProduitsFront.clear();
         allProduitsFront.addAll(produitService.recuperer());
 
-        searchProduitField.textProperty().addListener((obs, oldV, newV) -> refreshPharmacieGrid());
-        triPrixCombo.setOnAction(e -> refreshPharmacieGrid());
-        triStockCombo.setOnAction(e -> refreshPharmacieGrid());
-        categorieCombo.setOnAction(e -> refreshPharmacieGrid());
+        if (searchProduitField != null) {
+            searchProduitField.textProperty().addListener((obs, oldV, newV) -> refreshPharmacieGrid());
+        }
+        if (triPrixCombo != null) triPrixCombo.setOnAction(e -> refreshPharmacieGrid());
+        if (triStockCombo != null) triStockCombo.setOnAction(e -> refreshPharmacieGrid());
+        if (categorieCombo != null) categorieCombo.setOnAction(e -> refreshPharmacieGrid());
 
         updatePanierButton();
         refreshPharmacieGrid();
@@ -366,7 +442,13 @@ public class ProduitController {
 
         List<Produit> filtered = new ArrayList<>(allProduitsFront);
 
-        String keyword = searchProduitField.getText() == null ? "" : searchProduitField.getText().trim().toLowerCase(Locale.ROOT);
+        String keyword;
+        if (searchProduitField != null && searchProduitField.getText() != null) {
+            keyword = searchProduitField.getText().trim().toLowerCase(Locale.ROOT);
+        } else {
+            keyword = "";
+        }
+
         if (!keyword.isEmpty()) {
             filtered.removeIf(p ->
                     !safe(p.getNom_produit()).toLowerCase(Locale.ROOT).contains(keyword)
@@ -375,21 +457,25 @@ public class ProduitController {
             );
         }
 
-        String categorie = categorieCombo.getValue();
+        String categorie = categorieCombo != null ? categorieCombo.getValue() : null;
         if (categorie != null && !categorie.equals("Toutes catégories")) {
             filtered.removeIf(p -> !safe(p.getCategorie_produit()).equalsIgnoreCase(categorie));
         }
 
-        if ("Prix croissant".equals(triPrixCombo.getValue())) {
-            filtered.sort(Comparator.comparingDouble(Produit::getPrix_produit));
-        } else if ("Prix décroissant".equals(triPrixCombo.getValue())) {
-            filtered.sort(Comparator.comparingDouble(Produit::getPrix_produit).reversed());
+        if (triPrixCombo != null) {
+            if ("Prix croissant".equals(triPrixCombo.getValue())) {
+                filtered.sort(Comparator.comparingDouble(Produit::getPrix_produit));
+            } else if ("Prix décroissant".equals(triPrixCombo.getValue())) {
+                filtered.sort(Comparator.comparingDouble(Produit::getPrix_produit).reversed());
+            }
         }
 
-        if ("Stock croissant".equals(triStockCombo.getValue())) {
-            filtered.sort(Comparator.comparingInt(Produit::getQuantite_produit));
-        } else if ("Stock décroissant".equals(triStockCombo.getValue())) {
-            filtered.sort(Comparator.comparingInt(Produit::getQuantite_produit).reversed());
+        if (triStockCombo != null) {
+            if ("Stock croissant".equals(triStockCombo.getValue())) {
+                filtered.sort(Comparator.comparingInt(Produit::getQuantite_produit));
+            } else if ("Stock décroissant".equals(triStockCombo.getValue())) {
+                filtered.sort(Comparator.comparingInt(Produit::getQuantite_produit).reversed());
+            }
         }
 
         for (Produit produit : filtered) {
@@ -499,27 +585,26 @@ public class ProduitController {
 
     @FXML
     private void ouvrirPanierPopup() {
-        List<Produit> panier = CartSession.getPanier();
+        try {
+            URL url = getClass().getResource("/FrontFXML/Panier.fxml"); // ✅ adapte au vrai chemin
 
-        StringBuilder contenu = new StringBuilder();
-        double total = 0;
-
-        if (panier.isEmpty()) {
-            contenu.append("Votre panier est vide.");
-        } else {
-            for (Produit p : panier) {
-                contenu.append("- ").append(p.getNom_produit())
-                        .append(" | ").append(p.getPrix_produit()).append(" DT\n");
-                total += p.getPrix_produit();
+            if (url == null) {
+                throw new IOException("Fichier introuvable : /FrontFXML/Panier.fxml");
             }
-            contenu.append("\nTotal : ").append(String.format(Locale.US, "%.2f", total)).append(" DT");
-        }
 
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Panier");
-        alert.setHeaderText("Produits dans le panier");
-        alert.setContentText(contenu.toString());
-        alert.showAndWait();
+            FXMLLoader loader = new FXMLLoader(url);
+            Parent root = loader.load();
+
+            Stage stage = (Stage) btnPanier.getScene().getWindow();
+            stage.setScene(new Scene(root));
+            stage.setTitle("Mon Panier");
+            stage.show();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Erreur Navigation",
+                    "Impossible d'ouvrir Panier.fxml : " + e.getMessage());
+        }
     }
 
     private void showProduitDetails(Produit p) {
@@ -536,11 +621,13 @@ public class ProduitController {
         alert.showAndWait();
     }
 
-    // ===================== NAVIGATION =====================
     @FXML
     private void onNewProduit() {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/AjouterProduit.fxml"));
+            URL url = getClass().getResource("/AjouterProduit.fxml");
+            if (url == null) throw new IOException("Fichier introuvable : /FrontFXML/AjouterProduit.fxml");
+
+            FXMLLoader loader = new FXMLLoader(url);
             Parent root = loader.load();
 
             Stage stage = (Stage) produitsListContainer.getScene().getWindow();
@@ -548,8 +635,9 @@ public class ProduitController {
             stage.setTitle("Ajouter Produit");
             stage.show();
 
-        } catch (IOException e) {
-            showAlert(Alert.AlertType.ERROR, "Erreur Navigation", "Impossible d'ouvrir AjouterProduit.fxml : " + e.getMessage());
+        } catch (Exception e) {
+            showAlert(Alert.AlertType.ERROR, "Erreur Navigation",
+                    "Impossible d'ouvrir AjouterProduit.fxml : " + e.getMessage());
         }
     }
 
@@ -557,19 +645,26 @@ public class ProduitController {
         try {
             produitAmodifier = produit;
 
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/ModifierProduit.fxml"));
+            URL url = getClass().getResource("/ModifierProduit.fxml");
+            if (url == null) throw new IOException("Fichier introuvable : /FrontFXML/ModifierProduit.fxml");
+
+            FXMLLoader loader = new FXMLLoader(url);
             Parent root = loader.load();
 
             Stage stage;
-            if (produitsListContainer != null) stage = (Stage) produitsListContainer.getScene().getWindow();
-            else stage = (Stage) btnResetProduit.getScene().getWindow();
+            if (produitsListContainer != null) {
+                stage = (Stage) produitsListContainer.getScene().getWindow();
+            } else {
+                stage = (Stage) btnResetProduit.getScene().getWindow();
+            }
 
             stage.setScene(new Scene(root));
             stage.setTitle("Modifier Produit");
             stage.show();
 
-        } catch (IOException e) {
-            showAlert(Alert.AlertType.ERROR, "Erreur Navigation", "Impossible d'ouvrir ModifierProduit.fxml : " + e.getMessage());
+        } catch (Exception e) {
+            showAlert(Alert.AlertType.ERROR, "Erreur Navigation",
+                    "Impossible d'ouvrir ModifierProduit.fxml : " + e.getMessage());
         }
     }
 
@@ -715,21 +810,30 @@ public class ProduitController {
         try {
             produitAmodifier = null;
 
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/ProduitDashboard.fxml"));
+            URL url = getClass().getResource("/ProduitDashboard.fxml");
+            if (url == null) throw new IOException("Fichier introuvable : /FrontFXML/ProduitDashboard.fxml");
+
+            FXMLLoader loader = new FXMLLoader(url);
             Parent root = loader.load();
 
             Stage stage;
-            if (btnResetProduit != null && btnResetProduit.getScene() != null) stage = (Stage) btnResetProduit.getScene().getWindow();
-            else if (btnAjouterProduit != null && btnAjouterProduit.getScene() != null) stage = (Stage) btnAjouterProduit.getScene().getWindow();
-            else if (btnModifierProduit != null && btnModifierProduit.getScene() != null) stage = (Stage) btnModifierProduit.getScene().getWindow();
-            else return;
+            if (btnResetProduit != null && btnResetProduit.getScene() != null) {
+                stage = (Stage) btnResetProduit.getScene().getWindow();
+            } else if (btnAjouterProduit != null && btnAjouterProduit.getScene() != null) {
+                stage = (Stage) btnAjouterProduit.getScene().getWindow();
+            } else if (btnModifierProduit != null && btnModifierProduit.getScene() != null) {
+                stage = (Stage) btnModifierProduit.getScene().getWindow();
+            } else {
+                return;
+            }
 
             stage.setScene(new Scene(root));
             stage.setTitle("Gestion des Produits");
             stage.show();
 
         } catch (Exception e) {
-            showAlert(Alert.AlertType.ERROR, "Erreur Navigation", "Impossible de retourner à la page produits : " + e.getMessage());
+            showAlert(Alert.AlertType.ERROR, "Erreur Navigation",
+                    "Impossible de retourner à la page produits : " + e.getMessage());
         }
     }
 

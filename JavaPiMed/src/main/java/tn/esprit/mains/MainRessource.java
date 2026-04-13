@@ -11,7 +11,7 @@ public class MainRessource {
 
 
         Ressource r = new Ressource();
-        r.setNom_ressource("Vidéo chames");
+        r.setNom_ressource("Vidéo hajer3");
         r.setCategorie_ressource("Éducation");
         r.setType_ressource("Vidéo");
         r.setChemin_fichier_ressource("/path/to/file");
@@ -28,17 +28,17 @@ public class MainRessource {
         r.setDate_mise_a_jour_ressource(new Date());
 
 
-        r.setEvenement_id(34);
+        r.setEvenement_id(41);
 
 
-       // service.ajouter(r);
-       // System.out.println("===== Apres ajout =====");
-      //  displayResources(service);
+        service.ajouter(r);
+        System.out.println("===== Apres ajout =====");
+       displayResources(service);
 
 
-        r.setId(36);
+        r.setId(41);
         r.setNom_ressource("Vidéo Tutoriel Mis à Jour");
-        r.setQuantite_disponible_ressource(20);
+        r.setQuantite_disponible_ressource(21);
 
 
         service.modifier(r);

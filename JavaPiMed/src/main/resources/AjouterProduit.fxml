@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.RadioButton?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.ToggleGroup?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane styleClass="root-layout" stylesheets="@CSS/style-ajout-produit.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="tn.esprit.controllers.ProduitController">
+
+    <!-- CONTENU PRINCIPAL -->
+    <center>
+        <ScrollPane fitToHeight="true" fitToWidth="true" pannable="true" styleClass="main-scroll">
+            <content>
+                <VBox spacing="22" styleClass="page-container">
+                    <padding>
+                        <Insets bottom="28" left="28" right="28" top="22" />
+                    </padding>
+
+                    <children>
+
+                        <!-- BARRE TOP -->
+                        <HBox alignment="CENTER_LEFT" spacing="0" styleClass="top-search-bar">
+                            <children>
+                                <TextField promptText="Search for..." styleClass="search-input" HBox.hgrow="ALWAYS" />
+                                <Button styleClass="search-btn" text="🔍" />
+                                <Region HBox.hgrow="ALWAYS" />
+                                <Label styleClass="notif-icon" text="🔔" />
+                            </children>
+                        </HBox>
+
+                        <!-- TITRE -->
+                        <HBox alignment="CENTER_LEFT">
+                            <children>
+                                <VBox spacing="6">
+                                    <children>
+                                        <Label styleClass="page-title" text="Ajouter un produit" />
+                                        <Label styleClass="page-subtitle" text="Remplissez les informations du nouveau produit" />
+                                    </children>
+                                </VBox>
+
+                                <Region HBox.hgrow="ALWAYS" />
+
+                                <Button fx:id="btnResetProduit" onAction="#retourProduit" styleClass="btn-retour" text="←Retour" />
+                            </children>
+                        </HBox>
+
+                        <!-- ZONE FORMULAIRE -->
+                        <HBox alignment="TOP_LEFT" spacing="24">
+                            <children>
+
+                                <!-- COLONNE GAUCHE -->
+                                <VBox spacing="18" HBox.hgrow="ALWAYS">
+                                    <children>
+
+                                        <VBox styleClass="main-card">
+                                            <children>
+
+                                                <HBox styleClass="card-header">
+                                                    <children>
+                                                        <Label styleClass="card-header-title" text="Informations principales" />
+                                                    </children>
+                                                </HBox>
+
+                                                <VBox spacing="18" styleClass="card-content">
+                                                    <children>
+
+                                                        <Label styleClass="field-label" text="Nom du produit *" />
+                                                        <TextField fx:id="tfNomProduit" promptText="Ex: Paracétamol 500mg" styleClass="custom-field" />
+
+                                                        <Label styleClass="field-label" text="Description *" />
+                                                        <TextArea fx:id="taDescriptionProduit" prefRowCount="5" promptText="Décrivez le produit..." styleClass="custom-area" wrapText="true" />
+
+                                                        <HBox spacing="22">
+                                                            <children>
+                                                                <VBox spacing="8" HBox.hgrow="ALWAYS">
+                                                                    <children>
+                                                                        <Label styleClass="field-label" text="Prix (DT) *" />
+                                                                        <HBox spacing="0">
+                                                                            <children>
+                                                                                <TextField fx:id="tfPrixProduit" promptText="0" styleClass="custom-field field-left" HBox.hgrow="ALWAYS" />
+                                                                                <Button focusTraversable="false" styleClass="field-addon" text="DT" />
+                                                                            </children>
+                                                                        </HBox>
+                                                                    </children>
+                                                                </VBox>
+
+                                                                <VBox spacing="8" HBox.hgrow="ALWAYS">
+                                                                    <children>
+                                                                        <Label styleClass="field-label" text="Quantité *" />
+                                                                        <TextField fx:id="tfQuantiteProduit" promptText="0" styleClass="custom-field" />
+                                                                    </children>
+                                                                </VBox>
+                                                            </children>
+                                                        </HBox>
+
+                                                        <Label styleClass="field-label" text="Catégorie *" />
+                                                        <ComboBox fx:id="cbCategorieProduit" prefWidth="260" promptText="Choisir une catégorie" styleClass="custom-combo" />
+
+                                                        <Label styleClass="field-label" text="Image du produit *" />
+                                                        <VBox styleClass="upload-zone">
+                                                            <children>
+                                                                <HBox alignment="CENTER_LEFT" spacing="10" styleClass="upload-inner">
+                                                                    <children>
+                                                                        <Button fx:id="btnUploadProduit" onAction="#choisirImage" styleClass="btn-upload" text="Choisir un fichier" />
+                                                                        <Label fx:id="lblImageProduit" styleClass="upload-file-label" text="Aucun fichier choisi" />
+                                                                    </children>
+                                                                </HBox>
+
+                                                                <Label styleClass="upload-help" text="Formats acceptés : JPG / PNG / WEBP (max 3Mo)" />
+                                                            </children>
+                                                        </VBox>
+                                                    </children>
+                                                </VBox>
+                                            </children>
+                                        </VBox>
+
+                                        <!-- BAS -->
+                                        <HBox alignment="CENTER_LEFT" styleClass="bottom-bar">
+                                            <children>
+                                                <Label styleClass="bottom-note" text="Les champs marqués d'un * sont obligatoires" />
+
+                                                <Region HBox.hgrow="ALWAYS" />
+
+                                                <Button onAction="#retourProduit" styleClass="btn-cancel" text="Annuler" />
+
+                                                <Button fx:id="btnAjouterProduit" onAction="#ajouterProduit" styleClass="btn-add" text="Ajouter le produit" />
+                                            </children>
+                                        </HBox>
+                                    </children>
+                                </VBox>
+
+                                <!-- COLONNE DROITE -->
+                                <VBox prefWidth="300" spacing="14" styleClass="status-card-box">
+                                    <children>
+                                        <Label styleClass="status-title" text="Statut du produit" />
+
+                                        <fx:define>
+                                            <ToggleGroup fx:id="statusGroupProduit" />
+                                        </fx:define>
+
+                                        <RadioButton fx:id="rbDisponibleProduit" selected="true" styleClass="status-radio" text="Disponible">
+                                            <toggleGroup>
+                                                <ToggleGroup fx:id="statusGroupProduit" />
+                                            </toggleGroup></RadioButton>
+
+                                        <RadioButton fx:id="rbRuptureProduit" styleClass="status-radio" text="Rupture" toggleGroup="$statusGroupProduit" />
+
+                                        <RadioButton fx:id="rbIndisponibleProduit" styleClass="status-radio" text="Indisponible" toggleGroup="$statusGroupProduit" />
+
+                                        <Label styleClass="status-help" text="Le statut contrôle l'affichage côté front." wrapText="true" />
+                                    </children>
+                                </VBox>
+
+                            </children>
+                        </HBox>
+
+                    </children>
+                </VBox>
+            </content>
+        </ScrollPane>
+    </center>
+
+</BorderPane>

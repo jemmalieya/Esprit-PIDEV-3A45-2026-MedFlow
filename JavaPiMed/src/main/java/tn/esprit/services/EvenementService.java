@@ -16,7 +16,7 @@ public class EvenementService implements IGeneralService<Evenement> {
     }
 
     @Override
-    public void ajouter(Evenement e) {
+    public void ajouter(Evenement e) throws SQLException {
 
         String sql = "INSERT INTO evenement (" +
                 "titre_event, slug_event, type_event, description_event, objectif_event, statut_event, " +
@@ -105,7 +105,7 @@ public class EvenementService implements IGeneralService<Evenement> {
     }
 
     @Override
-    public List<Evenement> recuperer() {
+    public List<Evenement> recuperer() throws SQLException {
         List<Evenement> list = new ArrayList<>();
         String sql = "SELECT * FROM evenement";
 
@@ -134,5 +134,38 @@ public class EvenementService implements IGeneralService<Evenement> {
         }
 
         return list;
+    }
+
+    @Override
+    public Evenement recupererParId(int id) {
+        String sql = "SELECT * FROM evenement WHERE id = ?";
+
+        try (PreparedStatement ps = cn.prepareStatement(sql)) {
+            ps.setInt(1, id);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    Evenement e = new Evenement();
+
+                    e.setId(rs.getInt("id"));
+                    e.setTitre_event(rs.getString("titre_event"));
+                    e.setSlug_event(rs.getString("slug_event"));
+                    e.setType_event(rs.getString("type_event"));
+                    e.setDescription_event(rs.getString("description_event"));
+                    e.setVille_event(rs.getString("ville_event"));
+                    e.setNb_participants_max_event(rs.getInt("nb_participants_max_event"));
+                    e.setEmail_contact_event(rs.getString("email_contact_event"));
+                    e.setNom_organisateur_event(rs.getString("nom_organisateur_event"));
+                    e.setStatut_event(rs.getString("statut_event"));
+
+                    return e;
+                }
+            }
+
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+
+        return null;
     }
 }

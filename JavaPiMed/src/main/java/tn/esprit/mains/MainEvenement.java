@@ -3,6 +3,7 @@ package tn.esprit.mains;
 import tn.esprit.entities.Evenement;
 import tn.esprit.services.EvenementService;
 
+import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 
 public class MainEvenement {
@@ -11,10 +12,10 @@ public class MainEvenement {
         EvenementService service = new EvenementService();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 
-      
+
         Evenement e = new Evenement();
 
-        e.setTitre_event("Forum santécha&mess");
+        e.setTitre_event("Forum Hajour");
         e.setSlug_event("forum-sante");
         e.setType_event("Conférence");
         e.setDescription_event("Evenement sur la santé");
@@ -51,11 +52,11 @@ public class MainEvenement {
         }
 
 
-        int idEvenementToModify = 19;
+        int idEvenementToModify = 40;
 
         Evenement evenementToModify = findEvenementById(service, idEvenementToModify);
         if (evenementToModify != null) {
-            evenementToModify.setTitre_event("Evenement modifiépppppjjjj");
+            evenementToModify.setTitre_event("Evenement");
             evenementToModify.setSlug_event("evenement-modifie");
             evenementToModify.setType_event("Atelier");
             evenementToModify.setDescription_event("Description modifiée");
@@ -93,7 +94,7 @@ public class MainEvenement {
         }
 
 
-        int idEvenementToDelete = 13;
+        int idEvenementToDelete = 39;
 
         Evenement evenementToDelete = findEvenementById(service, idEvenementToDelete);
         if (evenementToDelete != null) {
@@ -108,7 +109,7 @@ public class MainEvenement {
     }
 
 
-    public static Evenement findEvenementById(EvenementService service, int id) {
+    public static Evenement findEvenementById(EvenementService service, int id) throws SQLException {
         for (Evenement e : service.recuperer()) {
             if (e.getId() == id) {
                 return e;

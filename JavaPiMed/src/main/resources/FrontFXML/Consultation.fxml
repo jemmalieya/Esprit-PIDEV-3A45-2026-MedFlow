@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Priority?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<?import javafx.scene.control.ScrollPane?>
+<BorderPane xmlns:fx="http://javafx.com/fxml/1"
+            xmlns="http://javafx.com/javafx/21"
+            prefWidth="1400.0" prefHeight="820.0"
+            stylesheets="@../CSS/booking.css"
+            fx:controller="tn.esprit.controllers.NavigationController"
+            styleClass="root-pane">
+
+    <!-- LEFT SIDEBAR -->
+    <left>
+        <fx:include source="Sidebar.fxml"/>
+    </left>
+
+
+    <!-- MAIN BODY -->
+    <center>
+        <ScrollPane
+                pannable="true"
+                hbarPolicy="NEVER"
+                vbarPolicy="AS_NEEDED"
+                styleClass="main-scroll">
+
+            <content>
+                <VBox spacing="24" styleClass="main-area">
+                    <padding>
+                        <Insets top="26" right="28" bottom="26" left="28"/>
+                    </padding>
+
+                    <!-- HEADER -->
+                    <VBox spacing="6" styleClass="page-header">
+                        <Label text="Booking Appointments" styleClass="page-title"/>
+                        <Label text="Choose the date, the booking mode and the reason. Confirm your appointment in a clean and modern workflow."
+                               wrapText="true"
+                               styleClass="page-subtitle"/>
+                    </VBox>
+
+                    <!-- BIG BOOKING CARD -->
+                    <HBox spacing="22">
+                        <!-- LEFT CARD -->
+                        <VBox spacing="18" HBox.hgrow="ALWAYS" styleClass="booking-card">
+                            <Label text="Select appointment date" styleClass="card-title"/>
+
+                            <StackPane styleClass="calendar-box">
+                                <VBox spacing="14" alignment="CENTER">
+                                    <Label text="Appointment Calendar" styleClass="calendar-title"/>
+                                    <DatePicker fx:id="datePicker" styleClass="modern-date-picker"/>
+                                    <Label text="Pick the most suitable day for the consultation."
+                                           styleClass="helper-text"/>
+                                </VBox>
+                            </StackPane>
+
+                            <HBox spacing="10" alignment="CENTER_LEFT">
+                                <Label text="Available slots" styleClass="small-section-title"/>
+                            </HBox>
+
+                            <FlowPane hgap="10" vgap="10" prefWrapLength="600">
+                                <Button text="08:00" styleClass="slot-button"/>
+                                <Button text="09:00" styleClass="slot-button"/>
+                                <Button text="10:30" styleClass="slot-button-active"/>
+                                <Button text="11:30" styleClass="slot-button"/>
+                                <Button text="14:00" styleClass="slot-button"/>
+                                <Button text="15:30" styleClass="slot-button"/>
+                                <Button text="16:30" styleClass="slot-button"/>
+                            </FlowPane>
+                        </VBox>
+
+                        <!-- RIGHT MINI SUMMARY CARD -->
+                        <VBox prefWidth="300" spacing="16" styleClass="summary-card">
+                            <Label text="Appointment Summary" styleClass="card-title"/>
+
+                            <VBox spacing="12" styleClass="summary-box">
+                                <VBox spacing="4">
+                                    <Label text="Patient" styleClass="summary-label"/>
+                                    <Label text="Not defined yet" styleClass="summary-value"/>
+                                </VBox>
+
+                                <VBox spacing="4">
+                                    <Label text="Doctor" styleClass="summary-label"/>
+                                    <Label text="Dr. Walid" styleClass="summary-value"/>
+                                </VBox>
+
+                                <VBox spacing="4">
+                                    <Label text="Selected date" styleClass="summary-label"/>
+                                    <Label text="No date selected" styleClass="summary-value"/>
+                                </VBox>
+
+                                <VBox spacing="4">
+                                    <Label text="Selected slot" styleClass="summary-label"/>
+                                    <Label text="10:30" styleClass="summary-value-highlight"/>
+                                </VBox>
+                            </VBox>
+                        </VBox>
+                    </HBox>
+
+                    <!-- FORM CARD -->
+                    <VBox spacing="18" styleClass="form-card">
+                        <Label text="Appointment Details" styleClass="card-title"/>
+
+                        <HBox spacing="18">
+                            <VBox spacing="8" HBox.hgrow="ALWAYS">
+                                <Label text="Mode" styleClass="field-label"/>
+                                <ComboBox fx:id="modeComboBox" promptText="Select booking mode" styleClass="modern-combo-box"/>
+                            </VBox>
+
+                            <VBox spacing="8" HBox.hgrow="ALWAYS">
+                                <Label text="Service / Doctor" styleClass="field-label"/>
+                                <TextField fx:id="doctorField" promptText="Enter doctor or service" styleClass="modern-text-field"/>
+                            </VBox>
+                        </HBox>
+
+                        <VBox spacing="8">
+                            <Label text="Motif" styleClass="field-label"/>
+                            <TextArea fx:id="motifArea"
+                                      promptText="Describe the reason of the consultation..."
+                                      prefRowCount="5"
+                                      wrapText="true"
+                                      styleClass="modern-text-area"/>
+                        </VBox>
+
+                        <HBox spacing="14" alignment="CENTER_RIGHT">
+                            <Button text="Cancel" styleClass="cancel-button"/>
+                            <Button text="Confirm Appointment" styleClass="confirm-button"/>
+                        </HBox>
+                    </VBox>
+                </VBox>
+            </content>
+        </ScrollPane>
+    </center>
+
+</BorderPane>

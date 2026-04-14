@@ -82,4 +82,9 @@ public class PrescriptionService implements IGeneralService<Prescription> {
         }
         return list;
     }
+
+    @Override
+    public Prescription recupererParId(int id) {
+        return null;
+    }
 }

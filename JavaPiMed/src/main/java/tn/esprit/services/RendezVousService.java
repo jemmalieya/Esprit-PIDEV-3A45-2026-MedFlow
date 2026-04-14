@@ -8,6 +8,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class RendezVousService implements IGeneralService<RendezVous> {
+    @Override
+    public RendezVous recupererParId(int id) {
+        return null;
+    }
+
     Connection cn;
     public RendezVousService() {
         cn = MyDataBase.getInstance().getCnx();

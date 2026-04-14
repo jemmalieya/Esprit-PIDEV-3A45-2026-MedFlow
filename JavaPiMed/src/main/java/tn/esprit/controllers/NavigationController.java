@@ -10,7 +10,6 @@ import javafx.stage.Stage;
 
 public class NavigationController {
 
-
     @FXML
     private void handleRendezVous(ActionEvent event) {
         try {

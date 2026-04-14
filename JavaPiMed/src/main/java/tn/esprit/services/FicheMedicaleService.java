@@ -88,4 +88,9 @@ public class FicheMedicaleService implements IGeneralService<FicheMedicale> {
         }
         return list;
     }
+
+    @Override
+    public FicheMedicale recupererParId(int id) {
+        return null;
+    }
 }

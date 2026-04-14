@@ -1,6 +1,7 @@
 package tn.esprit.services;
 
 import tn.esprit.entities.Ressource;
+import tn.esprit.entities.Evenement;
 import tn.esprit.tools.MyDataBase;
 
 import java.sql.*;
@@ -9,14 +10,11 @@ import java.util.List;
 
 public class RessourceService {
 
-
     Connection cn;
-
 
     public RessourceService() {
         cn = MyDataBase.getInstance().getCnx();
     }
-
 
     public void ajouter(Ressource r) {
 
@@ -25,7 +23,8 @@ public class RessourceService {
 
         try (PreparedStatement ps = cn.prepareStatement(sql)) {
 
-            ps.setInt(1, r.getEvenement_id());
+            // Set Evenement ID (or handle this via the Evenement object)
+            ps.setInt(1, r.getEvenement().getId());  // This fetches the event ID from the Evenement object.
             ps.setString(2, r.getNom_ressource());
             ps.setString(3, r.getCategorie_ressource());
             ps.setString(4, r.getType_ressource());
@@ -42,14 +41,12 @@ public class RessourceService {
             ps.setDate(15, new java.sql.Date(r.getDate_creation_ressource().getTime()));
             ps.setDate(16, new java.sql.Date(r.getDate_mise_a_jour_ressource().getTime()));
 
-
             ps.executeUpdate();
-            System.out.println(" Ressource ajoutée");
+            System.out.println("Ressource ajoutée");
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
     }
-
 
     public void modifier(Ressource r) {
         String sql = "UPDATE ressource SET nom_ressource = ?, categorie_ressource = ?, type_ressource = ?, chemin_fichier_ressource = ?, mime_type_ressource = ?, taille_kb_ressource = ?, url_externe_ressource = ?, quantite_disponible_ressource = ?, unite_ressource = ?, fournisseur_ressource = ?, cout_estime_ressource = ?, est_publique_ressource = ?, notes_ressource = ?, date_mise_a_jour_ressource = ? WHERE id = ?";
@@ -78,19 +75,17 @@ public class RessourceService {
         }
     }
 
-
     public void supprimer(Ressource r) {
         String sql = "DELETE FROM ressource WHERE id = ?";
 
         try (PreparedStatement ps = cn.prepareStatement(sql)) {
             ps.setInt(1, r.getId());
             ps.executeUpdate();
-            System.out.println("️ Ressource supprimée");
+            System.out.println("Ressource supprimée");
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
     }
-
 
     public List<Ressource> recuperer() {
         List<Ressource> list = new ArrayList<>();
@@ -102,7 +97,11 @@ public class RessourceService {
             while (rs.next()) {
                 Ressource r = new Ressource();
                 r.setId(rs.getInt("id"));
-                r.setEvenement_id(rs.getInt("evenement_id"));
+                // We now fetch the Evenement object directly from the database.
+                Evenement evenement = new Evenement();  // Assuming Evenement ID is stored, we retrieve the event
+                evenement.setId(rs.getInt("evenement_id"));  // Set the ID of the Evenement
+                r.setEvenement(evenement);  // Link the Evenement object to the Ressource
+
                 r.setNom_ressource(rs.getString("nom_ressource"));
                 r.setCategorie_ressource(rs.getString("categorie_ressource"));
                 r.setType_ressource(rs.getString("type_ressource"));

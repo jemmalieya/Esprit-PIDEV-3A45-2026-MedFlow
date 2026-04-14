@@ -6,7 +6,8 @@
 
 <BorderPane xmlns:fx="http://javafx.com/fxml/1"
             stylesheets="@../CSS/commande_detail.css,@../CSS/booking.css"
-            styleClass="detail-root">
+            styleClass="detail-root"
+            prefWidth="1400.0" prefHeight="820.0">
 
     <!-- SIDEBAR -->
     <left>
@@ -42,6 +43,28 @@
                             <Label fx:id="lblStatut" text="—"
                                    styleClass="badge-detail badge-attente"/>
                         </VBox>
+                    </HBox>
+
+                    <!-- HERO -->
+                    <HBox spacing="18" alignment="CENTER_LEFT" styleClass="hero-card">
+                        <children>
+                            <VBox spacing="8" HBox.hgrow="ALWAYS">
+                                <children>
+                                    <Label text="📋 Détails de la commande" styleClass="hero-title"/>
+                                    <Label text="Consultez les informations complètes, suivez la livraison et téléchargez vos factures."
+                                           wrapText="true"
+                                           styleClass="hero-subtitle"/>
+                                </children>
+                            </VBox>
+
+                            <Button fx:id="btnPanierDetail"
+                                    text="🛒 Panier (0)"
+                                    onAction="#ouvrirPanierPopup"
+                                    styleClass="hero-cart-btn"/>
+                        </children>
+                        <Button text="📦 Mes commandes"
+                                onAction="#handleBack"
+                                styleClass="hero-cart-btn"/>
                     </HBox>
 
                     <!-- ══ PRODUITS COMMANDÉS ══ -->

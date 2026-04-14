@@ -1,5 +1,8 @@
 package tn.esprit.controllers;
 
+import javafx.animation.FadeTransition;
+import javafx.animation.PauseTransition;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -15,6 +18,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 import tn.esprit.entities.Produit;
 import tn.esprit.services.ProduitService;
 import tn.esprit.session.CartSession;
@@ -75,6 +79,10 @@ public class ProduitController {
     private static Produit produitAmodifier;
     private String imagePath = "";
 
+    private Label nomMsg, descMsg, prixMsg, quantiteMsg, categorieMsg, imageMsg, statusMsg;
+
+    private boolean isNomValid = false, isDescValid = false, isPrixValid = false, isQuantiteValid = false, isCategorieValid = false, isImageValid = false, isStatusValid = true;
+
     @FXML
     public void initialize() {
         initAjoutPageIfExists();
@@ -101,6 +109,95 @@ public class ProduitController {
                 && !rbIndisponibleProduit.isSelected()) {
             rbDisponibleProduit.setSelected(true);
         }
+
+        // Add validation labels and listeners
+        if (tfNomProduit != null) {
+            VBox parent = (VBox) tfNomProduit.getParent();
+            int index = parent.getChildren().indexOf(tfNomProduit);
+            if (index + 1 < parent.getChildren().size() && parent.getChildren().get(index + 1) instanceof Label && ((Label)parent.getChildren().get(index + 1)).getStyleClass().contains("validation-message")) {
+                nomMsg = (Label) parent.getChildren().get(index + 1);
+            } else {
+                nomMsg = new Label();
+                nomMsg.getStyleClass().add("validation-message");
+                parent.getChildren().add(index + 1, nomMsg);
+            }
+            tfNomProduit.textProperty().addListener((obs, old, newVal) -> validateNom(newVal));
+        }
+
+        if (taDescriptionProduit != null) {
+            VBox parent = (VBox) taDescriptionProduit.getParent();
+            int index = parent.getChildren().indexOf(taDescriptionProduit);
+            if (index + 1 < parent.getChildren().size() && parent.getChildren().get(index + 1) instanceof Label && ((Label)parent.getChildren().get(index + 1)).getStyleClass().contains("validation-message")) {
+                descMsg = (Label) parent.getChildren().get(index + 1);
+            } else {
+                descMsg = new Label();
+                descMsg.getStyleClass().add("validation-message");
+                parent.getChildren().add(index + 1, descMsg);
+            }
+            taDescriptionProduit.textProperty().addListener((obs, old, newVal) -> validateDescription(newVal));
+        }
+
+        if (tfPrixProduit != null) {
+            HBox parent = (HBox) tfPrixProduit.getParent();
+            VBox grandParent = (VBox) parent.getParent();
+            int index = grandParent.getChildren().indexOf(parent);
+            if (index + 1 < grandParent.getChildren().size() && grandParent.getChildren().get(index + 1) instanceof Label && ((Label)grandParent.getChildren().get(index + 1)).getStyleClass().contains("validation-message")) {
+                prixMsg = (Label) grandParent.getChildren().get(index + 1);
+            } else {
+                prixMsg = new Label();
+                prixMsg.getStyleClass().add("validation-message");
+                grandParent.getChildren().add(index + 1, prixMsg);
+            }
+            tfPrixProduit.textProperty().addListener((obs, old, newVal) -> validatePrix(newVal));
+        }
+
+        if (tfQuantiteProduit != null) {
+            VBox parent = (VBox) tfQuantiteProduit.getParent();
+            int index = parent.getChildren().indexOf(tfQuantiteProduit);
+            if (index + 1 < parent.getChildren().size() && parent.getChildren().get(index + 1) instanceof Label && ((Label)parent.getChildren().get(index + 1)).getStyleClass().contains("validation-message")) {
+                quantiteMsg = (Label) parent.getChildren().get(index + 1);
+            } else {
+                quantiteMsg = new Label();
+                quantiteMsg.getStyleClass().add("validation-message");
+                parent.getChildren().add(index + 1, quantiteMsg);
+            }
+            tfQuantiteProduit.textProperty().addListener((obs, old, newVal) -> validateQuantite(newVal));
+        }
+
+        if (cbCategorieProduit != null) {
+            VBox parent = (VBox) cbCategorieProduit.getParent();
+            int index = parent.getChildren().indexOf(cbCategorieProduit);
+            if (index + 1 < parent.getChildren().size() && parent.getChildren().get(index + 1) instanceof Label && ((Label)parent.getChildren().get(index + 1)).getStyleClass().contains("validation-message")) {
+                categorieMsg = (Label) parent.getChildren().get(index + 1);
+            } else {
+                categorieMsg = new Label();
+                categorieMsg.getStyleClass().add("validation-message");
+                parent.getChildren().add(index + 1, categorieMsg);
+            }
+            cbCategorieProduit.valueProperty().addListener((obs, old, newVal) -> validateCategorie(newVal));
+        }
+
+        if (lblImageProduit != null) {
+            VBox parent = (VBox) lblImageProduit.getParent().getParent();
+            int index = parent.getChildren().indexOf(lblImageProduit.getParent());
+            if (index + 1 < parent.getChildren().size() && parent.getChildren().get(index + 1) instanceof Label && ((Label)parent.getChildren().get(index + 1)).getStyleClass().contains("validation-message")) {
+                imageMsg = (Label) parent.getChildren().get(index + 1);
+            } else {
+                imageMsg = new Label();
+                imageMsg.getStyleClass().add("validation-message");
+                parent.getChildren().add(index + 1, imageMsg);
+            }
+            // Listener for image change
+            lblImageProduit.textProperty().addListener((obs, old, newVal) -> validateImage(newVal));
+        }
+
+        // Initial validation
+        if (tfNomProduit != null) validateNom(tfNomProduit.getText());
+        if (taDescriptionProduit != null) validateDescription(taDescriptionProduit.getText());
+        if (tfPrixProduit != null) validatePrix(tfPrixProduit.getText());
+        if (tfQuantiteProduit != null) validateQuantite(tfQuantiteProduit.getText());
+        if (cbCategorieProduit != null) validateCategorie(cbCategorieProduit.getValue());
+        if (lblImageProduit != null) validateImage(lblImageProduit.getText());
     }
 
     private void initModifierPageIfExists() {
@@ -134,6 +231,94 @@ public class ProduitController {
         } else {
             rbDisponibleProduit.setSelected(true);
         }
+
+        // Add validation labels and listeners for modifier page
+        if (tfNomProduit != null) {
+            VBox parent = (VBox) tfNomProduit.getParent();
+            int index = parent.getChildren().indexOf(tfNomProduit);
+            if (index + 1 < parent.getChildren().size() && parent.getChildren().get(index + 1) instanceof Label && ((Label)parent.getChildren().get(index + 1)).getStyleClass().contains("validation-message")) {
+                nomMsg = (Label) parent.getChildren().get(index + 1);
+            } else {
+                nomMsg = new Label();
+                nomMsg.getStyleClass().add("validation-message");
+                parent.getChildren().add(index + 1, nomMsg);
+            }
+            tfNomProduit.textProperty().addListener((obs, old, newVal) -> validateNom(newVal));
+        }
+
+        if (taDescriptionProduit != null) {
+            VBox parent = (VBox) taDescriptionProduit.getParent();
+            int index = parent.getChildren().indexOf(taDescriptionProduit);
+            if (index + 1 < parent.getChildren().size() && parent.getChildren().get(index + 1) instanceof Label && ((Label)parent.getChildren().get(index + 1)).getStyleClass().contains("validation-message")) {
+                descMsg = (Label) parent.getChildren().get(index + 1);
+            } else {
+                descMsg = new Label();
+                descMsg.getStyleClass().add("validation-message");
+                parent.getChildren().add(index + 1, descMsg);
+            }
+            taDescriptionProduit.textProperty().addListener((obs, old, newVal) -> validateDescription(newVal));
+        }
+
+        if (tfPrixProduit != null) {
+            HBox parent = (HBox) tfPrixProduit.getParent();
+            VBox grandParent = (VBox) parent.getParent();
+            int index = grandParent.getChildren().indexOf(parent);
+            if (index + 1 < grandParent.getChildren().size() && grandParent.getChildren().get(index + 1) instanceof Label && ((Label)grandParent.getChildren().get(index + 1)).getStyleClass().contains("validation-message")) {
+                prixMsg = (Label) grandParent.getChildren().get(index + 1);
+            } else {
+                prixMsg = new Label();
+                prixMsg.getStyleClass().add("validation-message");
+                grandParent.getChildren().add(index + 1, prixMsg);
+            }
+            tfPrixProduit.textProperty().addListener((obs, old, newVal) -> validatePrix(newVal));
+        }
+
+        if (tfQuantiteProduit != null) {
+            VBox parent = (VBox) tfQuantiteProduit.getParent();
+            int index = parent.getChildren().indexOf(tfQuantiteProduit);
+            if (index + 1 < parent.getChildren().size() && parent.getChildren().get(index + 1) instanceof Label && ((Label)parent.getChildren().get(index + 1)).getStyleClass().contains("validation-message")) {
+                quantiteMsg = (Label) parent.getChildren().get(index + 1);
+            } else {
+                quantiteMsg = new Label();
+                quantiteMsg.getStyleClass().add("validation-message");
+                parent.getChildren().add(index + 1, quantiteMsg);
+            }
+            tfQuantiteProduit.textProperty().addListener((obs, old, newVal) -> validateQuantite(newVal));
+        }
+
+        if (cbCategorieProduit != null) {
+            VBox parent = (VBox) cbCategorieProduit.getParent();
+            int index = parent.getChildren().indexOf(cbCategorieProduit);
+            if (index + 1 < parent.getChildren().size() && parent.getChildren().get(index + 1) instanceof Label && ((Label)parent.getChildren().get(index + 1)).getStyleClass().contains("validation-message")) {
+                categorieMsg = (Label) parent.getChildren().get(index + 1);
+            } else {
+                categorieMsg = new Label();
+                categorieMsg.getStyleClass().add("validation-message");
+                parent.getChildren().add(index + 1, categorieMsg);
+            }
+            cbCategorieProduit.valueProperty().addListener((obs, old, newVal) -> validateCategorie(newVal));
+        }
+
+        if (lblImageProduit != null) {
+            VBox parent = (VBox) lblImageProduit.getParent().getParent();
+            int index = parent.getChildren().indexOf(lblImageProduit.getParent());
+            if (index + 1 < parent.getChildren().size() && parent.getChildren().get(index + 1) instanceof Label && ((Label)parent.getChildren().get(index + 1)).getStyleClass().contains("validation-message")) {
+                imageMsg = (Label) parent.getChildren().get(index + 1);
+            } else {
+                imageMsg = new Label();
+                imageMsg.getStyleClass().add("validation-message");
+                parent.getChildren().add(index + 1, imageMsg);
+            }
+            lblImageProduit.textProperty().addListener((obs, old, newVal) -> validateImage(newVal));
+        }
+
+        // Initial validation
+        if (tfNomProduit != null) validateNom(tfNomProduit.getText());
+        if (taDescriptionProduit != null) validateDescription(taDescriptionProduit.getText());
+        if (tfPrixProduit != null) validatePrix(tfPrixProduit.getText());
+        if (tfQuantiteProduit != null) validateQuantite(tfQuantiteProduit.getText());
+        if (cbCategorieProduit != null) validateCategorie(cbCategorieProduit.getValue());
+        if (lblImageProduit != null) validateImage(lblImageProduit.getText());
     }
 
     private void initDashboardIfExists() {
@@ -490,18 +675,23 @@ public class ProduitController {
     private VBox createProductCard(Produit produit) {
         VBox card = new VBox();
         card.getStyleClass().add("product-card");
+        card.setPrefWidth(280);
+        card.setMaxWidth(280);
+        card.setSpacing(10);
 
+        // Image Box
         StackPane imageBox = new StackPane();
         imageBox.getStyleClass().add("card-image-box");
+        imageBox.setPrefHeight(150);
 
         Label topBadge = new Label();
         StackPane.setAlignment(topBadge, Pos.TOP_LEFT);
-        StackPane.setMargin(topBadge, new Insets(16, 0, 0, 16));
+        StackPane.setMargin(topBadge, new Insets(10, 0, 0, 10));
 
         Label priceBadge = new Label(formatPrix(produit.getPrix_produit()));
         priceBadge.getStyleClass().add("price-badge-top");
         StackPane.setAlignment(priceBadge, Pos.TOP_RIGHT);
-        StackPane.setMargin(priceBadge, new Insets(16, 16, 0, 0));
+        StackPane.setMargin(priceBadge, new Insets(10, 10, 0, 0));
 
         if (safe(produit.getStatus_produit()).toLowerCase(Locale.ROOT).contains("rupture")) {
             topBadge.setText("RUPTURE");
@@ -530,17 +720,21 @@ public class ProduitController {
 
         imageBox.getChildren().addAll(topBadge, priceBadge);
 
-        VBox content = new VBox(12);
+        // Content
+        VBox content = new VBox(8);
         content.getStyleClass().add("card-content");
+        content.setPadding(new Insets(10));
 
         Label nom = new Label(safe(produit.getNom_produit()));
         nom.getStyleClass().add("product-name");
+        nom.setWrapText(true);
 
+        HBox categoryStock = new HBox(10);
         Label categorie = new Label("🏷 " + safe(produit.getCategorie_produit()));
         categorie.getStyleClass().add("category-chip");
-
-        Label stock = new Label("📦 " + produit.getQuantite_produit() + " en stock");
+        Label stock = new Label("📦 " + produit.getQuantite_produit());
         stock.getStyleClass().add("stock-text");
+        categoryStock.getChildren().addAll(categorie, stock);
 
         Label statut = new Label(safe(produit.getStatus_produit()));
         if (safe(produit.getStatus_produit()).toLowerCase(Locale.ROOT).contains("rupture")) {
@@ -549,32 +743,145 @@ public class ProduitController {
             statut.getStyleClass().add("status-chip-ok");
         }
 
+        // Quantity and Buttons
+        HBox bottomRow = new HBox(10);
+        bottomRow.setAlignment(Pos.CENTER_LEFT);
+
+        Spinner<Integer> quantitySpinner = new Spinner<>(1, 99, 1);
+        quantitySpinner.setPrefWidth(60);
+        quantitySpinner.getStyleClass().add("quantity-spinner");
+
         Button addBtn = new Button("Ajouter");
         if (safe(produit.getStatus_produit()).toLowerCase(Locale.ROOT).contains("rupture")) {
             addBtn.getStyleClass().add("add-btn-disabled");
             addBtn.setDisable(true);
+            quantitySpinner.setDisable(true);
         } else {
             addBtn.getStyleClass().add("add-btn");
-            addBtn.setOnAction(e -> ajouterProduitAuPanier(produit));
+            addBtn.setOnAction(e -> ajouterProduitAuPanier(produit, quantitySpinner.getValue()));
         }
 
-        Button infoBtn = new Button("i");
+        Button infoBtn = new Button("ℹ");
         infoBtn.getStyleClass().add("icon-btn");
-        infoBtn.setOnAction(e -> showProduitDetails(produit));
+        infoBtn.setOnAction(e -> showProduitDetailsPopup(produit));
 
-        HBox actionBar = new HBox(10, addBtn, infoBtn);
-        actionBar.getStyleClass().add("action-bar");
+        bottomRow.getChildren().addAll(new Label("Qté:"), quantitySpinner, addBtn, infoBtn);
 
-        content.getChildren().addAll(nom, categorie, stock, statut, actionBar);
+        content.getChildren().addAll(nom, categoryStock, statut, bottomRow);
         card.getChildren().addAll(imageBox, content);
 
         return card;
     }
 
-    private void ajouterProduitAuPanier(Produit produit) {
-        CartSession.ajouterProduit(produit);
+    private void showProduitDetailsPopup(Produit p) {
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("Détails du Produit");
+        dialog.setHeaderText(null);
+
+        // Create content
+        VBox content = new VBox(15);
+        content.setPadding(new Insets(20));
+        content.setAlignment(Pos.TOP_CENTER);
+        content.getStyleClass().add("product-details-popup");
+
+        // Image
+        StackPane imageContainer = new StackPane();
+        imageContainer.setPrefSize(200, 200);
+        imageContainer.getStyleClass().add("product-image-container");
+
+        String imagePath = safe(p.getImage_produit());
+        if (!imagePath.isEmpty()) {
+            try {
+                File file = new File(imagePath);
+                if (file.exists()) {
+                    ImageView imageView = new ImageView(new Image(file.toURI().toString()));
+                    imageView.setFitWidth(180);
+                    imageView.setFitHeight(180);
+                    imageView.setPreserveRatio(true);
+                    imageContainer.getChildren().add(imageView);
+                } else {
+                    Label placeholder = new Label("🖼");
+                    placeholder.getStyleClass().add("image-placeholder");
+                    imageContainer.getChildren().add(placeholder);
+                }
+            } catch (Exception e) {
+                Label placeholder = new Label("🖼");
+                placeholder.getStyleClass().add("image-placeholder");
+                imageContainer.getChildren().add(placeholder);
+            }
+        } else {
+            Label placeholder = new Label("🖼");
+            placeholder.getStyleClass().add("image-placeholder");
+            imageContainer.getChildren().add(placeholder);
+        }
+
+        // Product Name
+        Label nameLabel = new Label(safe(p.getNom_produit()));
+        nameLabel.getStyleClass().add("product-name-popup");
+        nameLabel.setWrapText(true);
+        nameLabel.setAlignment(Pos.CENTER);
+
+        // Details Grid
+        GridPane detailsGrid = new GridPane();
+        detailsGrid.setHgap(10);
+        detailsGrid.setVgap(8);
+        detailsGrid.setAlignment(Pos.CENTER);
+
+        Label priceLabel = new Label("Prix:");
+        priceLabel.getStyleClass().add("detail-label");
+        Label priceValue = new Label(formatPrix(p.getPrix_produit()));
+        priceValue.getStyleClass().add("detail-value");
+
+        Label stockLabel = new Label("Stock:");
+        stockLabel.getStyleClass().add("detail-label");
+        Label stockValue = new Label(String.valueOf(p.getQuantite_produit()));
+        stockValue.getStyleClass().add("detail-value");
+
+        Label categoryLabel = new Label("Catégorie:");
+        categoryLabel.getStyleClass().add("detail-label");
+        Label categoryValue = new Label(safe(p.getCategorie_produit()));
+        categoryValue.getStyleClass().add("detail-value");
+
+        Label statusLabel = new Label("Statut:");
+        statusLabel.getStyleClass().add("detail-label");
+        Label statusValue = new Label(safe(p.getStatus_produit()));
+        statusValue.getStyleClass().add("detail-value");
+
+        detailsGrid.add(priceLabel, 0, 0);
+        detailsGrid.add(priceValue, 1, 0);
+        detailsGrid.add(stockLabel, 0, 1);
+        detailsGrid.add(stockValue, 1, 1);
+        detailsGrid.add(categoryLabel, 0, 2);
+        detailsGrid.add(categoryValue, 1, 2);
+        detailsGrid.add(statusLabel, 0, 3);
+        detailsGrid.add(statusValue, 1, 3);
+
+        // Description
+        Label descTitle = new Label("Description:");
+        descTitle.getStyleClass().add("description-title");
+        TextArea descArea = new TextArea(safe(p.getDescription_produit()));
+        descArea.setEditable(false);
+        descArea.setWrapText(true);
+        descArea.setPrefRowCount(3);
+        descArea.getStyleClass().add("description-area");
+
+        content.getChildren().addAll(imageContainer, nameLabel, detailsGrid, descTitle, descArea);
+
+        DialogPane dialogPane = dialog.getDialogPane();
+        dialogPane.setContent(content);
+        dialogPane.getButtonTypes().add(ButtonType.CLOSE);
+        dialogPane.setPrefWidth(400);
+        dialogPane.setPrefHeight(600);
+
+        // Style the dialog
+        dialogPane.getStyleClass().add("product-details-dialog");
+
+        dialog.showAndWait();
+    }
+
+    private void ajouterProduitAuPanier(Produit produit, int quantity) {
+        checkStockAndShowAlert(produit, quantity);
         updatePanierButton();
-        showAlert(Alert.AlertType.INFORMATION, "Panier", "Produit ajouté au panier.");
     }
 
     private void updatePanierButton() {
@@ -703,30 +1010,35 @@ public class ProduitController {
 
     @FXML
     void ajouterProduit(ActionEvent event) {
+        // Check validation
+        if (!isNomValid || !isDescValid || !isPrixValid || !isQuantiteValid || !isCategorieValid || !isImageValid) {
+            StringBuilder errors = new StringBuilder("Veuillez corriger les champs suivants :\n");
+            if (!isNomValid) errors.append("- Nom du produit\n");
+            if (!isDescValid) errors.append("- Description\n");
+            if (!isPrixValid) errors.append("- Prix\n");
+            if (!isQuantiteValid) errors.append("- Quantité\n");
+            if (!isCategorieValid) errors.append("- Catégorie\n");
+            if (!isImageValid) errors.append("- Image\n");
+            showAlert(Alert.AlertType.ERROR, "Champs invalides", errors.toString());
+            return;
+        }
+
         try {
             String nom = tfNomProduit.getText().trim();
             String description = taDescriptionProduit.getText().trim();
-            String categorie = cbCategorieProduit.getValue();
-
-            if (nom.isEmpty() || description.isEmpty() || tfPrixProduit.getText().trim().isEmpty()
-                    || tfQuantiteProduit.getText().trim().isEmpty() || categorie == null) {
-                throw new Exception("Veuillez remplir tous les champs obligatoires.");
-            }
-
             double prix = Double.parseDouble(tfPrixProduit.getText().trim());
             int quantite = Integer.parseInt(tfQuantiteProduit.getText().trim());
-
+            String categorie = cbCategorieProduit.getValue();
             String statut = getSelectedStatut();
             String image = imagePath.isEmpty() ? lblImageProduit.getText() : imagePath;
 
             Produit produit = new Produit(nom, description, prix, quantite, image, categorie, statut);
             produitService.ajouter(produit);
 
-            showAlert(Alert.AlertType.INFORMATION, "Confirmation", "Produit ajouté avec succès !");
+            showAlert(Alert.AlertType.INFORMATION, "Succès", "Produit ajouté avec succès !");
             viderChampsPrivate();
+            retourProduit(event);
 
-        } catch (NumberFormatException e) {
-            showAlert(Alert.AlertType.ERROR, "Erreur", "Prix ou quantité invalide.");
         } catch (Exception e) {
             showAlert(Alert.AlertType.ERROR, "Erreur", "Erreur lors de l'ajout : " + e.getMessage());
         }
@@ -734,25 +1046,30 @@ public class ProduitController {
 
     @FXML
     void modifierProduit(ActionEvent event) {
-        try {
-            if (produitAmodifier == null) {
-                throw new Exception("Aucun produit sélectionné pour la modification.");
-            }
+        if (produitAmodifier == null) {
+            showAlert(Alert.AlertType.ERROR, "Erreur", "Aucun produit sélectionné pour la modification.");
+            return;
+        }
 
+        // Check validation
+        if (!isNomValid || !isDescValid || !isPrixValid || !isQuantiteValid || !isCategorieValid || !isImageValid) {
+            StringBuilder errors = new StringBuilder("Veuillez corriger les champs suivants :\n");
+            if (!isNomValid) errors.append("- Nom du produit\n");
+            if (!isDescValid) errors.append("- Description\n");
+            if (!isPrixValid) errors.append("- Prix\n");
+            if (!isQuantiteValid) errors.append("- Quantité\n");
+            if (!isCategorieValid) errors.append("- Catégorie\n");
+            if (!isImageValid) errors.append("- Image\n");
+            showAlert(Alert.AlertType.ERROR, "Champs invalides", errors.toString());
+            return;
+        }
+
+        try {
             String nom = tfNomProduit.getText().trim();
             String description = taDescriptionProduit.getText().trim();
-            String categorie = cbCategorieProduit.getValue();
-
-            if (nom.isEmpty() || description.isEmpty()
-                    || tfPrixProduit.getText().trim().isEmpty()
-                    || tfQuantiteProduit.getText().trim().isEmpty()
-                    || categorie == null) {
-                throw new Exception("Veuillez remplir tous les champs obligatoires.");
-            }
-
             double prix = Double.parseDouble(tfPrixProduit.getText().trim());
             int quantite = Integer.parseInt(tfQuantiteProduit.getText().trim());
-
+            String categorie = cbCategorieProduit.getValue();
             String statut = getSelectedStatut();
             String image = imagePath.isEmpty() ? lblImageProduit.getText() : imagePath;
 
@@ -766,12 +1083,10 @@ public class ProduitController {
 
             produitService.modifier(produitAmodifier);
 
-            showAlert(Alert.AlertType.INFORMATION, "Modification réussie", "Le produit a été mis à jour avec succès.");
+            showAlert(Alert.AlertType.INFORMATION, "Succès", "Produit modifié avec succès !");
             produitAmodifier = null;
             retourProduit(event);
 
-        } catch (NumberFormatException e) {
-            showAlert(Alert.AlertType.ERROR, "Erreur", "Prix ou quantité invalide.");
         } catch (Exception e) {
             showAlert(Alert.AlertType.ERROR, "Erreur", "Erreur lors de la modification : " + e.getMessage());
         }
@@ -869,6 +1184,145 @@ public class ProduitController {
         }
     }
 
+    private void validateNom(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            tfNomProduit.setStyle("-fx-border-color: red;");
+            nomMsg.setText("Nom du produit est obligatoire");
+            nomMsg.setStyle("-fx-text-fill: red;");
+            isNomValid = false;
+        } else {
+            tfNomProduit.setStyle("-fx-border-color: green;");
+            nomMsg.setText("Nom du produit valide");
+            nomMsg.setStyle("-fx-text-fill: green;");
+            isNomValid = true;
+        }
+    }
+
+    private void validateDescription(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            taDescriptionProduit.setStyle("-fx-border-color: red;");
+            descMsg.setText("Description du produit est obligatoire");
+            descMsg.setStyle("-fx-text-fill: red;");
+            isDescValid = false;
+        } else if (value.trim().length() < 8) {
+            taDescriptionProduit.setStyle("-fx-border-color: red;");
+            descMsg.setText("Description doit contenir au moins 8 caractères");
+            descMsg.setStyle("-fx-text-fill: red;");
+            isDescValid = false;
+        } else {
+            String[] words = value.trim().split("\\s+");
+            boolean allWordsValid = true;
+            for (String word : words) {
+                if (word.length() < 3) {
+                    allWordsValid = false;
+                    break;
+                }
+            }
+            if (!allWordsValid) {
+                taDescriptionProduit.setStyle("-fx-border-color: red;");
+                descMsg.setText("Chaque mot doit contenir au moins 3 caractères");
+                descMsg.setStyle("-fx-text-fill: red;");
+                isDescValid = false;
+            } else {
+                taDescriptionProduit.setStyle("-fx-border-color: green;");
+                descMsg.setText("Description du produit valide");
+                descMsg.setStyle("-fx-text-fill: green;");
+                isDescValid = true;
+            }
+        }
+    }
+
+    private void validatePrix(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            tfPrixProduit.setStyle("-fx-border-color: red;");
+            prixMsg.setText("Prix est obligatoire");
+            prixMsg.setStyle("-fx-text-fill: red;");
+            isPrixValid = false;
+        } else {
+            try {
+                double prix = Double.parseDouble(value.trim());
+                if (prix > 0 && prix <= 9999) {
+                    tfPrixProduit.setStyle("-fx-border-color: green;");
+                    prixMsg.setText("Prix valide");
+                    prixMsg.setStyle("-fx-text-fill: green;");
+                    isPrixValid = true;
+                } else if (prix <= 0) {
+                    tfPrixProduit.setStyle("-fx-border-color: red;");
+                    prixMsg.setText("Prix doit être positif");
+                    prixMsg.setStyle("-fx-text-fill: red;");
+                    isPrixValid = false;
+                } else {
+                    tfPrixProduit.setStyle("-fx-border-color: red;");
+                    prixMsg.setText("Prix ne peut pas dépasser 9999 DT");
+                    prixMsg.setStyle("-fx-text-fill: red;");
+                    isPrixValid = false;
+                }
+            } catch (NumberFormatException e) {
+                tfPrixProduit.setStyle("-fx-border-color: red;");
+                prixMsg.setText("Le prix ne peut contenir que des nombres");
+                prixMsg.setStyle("-fx-text-fill: red;");
+                isPrixValid = false;
+            }
+        }
+    }
+
+    private void validateQuantite(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            tfQuantiteProduit.setStyle("-fx-border-color: red;");
+            quantiteMsg.setText("Quantité est obligatoire");
+            quantiteMsg.setStyle("-fx-text-fill: red;");
+            isQuantiteValid = false;
+        } else {
+            try {
+                int quantite = Integer.parseInt(value.trim());
+                if (quantite > 0) {
+                    tfQuantiteProduit.setStyle("-fx-border-color: green;");
+                    quantiteMsg.setText("Quantité valide");
+                    quantiteMsg.setStyle("-fx-text-fill: green;");
+                    isQuantiteValid = true;
+                } else {
+                    tfQuantiteProduit.setStyle("-fx-border-color: red;");
+                    quantiteMsg.setText("Quantité doit être positive");
+                    quantiteMsg.setStyle("-fx-text-fill: red;");
+                    isQuantiteValid = false;
+                }
+            } catch (NumberFormatException e) {
+                tfQuantiteProduit.setStyle("-fx-border-color: red;");
+                quantiteMsg.setText("La quantité ne peut contenir que des nombres");
+                quantiteMsg.setStyle("-fx-text-fill: red;");
+                isQuantiteValid = false;
+            }
+        }
+    }
+
+    private void validateCategorie(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            cbCategorieProduit.setStyle("-fx-border-color: red;");
+            categorieMsg.setText("Catégorie est requise");
+            categorieMsg.setStyle("-fx-text-fill: red;");
+            isCategorieValid = false;
+        } else {
+            cbCategorieProduit.setStyle("-fx-border-color: green;");
+            categorieMsg.setText("Catégorie valide");
+            categorieMsg.setStyle("-fx-text-fill: green;");
+            isCategorieValid = true;
+        }
+    }
+
+    private void validateImage(String value) {
+        if (value == null || value.trim().isEmpty() || "Aucun fichier choisi".equals(value)) {
+            lblImageProduit.getParent().setStyle("-fx-border-color: red;");
+            imageMsg.setText("Image du produit est requise");
+            imageMsg.setStyle("-fx-text-fill: red;");
+            isImageValid = false;
+        } else {
+            lblImageProduit.getParent().setStyle("-fx-border-color: green;");
+            imageMsg.setText("Image du produit valide");
+            imageMsg.setStyle("-fx-text-fill: green;");
+            isImageValid = true;
+        }
+    }
+
     private boolean contains(String value, String keyword) {
         return safe(value).toLowerCase(Locale.ROOT).contains(keyword);
     }
@@ -916,5 +1370,100 @@ public class ProduitController {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+    private void showSuccessAlert(String produitName, int quantity) {
+        Platform.runLater(() -> {
+            String text = quantity == 1 ? produitName + " ajouté au panier." : quantity + " x " + produitName + " ajoutés au panier.";
+            Label successAlert = new Label(text);
+            successAlert.getStyleClass().add("success-alert");
+            successAlert.setMaxWidth(400);
+            successAlert.setAlignment(Pos.CENTER);
+
+            StackPane alertContainer = new StackPane();
+            alertContainer.getChildren().add(successAlert);
+            alertContainer.setAlignment(Pos.TOP_CENTER);
+            alertContainer.setPadding(new Insets(20, 20, 0, 20));
+
+            BorderPane root = (BorderPane) btnPanier.getScene().getRoot();
+            if (!(root.getCenter() instanceof StackPane)) {
+                ScrollPane scroll = (ScrollPane) root.getCenter();
+                StackPane stack = new StackPane();
+                stack.getChildren().add(scroll);
+                root.setCenter(stack);
+            }
+            StackPane stack = (StackPane) root.getCenter();
+            stack.getChildren().add(alertContainer);
+
+            successAlert.setOpacity(0);
+            FadeTransition fadeIn = new FadeTransition(Duration.seconds(0.5), successAlert);
+            fadeIn.setFromValue(0);
+            fadeIn.setToValue(1);
+            fadeIn.play();
+
+            PauseTransition delay = new PauseTransition(Duration.seconds(3));
+            delay.setOnFinished(event -> {
+                FadeTransition fadeOut = new FadeTransition(Duration.seconds(0.5), successAlert);
+                fadeOut.setFromValue(1);
+                fadeOut.setToValue(0);
+                fadeOut.setOnFinished(e -> stack.getChildren().remove(alertContainer));
+                fadeOut.play();
+            });
+            delay.play();
+        });
+    }
+    private void checkStockAndShowAlert(Produit produit, int quantityToAdd) {
+        int availableStock = produit.getQuantite_produit();
+        int currentQty = CartSession.getQuantiteProduit(produit);
+
+        if (currentQty + quantityToAdd > availableStock) {
+            // Show red alert for stock insufficiency
+            showStockInsufficiencyAlert(produit.getNom_produit(), availableStock - currentQty);
+        } else {
+            // Add to cart
+            for (int i = 0; i < quantityToAdd; i++) {
+                CartSession.ajouterProduit(produit);
+            }
+            showSuccessAlert(produit.getNom_produit(), quantityToAdd);
+        }
+    }
+
+    private void showStockInsufficiencyAlert(String produitName, int availableStock) {
+        Platform.runLater(() -> {
+            Label stockAlert = new Label("Stock insuffisant pour " + produitName + ". Disponible: " + availableStock);
+            stockAlert.getStyleClass().add("stock-insuff-alert");
+            stockAlert.setMaxWidth(400);
+            stockAlert.setAlignment(Pos.CENTER);
+
+            StackPane alertContainer = new StackPane();
+            alertContainer.getChildren().add(stockAlert);
+            alertContainer.setAlignment(Pos.TOP_CENTER);
+            alertContainer.setPadding(new Insets(20, 20, 0, 20));
+
+            BorderPane root = (BorderPane) btnPanier.getScene().getRoot();
+            if (!(root.getCenter() instanceof StackPane)) {
+                ScrollPane scroll = (ScrollPane) root.getCenter();
+                StackPane stack = new StackPane();
+                stack.getChildren().add(scroll);
+                root.setCenter(stack);
+            }
+            StackPane stack = (StackPane) root.getCenter();
+            stack.getChildren().add(alertContainer);
+
+            stockAlert.setOpacity(0);
+            FadeTransition fadeIn = new FadeTransition(Duration.seconds(0.5), stockAlert);
+            fadeIn.setFromValue(0);
+            fadeIn.setToValue(1);
+            fadeIn.play();
+
+            PauseTransition delay = new PauseTransition(Duration.seconds(3));
+            delay.setOnFinished(event -> {
+                FadeTransition fadeOut = new FadeTransition(Duration.seconds(0.5), stockAlert);
+                fadeOut.setFromValue(1);
+                fadeOut.setToValue(0);
+                fadeOut.setOnFinished(e -> stack.getChildren().remove(alertContainer));
+                fadeOut.play();
+            });
+            delay.play();
+        });
     }
 }

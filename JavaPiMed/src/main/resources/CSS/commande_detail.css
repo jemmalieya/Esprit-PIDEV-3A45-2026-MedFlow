@@ -1,0 +1,203 @@
+/* ═══════════════════════════════════════════════════
+   COMMANDE_DETAIL.CSS  –  Pharmacie · Détail Commande
+   ═══════════════════════════════════════════════════ */
+
+.detail-root   { -fx-background-color: #f0fdf9; }
+.detail-scroll { -fx-background-color: #f0fdf9; -fx-background: #f0fdf9; }
+.detail-main   { -fx-background-color: #f0fdf9; }
+
+/* ══════════════════════════════════════════
+   HEADER CARD  (gradient teal)
+   ══════════════════════════════════════════ */
+.detail-header-card {
+    -fx-background-color: linear-gradient(to right, #0d9488, #0891b2);
+    -fx-background-radius: 20;
+    -fx-padding: 22 28 22 28;
+    -fx-effect: dropshadow(gaussian, rgba(13,148,136,0.35), 22, 0, 0, 6);
+}
+
+.detail-order-icon {
+    -fx-background-color: rgba(255,255,255,0.18);
+    -fx-background-radius: 14;
+    -fx-padding: 10;
+    -fx-font-size: 20px;
+}
+
+.detail-order-num {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+
+.detail-order-date {
+    -fx-font-size: 12px;
+    -fx-text-fill: rgba(255,255,255,0.78);
+}
+
+.detail-status-pill {
+    -fx-padding: 5 16;
+    -fx-background-radius: 20;
+    -fx-font-size: 11.5px;
+    -fx-font-weight: bold;
+}
+
+/* ══════════════════════════════════════════
+   SECTION CARDS
+   ══════════════════════════════════════════ */
+.section-card {
+    -fx-background-color: white;
+    -fx-background-radius: 18;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.06), 16, 0, 0, 3);
+    -fx-border-color: rgba(0,0,0,0.06);
+    -fx-border-radius: 18;
+    -fx-border-width: 0.5;
+    -fx-padding: 20 24 20 24;
+}
+
+.section-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #111827;
+}
+
+.section-icon {
+    -fx-background-color: #f0fdf9;
+    -fx-background-radius: 8;
+    -fx-padding: 5;
+    -fx-font-size: 14px;
+}
+
+.section-sep { -fx-opacity: 0.35; -fx-padding: 2 0; }
+
+/* ── Table header row ── */
+.table-header-row {
+    -fx-background-color: #f9fafb;
+    -fx-background-radius: 10;
+    -fx-padding: 8 12;
+}
+.table-header-lbl {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #9ca3af;
+}
+
+/* ── Product row ── */
+.product-row {
+    -fx-padding: 10 12;
+    -fx-background-radius: 12;
+}
+.product-row:hover { -fx-background-color: #f9fafb; }
+
+.product-name {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #111827;
+}
+.product-cat {
+    -fx-font-size: 11.5px;
+    -fx-text-fill: #9ca3af;
+}
+
+.qty-badge {
+    -fx-background-color: #0d9488;
+    -fx-background-radius: 20;
+    -fx-text-fill: white;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 3 10;
+    -fx-min-width: 30;
+    -fx-alignment: center;
+}
+
+.price-lbl      { -fx-font-size: 13px; -fx-text-fill: #374151; }
+.subtotal-lbl   { -fx-font-size: 13.5px; -fx-font-weight: bold; -fx-text-fill: #0d9488; }
+
+/* ── Total row ── */
+.total-row-wrap {
+    -fx-background-color: #f0fdf9;
+    -fx-background-radius: 12;
+    -fx-padding: 12 16;
+    -fx-border-color: #ccfbf1;
+    -fx-border-radius: 12;
+    -fx-border-width: 1;
+}
+.total-row-lbl { -fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #374151; }
+.total-row-val { -fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #0d9488; }
+
+/* ══════════════════════════════════════════
+   INFO LIVRAISON / RÉSUMÉ
+   ══════════════════════════════════════════ */
+.info-label {
+    -fx-font-size: 11px;
+    -fx-text-fill: #9ca3af;
+    -fx-font-weight: bold;
+}
+.info-value {
+    -fx-font-size: 13.5px;
+    -fx-text-fill: #111827;
+}
+.info-value-empty { -fx-text-fill: #d1d5db; }
+
+.resume-key   { -fx-font-size: 13px; -fx-text-fill: #6b7280; }
+.resume-value { -fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #111827; }
+.resume-value-teal { -fx-text-fill: #0d9488; }
+
+.next-step-box {
+    -fx-background-color: #f0fdf9;
+    -fx-background-radius: 10;
+    -fx-padding: 10 14;
+    -fx-border-color: #99f6e4;
+    -fx-border-radius: 10;
+    -fx-border-width: 1;
+}
+.next-step-key { -fx-font-size: 11px; -fx-text-fill: #6b7280; -fx-font-weight: bold; }
+.next-step-val { -fx-font-size: 13px; -fx-text-fill: #0f766e; -fx-font-weight: bold; }
+
+/* ══════════════════════════════════════════
+   BUTTONS
+   ══════════════════════════════════════════ */
+.btn-back {
+    -fx-background-color: white;
+    -fx-text-fill: #374151;
+    -fx-background-radius: 12;
+    -fx-border-color: #e5e7eb;
+    -fx-border-radius: 12;
+    -fx-border-width: 1;
+    -fx-padding: 11 20;
+    -fx-font-size: 13px;
+    -fx-cursor: hand;
+}
+.btn-back:hover { -fx-background-color: #f9fafb; }
+
+.btn-primary-detail {
+    -fx-background-color: linear-gradient(to right, #0d9488, #0891b2);
+    -fx-text-fill: white;
+    -fx-background-radius: 12;
+    -fx-padding: 11 22;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-effect: dropshadow(gaussian, rgba(13,148,136,0.28), 10, 0, 0, 3);
+    -fx-cursor: hand;
+}
+.btn-primary-detail:hover {
+    -fx-background-color: linear-gradient(to right, #0f766e, #0369a1);
+}
+
+.btn-download {
+    -fx-background-color: linear-gradient(to right, #0d9488, #0891b2);
+    -fx-text-fill: white;
+    -fx-background-radius: 10;
+    -fx-padding: 9 18;
+    -fx-font-size: 12.5px;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(13,148,136,0.25), 8, 0, 0, 2);
+}
+.btn-download:hover { -fx-background-color: linear-gradient(to right, #0f766e, #0369a1); }
+
+/* badges */
+.badge-detail { -fx-padding: 5 16; -fx-background-radius: 20; -fx-font-size: 11.5px; -fx-font-weight: bold; }
+.badge-attente   { -fx-background-color: rgba(255,255,255,0.22); -fx-text-fill: white; -fx-border-color: rgba(255,255,255,0.4); -fx-border-radius: 20; -fx-border-width: 1; }
+.badge-livraison { -fx-background-color: rgba(255,255,255,0.22); -fx-text-fill: white; -fx-border-color: rgba(255,255,255,0.4); -fx-border-radius: 20; -fx-border-width: 1; }
+.badge-cours     { -fx-background-color: rgba(255,255,255,0.22); -fx-text-fill: white; -fx-border-color: rgba(255,255,255,0.4); -fx-border-radius: 20; -fx-border-width: 1; }
+.badge-finalise  { -fx-background-color: rgba(255,255,255,0.22); -fx-text-fill: white; -fx-border-color: rgba(255,255,255,0.4); -fx-border-radius: 20; -fx-border-width: 1; }

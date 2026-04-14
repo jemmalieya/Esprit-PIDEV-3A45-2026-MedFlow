@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="tn.esprit.controllers.CommandeController"
+            stylesheets="@../CSS/commandes.css,@../CSS/booking.css"
+            styleClass="cmd-root">
+
+    <!-- SIDEBAR -->
+    <left>
+        <fx:include source="Sidebar.fxml"/>
+    </left>
+
+    <!-- CENTER -->
+    <center>
+        <ScrollPane fitToWidth="true" styleClass="cmd-scroll">
+            <content>
+                <VBox spacing="24" styleClass="cmd-main">
+                    <padding>
+                        <Insets top="25" right="30" bottom="25" left="30"/>
+                    </padding>
+
+                    <!-- HEADER BLEU -->
+                    <VBox alignment="CENTER" spacing="10" styleClass="cmd-header">
+                        <Label text="📦" styleClass="cmd-icon"/>
+                        <Label text="Mes commandes" styleClass="cmd-title"/>
+                        <Label text="Suivez l'état de vos commandes"
+                               styleClass="cmd-subtitle"/>
+                    </VBox>
+
+                    <!-- COMMANDES -->
+                    <FlowPane fx:id="commandeContainer"
+                              hgap="20"
+                              vgap="20"
+                              prefWrapLength="1000"/>
+                </VBox>
+            </content>
+        </ScrollPane>
+    </center>
+
+</BorderPane>

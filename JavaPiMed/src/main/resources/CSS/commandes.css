@@ -1,0 +1,157 @@
+/* ═══════════════════════════════════════════════════
+   COMMANDES.CSS  –  Pharmacie · Mes Commandes
+   Color palette: teal #0d9488 / #0f766e / #ccfbf1
+   ═══════════════════════════════════════════════════ */
+
+/* ── Root scroll / background ── */
+.cmd-root   { -fx-background-color: #f0fdf9; }
+.cmd-scroll { -fx-background-color: #f0fdf9; -fx-background: #f0fdf9; }
+.cmd-main   { -fx-background-color: #f0fdf9; }
+
+/* ══════════════════════════════════════════
+   HEADER  (même style que le header Pharmacie)
+   ══════════════════════════════════════════ */
+.cmd-header {
+    -fx-background-color: linear-gradient(to right, #0d9488, #0891b2);
+    -fx-background-radius: 20;
+    -fx-padding: 28 32 28 32;
+    -fx-effect: dropshadow(gaussian, rgba(13,148,136,0.35), 22, 0, 0, 6);
+    -fx-alignment: CENTER_LEFT;
+    -fx-spacing: 4;
+}
+
+.cmd-header-title {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+
+.cmd-header-subtitle {
+    -fx-font-size: 13px;
+    -fx-text-fill: rgba(255,255,255,0.82);
+}
+
+/* count badge inside header */
+.cmd-header-badge {
+    -fx-background-color: rgba(255,255,255,0.22);
+    -fx-background-radius: 20;
+    -fx-text-fill: white;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-padding: 4 14;
+}
+
+/* ══════════════════════════════════════════
+   CARDS
+   ══════════════════════════════════════════ */
+.cmd-card {
+    -fx-background-color: white;
+    -fx-background-radius: 20;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.07), 18, 0, 0, 4);
+    -fx-border-color: rgba(0,0,0,0.07);
+    -fx-border-radius: 20;
+    -fx-border-width: 0.5;
+    -fx-pref-width: 440;
+    -fx-cursor: default;
+}
+
+.card-top {
+    -fx-padding: 20 22 16 22;
+    -fx-border-color: transparent transparent rgba(0,0,0,0.07) transparent;
+    -fx-border-width: 0 0 0.5 0;
+}
+
+.card-bottom {
+    -fx-padding: 16 22 20 22;
+    -fx-spacing: 10;
+}
+
+.card-title      { -fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #111827; }
+.card-title-icon {
+    -fx-background-color: #f0fdf9;
+    -fx-background-radius: 10;
+    -fx-padding: 6;
+    -fx-font-size: 14px;
+}
+.card-date {
+    -fx-font-size: 12px;
+    -fx-text-fill: #9ca3af;
+    -fx-padding: 0 0 0 4;
+}
+.card-sep { -fx-opacity: 0.4; }
+
+.products-label {
+    -fx-font-size: 10px;
+    -fx-text-fill: #9ca3af;
+    -fx-font-weight: bold;
+    -fx-padding: 2 0 2 2;
+}
+
+/* product thumbnails */
+.product-img-wrap {
+    -fx-background-radius: 12;
+    -fx-border-color: rgba(0,0,0,0.09);
+    -fx-border-radius: 12;
+    -fx-border-width: 0.5;
+    -fx-pref-width: 52; -fx-pref-height: 52;
+    -fx-max-width: 52;  -fx-max-height: 52;
+}
+.product-img-placeholder {
+    -fx-background-color: #f9fafb;
+    -fx-background-radius: 12;
+    -fx-border-color: #e5e7eb;
+    -fx-border-radius: 12;
+    -fx-border-width: 1;
+    -fx-border-style: dashed;
+    -fx-pref-width: 52; -fx-pref-height: 52;
+    -fx-alignment: center;
+}
+
+/* ── totals ── */
+.cmd-total   { -fx-font-size: 21px; -fx-font-weight: bold; -fx-text-fill: #0d9488; }
+.total-label { -fx-font-size: 13px; -fx-text-fill: #6b7280; }
+
+/* ── badges ── */
+.badge { -fx-padding: 4 14; -fx-background-radius: 20; -fx-font-size: 10.5px; -fx-font-weight: bold; }
+.badge-livraison { -fx-background-color: #dbeafe; -fx-text-fill: #1d4ed8; }
+.badge-cours     { -fx-background-color: #fef3c7; -fx-text-fill: #92400e; }
+.badge-finalise  { -fx-background-color: #d1fae5; -fx-text-fill: #065f46; }
+.badge-default   { -fx-background-color: #ccfbf1; -fx-text-fill: #0f766e;  }
+.badge-attente   { -fx-background-color: #fce7f3; -fx-text-fill: #9d174d; }
+
+/* ── buttons ── */
+.btn-primary {
+    -fx-background-color: linear-gradient(to right, #0d9488, #0891b2);
+    -fx-text-fill: white;
+    -fx-background-radius: 12;
+    -fx-padding: 11 16;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-effect: dropshadow(gaussian, rgba(13,148,136,0.28), 10, 0, 0, 3);
+    -fx-cursor: hand;
+}
+.btn-primary:hover {
+    -fx-background-color: linear-gradient(to right, #0f766e, #0369a1);
+    -fx-effect: dropshadow(gaussian, rgba(13,148,136,0.40), 14, 0, 0, 4);
+}
+
+.btn-secondary {
+    -fx-background-color: transparent;
+    -fx-text-fill: #374151;
+    -fx-background-radius: 12;
+    -fx-border-color: #e5e7eb;
+    -fx-border-radius: 12;
+    -fx-border-width: 1;
+    -fx-padding: 10 14;
+    -fx-font-size: 12.5px;
+    -fx-cursor: hand;
+}
+.btn-secondary:hover {
+    -fx-background-color: #f9fafb;
+    -fx-border-color: #d1d5db;
+}
+
+/* ── empty state ── */
+.empty-state-icon  { -fx-font-size: 48px; }
+.empty-state-title { -fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #374151; }
+.empty-state-sub   { -fx-font-size: 13px; -fx-text-fill: #9ca3af; }

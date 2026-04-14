@@ -901,4 +901,20 @@ public class ProduitController {
         alert.setContentText(content);
         alert.showAndWait();
     }
+    @FXML
+    private void ouvrirMesCommandes() {
+        try {
+            URL url = getClass().getResource("/FrontFXML/MesCommandes.fxml");
+            FXMLLoader loader = new FXMLLoader(url);
+            Parent root = loader.load();
+
+            Stage stage = (Stage) productGrid.getScene().getWindow();
+            stage.setScene(new Scene(root));
+            stage.setTitle("Mes commandes");
+            stage.show();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }

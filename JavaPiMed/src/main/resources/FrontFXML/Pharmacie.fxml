@@ -63,6 +63,9 @@
                                     onAction="#ouvrirPanierPopup"
                                     styleClass="hero-cart-btn"/>
                         </children>
+                        <Button text="📦 Mes commandes"
+                                onAction="#ouvrirMesCommandes"
+                                styleClass="hero-cart-btn"/>
                     </HBox>
 
                     <!-- BLOCS INFO -->

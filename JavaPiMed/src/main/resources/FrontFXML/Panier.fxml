@@ -15,9 +15,11 @@
             prefWidth="1400.0"
             prefHeight="820.0"
             fx:controller="tn.esprit.controllers.PanierController"
-            stylesheets="@../CSS/panier.css"
+            stylesheets="@../CSS/panier.css,@../CSS/booking.css"
             styleClass="panier-root">
-
+    <left>
+        <fx:include source="Sidebar.fxml"/>
+    </left>
     <center>
         <ScrollPane fitToWidth="true"
                     hbarPolicy="NEVER"

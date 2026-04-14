@@ -10,11 +10,11 @@ public class MainFx extends Application {
 
     @Override
     public void start(Stage stage) throws Exception {
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("/FrontFXML/Accueil.fxml"));
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("/EvenementDashboard.fxml"));
         Parent root = loader.load();
 
         Scene scene = new Scene(root, 1300, 780);
-        scene.getStylesheets().add(getClass().getResource("/evenement-dashboard.css").toExternalForm());
+        scene.getStylesheets().add(getClass().getResource("/CSS/evenement-dashboard.css").toExternalForm());
 
         stage.setScene(scene);
         stage.setTitle("Gestion Événement - MedFlow Desktop");

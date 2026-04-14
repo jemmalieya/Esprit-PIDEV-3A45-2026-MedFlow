@@ -1,6 +1,7 @@
 package tn.esprit.services;
 
 import tn.esprit.entities.Evenement;
+import tn.esprit.entities.User;
 import tn.esprit.tools.MyDataBase;
 
 import java.sql.*;
@@ -34,14 +35,11 @@ public class EvenementService implements IGeneralService<Evenement> {
             ps.setString(4, e.getDescription_event());
             ps.setString(5, e.getObjectif_event());
             ps.setString(6, e.getStatut_event());
-
             ps.setDate(7, new java.sql.Date(e.getDate_debut_event().getTime()));
             ps.setDate(8, new java.sql.Date(e.getDate_fin_event().getTime()));
-
             ps.setString(9, e.getNom_lieu_event());
             ps.setString(10, e.getAdresse_event());
             ps.setString(11, e.getVille_event());
-
             ps.setInt(12, e.getNb_participants_max_event());
             ps.setBoolean(13, e.isInscription_obligatoire_event());
 
@@ -53,10 +51,8 @@ public class EvenementService implements IGeneralService<Evenement> {
             ps.setString(15, e.getEmail_contact_event());
             ps.setString(16, e.getTel_contact_event());
             ps.setString(17, e.getNom_organisateur_event());
-
             ps.setString(18, e.getImage_couverture_event());
             ps.setString(19, e.getVisibilite_event());
-
             ps.setDate(20, new java.sql.Date(e.getDate_creation_event().getTime()));
             ps.setDate(21, new java.sql.Date(e.getDate_mise_a_jour_event().getTime()));
 
@@ -67,6 +63,7 @@ public class EvenementService implements IGeneralService<Evenement> {
             ex.printStackTrace();
         }
     }
+
     @Override
     public void supprimer(Evenement e) {
         String sql = "DELETE FROM evenement WHERE id = ?";
@@ -74,7 +71,7 @@ public class EvenementService implements IGeneralService<Evenement> {
         try (PreparedStatement ps = cn.prepareStatement(sql)) {
             ps.setInt(1, e.getId());
             ps.executeUpdate();
-            System.out.println(" Evenement supprimé avec succès");
+            System.out.println("Evenement supprimé avec succès");
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
@@ -97,7 +94,7 @@ public class EvenementService implements IGeneralService<Evenement> {
             ps.setInt(10, e.getId());
 
             ps.executeUpdate();
-            System.out.println(" Evenement modifié avec succès");
+            System.out.println("Evenement modifié avec succès");
 
         } catch (SQLException ex) {
             ex.printStackTrace();

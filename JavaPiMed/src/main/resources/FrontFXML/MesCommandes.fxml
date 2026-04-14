@@ -7,7 +7,8 @@
 <BorderPane xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="tn.esprit.controllers.CommandeController"
             stylesheets="@../CSS/commandes.css,@../CSS/booking.css"
-            styleClass="cmd-root">
+            styleClass="cmd-root"
+            prefWidth="1400.0" prefHeight="820.0">
 
     <!-- SIDEBAR -->
     <left>
@@ -30,6 +31,28 @@
                         <Label text="Suivez l'état de vos commandes"
                                styleClass="cmd-subtitle"/>
                     </VBox>
+
+                    <!-- HERO -->
+                    <HBox spacing="18" alignment="CENTER_LEFT" styleClass="hero-card">
+                        <children>
+                            <VBox spacing="8" HBox.hgrow="ALWAYS">
+                                <children>
+                                    <Label text="📦 Gestion des commandes" styleClass="hero-title"/>
+                                    <Label text="Suivez vos achats, consultez les détails et gérez vos livraisons."
+                                           wrapText="true"
+                                           styleClass="hero-subtitle"/>
+                                </children>
+                            </VBox>
+
+                            <Button fx:id="btnPanierCommandes"
+                                    text="🛒 Panier (0)"
+                                    onAction="#ouvrirPanierPopup"
+                                    styleClass="hero-cart-btn"/>
+                        </children>
+                        <Button text="🏪 Retour pharmacie"
+                                onAction="#retourPharmacie"
+                                styleClass="hero-cart-btn"/>
+                    </HBox>
 
                     <!-- COMMANDES -->
                     <FlowPane fx:id="commandeContainer"

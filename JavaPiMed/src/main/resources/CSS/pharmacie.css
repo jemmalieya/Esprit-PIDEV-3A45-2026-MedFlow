@@ -287,3 +287,25 @@
     -fx-pref-height: 50px;
     -fx-cursor: hand;
 }
+
+/* SUCCESS ALERT */
+.success-alert {
+    -fx-background-color: #4ade80;
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 12px;
+    -fx-padding: 12 20 12 20;
+    -fx-effect: dropshadow(gaussian, rgba(74,222,128,0.3), 8, 0, 0, 2);
+}
+
+/* STOCK INSUFFICIENT ALERT */
+.stock-insuff-alert {
+    -fx-background-color: #ef4444;
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 12px;
+    -fx-padding: 12 20 12 20;
+    -fx-effect: dropshadow(gaussian, rgba(239,68,68,0.3), 8, 0, 0, 2);
+}

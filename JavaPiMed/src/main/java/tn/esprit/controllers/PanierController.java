@@ -1,5 +1,8 @@
 package tn.esprit.controllers;
 
+import javafx.animation.FadeTransition;
+import javafx.animation.PauseTransition;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
@@ -10,10 +13,12 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 import tn.esprit.entities.CommandeProduit;
 import tn.esprit.entities.Produit;
 import tn.esprit.entities.User;
@@ -202,7 +207,14 @@ public class PanierController {
         Button minusBtn = new Button("−");
         minusBtn.getStyleClass().add("qty-btn");
         minusBtn.setOnAction(e -> {
-            CartSession.supprimerUneOccurrence(produit);
+            int currentQty = CartSession.getQuantiteProduit(produit);
+            if (currentQty - 1 <= 0) {
+                CartSession.supprimerToutesOccurrences(produit);
+                showSuccessAlert("Article supprimé du panier : " + produit.getNom_produit());
+            } else {
+                CartSession.supprimerUneOccurrence(produit);
+                showSuccessAlert("Quantité diminuée pour " + produit.getNom_produit());
+            }
             refreshPanier();
         });
 
@@ -212,8 +224,14 @@ public class PanierController {
         Button plusBtn = new Button("+");
         plusBtn.getStyleClass().add("qty-btn");
         plusBtn.setOnAction(e -> {
-            CartSession.ajouterProduit(produit);
-            refreshPanier();
+            int currentQty = CartSession.getQuantiteProduit(produit);
+            if (currentQty + 1 > produit.getQuantite_produit()) {
+                showStockInsufficiencyAlert(produit.getNom_produit(), produit.getQuantite_produit());
+            } else {
+                CartSession.ajouterProduit(produit);
+                showSuccessAlert("Quantité augmentée pour " + produit.getNom_produit());
+                refreshPanier();
+            }
         });
 
         qteControls.getChildren().addAll(minusBtn, qteValue, plusBtn);
@@ -234,8 +252,17 @@ public class PanierController {
         Button deleteBtn = new Button("🗑");
         deleteBtn.getStyleClass().add("delete-cart-btn");
         deleteBtn.setOnAction(e -> {
-            CartSession.supprimerToutesOccurrences(produit);
-            refreshPanier();
+            Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+            confirm.setTitle("Confirmation");
+            confirm.setHeaderText("Suppression de l'article");
+            confirm.setContentText("Voulez-vous vraiment supprimer cet article du panier : " + produit.getNom_produit() + " ?");
+
+            Optional<ButtonType> result = confirm.showAndWait();
+            if (result.isPresent() && result.get() == ButtonType.OK) {
+                CartSession.supprimerToutesOccurrences(produit);
+                showSuccessAlert("Article supprimé du panier : " + produit.getNom_produit());
+                refreshPanier();
+            }
         });
 
         Region spacer = new Region();
@@ -247,8 +274,17 @@ public class PanierController {
 
     @FXML
     private void viderPanier() {
-        CartSession.viderPanier();
-        refreshPanier();
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setTitle("Confirmation");
+        confirm.setHeaderText("Vider le panier");
+        confirm.setContentText("Voulez-vous vraiment vider le panier ? Tous les articles seront supprimés.");
+
+        Optional<ButtonType> result = confirm.showAndWait();
+        if (result.isPresent() && result.get() == ButtonType.OK) {
+            CartSession.viderPanier();
+            showSuccessAlert("Panier vidé avec succès.");
+            refreshPanier();
+        }
     }
 
     @FXML
@@ -325,10 +361,108 @@ public class PanierController {
     }
 
     private void showAlert(String title, String content) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(content);
-        alert.showAndWait();
+        Platform.runLater(() -> {
+            // Custom overlay alert instead of modal dialog
+            Label alertLabel = new Label(content);
+            alertLabel.getStyleClass().add("info-alert");
+            alertLabel.setMaxWidth(400);
+            alertLabel.setAlignment(Pos.CENTER);
+
+            StackPane alertContainer = new StackPane();
+            alertContainer.getChildren().add(alertLabel);
+            alertContainer.setAlignment(Pos.TOP_CENTER);
+            alertContainer.setPadding(new Insets(20, 20, 0, 20));
+
+            BorderPane root = (BorderPane) panierContainer.getScene().getRoot();
+            ScrollPane scroll = (ScrollPane) root.getCenter();
+            VBox panierMain = (VBox) scroll.getContent();
+            panierMain.getChildren().add(0, alertContainer);
+
+            alertLabel.setOpacity(0);
+            FadeTransition fadeIn = new FadeTransition(Duration.seconds(0.5), alertLabel);
+            fadeIn.setFromValue(0);
+            fadeIn.setToValue(1);
+            fadeIn.play();
+
+            PauseTransition delay = new PauseTransition(Duration.seconds(3));
+            delay.setOnFinished(event -> {
+                FadeTransition fadeOut = new FadeTransition(Duration.seconds(0.5), alertLabel);
+                fadeOut.setFromValue(1);
+                fadeOut.setToValue(0);
+                fadeOut.setOnFinished(e -> panierMain.getChildren().remove(alertContainer));
+                fadeOut.play();
+            });
+            delay.play();
+        });
+    }
+
+    private void showStockInsufficiencyAlert(String productName, int availableQuantity) {
+        Platform.runLater(() -> {
+            Label stockAlert = new Label("Stock insuffisant pour " + productName + ". Disponible: " + availableQuantity);
+            stockAlert.getStyleClass().add("stock-insuff-alert");
+            stockAlert.setMaxWidth(400);
+            stockAlert.setAlignment(Pos.CENTER);
+
+            StackPane alertContainer = new StackPane();
+            alertContainer.getChildren().add(stockAlert);
+            alertContainer.setAlignment(Pos.TOP_CENTER);
+            alertContainer.setPadding(new Insets(20, 20, 0, 20));
+
+            BorderPane root = (BorderPane) panierContainer.getScene().getRoot();
+            ScrollPane scroll = (ScrollPane) root.getCenter();
+            VBox panierMain = (VBox) scroll.getContent();
+            panierMain.getChildren().add(0, alertContainer);
+
+            stockAlert.setOpacity(0);
+            FadeTransition fadeIn = new FadeTransition(Duration.seconds(0.5), stockAlert);
+            fadeIn.setFromValue(0);
+            fadeIn.setToValue(1);
+            fadeIn.play();
+
+            PauseTransition delay = new PauseTransition(Duration.seconds(3));
+            delay.setOnFinished(event -> {
+                FadeTransition fadeOut = new FadeTransition(Duration.seconds(0.5), stockAlert);
+                fadeOut.setFromValue(1);
+                fadeOut.setToValue(0);
+                fadeOut.setOnFinished(e -> panierMain.getChildren().remove(alertContainer));
+                fadeOut.play();
+            });
+            delay.play();
+        });
+    }
+
+    private void showSuccessAlert(String message) {
+        Platform.runLater(() -> {
+            Label successAlert = new Label(message);
+            successAlert.getStyleClass().add("success-alert");
+            successAlert.setMaxWidth(400);
+            successAlert.setAlignment(Pos.CENTER);
+
+            StackPane alertContainer = new StackPane();
+            alertContainer.getChildren().add(successAlert);
+            alertContainer.setAlignment(Pos.TOP_CENTER);
+            alertContainer.setPadding(new Insets(20, 20, 0, 20));
+
+            BorderPane root = (BorderPane) panierContainer.getScene().getRoot();
+            ScrollPane scroll = (ScrollPane) root.getCenter();
+            VBox panierMain = (VBox) scroll.getContent();
+            panierMain.getChildren().add(0, alertContainer);
+
+            successAlert.setOpacity(0);
+            FadeTransition fadeIn = new FadeTransition(Duration.seconds(0.5), successAlert);
+            fadeIn.setFromValue(0);
+            fadeIn.setToValue(1);
+            fadeIn.play();
+
+            PauseTransition delay = new PauseTransition(Duration.seconds(3));
+            delay.setOnFinished(event -> {
+                FadeTransition fadeOut = new FadeTransition(Duration.seconds(0.5), successAlert);
+                fadeOut.setFromValue(1);
+                fadeOut.setToValue(0);
+                fadeOut.setOnFinished(e -> panierMain.getChildren().remove(alertContainer));
+                fadeOut.play();
+            });
+            delay.play();
+        });
     }
 }

@@ -15,8 +15,11 @@ import javafx.stage.Stage;
 import tn.esprit.entities.Commande;
 import tn.esprit.entities.CommandeProduit;
 import tn.esprit.services.CommandeService;
+import tn.esprit.session.CartSession;
 
 import java.io.File;
+import java.io.IOException;
+import java.net.URL;
 import java.util.List;
 
 public class CommandeController {
@@ -24,11 +27,15 @@ public class CommandeController {
     @FXML
     private FlowPane commandeContainer;
 
+    @FXML
+    private Button btnPanierCommandes;
+
     private final CommandeService service = new CommandeService();
 
     @FXML
     public void initialize() {
         loadCommandes();
+        updatePanierButton();
     }
 
     private void loadCommandes() {
@@ -200,6 +207,7 @@ public class CommandeController {
         @FXML private Label lblResArticles;
         @FXML private Label lblNextStep;
         @FXML private Button btnDownload;
+        @FXML private Button btnPanierDetail;
 
         private final Commande commande;
 
@@ -210,6 +218,7 @@ public class CommandeController {
         @FXML
         public void initialize() {
             populate();
+            updatePanierButton();
         }
 
         private void populate() {
@@ -333,6 +342,33 @@ public class CommandeController {
                 ex.printStackTrace();
             }
         }
+
+        private void updatePanierButton() {
+            if (btnPanierDetail != null) {
+                btnPanierDetail.setText("🛒 Panier (" + CartSession.getNombreArticles() + ")");
+            }
+        }
+
+        @FXML
+        private void ouvrirPanierPopup() {
+            try {
+                URL url = getClass().getResource("/FrontFXML/Panier.fxml");
+                if (url == null) {
+                    throw new IOException("Fichier introuvable : /FrontFXML/Panier.fxml");
+                }
+
+                FXMLLoader loader = new FXMLLoader(url);
+                Parent root = loader.load();
+
+                Stage stage = (Stage) btnPanierDetail.getScene().getWindow();
+                stage.setScene(new Scene(root));
+                stage.setTitle("Mon Panier");
+                stage.show();
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     // ── Utilitaire badge CSS ──
@@ -345,4 +381,55 @@ public class CommandeController {
         if (statut.contains("final"))     return "badge-finalise";
         return "badge-default";
     }
+
+    // ── Panier ──
+
+    private void updatePanierButton() {
+        if (btnPanierCommandes != null) {
+            btnPanierCommandes.setText("🛒 Panier (" + CartSession.getNombreArticles() + ")");
+        }
+    }
+
+    @FXML
+    private void ouvrirPanierPopup() {
+        try {
+            URL url = getClass().getResource("/FrontFXML/Panier.fxml");
+            if (url == null) {
+                throw new IOException("Fichier introuvable : /FrontFXML/Panier.fxml");
+            }
+
+            FXMLLoader loader = new FXMLLoader(url);
+            Parent root = loader.load();
+
+            Stage stage = (Stage) btnPanierCommandes.getScene().getWindow();
+            stage.setScene(new Scene(root));
+            stage.setTitle("Mon Panier");
+            stage.show();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @FXML
+    private void retourPharmacie() {
+        try {
+            URL url = getClass().getResource("/FrontFXML/Pharmacie.fxml");
+            if (url == null) {
+                throw new IOException("Fichier introuvable : /FrontFXML/Pharmacie.fxml");
+            }
+
+            FXMLLoader loader = new FXMLLoader(url);
+            Parent root = loader.load();
+
+            Stage stage = (Stage) btnPanierCommandes.getScene().getWindow();
+            stage.setScene(new Scene(root));
+            stage.setTitle("Pharmacie");
+            stage.show();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }
+

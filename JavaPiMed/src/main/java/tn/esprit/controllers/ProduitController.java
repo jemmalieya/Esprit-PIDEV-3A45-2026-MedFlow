@@ -35,7 +35,9 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.stage.FileChooser;
+import javafx.stage.Popup;
 import javafx.stage.Stage;
+import javafx.stage.Window;
 import javafx.util.Duration;
 import tn.esprit.entities.Produit;
 import tn.esprit.services.ProduitService;
@@ -867,112 +869,43 @@ public class ProduitController {
         return card;
     }
 
-    private void showProduitDetailsPopup(Produit p) {
-        Dialog<Void> dialog = new Dialog<>();
-        dialog.setTitle("Détails du Produit");
-        dialog.setHeaderText(null);
+    /*private HBox createInfoRow(String label, String value) {
+        HBox row = new HBox(12);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.getStyleClass().add("popup-info-row");
 
-        // Create content
-        VBox content = new VBox(15);
-        content.setPadding(new Insets(20));
-        content.setAlignment(Pos.TOP_CENTER);
-        content.getStyleClass().add("product-details-popup");
+        Label lbl = new Label(label);
+        lbl.getStyleClass().add("popup-info-label");
 
-        // Image
-        StackPane imageContainer = new StackPane();
-        imageContainer.setPrefSize(200, 200);
-        imageContainer.getStyleClass().add("product-image-container");
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        String imagePath = safe(p.getImage_produit());
-        if (!imagePath.isEmpty()) {
-            try {
-                File file = new File(imagePath);
-                if (file.exists()) {
-                    ImageView imageView = new ImageView(new Image(file.toURI().toString()));
-                    imageView.setFitWidth(180);
-                    imageView.setFitHeight(180);
-                    imageView.setPreserveRatio(true);
-                    imageContainer.getChildren().add(imageView);
-                } else {
-                    Label placeholder = new Label("🖼");
-                    placeholder.getStyleClass().add("image-placeholder");
-                    imageContainer.getChildren().add(placeholder);
-                }
-            } catch (Exception e) {
-                Label placeholder = new Label("🖼");
-                placeholder.getStyleClass().add("image-placeholder");
-                imageContainer.getChildren().add(placeholder);
-            }
-        } else {
-            Label placeholder = new Label("🖼");
-            placeholder.getStyleClass().add("image-placeholder");
-            imageContainer.getChildren().add(placeholder);
-        }
+        Label val = new Label(value);
+        val.getStyleClass().add("popup-info-value");
+        val.setWrapText(true);
 
-        // Product Name
-        Label nameLabel = new Label(safe(p.getNom_produit()));
-        nameLabel.getStyleClass().add("product-name-popup");
-        nameLabel.setWrapText(true);
-        nameLabel.setAlignment(Pos.CENTER);
+        row.getChildren().addAll(lbl, spacer, val);
+        return row;
+    }*/
 
-        // Details Grid
-        GridPane detailsGrid = new GridPane();
-        detailsGrid.setHgap(10);
-        detailsGrid.setVgap(8);
-        detailsGrid.setAlignment(Pos.CENTER);
+    private HBox createInfoRow(String label, String value) {
+        HBox row = new HBox(12);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.getStyleClass().add("popup-info-row");
 
-        Label priceLabel = new Label("Prix:");
-        priceLabel.getStyleClass().add("detail-label");
-        Label priceValue = new Label(formatPrix(p.getPrix_produit()));
-        priceValue.getStyleClass().add("detail-value");
+        Label lbl = new Label(label);
+        lbl.getStyleClass().add("popup-info-label");
 
-        Label stockLabel = new Label("Stock:");
-        stockLabel.getStyleClass().add("detail-label");
-        Label stockValue = new Label(String.valueOf(p.getQuantite_produit()));
-        stockValue.getStyleClass().add("detail-value");
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        Label categoryLabel = new Label("Catégorie:");
-        categoryLabel.getStyleClass().add("detail-label");
-        Label categoryValue = new Label(safe(p.getCategorie_produit()));
-        categoryValue.getStyleClass().add("detail-value");
+        Label val = new Label(value);
+        val.getStyleClass().add("popup-info-value");
+        val.setWrapText(true);
 
-        Label statusLabel = new Label("Statut:");
-        statusLabel.getStyleClass().add("detail-label");
-        Label statusValue = new Label(safe(p.getStatus_produit()));
-        statusValue.getStyleClass().add("detail-value");
-
-        detailsGrid.add(priceLabel, 0, 0);
-        detailsGrid.add(priceValue, 1, 0);
-        detailsGrid.add(stockLabel, 0, 1);
-        detailsGrid.add(stockValue, 1, 1);
-        detailsGrid.add(categoryLabel, 0, 2);
-        detailsGrid.add(categoryValue, 1, 2);
-        detailsGrid.add(statusLabel, 0, 3);
-        detailsGrid.add(statusValue, 1, 3);
-
-        // Description
-        Label descTitle = new Label("Description:");
-        descTitle.getStyleClass().add("description-title");
-        TextArea descArea = new TextArea(safe(p.getDescription_produit()));
-        descArea.setEditable(false);
-        descArea.setWrapText(true);
-        descArea.setPrefRowCount(3);
-        descArea.getStyleClass().add("description-area");
-
-        content.getChildren().addAll(imageContainer, nameLabel, detailsGrid, descTitle, descArea);
-
-        DialogPane dialogPane = dialog.getDialogPane();
-        dialogPane.setContent(content);
-        dialogPane.getButtonTypes().add(ButtonType.CLOSE);
-        dialogPane.setPrefWidth(400);
-        dialogPane.setPrefHeight(600);
-
-        // Style the dialog
-        dialogPane.getStyleClass().add("product-details-dialog");
-
-        dialog.showAndWait();
+        row.getChildren().addAll(lbl, spacer, val);
+        return row;
     }
-
     private void ajouterProduitAuPanier(Produit produit, int quantity) {
         checkStockAndShowAlert(produit, quantity);
         updatePanierButton();
@@ -1642,42 +1575,11 @@ public class ProduitController {
     }
     private void showSuccessAlert(String produitName, int quantity) {
         Platform.runLater(() -> {
-            String text = quantity == 1 ? produitName + " ajouté au panier." : quantity + " x " + produitName + " ajoutés au panier.";
-            Label successAlert = new Label(text);
-            successAlert.getStyleClass().add("success-alert");
-            successAlert.setMaxWidth(400);
-            successAlert.setAlignment(Pos.CENTER);
+            String text = quantity == 1
+                    ? produitName + " ajouté au panier"
+                    : quantity + " x " + produitName + " ajoutés au panier";
 
-            StackPane alertContainer = new StackPane();
-            alertContainer.getChildren().add(successAlert);
-            alertContainer.setAlignment(Pos.TOP_CENTER);
-            alertContainer.setPadding(new Insets(20, 20, 0, 20));
-
-            BorderPane root = (BorderPane) btnPanier.getScene().getRoot();
-            if (!(root.getCenter() instanceof StackPane)) {
-                ScrollPane scroll = (ScrollPane) root.getCenter();
-                StackPane stack = new StackPane();
-                stack.getChildren().add(scroll);
-                root.setCenter(stack);
-            }
-            StackPane stack = (StackPane) root.getCenter();
-            stack.getChildren().add(alertContainer);
-
-            successAlert.setOpacity(0);
-            FadeTransition fadeIn = new FadeTransition(Duration.seconds(0.5), successAlert);
-            fadeIn.setFromValue(0);
-            fadeIn.setToValue(1);
-            fadeIn.play();
-
-            PauseTransition delay = new PauseTransition(Duration.seconds(3));
-            delay.setOnFinished(event -> {
-                FadeTransition fadeOut = new FadeTransition(Duration.seconds(0.5), successAlert);
-                fadeOut.setFromValue(1);
-                fadeOut.setToValue(0);
-                fadeOut.setOnFinished(e -> stack.getChildren().remove(alertContainer));
-                fadeOut.play();
-            });
-            delay.play();
+            showFloatingToast(text, "toast-success", "✅");
         });
     }
     private void checkStockAndShowAlert(Produit produit, int quantityToAdd) {
@@ -1698,44 +1600,99 @@ public class ProduitController {
 
     private void showStockInsufficiencyAlert(String produitName, int availableStock) {
         Platform.runLater(() -> {
-            Label stockAlert = new Label("Stock insuffisant pour " + produitName + ". Disponible: " + availableStock);
-            stockAlert.getStyleClass().add("stock-insuff-alert");
-            stockAlert.setMaxWidth(400);
-            stockAlert.setAlignment(Pos.CENTER);
-
-            StackPane alertContainer = new StackPane();
-            alertContainer.getChildren().add(stockAlert);
-            alertContainer.setAlignment(Pos.TOP_CENTER);
-            alertContainer.setPadding(new Insets(20, 20, 0, 20));
-
-            BorderPane root = (BorderPane) btnPanier.getScene().getRoot();
-            if (!(root.getCenter() instanceof StackPane)) {
-                ScrollPane scroll = (ScrollPane) root.getCenter();
-                StackPane stack = new StackPane();
-                stack.getChildren().add(scroll);
-                root.setCenter(stack);
-            }
-            StackPane stack = (StackPane) root.getCenter();
-            stack.getChildren().add(alertContainer);
-
-            stockAlert.setOpacity(0);
-            FadeTransition fadeIn = new FadeTransition(Duration.seconds(0.5), stockAlert);
-            fadeIn.setFromValue(0);
-            fadeIn.setToValue(1);
-            fadeIn.play();
-
-            PauseTransition delay = new PauseTransition(Duration.seconds(3));
-            delay.setOnFinished(event -> {
-                FadeTransition fadeOut = new FadeTransition(Duration.seconds(0.5), stockAlert);
-                fadeOut.setFromValue(1);
-                fadeOut.setToValue(0);
-                fadeOut.setOnFinished(e -> stack.getChildren().remove(alertContainer));
-                fadeOut.play();
-            });
-            delay.play();
+            String text = "Stock insuffisant pour " + produitName + " (reste : " + availableStock + ")";
+            showFloatingToast(text, "toast-warning", "⚠");
         });
     }
 
+    private void showFloatingToast(String message, String styleClass, String iconText) {
+        if (btnPanier == null) return;
+
+        Scene scene = btnPanier.getScene();
+        if (scene == null) return;
+
+        Window window = scene.getWindow();
+        if (window == null) return;
+
+        HBox toast = new HBox(10);
+        toast.setAlignment(Pos.CENTER_LEFT);
+        toast.getStyleClass().addAll("floating-toast", styleClass);
+        toast.setMaxWidth(340);
+
+        Label icon = new Label(iconText);
+        icon.getStyleClass().add("toast-icon");
+
+        Label textLabel = new Label(message);
+        textLabel.getStyleClass().add("toast-text");
+        textLabel.setWrapText(true);
+        textLabel.setMaxWidth(280);
+
+        toast.getChildren().addAll(icon, textLabel);
+
+        Popup popup = new Popup();
+        popup.getContent().add(toast);
+        popup.setAutoHide(false);
+        popup.setHideOnEscape(false);
+        popup.setAutoFix(true);
+
+        double x = window.getX() + scene.getWidth() - 380;
+        double y = window.getY() + scene.getHeight() - 120;
+
+        popup.show(window, x, y);
+
+        // ✅ très important : charger le CSS sur la scène du popup
+        URL cssUrl = getClass().getResource("/CSS/pharmacie.css");
+        if (cssUrl != null && popup.getScene() != null) {
+            popup.getScene().getStylesheets().add(cssUrl.toExternalForm());
+        }
+
+        toast.applyCss();
+        toast.layout();
+
+        toast.setOpacity(0);
+        toast.setTranslateY(18);
+        icon.setScaleX(0.7);
+        icon.setScaleY(0.7);
+
+        FadeTransition fadeIn = new FadeTransition(Duration.millis(220), toast);
+        fadeIn.setFromValue(0);
+        fadeIn.setToValue(1);
+
+        javafx.animation.TranslateTransition slideIn =
+                new javafx.animation.TranslateTransition(Duration.millis(220), toast);
+        slideIn.setFromY(18);
+        slideIn.setToY(0);
+
+        javafx.animation.ScaleTransition popIcon =
+                new javafx.animation.ScaleTransition(Duration.millis(260), icon);
+        popIcon.setFromX(0.7);
+        popIcon.setFromY(0.7);
+        popIcon.setToX(1.0);
+        popIcon.setToY(1.0);
+
+        javafx.animation.ParallelTransition enter =
+                new javafx.animation.ParallelTransition(fadeIn, slideIn, popIcon);
+
+        PauseTransition pause = new PauseTransition(Duration.seconds(2.2));
+
+        FadeTransition fadeOut = new FadeTransition(Duration.millis(220), toast);
+        fadeOut.setFromValue(1);
+        fadeOut.setToValue(0);
+
+        javafx.animation.TranslateTransition slideOut =
+                new javafx.animation.TranslateTransition(Duration.millis(220), toast);
+        slideOut.setFromY(0);
+        slideOut.setToY(10);
+
+        javafx.animation.ParallelTransition exit =
+                new javafx.animation.ParallelTransition(fadeOut, slideOut);
+
+        javafx.animation.SequentialTransition sequence =
+                new javafx.animation.SequentialTransition(enter, pause, exit);
+
+        sequence.setOnFinished(e -> popup.hide());
+        sequence.play();
+    }
     // =========================================================
     // DASHBOARD ADMIN BI
     // =========================================================
@@ -1960,4 +1917,149 @@ public class ProduitController {
     private String formatNombreBI(double value) {
         return String.format(Locale.FRANCE, "%,.2f", value);
     }
+
+    private void showProduitDetailsPopup(Produit p) {
+        if (p == null) return;
+
+        try {
+            Dialog<Void> dialog = new Dialog<>();
+            dialog.setTitle("Détails du produit");
+            dialog.setHeaderText(null);
+            dialog.setResizable(false);
+
+            DialogPane dialogPane = dialog.getDialogPane();
+            dialogPane.getButtonTypes().add(ButtonType.CLOSE);
+
+            URL cssUrl = getClass().getResource("/CSS/pharmacie.css");
+            if (cssUrl != null) {
+                dialogPane.getStylesheets().add(cssUrl.toExternalForm());
+            }
+
+            dialogPane.getStyleClass().add("product-details-dialog");
+            dialogPane.setStyle("-fx-background-color: transparent;");
+
+            VBox content = new VBox(14);
+            content.setPadding(new Insets(18));
+            content.setAlignment(Pos.TOP_CENTER);
+            content.getStyleClass().add("product-details-popup");
+
+            StackPane imageWrapper = new StackPane();
+            imageWrapper.setPrefSize(220, 180);
+            imageWrapper.getStyleClass().add("product-image-container");
+
+            String imgPath = safe(p.getImage_produit());
+            if (!imgPath.isEmpty()) {
+                try {
+                    File file = new File(imgPath);
+                    if (file.exists()) {
+                        ImageView imageView = new ImageView(new Image(file.toURI().toString()));
+                        imageView.setFitWidth(150);
+                        imageView.setFitHeight(150);
+                        imageView.setPreserveRatio(true);
+                        imageView.getStyleClass().add("popup-product-image");
+                        imageWrapper.getChildren().add(imageView);
+                    } else {
+                        Label placeholder = new Label("🖼");
+                        placeholder.getStyleClass().add("image-placeholder");
+                        imageWrapper.getChildren().add(placeholder);
+                    }
+                } catch (Exception e) {
+                    Label placeholder = new Label("🖼");
+                    placeholder.getStyleClass().add("image-placeholder");
+                    imageWrapper.getChildren().add(placeholder);
+                }
+            } else {
+                Label placeholder = new Label("🖼");
+                placeholder.getStyleClass().add("image-placeholder");
+                imageWrapper.getChildren().add(placeholder);
+            }
+
+            HBox badgesRow = new HBox(10);
+            badgesRow.setAlignment(Pos.CENTER);
+
+            Label prixBadge = new Label("💰 " + formatPrix(p.getPrix_produit()));
+            prixBadge.getStyleClass().add("popup-price-badge");
+
+            Label stockBadge = new Label("📦 Stock : " + p.getQuantite_produit());
+            stockBadge.getStyleClass().add("popup-stock-badge");
+
+            badgesRow.getChildren().addAll(prixBadge, stockBadge);
+
+            Label nameLabel = new Label(safe(p.getNom_produit()));
+            nameLabel.getStyleClass().add("product-name-popup");
+            nameLabel.setWrapText(true);
+            nameLabel.setAlignment(Pos.CENTER);
+
+            HBox tagsRow = new HBox(10);
+            tagsRow.setAlignment(Pos.CENTER);
+
+            Label categorieTag = new Label("🏷 " + safe(p.getCategorie_produit()));
+            categorieTag.getStyleClass().add("popup-category-tag");
+
+            Label statusTag = new Label(getStatutIcon(p.getStatus_produit()) + " " + safe(p.getStatus_produit()));
+            String statut = safe(p.getStatus_produit()).toLowerCase(Locale.ROOT);
+            if (statut.contains("rupture")) {
+                statusTag.getStyleClass().add("popup-status-ko");
+            } else if (statut.contains("indisponible")) {
+                statusTag.getStyleClass().add("popup-status-warn");
+            } else {
+                statusTag.getStyleClass().add("popup-status-ok");
+            }
+
+            tagsRow.getChildren().addAll(categorieTag, statusTag);
+
+            VBox detailsCard = new VBox(10);
+            detailsCard.getStyleClass().add("popup-details-card");
+
+            detailsCard.getChildren().addAll(
+                    createInfoRow("Nom", safe(p.getNom_produit())),
+                    createInfoRow("Catégorie", safe(p.getCategorie_produit())),
+                    createInfoRow("Prix", formatPrix(p.getPrix_produit())),
+                    createInfoRow("Quantité", String.valueOf(p.getQuantite_produit())),
+                    createInfoRow("Statut", safe(p.getStatus_produit()))
+            );
+
+            VBox descCard = new VBox(8);
+            descCard.getStyleClass().add("popup-description-card");
+
+            Label descTitle = new Label("📝 Description");
+            descTitle.getStyleClass().add("description-title");
+
+            Label descText = new Label(
+                    safe(p.getDescription_produit()).isEmpty()
+                            ? "Aucune description disponible."
+                            : safe(p.getDescription_produit())
+            );
+            descText.setWrapText(true);
+            descText.getStyleClass().add("popup-description-text");
+
+            descCard.getChildren().addAll(descTitle, descText);
+
+            content.getChildren().addAll(
+                    imageWrapper,
+                    badgesRow,
+                    nameLabel,
+                    tagsRow,
+                    detailsCard,
+                    descCard
+            );
+
+            dialogPane.setContent(content);
+            dialogPane.setPrefWidth(520);
+            dialogPane.setPrefHeight(640);
+            dialogPane.setMaxHeight(640);
+
+            Button closeButton = (Button) dialogPane.lookupButton(ButtonType.CLOSE);
+            closeButton.setText("Fermer");
+            closeButton.getStyleClass().add("popup-close-btn");
+            closeButton.setDefaultButton(true);
+
+            dialog.showAndWait();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Erreur popup", "Impossible d'afficher les détails : " + e.getMessage());
+        }
+    }
+
 }

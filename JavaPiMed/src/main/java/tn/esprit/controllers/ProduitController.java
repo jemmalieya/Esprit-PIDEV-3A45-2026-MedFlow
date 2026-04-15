@@ -1047,7 +1047,6 @@ public class ProduitController {
 
     @FXML
     void ajouterProduit(ActionEvent event) {
-        // Check validation
         if (!isNomValid || !isDescValid || !isPrixValid || !isQuantiteValid || !isCategorieValid || !isImageValid) {
             StringBuilder errors = new StringBuilder("Veuillez corriger les champs suivants :\n");
             if (!isNomValid) errors.append("- Nom du produit\n");
@@ -1056,6 +1055,7 @@ public class ProduitController {
             if (!isQuantiteValid) errors.append("- Quantité\n");
             if (!isCategorieValid) errors.append("- Catégorie\n");
             if (!isImageValid) errors.append("- Image\n");
+
             showAlert(Alert.AlertType.ERROR, "Champs invalides", errors.toString());
             return;
         }
@@ -1070,6 +1070,20 @@ public class ProduitController {
             String image = imagePath.isEmpty() ? lblImageProduit.getText() : imagePath;
 
             Produit produit = new Produit(nom, description, prix, quantite, image, categorie, statut);
+
+
+            // TEST D’UNICITÉ
+            boolean existeDeja = produitService.produitExisteDeja(nom, categorie, prix, description);
+
+            if (existeDeja) {
+                showAlert(
+                        Alert.AlertType.WARNING,
+                        "Produit déjà existant",
+                        "Un produit avec le même nom, la même catégorie, le même prix et la même description existe déjà."
+                );
+                return;
+            }
+
             produitService.ajouter(produit);
 
             showAlert(Alert.AlertType.INFORMATION, "Succès", "Produit ajouté avec succès !");
@@ -1080,7 +1094,6 @@ public class ProduitController {
             showAlert(Alert.AlertType.ERROR, "Erreur", "Erreur lors de l'ajout : " + e.getMessage());
         }
     }
-
     @FXML
     void modifierProduit(ActionEvent event) {
         if (produitAmodifier == null) {
@@ -1222,142 +1235,224 @@ public class ProduitController {
     }
 
     private void validateNom(String value) {
-        if (value == null || value.trim().isEmpty()) {
+        String nom = value == null ? "" : value.trim();
+
+        // Champ vide
+        if (nom.isEmpty()) {
             tfNomProduit.setStyle("-fx-border-color: red;");
             nomMsg.setText("Nom du produit est obligatoire");
             nomMsg.setStyle("-fx-text-fill: red;");
             isNomValid = false;
-        } else {
-            tfNomProduit.setStyle("-fx-border-color: green;");
-            nomMsg.setText("Nom du produit valide");
-            nomMsg.setStyle("-fx-text-fill: green;");
-            isNomValid = true;
+            return;
         }
+
+        // Minimum 3 caractères
+        if (nom.length() < 3) {
+            tfNomProduit.setStyle("-fx-border-color: red;");
+            nomMsg.setText("Minimum 3 caractères sont requis pour le nom du produit");
+            nomMsg.setStyle("-fx-text-fill: red;");
+            isNomValid = false;
+            return;
+        }
+
+        // 🔥 caractères autorisés seulement
+        if (!nom.matches("^[a-zA-ZÀ-ÿ0-9 ]+$")) {
+            tfNomProduit.setStyle("-fx-border-color: red;");
+            nomMsg.setText("Caractères invalides (lettres et chiffres uniquement)");
+            nomMsg.setStyle("-fx-text-fill: red;");
+            isNomValid = false;
+            return;
+        }
+
+        // Maximum
+        if (nom.length() > 100) {
+            tfNomProduit.setStyle("-fx-border-color: red;");
+            nomMsg.setText("Maximum 100 caractères  sont retuis pour le nom du produit");
+            nomMsg.setStyle("-fx-text-fill: red;");
+            isNomValid = false;
+            return;
+        }
+
+        // ✅ OK
+        tfNomProduit.setStyle("-fx-border-color: green;");
+        nomMsg.setText("Nom du produit valide");
+        nomMsg.setStyle("-fx-text-fill: green;");
+        isNomValid = true;
     }
 
     private void validateDescription(String value) {
-        if (value == null || value.trim().isEmpty()) {
+        String desc = value == null ? "" : value.trim();
+
+        if (desc.isEmpty()) {
             taDescriptionProduit.setStyle("-fx-border-color: red;");
             descMsg.setText("Description du produit est obligatoire");
             descMsg.setStyle("-fx-text-fill: red;");
             isDescValid = false;
-        } else if (value.trim().length() < 8) {
+            return;
+        }
+
+        if (desc.length() < 10) {
             taDescriptionProduit.setStyle("-fx-border-color: red;");
-            descMsg.setText("Description doit contenir au moins 8 caractères");
+            descMsg.setText("La description doit contenir au moins 10 caractères");
             descMsg.setStyle("-fx-text-fill: red;");
             isDescValid = false;
-        } else {
-            String[] words = value.trim().split("\\s+");
-            boolean allWordsValid = true;
-            for (String word : words) {
-                if (word.length() < 3) {
-                    allWordsValid = false;
-                    break;
-                }
-            }
-            if (!allWordsValid) {
-                taDescriptionProduit.setStyle("-fx-border-color: red;");
-                descMsg.setText("Chaque mot doit contenir au moins 3 caractères");
-                descMsg.setStyle("-fx-text-fill: red;");
-                isDescValid = false;
-            } else {
-                taDescriptionProduit.setStyle("-fx-border-color: green;");
-                descMsg.setText("Description du produit valide");
-                descMsg.setStyle("-fx-text-fill: green;");
-                isDescValid = true;
-            }
+            return;
         }
-    }
 
+        if (desc.length() > 500) {
+            taDescriptionProduit.setStyle("-fx-border-color: red;");
+            descMsg.setText("La description ne doit pas dépasser 500 caractères");
+            descMsg.setStyle("-fx-text-fill: red;");
+            isDescValid = false;
+            return;
+        }
+
+        taDescriptionProduit.setStyle("-fx-border-color: green;");
+        descMsg.setText("Description du produit valide");
+        descMsg.setStyle("-fx-text-fill: green;");
+        isDescValid = true;
+    }
     private void validatePrix(String value) {
-        if (value == null || value.trim().isEmpty()) {
+        String prixTexte = value == null ? "" : value.trim();
+
+        if (prixTexte.isEmpty()) {
             tfPrixProduit.setStyle("-fx-border-color: red;");
             prixMsg.setText("Prix est obligatoire");
             prixMsg.setStyle("-fx-text-fill: red;");
             isPrixValid = false;
-        } else {
-            try {
-                double prix = Double.parseDouble(value.trim());
-                if (prix > 0 && prix <= 9999) {
-                    tfPrixProduit.setStyle("-fx-border-color: green;");
-                    prixMsg.setText("Prix valide");
-                    prixMsg.setStyle("-fx-text-fill: green;");
-                    isPrixValid = true;
-                } else if (prix <= 0) {
-                    tfPrixProduit.setStyle("-fx-border-color: red;");
-                    prixMsg.setText("Prix doit être positif");
-                    prixMsg.setStyle("-fx-text-fill: red;");
-                    isPrixValid = false;
-                } else {
-                    tfPrixProduit.setStyle("-fx-border-color: red;");
-                    prixMsg.setText("Prix ne peut pas dépasser 9999 DT");
-                    prixMsg.setStyle("-fx-text-fill: red;");
-                    isPrixValid = false;
-                }
-            } catch (NumberFormatException e) {
+            return;
+        }
+
+        if (!prixTexte.matches("^\\d+(\\.\\d{1,2})?$")) {
+            tfPrixProduit.setStyle("-fx-border-color: red;");
+            prixMsg.setText("Le prix doit être un nombre valide (max 2 décimales)");
+            prixMsg.setStyle("-fx-text-fill: red;");
+            isPrixValid = false;
+            return;
+        }
+
+        try {
+            double prix = Double.parseDouble(prixTexte);
+
+            if (prix <= 0) {
                 tfPrixProduit.setStyle("-fx-border-color: red;");
-                prixMsg.setText("Le prix ne peut contenir que des nombres");
+                prixMsg.setText("Le prix doit être supérieur à 0");
                 prixMsg.setStyle("-fx-text-fill: red;");
                 isPrixValid = false;
+                return;
             }
+
+            if (prix > 9999) {
+                tfPrixProduit.setStyle("-fx-border-color: red;");
+                prixMsg.setText("Le prix ne doit pas dépasser 9999 DT");
+                prixMsg.setStyle("-fx-text-fill: red;");
+                isPrixValid = false;
+                return;
+            }
+
+            tfPrixProduit.setStyle("-fx-border-color: green;");
+            prixMsg.setText("Prix valide");
+            prixMsg.setStyle("-fx-text-fill: green;");
+            isPrixValid = true;
+
+        } catch (NumberFormatException e) {
+            tfPrixProduit.setStyle("-fx-border-color: red;");
+            prixMsg.setText("Le prix est invalide");
+            prixMsg.setStyle("-fx-text-fill: red;");
+            isPrixValid = false;
         }
     }
-
     private void validateQuantite(String value) {
-        if (value == null || value.trim().isEmpty()) {
+        String quantiteTexte = value == null ? "" : value.trim();
+
+        if (quantiteTexte.isEmpty()) {
             tfQuantiteProduit.setStyle("-fx-border-color: red;");
             quantiteMsg.setText("Quantité est obligatoire");
             quantiteMsg.setStyle("-fx-text-fill: red;");
             isQuantiteValid = false;
-        } else {
-            try {
-                int quantite = Integer.parseInt(value.trim());
-                if (quantite > 0) {
-                    tfQuantiteProduit.setStyle("-fx-border-color: green;");
-                    quantiteMsg.setText("Quantité valide");
-                    quantiteMsg.setStyle("-fx-text-fill: green;");
-                    isQuantiteValid = true;
-                } else {
-                    tfQuantiteProduit.setStyle("-fx-border-color: red;");
-                    quantiteMsg.setText("Quantité doit être positive");
-                    quantiteMsg.setStyle("-fx-text-fill: red;");
-                    isQuantiteValid = false;
-                }
-            } catch (NumberFormatException e) {
+            return;
+        }
+
+        if (!quantiteTexte.matches("^\\d+$")) {
+            tfQuantiteProduit.setStyle("-fx-border-color: red;");
+            quantiteMsg.setText("La quantité doit être un nombre entier");
+            quantiteMsg.setStyle("-fx-text-fill: red;");
+            isQuantiteValid = false;
+            return;
+        }
+
+        try {
+            int quantite = Integer.parseInt(quantiteTexte);
+
+            if (quantite < 0) {
                 tfQuantiteProduit.setStyle("-fx-border-color: red;");
-                quantiteMsg.setText("La quantité ne peut contenir que des nombres");
+                quantiteMsg.setText("La quantité ne peut pas être négative");
                 quantiteMsg.setStyle("-fx-text-fill: red;");
                 isQuantiteValid = false;
+                return;
             }
+
+            if (quantite > 100000) {
+                tfQuantiteProduit.setStyle("-fx-border-color: red;");
+                quantiteMsg.setText("La quantité est trop grande");
+                quantiteMsg.setStyle("-fx-text-fill: red;");
+                isQuantiteValid = false;
+                return;
+            }
+
+            tfQuantiteProduit.setStyle("-fx-border-color: green;");
+            quantiteMsg.setText("Quantité valide");
+            quantiteMsg.setStyle("-fx-text-fill: green;");
+            isQuantiteValid = true;
+
+        } catch (NumberFormatException e) {
+            tfQuantiteProduit.setStyle("-fx-border-color: red;");
+            quantiteMsg.setText("La quantité est invalide");
+            quantiteMsg.setStyle("-fx-text-fill: red;");
+            isQuantiteValid = false;
         }
     }
 
     private void validateCategorie(String value) {
-        if (value == null || value.trim().isEmpty()) {
+        String categorie = value == null ? "" : value.trim();
+
+        if (categorie.isEmpty()) {
             cbCategorieProduit.setStyle("-fx-border-color: red;");
-            categorieMsg.setText("Catégorie est requise");
+            categorieMsg.setText("Catégorie est obligatoire");
             categorieMsg.setStyle("-fx-text-fill: red;");
             isCategorieValid = false;
-        } else {
-            cbCategorieProduit.setStyle("-fx-border-color: green;");
-            categorieMsg.setText("Catégorie valide");
-            categorieMsg.setStyle("-fx-text-fill: green;");
-            isCategorieValid = true;
+            return;
         }
-    }
 
+        cbCategorieProduit.setStyle("-fx-border-color: green;");
+        categorieMsg.setText("Catégorie valide");
+        categorieMsg.setStyle("-fx-text-fill: green;");
+        isCategorieValid = true;
+    }
     private void validateImage(String value) {
-        if (value == null || value.trim().isEmpty() || "Aucun fichier choisi".equals(value)) {
+        String imageValeur = value == null ? "" : value.trim();
+
+        if (imageValeur.isEmpty() || "Aucun fichier choisi".equals(imageValeur)) {
             lblImageProduit.getParent().setStyle("-fx-border-color: red;");
             imageMsg.setText("Image du produit est requise");
             imageMsg.setStyle("-fx-text-fill: red;");
             isImageValid = false;
-        } else {
-            lblImageProduit.getParent().setStyle("-fx-border-color: green;");
-            imageMsg.setText("Image du produit valide");
-            imageMsg.setStyle("-fx-text-fill: green;");
-            isImageValid = true;
+            return;
         }
+
+        String lower = imageValeur.toLowerCase();
+        if (!(lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".png") || lower.endsWith(".webp"))) {
+            lblImageProduit.getParent().setStyle("-fx-border-color: red;");
+            imageMsg.setText("Format image invalide (jpg, jpeg, png, webp)");
+            imageMsg.setStyle("-fx-text-fill: red;");
+            isImageValid = false;
+            return;
+        }
+
+        lblImageProduit.getParent().setStyle("-fx-border-color: green;");
+        imageMsg.setText("Image du produit valide");
+        imageMsg.setStyle("-fx-text-fill: green;");
+        isImageValid = true;
     }
 
     private boolean contains(String value, String keyword) {

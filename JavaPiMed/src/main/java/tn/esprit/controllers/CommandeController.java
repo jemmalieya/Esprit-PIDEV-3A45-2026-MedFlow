@@ -2,48 +2,167 @@ package tn.esprit.controllers;
 
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.Separator;
+import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import tn.esprit.entities.Commande;
 import tn.esprit.entities.CommandeProduit;
+import tn.esprit.entities.User;
 import tn.esprit.services.CommandeService;
 import tn.esprit.session.CartSession;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
 
 public class CommandeController {
 
-    @FXML
-    private FlowPane commandeContainer;
-
-    @FXML
-    private Button btnPanierCommandes;
-
+    // =======================
+    // DONNEES COMMUNES
+    // =======================
     private final CommandeService service = new CommandeService();
+
+    private static Commande commandeSelectionneeFront;
+    private static Commande commandeSelectionneeBack;
+
+    private final List<Commande> allCommandesBack = new ArrayList<>();
+
+    // =======================
+    // FRONT - LISTE
+    // =======================
+    @FXML private FlowPane commandeContainer;
+    @FXML private Button btnPanierCommandes;
+    @FXML private Label lblNbCommandes;
+    @FXML private Label statTotal;
+    @FXML private Label statEnCours;
+    @FXML private Label statLivraison;
+    @FXML private Label statFinalise;
+    @FXML private VBox emptyState;
+
+    // =======================
+    // FRONT - DETAIL
+    // =======================
+    @FXML private Label lblNumCommande;
+    @FXML private Label lblDateCommande;
+    @FXML private Label lblStatutPill;
+    @FXML private VBox produitsContainer;
+    @FXML private Label lblTotal;
+    @FXML private Label lblNbProduits;
+    @FXML private Label lblAdresse;
+    @FXML private Label lblVille;
+    @FXML private Label lblTelephone;
+    @FXML private Label lblNote;
+    @FXML private Label resumeNum;
+    @FXML private Label resumeDate;
+    @FXML private Label resumeArticles;
+    @FXML private Label resumeTotal;
+    @FXML private Button btnPanierDetail;
+
+    // =======================
+    // BACK - LISTE
+    // =======================
+    @FXML private VBox commandesRowsContainer;
+    @FXML private Label totalCommandesLabel;
+    @FXML private TextField searchCommandeField;
+    @FXML private ComboBox<String> filtreStatutCombo;
+
+    // =======================
+    // BACK - DETAIL
+    // =======================
+    @FXML private Label detailCommandeNumeroLabel;
+    @FXML private Label detailDateLabel;
+
+    @FXML private Label clientNomLabel;
+    @FXML private Label clientCinLabel;
+    @FXML private Label clientEmailLabel;
+    @FXML private Label clientTelephoneLabel;
+    @FXML private Label clientAdresseLabel;
+
+    @FXML private Label detailMontantLabel;
+    @FXML private Label detailStatutLabel;
+    @FXML private GridPane produitsGrid;
+
+    @FXML private ComboBox<String> nouveauStatutCombo;
+    @FXML private Button btnMettreAJourStatut;
+    @FXML private Button btnTelechargerFacture;
+    @FXML private Button btnSupprimerCommande;
 
     @FXML
     public void initialize() {
-        loadCommandes();
-        updatePanierButton();
+        // FRONT LISTE
+        if (commandeContainer != null) {
+            loadCommandesFront();
+            updatePanierButtonFront();
+        }
+
+        // FRONT DETAIL
+        if (lblNumCommande != null) {
+            initFrontDetail();
+            updatePanierButtonDetail();
+        }
+
+        // BACK LISTE
+        if (commandesRowsContainer != null) {
+            initBackList();
+        }
+
+        // BACK DETAIL
+        if (detailCommandeNumeroLabel != null) {
+            initBackDetail();
+        }
     }
 
-    private void loadCommandes() {
+    // =========================================================
+    // FRONT LISTE
+    // =========================================================
+    private void loadCommandesFront() {
+        if (commandeContainer == null) return;
+
         List<Commande> commandes = service.recuperer();
         commandeContainer.getChildren().clear();
+
+        if (lblNbCommandes != null) lblNbCommandes.setText(commandes.size() + " commande(s)");
+        if (statTotal != null) statTotal.setText(String.valueOf(commandes.size()));
+
+        int enCours = 0, enLivraison = 0, finalise = 0;
+
         for (Commande c : commandes) {
-            VBox card = createCommandeCard(c);
-            commandeContainer.getChildren().add(card);
+            String statut = c.getStatut_commande();
+            if (statut != null) {
+                String s = statut.toLowerCase();
+                if (s.contains("cours")) enCours++;
+                else if (s.contains("livraison")) enLivraison++;
+                else if (s.contains("final")) finalise++;
+            }
+        }
+
+        if (statEnCours != null) statEnCours.setText(String.valueOf(enCours));
+        if (statLivraison != null) statLivraison.setText(String.valueOf(enLivraison));
+        if (statFinalise != null) statFinalise.setText(String.valueOf(finalise));
+
+        if (commandes.isEmpty()) {
+            if (emptyState != null) {
+                emptyState.setVisible(true);
+                emptyState.setManaged(true);
+            }
+            return;
+        }
+
+        if (emptyState != null) {
+            emptyState.setVisible(false);
+            emptyState.setManaged(false);
+        }
+
+        for (Commande c : commandes) {
+            commandeContainer.getChildren().add(createCommandeCard(c));
         }
     }
 
@@ -51,105 +170,76 @@ public class CommandeController {
         VBox card = new VBox(0);
         card.getStyleClass().add("cmd-card");
 
-        // ── TOP SECTION ──
         VBox topSection = new VBox(10);
         topSection.getStyleClass().add("card-top");
 
-        // Header: titre + badge statut
         HBox header = new HBox();
         header.setAlignment(Pos.CENTER_LEFT);
 
         HBox titleBox = new HBox(8);
         titleBox.setAlignment(Pos.CENTER_LEFT);
+
         Label titleIcon = new Label("🧾");
         titleIcon.getStyleClass().add("card-title-icon");
+
         Label title = new Label("Commande #" + c.getId_commande());
         title.getStyleClass().add("card-title");
+
         titleBox.getChildren().addAll(titleIcon, title);
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        Label status = new Label(c.getStatut_commande().toUpperCase());
+        Label status = new Label(normalizeStatut(c.getStatut_commande()).toUpperCase());
         status.getStyleClass().addAll("badge", getBadgeClass(c.getStatut_commande()));
 
         header.getChildren().addAll(titleBox, spacer, status);
 
-        // Date
-        Label date = new Label("  " + c.getDate_creation_commande().toString());
+        Label date = new Label("  " + c.getDate_creation_commande());
         date.getStyleClass().add("card-date");
 
-        // Séparateur
         Separator sep = new Separator();
-        sep.getStyleClass().add("card-sep");
 
-        // Label "PRODUITS"
         Label prodsLabel = new Label("PRODUITS");
         prodsLabel.getStyleClass().add("products-label");
 
-        // Images produits côte à côte (toutes affichées, sans limite)
         HBox imagesBox = new HBox(8);
         imagesBox.setAlignment(Pos.CENTER_LEFT);
 
         List<CommandeProduit> produits = c.getCommande_produits();
-        for (CommandeProduit cp : produits) {
-            try {
-                String path = cp.getProduit().getImage_produit();
-                StackPane imgWrap = new StackPane();
-
-                if (path != null && !path.isEmpty()) {
-                    File file = new File(path);
-                    if (file.exists()) {
-                        ImageView img = new ImageView(new Image(file.toURI().toString()));
-                        img.setFitWidth(52);
-                        img.setFitHeight(52);
-                        img.setPreserveRatio(false);
-                        imgWrap.getStyleClass().add("product-img-wrap");
-                        imgWrap.getChildren().add(img);
-                    } else {
-                        imgWrap.getStyleClass().add("product-img-placeholder");
-                        imgWrap.getChildren().add(new Label("🖼"));
-                    }
-                } else {
-                    imgWrap.getStyleClass().add("product-img-placeholder");
-                    imgWrap.getChildren().add(new Label("🖼"));
-                }
-
-                imagesBox.getChildren().add(imgWrap);
-
-            } catch (Exception e) {
-                StackPane ph = new StackPane(new Label("🖼"));
-                ph.getStyleClass().add("product-img-placeholder");
-                imagesBox.getChildren().add(ph);
+        if (produits != null) {
+            for (CommandeProduit cp : produits) {
+                imagesBox.getChildren().add(buildImageMini(cp));
             }
         }
 
         topSection.getChildren().addAll(header, date, sep, prodsLabel, imagesBox);
 
-        // ── BOTTOM SECTION ──
         VBox bottomSection = new VBox(8);
         bottomSection.getStyleClass().add("card-bottom");
 
-        // Total
         HBox totalRow = new HBox();
         totalRow.setAlignment(Pos.CENTER_LEFT);
+
         Label totalLabel = new Label("Total");
         totalLabel.getStyleClass().add("total-label");
+
         Region totalSpacer = new Region();
         HBox.setHgrow(totalSpacer, Priority.ALWAYS);
+
         double montant = c.getMontant_total_cents() / 100.0;
         Label total = new Label(String.format("%.2f Dt", montant));
         total.getStyleClass().add("cmd-total");
+
         totalRow.getChildren().addAll(totalLabel, totalSpacer, total);
 
-        // Bouton Facture PDF (pleine largeur)
         Button btnFacture = new Button("⬇  Facture PDF");
         btnFacture.getStyleClass().add("btn-primary");
         btnFacture.setMaxWidth(Double.MAX_VALUE);
-        btnFacture.setOnAction(e -> handleFacturePDF(c));
+        btnFacture.setOnAction(e -> handleFacturePDFFromFront(c));
 
-        // Boutons Suivi + Détails (grille 50/50)
         HBox btnGrid = new HBox(8);
+
         Button btnSuivi = new Button("🚚  Suivi livraison");
         btnSuivi.getStyleClass().add("btn-secondary");
         btnSuivi.setMaxWidth(Double.MAX_VALUE);
@@ -160,210 +250,773 @@ public class CommandeController {
         btnDetails.getStyleClass().add("btn-secondary");
         btnDetails.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(btnDetails, Priority.ALWAYS);
-        btnDetails.setOnAction(e -> handleVoirDetails(c));
+        btnDetails.setOnAction(e -> ouvrirDetailsCommandeFront(c));
 
         btnGrid.getChildren().addAll(btnSuivi, btnDetails);
 
         bottomSection.getChildren().addAll(totalRow, btnFacture, btnGrid);
-
         card.getChildren().addAll(topSection, bottomSection);
+
         return card;
     }
 
-    // ── Handlers (à implémenter selon votre logique) ──
+    private StackPane buildImageMini(CommandeProduit cp) {
+        StackPane imgWrap = new StackPane();
 
-    private void handleFacturePDF(Commande c) {
-        // TODO: générer et ouvrir la facture PDF
-        System.out.println("Facture PDF pour commande #" + c.getId_commande());
-    }
-
-    private void handleSuiviLivraison(Commande c) {
-        // TODO: ouvrir la vue suivi livraison
-        System.out.println("Suivi livraison pour commande #" + c.getId_commande());
-    }
-
-    private void handleVoirDetails(Commande c) {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/FrontFXML/CommandeDetail.fxml"));
-            loader.setController(new CommandeDetailFusionController(c));
-            Parent root = loader.load();
+            String path = cp.getProduit().getImage_produit();
+            if (path != null && !path.isEmpty()) {
+                File file = new File(path);
+                if (file.exists()) {
+                    ImageView img = new ImageView(new Image(file.toURI().toString()));
+                    img.setFitWidth(52);
+                    img.setFitHeight(52);
+                    img.setPreserveRatio(false);
+                    imgWrap.getStyleClass().add("product-img-wrap");
+                    imgWrap.getChildren().add(img);
+                    return imgWrap;
+                }
+            }
+        } catch (Exception ignored) {
+        }
+
+        imgWrap.getStyleClass().add("product-img-placeholder");
+        imgWrap.getChildren().add(new Label("🖼"));
+        return imgWrap;
+    }
+
+    private void ouvrirDetailsCommandeFront(Commande c) {
+        try {
+            commandeSelectionneeFront = c;
+
+            URL url = getClass().getResource("/FrontFXML/CommandeDetail.fxml");
+            if (url == null) throw new IOException("Fichier introuvable : /FrontFXML/CommandeDetail.fxml");
+
+            Parent root = FXMLLoader.load(url);
+
             Stage stage = (Stage) commandeContainer.getScene().getWindow();
-            stage.setScene(new Scene(root));
+            Scene scene = new Scene(root, 1400, 820);
+            scene.getStylesheets().addAll(commandeContainer.getScene().getStylesheets());
+
+            stage.setScene(scene);
+            stage.setTitle("Détail commande");
             stage.show();
+
         } catch (Exception ex) {
             ex.printStackTrace();
         }
     }
 
-    // ── Contrôleur fusionné pour la vue détail ──
-    public static class CommandeDetailFusionController {
-        @FXML private Label lblOrderNum;
-        @FXML private Label lblOrderDate;
-        @FXML private Label lblStatut;
-        @FXML private VBox  produitsContainer;
-        @FXML private Label lblTotal;
-        @FXML private Label lblResStatut;
-        @FXML private Label lblResMontant;
-        @FXML private Label lblResArticles;
-        @FXML private Label lblNextStep;
-        @FXML private Button btnDownload;
-        @FXML private Button btnPanierDetail;
+    private void handleFacturePDFFromFront(Commande c) {
+        telechargerFactureCommande(c);
+    }
 
-        private final Commande commande;
+    private void handleSuiviLivraison(Commande c) {
+        Alert a = new Alert(Alert.AlertType.INFORMATION);
+        a.setTitle("Suivi livraison");
+        a.setHeaderText(null);
+        a.setContentText("Suivi livraison pour la commande #" + c.getId_commande());
+        a.showAndWait();
+    }
 
-        public CommandeDetailFusionController(Commande c) {
-            this.commande = c;
+    @FXML
+    private void filtrerToutes() {
+        if (commandeContainer != null) {
+            loadCommandesFront();
+        } else if (commandesRowsContainer != null) {
+            allCommandesBack.clear();
+            allCommandesBack.addAll(service.recuperer());
+            refreshBackCommandeRows();
+            updateStatsBack(allCommandesBack);
+        }
+    }
+
+    @FXML
+    private void filtrerEnCours() {
+        if (commandeContainer != null) {
+            filterByStatusFront("cours");
+        } else if (commandesRowsContainer != null) {
+            filterByStatusBack("cours");
+        }
+    }
+
+    @FXML
+    private void filtrerLivraison() {
+        if (commandeContainer != null) {
+            filterByStatusFront("livraison");
+        } else if (commandesRowsContainer != null) {
+            filterByStatusBack("livraison");
+        }
+    }
+
+    @FXML
+    private void filtrerFinalise() {
+        if (commandeContainer != null) {
+            filterByStatusFront("final");
+        } else if (commandesRowsContainer != null) {
+            filterByStatusBack("final");
+        }
+    }
+
+    @FXML
+    private void filtrerAttente() {
+        if (commandeContainer != null) {
+            filterByStatusFront("attente");
+        } else if (commandesRowsContainer != null) {
+            filterByStatusBack("attente");
+        }
+    }
+
+    private void filterByStatusFront(String statusKeyword) {
+        if (commandeContainer == null) return;
+
+        commandeContainer.getChildren().clear();
+        List<Commande> commandes = service.recuperer();
+        List<Commande> filtered = new ArrayList<>();
+
+        for (Commande c : commandes) {
+            if (c.getStatut_commande() != null &&
+                    c.getStatut_commande().toLowerCase().contains(statusKeyword)) {
+                filtered.add(c);
+            }
         }
 
-        @FXML
-        public void initialize() {
-            populate();
-            updatePanierButton();
+        if (lblNbCommandes != null) {
+            lblNbCommandes.setText(filtered.size() + " commande(s)");
         }
 
-        private void populate() {
-            lblOrderNum.setText("Commande #" + commande.getId_commande());
-            lblOrderDate.setText("📅  " + commande.getDate_creation_commande());
-            String statut = commande.getStatut_commande();
-            lblStatut.setText(statut != null ? statut.toUpperCase() : "—");
-            lblStatut.getStyleClass().setAll("badge-detail", "badge-attente");
+        if (emptyState != null) {
+            boolean vide = filtered.isEmpty();
+            emptyState.setVisible(vide);
+            emptyState.setManaged(vide);
+        }
 
+        for (Commande c : filtered) {
+            commandeContainer.getChildren().add(createCommandeCard(c));
+        }
+    }
+
+    private void filterByStatusBack(String statusKeyword) {
+        if (commandesRowsContainer == null) return;
+
+        List<Commande> commandes = service.recuperer();
+        List<Commande> filtered = new ArrayList<>();
+
+        for (Commande c : commandes) {
+            if (c.getStatut_commande() != null &&
+                    c.getStatut_commande().toLowerCase().contains(statusKeyword)) {
+                filtered.add(c);
+            }
+        }
+
+        allCommandesBack.clear();
+        allCommandesBack.addAll(filtered);
+
+        refreshBackCommandeRows();
+        updateStatsBack(filtered);
+    }
+
+    @FXML
+    private void actualiserCommandes() {
+        if (commandeContainer != null) {
+            loadCommandesFront();
+        } else if (commandesRowsContainer != null) {
+            allCommandesBack.clear();
+            allCommandesBack.addAll(service.recuperer());
+            refreshBackCommandeRows();
+            updateStatsBack(allCommandesBack);
+        }
+    }
+
+    // =========================================================
+    // FRONT DETAIL
+    // =========================================================
+    private void initFrontDetail() {
+        if (commandeSelectionneeFront == null) return;
+        populateFrontDetail();
+    }
+
+    private void populateFrontDetail() {
+        Commande commande = commandeSelectionneeFront;
+        if (commande == null) return;
+
+        if (lblNumCommande != null) lblNumCommande.setText("Commande #" + commande.getId_commande());
+        if (lblDateCommande != null) lblDateCommande.setText("📅  " + commande.getDate_creation_commande());
+
+        String statut = commande.getStatut_commande();
+        if (lblStatutPill != null) {
+            lblStatutPill.setText(normalizeStatut(statut).toUpperCase());
+            lblStatutPill.getStyleClass().setAll("badge-detail", getBadgeClass(statut));
+        }
+
+        if (produitsContainer != null) {
             produitsContainer.getChildren().clear();
             List<CommandeProduit> produits = commande.getCommande_produits();
+            if (produits == null) produits = new ArrayList<>();
+
+            if (lblNbProduits != null) lblNbProduits.setText(produits.size() + " article(s)");
+
             for (CommandeProduit cp : produits) {
-                produitsContainer.getChildren().add(buildProductRow(cp));
+                produitsContainer.getChildren().add(buildFrontProductRow(cp));
             }
-            double montant = commande.getMontant_total_cents() / 100.0;
-            lblTotal.setText(String.format("%.2f Dt", montant));
-            lblResStatut.setText(statut != null ? statut : "—");
-            lblResMontant.setText(String.format("%.2f Dt", montant));
-            lblResArticles.setText(String.valueOf(produits.size()));
-            lblNextStep.setText(getNextStep(statut));
         }
 
-        private HBox buildProductRow(CommandeProduit cp) {
-            HBox row = new HBox(0);
-            row.setAlignment(Pos.CENTER_LEFT);
-            row.getStyleClass().add("product-row");
-            StackPane thumb = new StackPane();
-            thumb.setPrefSize(52, 52);
-            thumb.setMaxSize(52, 52);
+        double montant = commande.getMontant_total_cents() / 100.0;
+        if (lblTotal != null) lblTotal.setText(String.format("%.2f Dt", montant));
+
+        if (resumeNum != null) resumeNum.setText("#" + commande.getId_commande());
+        if (resumeDate != null) resumeDate.setText(String.valueOf(commande.getDate_creation_commande()));
+        if (resumeArticles != null) resumeArticles.setText(String.valueOf(
+                commande.getCommande_produits() == null ? 0 : commande.getCommande_produits().size()
+        ));
+        if (resumeTotal != null) resumeTotal.setText(String.format("%.2f Dt", montant));
+    }
+
+    private HBox buildFrontProductRow(CommandeProduit cp) {
+        HBox row = new HBox(0);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.getStyleClass().add("product-row");
+
+        StackPane thumb = new StackPane();
+        thumb.setPrefSize(52, 52);
+        thumb.setMaxSize(52, 52);
+
+        try {
+            String path = cp.getProduit().getImage_produit();
+            if (path != null && !path.isEmpty()) {
+                File f = new File(path);
+                if (f.exists()) {
+                    ImageView iv = new ImageView(new Image(f.toURI().toString()));
+                    iv.setFitWidth(46);
+                    iv.setFitHeight(46);
+                    iv.setPreserveRatio(false);
+                    thumb.getStyleClass().add("product-img-wrap");
+                    thumb.getChildren().add(iv);
+                } else {
+                    thumb.getStyleClass().add("product-img-placeholder");
+                    thumb.getChildren().add(new Label("🖼"));
+                }
+            } else {
+                thumb.getStyleClass().add("product-img-placeholder");
+                thumb.getChildren().add(new Label("🖼"));
+            }
+        } catch (Exception e) {
+            thumb.getStyleClass().add("product-img-placeholder");
+            thumb.getChildren().add(new Label("🖼"));
+        }
+
+        VBox nameBox = new VBox(2);
+        nameBox.setPrefWidth(188);
+        nameBox.setAlignment(Pos.CENTER_LEFT);
+        nameBox.setPadding(new Insets(0, 0, 0, 10));
+
+        Label name = new Label(cp.getProduit().getNom_produit());
+        name.getStyleClass().add("product-name");
+
+        Label cat = new Label(cp.getProduit().getCategorie_produit() != null
+                ? cp.getProduit().getCategorie_produit()
+                : "Médicament");
+        cat.getStyleClass().add("product-cat");
+
+        nameBox.getChildren().addAll(name, cat);
+
+        Label qty = new Label(String.valueOf(cp.getQuantite_commandee()));
+        qty.getStyleClass().add("qty-badge");
+        HBox qtyBox = new HBox(qty);
+        qtyBox.setAlignment(Pos.CENTER);
+        qtyBox.setPrefWidth(90);
+
+        Label price = new Label(String.format("%.2f Dt", cp.getProduit().getPrix_produit()));
+        HBox priceBox = new HBox(price);
+        priceBox.setAlignment(Pos.CENTER_RIGHT);
+        priceBox.setPrefWidth(100);
+
+        double sub = cp.getProduit().getPrix_produit() * cp.getQuantite_commandee();
+        Label subtotal = new Label(String.format("%.2f Dt", sub));
+        HBox subBox = new HBox(subtotal);
+        subBox.setAlignment(Pos.CENTER_RIGHT);
+        HBox.setHgrow(subBox, Priority.ALWAYS);
+
+        row.getChildren().addAll(thumb, nameBox, qtyBox, priceBox, subBox);
+        return row;
+    }
+
+    @FXML
+    private void retourCommandesFront() {
+        try {
+            URL url = getClass().getResource("/FrontFXML/MesCommandes.fxml");
+            if (url == null) throw new IOException("Fichier introuvable : /FrontFXML/MesCommandes.fxml");
+
+            Parent root = FXMLLoader.load(url);
+
+            Stage stage = (Stage) lblNumCommande.getScene().getWindow();
+            Scene scene = new Scene(root, 1400, 820);
+            scene.getStylesheets().addAll(lblNumCommande.getScene().getStylesheets());
+
+            stage.setScene(scene);
+            stage.show();
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    @FXML
+    private void handleContinuer() {
+        try {
+            URL url = getClass().getResource("/FrontFXML/Pharmacie.fxml");
+            if (url == null) throw new IOException("Fichier introuvable : /FrontFXML/Pharmacie.fxml");
+
+            Parent root = FXMLLoader.load(url);
+
+            Stage stage = (Stage) lblNumCommande.getScene().getWindow();
+            Scene scene = new Scene(root, 1400, 820);
+            scene.getStylesheets().addAll(lblNumCommande.getScene().getStylesheets());
+
+            stage.setScene(scene);
+            stage.show();
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    @FXML
+    private void telechargerFactureFront() {
+        if (commandeSelectionneeFront != null) {
+            telechargerFactureCommande(commandeSelectionneeFront);
+        }
+    }
+
+    // =========================================================
+    // BACK LISTE
+    // =========================================================
+    private void initBackList() {
+        if (filtreStatutCombo != null) {
+            filtreStatutCombo.getItems().setAll(
+                    "Tous", "Confirmée", "En cours", "En attente",
+                    "Livraison", "Finalisée", "Annulée"
+            );
+            filtreStatutCombo.setValue("Tous");
+            filtreStatutCombo.setOnAction(e -> refreshBackCommandeRows());
+        }
+
+        if (searchCommandeField != null) {
+            searchCommandeField.textProperty().addListener((obs, oldVal, newVal) -> refreshBackCommandeRows());
+        }
+
+        allCommandesBack.clear();
+        allCommandesBack.addAll(service.recuperer());
+        refreshBackCommandeRows();
+        updateStatsBack(allCommandesBack);
+    }
+
+    private void refreshBackCommandeRows() {
+        if (commandesRowsContainer == null) return;
+
+        commandesRowsContainer.getChildren().clear();
+        List<Commande> filtered = new ArrayList<>(allCommandesBack);
+
+        String keyword = searchCommandeField != null && searchCommandeField.getText() != null
+                ? searchCommandeField.getText().trim().toLowerCase()
+                : "";
+
+        String statutChoisi = filtreStatutCombo != null ? filtreStatutCombo.getValue() : "Tous";
+
+        if (!keyword.isEmpty()) {
+            filtered.removeIf(c ->
+                    !String.valueOf(c.getId_commande()).toLowerCase().contains(keyword)
+                            && !safe(readStringReflect(c, "getNom_client", "getNomClient", "getNom")).toLowerCase().contains(keyword)
+                            && !safe(readStringReflect(c, "getEmail_client", "getEmailClient", "getEmail")).toLowerCase().contains(keyword)
+                            && !safe(c.getStatut_commande()).toLowerCase().contains(keyword)
+            );
+        }
+
+        if (statutChoisi != null && !"Tous".equalsIgnoreCase(statutChoisi)) {
+            filtered.removeIf(c -> !normalizeStatut(c.getStatut_commande()).equalsIgnoreCase(statutChoisi));
+        }
+
+        if (totalCommandesLabel != null) {
+            totalCommandesLabel.setText(filtered.size() + " commande(s) au total");
+        }
+
+        if (emptyState != null) {
+            boolean vide = filtered.isEmpty();
+            emptyState.setVisible(vide);
+            emptyState.setManaged(vide);
+        }
+
+        if (filtered.isEmpty()) {
+            return;
+        }
+
+        for (Commande c : filtered) {
+            commandesRowsContainer.getChildren().add(createBackCommandeRow(c));
+        }
+    }
+
+    private void updateStatsBack(List<Commande> commandes) {
+        if (commandes == null) commandes = new ArrayList<>();
+
+        if (totalCommandesLabel != null) {
+            totalCommandesLabel.setText(commandes.size() + " commande(s) au total");
+        }
+
+        if (statTotal != null) {
+            statTotal.setText(String.valueOf(commandes.size()));
+        }
+
+        int enCours = 0;
+        int enLivraison = 0;
+        int finalise = 0;
+
+        for (Commande c : commandes) {
+            String statut = c.getStatut_commande();
+            if (statut != null) {
+                String s = statut.toLowerCase();
+                if (s.contains("cours")) enCours++;
+                else if (s.contains("livraison")) enLivraison++;
+                else if (s.contains("final")) finalise++;
+            }
+        }
+
+        if (statEnCours != null) statEnCours.setText(String.valueOf(enCours));
+        if (statLivraison != null) statLivraison.setText(String.valueOf(enLivraison));
+        if (statFinalise != null) statFinalise.setText(String.valueOf(finalise));
+    }
+    private HBox createBackCommandeRow(Commande c) {
+        HBox row = new HBox();
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.setSpacing(0);
+        row.setPadding(new Insets(14, 8, 14, 8));
+        row.getStyleClass().add("commande-row");
+        row.setMaxWidth(Double.MAX_VALUE);
+
+        // ID
+        Label idLabel = new Label("#" + c.getId_commande());
+        idLabel.getStyleClass().add("row-id-label");
+        VBox idBox = wrapBackCell(idLabel, 60, Pos.CENTER_LEFT);
+
+        // DATE
+        Label dateLabel = new Label(String.valueOf(c.getDate_creation_commande()));
+        dateLabel.getStyleClass().add("row-date-label");
+        VBox dateBox = wrapBackCell(dateLabel, 170, Pos.CENTER_LEFT);
+
+        // CLIENT
+// CLIENT
+        VBox clientContent = new VBox(4);
+        clientContent.setAlignment(Pos.CENTER_LEFT);
+
+        User u = c.getUser();
+
+        String nomComplet = "Client inconnu";
+        String email = "-";
+
+        if (u != null) {
+            String prenom = u.getPrenom() != null ? u.getPrenom() : "";
+            String nom = u.getNom() != null ? u.getNom() : "";
+            String mail = u.getEmailUser() != null ? u.getEmailUser() : "-";
+
+            String full = (prenom + " " + nom).trim();
+            if (!full.isEmpty()) {
+                nomComplet = full;
+            }
+            email = mail;
+        }
+
+// NOM
+        Label nomLabel = new Label(nomComplet);
+        nomLabel.getStyleClass().add("client-name-label");
+
+// EMAIL
+        Label emailLabel = new Label(email);
+        emailLabel.getStyleClass().add("client-email-label");
+
+        clientContent.getChildren().addAll(nomLabel, emailLabel);
+        VBox clientBox = wrapBackCell(clientContent, 220, Pos.CENTER_LEFT);
+
+        // MONTANT
+        double montant = c.getMontant_total_cents() / 100.0;
+        Label montantLabel = new Label(String.format("%.2f Dt", montant));
+        montantLabel.getStyleClass().add("montant-value-label");
+        VBox montantBox = wrapBackCell(montantLabel, 120, Pos.CENTER_LEFT);
+
+        // STATUT
+        Label statutBadge = new Label(normalizeStatut(c.getStatut_commande()));
+        statutBadge.getStyleClass().addAll("status-badge", getStatusClass(c.getStatut_commande()));
+        VBox statutBox = wrapBackCell(statutBadge, 140, Pos.CENTER_LEFT);
+
+        // PRODUITS
+        int nbProduits = c.getCommande_produits() != null ? c.getCommande_produits().size() : 0;
+        Label produitsBadge = new Label(nbProduits + " produit(s)");
+        produitsBadge.getStyleClass().add("products-count-badge");
+        VBox produitsBox = wrapBackCell(produitsBadge, 120, Pos.CENTER_LEFT);
+
+        // ACTIONS
+        Button btnDetails = new Button("Détails");
+        btnDetails.getStyleClass().add("btn-detail");
+        btnDetails.setOnAction(e -> ouvrirDetailsCommandeBack(c));
+
+        Button btnFacture = new Button("Facture");
+        btnFacture.getStyleClass().add("btn-facture");
+        btnFacture.setOnAction(e -> telechargerFactureCommande(c));
+
+        HBox actionsContent = new HBox(8, btnDetails, btnFacture);
+        actionsContent.setAlignment(Pos.CENTER_LEFT);
+        VBox actionsBox = wrapBackCell(actionsContent, 180, Pos.CENTER_LEFT);
+
+        row.getChildren().addAll(
+                idBox,
+                dateBox,
+                clientBox,
+                montantBox,
+                statutBox,
+                produitsBox,
+                actionsBox
+        );
+
+        return row;
+    }
+
+
+    private VBox wrapBackCell(javafx.scene.Node node, double width, Pos alignment) {
+        VBox box = new VBox(node);
+        box.setAlignment(alignment);
+        box.setPrefWidth(width);
+        box.setMinWidth(width);
+        box.setMaxWidth(width);
+        box.setFillWidth(true);
+        box.getStyleClass().add("table-cell-box");
+        return box;
+    }
+    private void ouvrirDetailsCommandeBack(Commande c) {
+        try {
+            commandeSelectionneeBack = c;
+
+            URL url = getClass().getResource("/CommandeBackDetail.fxml");
+            if (url == null) throw new IOException("Fichier introuvable : /CommandeBackDetail.fxml");
+
+            Parent root = FXMLLoader.load(url);
+
+            Stage stage = (Stage) commandesRowsContainer.getScene().getWindow();
+            Scene scene = new Scene(root, 1400, 850);
+
+            URL css = getClass().getResource("/CSS/commande_back.css");
+            if (css != null) {
+                scene.getStylesheets().add(css.toExternalForm());
+            }
+
+            stage.setScene(scene);
+            stage.setTitle("Détails commande");
+            stage.show();
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    // =========================================================
+    // BACK DETAIL
+    // =========================================================
+    private void initBackDetail() {
+        if (commandeSelectionneeBack == null) return;
+
+        if (nouveauStatutCombo != null) {
+            nouveauStatutCombo.getItems().setAll(
+                    "En attente", "Confirmée", "En cours",
+                    "Livraison", "Finalisée", "Annulée"
+            );
+            nouveauStatutCombo.setValue(normalizeStatut(commandeSelectionneeBack.getStatut_commande()));
+        }
+
+        populateBackDetails();
+    }
+
+    private void populateBackDetails() {
+        if (commandeSelectionneeBack == null) return;
+
+        detailCommandeNumeroLabel.setText("Commande #" + commandeSelectionneeBack.getId_commande());
+        detailDateLabel.setText(String.valueOf(commandeSelectionneeBack.getDate_creation_commande()));
+
+        clientNomLabel.setText(safe(readStringReflect(commandeSelectionneeBack, "getNom_client", "getNomClient", "getNom")));
+        clientCinLabel.setText(safe(readStringReflect(commandeSelectionneeBack, "getCin_client", "getCinClient", "getCin")));
+        clientEmailLabel.setText(safe(readStringReflect(commandeSelectionneeBack, "getEmail_client", "getEmailClient", "getEmail")));
+        clientTelephoneLabel.setText(safe(readStringReflect(commandeSelectionneeBack, "getTelephone_client", "getTelephoneClient", "getTelephone")));
+        clientAdresseLabel.setText(safe(readStringReflect(commandeSelectionneeBack, "getAdresse_client", "getAdresseClient", "getAdresse")));
+
+        detailMontantLabel.setText(String.format("%.2f Dt", commandeSelectionneeBack.getMontant_total_cents() / 100.0));
+
+        detailStatutLabel.setText(normalizeStatut(commandeSelectionneeBack.getStatut_commande()));
+        detailStatutLabel.getStyleClass().removeAll(
+                "status-confirmed", "status-progress", "status-pending",
+                "status-delivery", "status-final", "status-cancel"
+        );
+        detailStatutLabel.getStyleClass().addAll("status-badge", getStatusClass(commandeSelectionneeBack.getStatut_commande()));
+
+        fillProduitsGridBack();
+    }
+
+    private void fillProduitsGridBack() {
+        if (produitsGrid == null || commandeSelectionneeBack == null) return;
+
+        produitsGrid.getChildren().clear();
+
+        addHeaderCellBack("Produit", 0, 0);
+        addHeaderCellBack("Quantité", 1, 0);
+        addHeaderCellBack("Prix unitaire", 2, 0);
+        addHeaderCellBack("Sous-total", 3, 0);
+
+        List<CommandeProduit> items = commandeSelectionneeBack.getCommande_produits();
+        if (items == null) items = new ArrayList<>();
+
+        int rowIndex = 1;
+        for (CommandeProduit cp : items) {
+            HBox produitCell = new HBox(10);
+            produitCell.setAlignment(Pos.CENTER_LEFT);
+
+            StackPane imgBox = new StackPane();
+            imgBox.setPrefSize(52, 52);
+            imgBox.getStyleClass().add("mini-image-box");
+
             try {
                 String path = cp.getProduit().getImage_produit();
-                if (path != null && !path.isEmpty()) {
-                    File f = new File(path);
-                    if (f.exists()) {
-                        ImageView iv = new ImageView(new Image(f.toURI().toString()));
-                        iv.setFitWidth(46);
-                        iv.setFitHeight(46);
-                        iv.setPreserveRatio(false);
-                        thumb.getStyleClass().add("product-img-wrap");
-                        thumb.getChildren().add(iv);
-                    } else {
-                        placeholder(thumb);
-                    }
+                if (path != null && !path.isEmpty() && new File(path).exists()) {
+                    ImageView iv = new ImageView(new Image(new File(path).toURI().toString()));
+                    iv.setFitWidth(42);
+                    iv.setFitHeight(42);
+                    iv.setPreserveRatio(true);
+                    imgBox.getChildren().add(iv);
                 } else {
-                    placeholder(thumb);
+                    imgBox.getChildren().add(new Label("🖼"));
                 }
             } catch (Exception e) {
-                placeholder(thumb);
+                imgBox.getChildren().add(new Label("🖼"));
             }
-            VBox nameBox = new VBox(2);
-            nameBox.setPrefWidth(188);
-            nameBox.setAlignment(Pos.CENTER_LEFT);
-            nameBox.setPadding(new javafx.geometry.Insets(0, 0, 0, 10));
-            Label name = new Label(cp.getProduit().getNom_produit());
-            name.getStyleClass().add("product-name");
-            Label cat  = new Label(cp.getProduit().getCategorie_produit() != null ? cp.getProduit().getCategorie_produit() : "Médicament");
-            cat.getStyleClass().add("product-cat");
-            nameBox.getChildren().addAll(name, cat);
-            Label qty = new Label(String.valueOf(cp.getQuantite_commandee()));
-            qty.getStyleClass().add("qty-badge");
-            HBox qtyBox = new HBox(qty);
-            qtyBox.setAlignment(Pos.CENTER);
-            qtyBox.setPrefWidth(90);
-            Label price = new Label(String.format("%.2f Dt", cp.getProduit().getPrix_produit()));
-            price.getStyleClass().add("price-lbl");
-            HBox priceBox = new HBox(price);
-            priceBox.setAlignment(Pos.CENTER_RIGHT);
-            priceBox.setPrefWidth(100);
-            double sub = cp.getProduit().getPrix_produit() * cp.getQuantite_commandee();
-            Label subtotal = new Label(String.format("%.2f Dt", sub));
-            subtotal.getStyleClass().add("subtotal-lbl");
-            HBox subBox = new HBox(subtotal);
-            subBox.setAlignment(Pos.CENTER_RIGHT);
-            HBox.setHgrow(subBox, Priority.ALWAYS);
-            row.getChildren().addAll(thumb, nameBox, qtyBox, priceBox, subBox);
-            return row;
+
+            VBox produitInfos = new VBox(4);
+            Label nom = new Label(safe(cp.getProduit().getNom_produit()));
+            Label cat = new Label(safe(cp.getProduit().getCategorie_produit()));
+            produitInfos.getChildren().addAll(nom, cat);
+
+            produitCell.getChildren().addAll(imgBox, produitInfos);
+
+            Label qte = new Label(String.valueOf(cp.getQuantite_commandee()));
+            Label prix = new Label(String.format("%.2f Dt", cp.getProduit().getPrix_produit()));
+            Label sub = new Label(String.format("%.2f Dt", cp.getProduit().getPrix_produit() * cp.getQuantite_commandee()));
+
+            addBodyCellBack(produitCell, 0, rowIndex);
+            addBodyCellBack(centerNodeBack(qte), 1, rowIndex);
+            addBodyCellBack(prix, 2, rowIndex);
+            addBodyCellBack(sub, 3, rowIndex);
+
+            rowIndex++;
         }
 
-        private void placeholder(StackPane p) {
-            p.getStyleClass().add("product-img-placeholder");
-            p.getChildren().add(new Label("🖼"));
-        }
+        Label totalTitle = new Label("TOTAL :");
+        Label totalValue = new Label(String.format("%.2f Dt", commandeSelectionneeBack.getMontant_total_cents() / 100.0));
 
-        private String getNextStep(String statut) {
-            if (statut == null) return "—";
-            String s = statut.toLowerCase();
-            if (s.contains("attente"))   return "En attente de confirmation.";
-            if (s.contains("cours"))     return "Votre commande est en cours de préparation.";
-            if (s.contains("livraison")) return "Votre commande est en route !";
-            if (s.contains("final"))     return "Commande finalisée. Merci !";
-            return "—";
-        }
+        addFooterCellBack(totalTitle, 0, rowIndex, 3);
+        addFooterCellBack(totalValue, 3, rowIndex, 1);
+    }
 
-        @FXML
-        private void handleDownloadFacture() {
-            System.out.println("Download facture for commande #" + commande.getId_commande());
-        }
+    private void addHeaderCellBack(String text, int col, int row) {
+        Label label = new Label(text);
+        produitsGrid.add(label, col, row);
+        GridPane.setHgrow(label, Priority.ALWAYS);
+        GridPane.setFillWidth(label, true);
+        label.setMaxWidth(Double.MAX_VALUE);
+    }
 
-        @FXML
-        private void handleBack() {
+    private void addBodyCellBack(javafx.scene.Node node, int col, int row) {
+        StackPane wrapper = new StackPane(node);
+        wrapper.setAlignment(col == 1 ? Pos.CENTER : Pos.CENTER_LEFT);
+        wrapper.setPadding(new Insets(12));
+        produitsGrid.add(wrapper, col, row);
+        GridPane.setHgrow(wrapper, Priority.ALWAYS);
+        GridPane.setFillWidth(wrapper, true);
+    }
+
+    private void addFooterCellBack(javafx.scene.Node node, int col, int row, int colspan) {
+        StackPane wrapper = new StackPane(node);
+        wrapper.setAlignment(Pos.CENTER_LEFT);
+        wrapper.setPadding(new Insets(12));
+        produitsGrid.add(wrapper, col, row, colspan, 1);
+        GridPane.setHgrow(wrapper, Priority.ALWAYS);
+        GridPane.setFillWidth(wrapper, true);
+    }
+
+    private StackPane centerNodeBack(javafx.scene.Node node) {
+        StackPane sp = new StackPane(node);
+        sp.setAlignment(Pos.CENTER);
+        return sp;
+    }
+
+    @FXML
+    private void retourListeCommandes() {
+        try {
+            URL url = getClass().getResource("/MesCommandesBack.fxml");
+            if (url == null) throw new IOException("Fichier introuvable : /MesCommandesBack.fxml");
+
+            Parent root = FXMLLoader.load(url);
+
+            Stage stage = (Stage) detailCommandeNumeroLabel.getScene().getWindow();
+            Scene scene = new Scene(root, 1400, 850);
+
+            URL css = getClass().getResource("/CSS/commande_back.css");
+            if (css != null) {
+                scene.getStylesheets().add(css.toExternalForm());
+            }
+
+            stage.setScene(scene);
+            stage.setTitle("Gestion des commandes");
+            stage.show();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @FXML
+    private void mettreAJourStatutCommande() {
+        if (commandeSelectionneeBack == null || nouveauStatutCombo == null) return;
+
+        try {
+            commandeSelectionneeBack.setStatut_commande(nouveauStatutCombo.getValue());
+            service.modifier(commandeSelectionneeBack);
+
+            Alert a = new Alert(Alert.AlertType.INFORMATION);
+            a.setTitle("Succès");
+            a.setHeaderText(null);
+            a.setContentText("Statut mis à jour avec succès.");
+            a.showAndWait();
+
+            populateBackDetails();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @FXML
+    private void supprimerCommande() {
+        if (commandeSelectionneeBack == null) return;
+
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setTitle("Confirmation");
+        confirm.setHeaderText("Suppression de la commande");
+        confirm.setContentText("Voulez-vous vraiment supprimer cette commande ?");
+
+        if (confirm.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK) {
             try {
-                FXMLLoader loader = new FXMLLoader(getClass().getResource("/FrontFXML/MesCommandes.fxml"));
-                Parent root = loader.load();
-                Stage stage = (Stage) lblOrderNum.getScene().getWindow();
-                stage.setScene(new Scene(root));
-                stage.show();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-        }
+                service.supprimer(commandeSelectionneeBack);
 
-        @FXML
-        private void handleContinuer() {
-            try {
-                FXMLLoader loader = new FXMLLoader(getClass().getResource("/FrontFXML/Pharmacie.fxml"));
-                Parent root = loader.load();
-                Stage stage = (Stage) lblOrderNum.getScene().getWindow();
-                stage.setScene(new Scene(root));
-                stage.show();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-        }
+                Alert a = new Alert(Alert.AlertType.INFORMATION);
+                a.setTitle("Succès");
+                a.setHeaderText(null);
+                a.setContentText("Commande supprimée avec succès.");
+                a.showAndWait();
 
-        private void updatePanierButton() {
-            if (btnPanierDetail != null) {
-                btnPanierDetail.setText("🛒 Panier (" + CartSession.getNombreArticles() + ")");
-            }
-        }
-
-        @FXML
-        private void ouvrirPanierPopup() {
-            try {
-                URL url = getClass().getResource("/FrontFXML/Panier.fxml");
-                if (url == null) {
-                    throw new IOException("Fichier introuvable : /FrontFXML/Panier.fxml");
-                }
-
-                FXMLLoader loader = new FXMLLoader(url);
-                Parent root = loader.load();
-
-                Stage stage = (Stage) btnPanierDetail.getScene().getWindow();
-                stage.setScene(new Scene(root));
-                stage.setTitle("Mon Panier");
-                stage.show();
+                retourListeCommandes();
 
             } catch (Exception e) {
                 e.printStackTrace();
@@ -371,22 +1024,25 @@ public class CommandeController {
         }
     }
 
-    // ── Utilitaire badge CSS ──
-
-    private String getBadgeClass(String statut) {
-        if (statut == null) return "badge-default";
-        statut = statut.toLowerCase();
-        if (statut.contains("livraison")) return "badge-livraison";
-        if (statut.contains("cours"))     return "badge-cours";
-        if (statut.contains("final"))     return "badge-finalise";
-        return "badge-default";
+    @FXML
+    private void telechargerFacture() {
+        if (commandeSelectionneeBack != null) {
+            telechargerFactureCommande(commandeSelectionneeBack);
+        }
     }
 
-    // ── Panier ──
-
-    private void updatePanierButton() {
+    // =========================================================
+    // PANIER / NAVIGATION
+    // =========================================================
+    private void updatePanierButtonFront() {
         if (btnPanierCommandes != null) {
             btnPanierCommandes.setText("🛒 Panier (" + CartSession.getNombreArticles() + ")");
+        }
+    }
+
+    private void updatePanierButtonDetail() {
+        if (btnPanierDetail != null) {
+            btnPanierDetail.setText("🛒 Panier (" + CartSession.getNombreArticles() + ")");
         }
     }
 
@@ -394,15 +1050,21 @@ public class CommandeController {
     private void ouvrirPanierPopup() {
         try {
             URL url = getClass().getResource("/FrontFXML/Panier.fxml");
-            if (url == null) {
-                throw new IOException("Fichier introuvable : /FrontFXML/Panier.fxml");
+            if (url == null) throw new IOException("Fichier introuvable : /FrontFXML/Panier.fxml");
+
+            Parent root = FXMLLoader.load(url);
+
+            Stage stage;
+            if (btnPanierCommandes != null && btnPanierCommandes.getScene() != null) {
+                stage = (Stage) btnPanierCommandes.getScene().getWindow();
+            } else if (btnPanierDetail != null && btnPanierDetail.getScene() != null) {
+                stage = (Stage) btnPanierDetail.getScene().getWindow();
+            } else {
+                return;
             }
 
-            FXMLLoader loader = new FXMLLoader(url);
-            Parent root = loader.load();
-
-            Stage stage = (Stage) btnPanierCommandes.getScene().getWindow();
-            stage.setScene(new Scene(root));
+            Scene scene = new Scene(root, 1400, 820);
+            stage.setScene(scene);
             stage.setTitle("Mon Panier");
             stage.show();
 
@@ -415,15 +1077,13 @@ public class CommandeController {
     private void retourPharmacie() {
         try {
             URL url = getClass().getResource("/FrontFXML/Pharmacie.fxml");
-            if (url == null) {
-                throw new IOException("Fichier introuvable : /FrontFXML/Pharmacie.fxml");
-            }
+            if (url == null) throw new IOException("Fichier introuvable : /FrontFXML/Pharmacie.fxml");
 
-            FXMLLoader loader = new FXMLLoader(url);
-            Parent root = loader.load();
+            Parent root = FXMLLoader.load(url);
 
             Stage stage = (Stage) btnPanierCommandes.getScene().getWindow();
-            stage.setScene(new Scene(root));
+            Scene scene = new Scene(root, 1400, 820);
+            stage.setScene(scene);
             stage.setTitle("Pharmacie");
             stage.show();
 
@@ -431,5 +1091,110 @@ public class CommandeController {
             e.printStackTrace();
         }
     }
-}
 
+    @FXML
+    private void retourProduitDashboard() {
+        try {
+            URL url = getClass().getResource("/ProduitDashboard.fxml");
+            if (url == null) throw new IOException("Fichier introuvable : /ProduitDashboard.fxml");
+
+            Parent root = FXMLLoader.load(url);
+
+            Stage stage = null;
+
+            if (btnPanierCommandes != null && btnPanierCommandes.getScene() != null) {
+                stage = (Stage) btnPanierCommandes.getScene().getWindow();
+            } else if (commandeContainer != null && commandeContainer.getScene() != null) {
+                stage = (Stage) commandeContainer.getScene().getWindow();
+            } else if (commandesRowsContainer != null && commandesRowsContainer.getScene() != null) {
+                stage = (Stage) commandesRowsContainer.getScene().getWindow();
+            } else if (detailCommandeNumeroLabel != null && detailCommandeNumeroLabel.getScene() != null) {
+                stage = (Stage) detailCommandeNumeroLabel.getScene().getWindow();
+            }
+
+            if (stage == null) return;
+
+            Scene scene = new Scene(root, 1400, 820);
+            stage.setScene(scene);
+            stage.setTitle("Dashboard Produits");
+            stage.show();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    // =========================================================
+    // FACTURE
+    // =========================================================
+    private void telechargerFactureCommande(Commande commande) {
+        try {
+            Alert a = new Alert(Alert.AlertType.INFORMATION);
+            a.setTitle("Facture");
+            a.setHeaderText(null);
+            a.setContentText("Téléchargement de la facture de la commande #" + commande.getId_commande());
+            a.showAndWait();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    // =========================================================
+    // UTILITAIRES
+    // =========================================================
+    private String normalizeStatut(String statut) {
+        if (statut == null || statut.isBlank()) return "En attente";
+
+        String s = statut.toLowerCase();
+        if (s.contains("confirm")) return "Confirmée";
+        if (s.contains("cours")) return "En cours";
+        if (s.contains("attente")) return "En attente";
+        if (s.contains("livraison")) return "Livraison";
+        if (s.contains("final")) return "Finalisée";
+        if (s.contains("annul")) return "Annulée";
+
+        return statut;
+    }
+
+    private String getBadgeClass(String statut) {
+        if (statut == null) return "badge-default";
+
+        String s = statut.toLowerCase();
+        if (s.contains("livraison")) return "badge-livraison";
+        if (s.contains("cours")) return "badge-cours";
+        if (s.contains("final")) return "badge-finalise";
+
+        return "badge-default";
+    }
+
+    private String getStatusClass(String statut) {
+        String s = statut == null ? "" : statut.toLowerCase();
+        if (s.contains("confirm")) return "status-confirmed";
+        if (s.contains("cours")) return "status-progress";
+        if (s.contains("attente")) return "status-pending";
+        if (s.contains("livraison")) return "status-delivery";
+        if (s.contains("final")) return "status-final";
+        if (s.contains("annul")) return "status-cancel";
+        return "status-pending";
+    }
+
+    private String safe(String value) {
+        return value == null ? "" : value;
+    }
+
+    private String readStringReflect(Object target, String... methodNames) {
+        if (target == null) return "";
+
+        for (String methodName : methodNames) {
+            try {
+                java.lang.reflect.Method m = target.getClass().getMethod(methodName);
+                Object value = m.invoke(target);
+                return value == null ? "" : String.valueOf(value);
+            } catch (Exception ignored) {
+            }
+        }
+
+        return "";
+    }
+}

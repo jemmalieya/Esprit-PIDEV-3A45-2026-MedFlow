@@ -10,58 +10,121 @@
             styleClass="cmd-root"
             prefWidth="1400.0" prefHeight="820.0">
 
-    <!-- SIDEBAR -->
     <left>
         <fx:include source="Sidebar.fxml"/>
     </left>
 
-    <!-- CENTER -->
     <center>
         <ScrollPane fitToWidth="true" styleClass="cmd-scroll">
             <content>
-                <VBox spacing="24" styleClass="cmd-main">
+                <VBox spacing="20" styleClass="cmd-main">
                     <padding>
-                        <Insets top="25" right="30" bottom="25" left="30"/>
+                        <Insets top="24" right="28" bottom="28" left="28"/>
                     </padding>
 
-                    <!-- HEADER BLEU -->
-                    <VBox alignment="CENTER" spacing="10" styleClass="cmd-header">
-                        <Label text="📦" styleClass="cmd-icon"/>
-                        <Label text="Mes commandes" styleClass="cmd-title"/>
-                        <Label text="Suivez l'état de vos commandes"
-                               styleClass="cmd-subtitle"/>
-                    </VBox>
-
-                    <!-- HERO -->
-                    <HBox spacing="18" alignment="CENTER_LEFT" styleClass="hero-card">
-                        <children>
-                            <VBox spacing="8" HBox.hgrow="ALWAYS">
-                                <children>
-                                    <Label text="📦 Gestion des commandes" styleClass="hero-title"/>
-                                    <Label text="Suivez vos achats, consultez les détails et gérez vos livraisons."
-                                           wrapText="true"
-                                           styleClass="hero-subtitle"/>
-                                </children>
-                            </VBox>
-
-                            <Button fx:id="btnPanierCommandes"
-                                    text="🛒 Panier (0)"
-                                    onAction="#ouvrirPanierPopup"
-                                    styleClass="hero-cart-btn"/>
-                        </children>
-                        <Button text="🏪 Retour pharmacie"
-                                onAction="#retourPharmacie"
-                                styleClass="hero-cart-btn"/>
+                    <!-- HEADER -->
+                    <HBox alignment="CENTER_LEFT" spacing="16" styleClass="cmd-header">
+                        <Label text="📦" styleClass="cmd-header-icon"/>
+                        <VBox spacing="3" HBox.hgrow="ALWAYS">
+                            <Label text="Mes commandes" styleClass="cmd-header-title"/>
+                            <Label text="Suivez l'état de vos commandes en temps réel"
+                                   styleClass="cmd-header-subtitle"/>
+                        </VBox>
+                        <Label fx:id="lblNbCommandes"
+                               text="0 commande(s)"
+                               styleClass="cmd-header-badge"/>
+                        <Button fx:id="btnPanierCommandes"
+                                text="🛒 Panier (0)"
+                                onAction="#ouvrirPanierPopup"
+                                styleClass="btn-panier"/>
                     </HBox>
 
-                    <!-- COMMANDES -->
+                    <!-- STATS -->
+                    <HBox spacing="14">
+                        <VBox styleClass="stat-card" HBox.hgrow="ALWAYS" spacing="6">
+                            <HBox alignment="CENTER_LEFT" spacing="10">
+                                <Label text="📋" styleClass="stat-icon-wrap"/>
+                                <VBox spacing="2">
+                                    <Label text="TOTAL" styleClass="stat-label"/>
+                                    <Label fx:id="statTotal" text="0" styleClass="stat-value"/>
+                                </VBox>
+                            </HBox>
+                        </VBox>
+
+                        <VBox styleClass="stat-card" HBox.hgrow="ALWAYS" spacing="6">
+                            <HBox alignment="CENTER_LEFT" spacing="10">
+                                <Label text="⏳" styleClass="stat-icon-wrap"/>
+                                <VBox spacing="2">
+                                    <Label text="EN COURS" styleClass="stat-label"/>
+                                    <Label fx:id="statEnCours" text="0" styleClass="stat-value stat-value-amber"/>
+                                </VBox>
+                            </HBox>
+                        </VBox>
+
+                        <VBox styleClass="stat-card" HBox.hgrow="ALWAYS" spacing="6">
+                            <HBox alignment="CENTER_LEFT" spacing="10">
+                                <Label text="🚚" styleClass="stat-icon-wrap"/>
+                                <VBox spacing="2">
+                                    <Label text="EN LIVRAISON" styleClass="stat-label"/>
+                                    <Label fx:id="statLivraison" text="0" styleClass="stat-value stat-value-blue"/>
+                                </VBox>
+                            </HBox>
+                        </VBox>
+
+                        <VBox styleClass="stat-card" HBox.hgrow="ALWAYS" spacing="6">
+                            <HBox alignment="CENTER_LEFT" spacing="10">
+                                <Label text="✅" styleClass="stat-icon-wrap"/>
+                                <VBox spacing="2">
+                                    <Label text="FINALISÉES" styleClass="stat-label"/>
+                                    <Label fx:id="statFinalise" text="0" styleClass="stat-value stat-value-green"/>
+                                </VBox>
+                            </HBox>
+                        </VBox>
+                    </HBox>
+
+                    <!-- FILTRES -->
+                    <HBox spacing="10" alignment="CENTER_LEFT" styleClass="filter-bar">
+                        <Button text="Toutes" styleClass="filter-pill-active"
+                                onAction="#filtrerToutes"/>
+                        <Button text="En cours" styleClass="filter-pill"
+                                onAction="#filtrerEnCours"/>
+                        <Button text="En livraison" styleClass="filter-pill"
+                                onAction="#filtrerLivraison"/>
+                        <Button text="Finalisées" styleClass="filter-pill"
+                                onAction="#filtrerFinalise"/>
+                        <Button text="En attente" styleClass="filter-pill"
+                                onAction="#filtrerAttente"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Button text="🔄 Actualiser"
+                                onAction="#actualiserCommandes"
+                                styleClass="btn-secondary"/>
+                    </HBox>
+
+                    <!-- CARTES COMMANDES -->
                     <FlowPane fx:id="commandeContainer"
-                              hgap="20"
-                              vgap="20"
-                              prefWrapLength="1000"/>
+                              hgap="18"
+                              vgap="18"
+                              prefWrapLength="1100"/>
+
+                    <!-- EMPTY STATE -->
+                    <VBox fx:id="emptyState"
+                          alignment="CENTER"
+                          spacing="12"
+                          style="-fx-padding: 60 0 60 0;"
+                          visible="false"
+                          managed="false">
+                        <Label text="📦" styleClass="empty-icon"/>
+                        <Label text="Aucune commande trouvée" styleClass="empty-title"/>
+                        <Label text="Vos commandes apparaîtront ici une fois passées."
+                               styleClass="empty-sub"/>
+                        <Button text="🏪 Aller à la pharmacie"
+                                onAction="#retourPharmacie"
+                                styleClass="btn-primary"
+                                style="-fx-padding: 12 22; -fx-font-size: 13px;"/>
+                    </VBox>
+
                 </VBox>
             </content>
         </ScrollPane>
     </center>
-
 </BorderPane>

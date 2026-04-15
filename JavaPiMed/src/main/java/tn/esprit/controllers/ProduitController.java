@@ -10,6 +10,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
@@ -424,124 +425,127 @@ public class ProduitController {
 
         for (int i = 0; i < filteredList.size(); i++) {
             Produit produit = filteredList.get(i);
-            HBox row = createProduitRow(produit, i % 2 == 0);
+            HBox row = createProduitRow(produit, i);
             produitsListContainer.getChildren().add(row);
         }
     }
 
-    private HBox createProduitRow(Produit produit, boolean even) {
+
+    private HBox createProduitRow(Produit p, int index) {
         HBox row = new HBox();
         row.setAlignment(Pos.CENTER_LEFT);
-        row.setSpacing(12);
-        row.setPadding(new Insets(16, 18, 16, 18));
-        row.setMaxWidth(Double.MAX_VALUE);
+        row.setSpacing(0);
+        row.setPadding(new Insets(14, 8, 14, 8));
         row.getStyleClass().add("product-row");
+        row.setMaxWidth(Double.MAX_VALUE);
 
-        if (even) {
+        if (index % 2 == 1) {
             row.getStyleClass().add("product-row-even");
         }
 
         // IMAGE
         StackPane imageBox = new StackPane();
-        imageBox.setPrefSize(64, 64);
-        imageBox.setMinSize(64, 64);
-        imageBox.setMaxSize(64, 64);
-        imageBox.getStyleClass().add("row-image-box");
+        imageBox.setPrefWidth(90);
+        imageBox.setMinWidth(90);
+        imageBox.setMaxWidth(90);
+        imageBox.setAlignment(Pos.CENTER_LEFT);
 
-        String imagePathProduit = safe(produit.getImage_produit());
-        if (!imagePathProduit.isEmpty()) {
+        StackPane thumb = new StackPane();
+        thumb.getStyleClass().add("row-image-box");
+        thumb.setPrefSize(52, 52);
+
+        String imagePath = safe(p.getImage_produit());
+        if (!imagePath.isEmpty()) {
             try {
-                File file = new File(imagePathProduit);
+                File file = new File(imagePath);
                 if (file.exists()) {
                     ImageView imageView = new ImageView(new Image(file.toURI().toString()));
-                    imageView.setFitWidth(52);
-                    imageView.setFitHeight(52);
+                    imageView.setFitWidth(45);
+                    imageView.setFitHeight(45);
                     imageView.setPreserveRatio(true);
-                    imageBox.getChildren().add(imageView);
+                    thumb.getChildren().add(imageView);
                 } else {
-                    Label imgFallback = new Label("🖼");
-                    imgFallback.getStyleClass().add("row-image-icon");
-                    imageBox.getChildren().add(imgFallback);
+                    Label imgIcon = new Label("🖼");
+                    imgIcon.getStyleClass().add("row-image-icon");
+                    thumb.getChildren().add(imgIcon);
                 }
             } catch (Exception e) {
-                Label imgFallback = new Label("🖼");
-                imgFallback.getStyleClass().add("row-image-icon");
-                imageBox.getChildren().add(imgFallback);
+                Label imgIcon = new Label("🖼");
+                imgIcon.getStyleClass().add("row-image-icon");
+                thumb.getChildren().add(imgIcon);
             }
         } else {
-            Label imgFallback = new Label("🖼");
-            imgFallback.getStyleClass().add("row-image-icon");
-            imageBox.getChildren().add(imgFallback);
+            Label imgIcon = new Label("🖼");
+            imgIcon.getStyleClass().add("row-image-icon");
+            thumb.getChildren().add(imgIcon);
         }
 
-        VBox imageWrap = wrapBox(imageBox, 100);
+        imageBox.getChildren().add(thumb);
 
         // NOM
-        Label nomLabel = new Label(safe(produit.getNom_produit()));
+        Label nomLabel = new Label(safe(p.getNom_produit()));
         nomLabel.getStyleClass().add("row-main-text");
         nomLabel.setWrapText(true);
-        VBox nomBox = wrapBox(nomLabel, 180);
+        nomLabel.setMaxWidth(160);
+        VBox nomBox = wrapProduitCell(nomLabel, 180, Pos.CENTER_LEFT);
 
         // PRIX
-        Label prixLabel = new Label(formatPrix(produit.getPrix_produit()));
+        Label prixLabel = new Label(String.format("%.2f Dt", p.getPrix_produit()));
         prixLabel.getStyleClass().add("row-price-text");
-        VBox prixBox = wrapBox(prixLabel, 140);
+        VBox prixBox = wrapProduitCell(prixLabel, 120, Pos.CENTER_LEFT);
 
         // QUANTITE
-        Label qteBadge = new Label(produit.getQuantite_produit() + " Qté");
-
-        if (produit.getQuantite_produit() <= 5) {
-            qteBadge.getStyleClass().add("qty-badge-red");
-        } else if (produit.getQuantite_produit() <= 15) {
-            qteBadge.getStyleClass().add("qty-badge-soft-red");
+        Label qteLabel = new Label(String.valueOf(p.getQuantite_produit()));
+        if (p.getQuantite_produit() <= 0) {
+            qteLabel.getStyleClass().add("qty-badge-red");
+        } else if (p.getQuantite_produit() <= 5) {
+            qteLabel.getStyleClass().add("qty-badge-soft-red");
         } else {
-            qteBadge.getStyleClass().add("qty-badge-blue");
+            qteLabel.getStyleClass().add("qty-badge-blue");
         }
-
-        VBox qteBox = wrapBox(qteBadge, 130);
+        VBox qteBox = wrapProduitCell(qteLabel, 120, Pos.CENTER_LEFT);
 
         // CATEGORIE
-        Label catBadge = new Label(safe(produit.getCategorie_produit()));
-        catBadge.getStyleClass().add("category-badge");
-        catBadge.setWrapText(true);
-        VBox catBox = wrapBox(catBadge, 220);
+        Label catLabel = new Label(safe(p.getCategorie_produit()));
+        catLabel.getStyleClass().add("category-badge");
+        VBox catBox = wrapProduitCell(catLabel, 160, Pos.CENTER_LEFT);
 
         // STATUT
-        Label statutBadge = new Label(getStatutIcon(produit.getStatus_produit()) + " " + safe(produit.getStatus_produit()));
-        String statut = safe(produit.getStatus_produit()).toLowerCase(Locale.ROOT);
+        Label statutLabel = new Label(safe(p.getStatus_produit()));
+        String statut = safe(p.getStatus_produit()).toLowerCase(Locale.ROOT);
 
-        if (statut.contains("rupture")) {
-            statutBadge.getStyleClass().add("statut-badge-rupture");
-        } else if (statut.contains("indisponible")) {
-            statutBadge.getStyleClass().add("statut-badge-indisponible");
+        if (statut.contains("disponible")) {
+            statutLabel.getStyleClass().add("statut-badge-disponible");
+        } else if (statut.contains("rupture")) {
+            statutLabel.getStyleClass().add("statut-badge-rupture");
         } else {
-            statutBadge.getStyleClass().add("statut-badge-disponible");
+            statutLabel.getStyleClass().add("statut-badge-indisponible");
         }
 
-        VBox statutBox = wrapBox(statutBadge, 170);
+        VBox statutBox = wrapProduitCell(statutLabel, 150, Pos.CENTER_LEFT);
 
         // DESCRIPTION
-        Label descLabel = new Label(safe(produit.getDescription_produit()));
+        Label descLabel = new Label(shortText(safe(p.getDescription_produit()), 45));
         descLabel.getStyleClass().add("row-description-text");
         descLabel.setWrapText(true);
-        descLabel.setMaxWidth(320);
-        VBox descBox = wrapBox(descLabel, 340);
+        descLabel.setMaxWidth(240);
+        VBox descBox = wrapProduitCell(descLabel, 260, Pos.CENTER_LEFT);
 
         // ACTIONS
         Button editBtn = new Button("✏");
         editBtn.getStyleClass().add("action-blue-btn");
-        editBtn.setOnAction(e -> ouvrirPageModifier(produit));
+        editBtn.setOnAction(e -> ouvrirPageModifier(p));
 
         Button deleteBtn = new Button("🗑");
         deleteBtn.getStyleClass().add("action-red-btn");
-        deleteBtn.setOnAction(e -> supprimerProduitAvecConfirmation(produit));
+        deleteBtn.setOnAction(e -> supprimerProduitAvecConfirmation(p));
 
-        HBox actionsBox = new HBox(10, editBtn, deleteBtn);
-        actionsBox.setAlignment(Pos.CENTER_LEFT);
-        VBox actionsWrap = wrapBox(actionsBox, 120);
+        HBox actionsContent = new HBox(8, editBtn, deleteBtn);
+        actionsContent.setAlignment(Pos.CENTER_LEFT);
+        VBox actionsWrap = wrapProduitCell(actionsContent, 130, Pos.CENTER_LEFT);
 
         row.getChildren().addAll(
-                imageWrap,
+                imageBox,
                 nomBox,
                 prixBox,
                 qteBox,
@@ -553,7 +557,15 @@ public class ProduitController {
 
         return row;
     }
-
+    private VBox wrapProduitCell(Node node, double width, Pos alignment) {
+        VBox box = new VBox(node);
+        box.setAlignment(alignment);
+        box.setPrefWidth(width);
+        box.setMinWidth(width);
+        box.setMaxWidth(width);
+        box.setFillWidth(true);
+        return box;
+    }
     private VBox wrapBox(javafx.scene.Node node, double width) {
         VBox box = new VBox(node);
         box.setAlignment(Pos.CENTER_LEFT);
@@ -977,9 +989,34 @@ public class ProduitController {
 
     @FXML
     private void onVoirCommandes() {
-        showAlert(Alert.AlertType.INFORMATION, "Commandes", "Tu peux relier ici la page des commandes.");
-    }
+        try {
+            URL url = getClass().getResource("/MesCommandesBack.fxml");
+            if (url == null) {
+                throw new IOException("Fichier introuvable : /MesCommandesBack.fxml");
+            }
 
+            FXMLLoader loader = new FXMLLoader(url);
+            Parent root = loader.load();
+
+            Stage stage = (Stage) produitsListContainer.getScene().getWindow();
+            Scene scene = new Scene(root, 1400, 850);
+
+            URL css1 = getClass().getResource("/CSS/produit-dashboard.css");
+            if (css1 != null) scene.getStylesheets().add(css1.toExternalForm());
+
+            URL css2 = getClass().getResource("/CSS/commandes-back.css");
+            if (css2 != null) scene.getStylesheets().add(css2.toExternalForm());
+
+            stage.setScene(scene);
+            stage.setTitle("Gestion des commandes");
+            stage.show();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Erreur Navigation",
+                    "Impossible d'ouvrir la page des commandes : " + e.getMessage());
+        }
+    }
     @FXML
     private void onVoirTousProduits() {
         retourProduitSimple();

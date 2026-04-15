@@ -1,0 +1,296 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Priority?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx/25"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="tn.esprit.controllers.CommandeController"
+            prefWidth="1400.0"
+            prefHeight="820.0"
+            stylesheets="@CSS/commande_back.css"
+            styleClass="root-pane">
+
+    <left>
+        <VBox prefWidth="250.0" minWidth="250.0" maxWidth="250.0" styleClass="sidebar">
+            <padding>
+                <Insets top="24.0" right="18.0" bottom="24.0" left="18.0"/>
+            </padding>
+
+            <children>
+                <HBox alignment="CENTER_LEFT" spacing="14.0" styleClass="logo-box">
+                    <children>
+                        <StackPane prefWidth="40.0" prefHeight="40.0">
+                            <children>
+                                <Label text="❤" styleClass="logo-heart"/>
+                                <Label text="✚" styleClass="logo-plus"/>
+                            </children>
+                        </StackPane>
+                        <Label text="MEDFLOW" styleClass="logo-text"/>
+                    </children>
+                </HBox>
+
+                <Region prefHeight="1.0" maxHeight="1.0" styleClass="sidebar-separator"/>
+
+                <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="sidebar-item">
+                    <children>
+                        <Label text="🩺" styleClass="sidebar-item-icon"/>
+                        <Label text="Dashboard" styleClass="sidebar-item-text"/>
+                    </children>
+                </HBox>
+
+                <Label text="GESTIONS" styleClass="sidebar-section-title"/>
+
+                <Button text=""
+                        alignment="CENTER_LEFT"
+                        maxWidth="Infinity"
+                        prefWidth="220.0"
+                        contentDisplay="GRAPHIC_ONLY"
+                        styleClass="sidebar-item, sidebar-btn, active-product-btn">
+                    <graphic>
+                        <HBox alignment="CENTER_LEFT" spacing="10.0" maxWidth="Infinity">
+                            <children>
+                                <Label text="📦" styleClass="sidebar-item-icon"/>
+                                <Label text="Produits" styleClass="sidebar-item-text"/>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Label text="⌃" styleClass="sidebar-arrow"/>
+                            </children>
+                        </HBox>
+                    </graphic>
+                </Button>
+
+                <VBox spacing="18.0"
+                      styleClass="submenu-card"
+                      managed="true"
+                      visible="true"
+                      maxWidth="220.0">
+                    <children>
+                        <Label text="GESTION DES PRODUITS :" styleClass="submenu-title"/>
+
+                        <Button text="Voir tous les produits"
+                                onAction="#retourProduitDashboard"
+                                maxWidth="Infinity"
+                                alignment="CENTER_LEFT"
+                                styleClass="submenu-link"/>
+
+                        <Button text="↗ Dashboard Admin BI"
+                                onAction="#retourProduitDashboard"
+                                maxWidth="Infinity"
+                                alignment="CENTER_LEFT"
+                                styleClass="submenu-link"/>
+
+                        <Button text="Autres actions"
+                                onAction="#retourProduitDashboard"
+                                maxWidth="Infinity"
+                                alignment="CENTER_LEFT"
+                                styleClass="submenu-link"/>
+                    </children>
+                </VBox>
+
+                <Region VBox.vgrow="ALWAYS"/>
+
+                <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="sidebar-item">
+                    <children>
+                        <Label text="↪" styleClass="sidebar-item-icon"/>
+                        <Label text="Déconnexion" styleClass="sidebar-item-text"/>
+                    </children>
+                </HBox>
+            </children>
+        </VBox>
+    </left>
+
+    <center>
+        <ScrollPane fitToWidth="true"
+                    hbarPolicy="NEVER"
+                    vbarPolicy="AS_NEEDED"
+                    styleClass="detail-scroll">
+            <content>
+                <VBox spacing="20.0" styleClass="detail-page">
+                    <padding>
+                        <Insets top="24.0" right="28.0" bottom="24.0" left="28.0"/>
+                    </padding>
+
+                    <Button text="← Retour à la liste"
+                            onAction="#retourListeCommandes"
+                            styleClass="back-btn"/>
+
+                    <VBox spacing="0.0" styleClass="detail-card">
+                        <children>
+                            <HBox alignment="CENTER_LEFT" styleClass="detail-header">
+                                <children>
+                                    <Label fx:id="detailCommandeNumeroLabel"
+                                           text="Commande #0"
+                                           styleClass="detail-title"/>
+                                    <Region HBox.hgrow="ALWAYS"/>
+                                    <Label fx:id="detailDateLabel"
+                                           text="14/04/2026"
+                                           styleClass="detail-date"/>
+                                </children>
+                            </HBox>
+
+                            <HBox spacing="40.0" styleClass="detail-info-row">
+                                <padding>
+                                    <Insets top="22.0" right="20.0" bottom="22.0" left="20.0"/>
+                                </padding>
+                                <children>
+                                    <VBox spacing="8.0" HBox.hgrow="ALWAYS">
+                                        <children>
+                                            <Label text="👤 Informations client" styleClass="section-mini-title"/>
+                                            <Label fx:id="clientNomLabel" text="Nom : -" styleClass="info-line"/>
+                                            <Label fx:id="clientCinLabel" text="CIN : -" styleClass="info-line"/>
+                                            <Label fx:id="clientEmailLabel" text="Email : -" styleClass="info-line"/>
+                                            <Label fx:id="clientTelephoneLabel" text="Téléphone : -" styleClass="info-line"/>
+                                            <Label fx:id="clientAdresseLabel" text="Adresse : -" styleClass="info-line"/>
+                                        </children>
+                                    </VBox>
+
+                                    <VBox spacing="8.0" prefWidth="220.0">
+                                        <children>
+                                            <Label text="💳 Montant" styleClass="section-mini-title"/>
+                                            <Label fx:id="detailMontantLabel"
+                                                   text="0.00 Dt"
+                                                   styleClass="amount-big"/>
+                                        </children>
+                                    </VBox>
+
+                                    <VBox spacing="8.0" prefWidth="220.0">
+                                        <children>
+                                            <Label text="ⓘ Statut" styleClass="section-mini-title"/>
+                                            <Label fx:id="detailStatutLabel"
+                                                   text="Confirmée"
+                                                   styleClass="badge-detail"/>
+                                        </children>
+                                    </VBox>
+                                </children>
+                            </HBox>
+
+                            <VBox spacing="12.0" styleClass="products-section">
+                                <padding>
+                                    <Insets top="0.0" right="20.0" bottom="20.0" left="20.0"/>
+                                </padding>
+                                <children>
+                                    <Label text="📦 Produits commandés" styleClass="section-title"/>
+
+                                    <GridPane fx:id="produitsGrid"
+                                              hgap="0.0"
+                                              vgap="0.0"
+                                              maxWidth="Infinity"/>
+                                </children>
+                            </VBox>
+                        </children>
+                    </VBox>
+
+                    <VBox spacing="0.0" styleClass="section-card warning-card">
+                        <children>
+                            <HBox styleClass="warning-header">
+                                <children>
+                                    <Label text="🚚 Livraison (Staff)"
+                                           styleClass="section-card-title-dark"/>
+                                </children>
+                            </HBox>
+
+                            <VBox styleClass="section-card-body">
+                                <padding>
+                                    <Insets top="18.0" right="18.0" bottom="18.0" left="18.0"/>
+                                </padding>
+                                <children>
+                                    <Label text="Modifiez le statut de la commande selon son avancement."
+                                           wrapText="true"
+                                           styleClass="info-line"/>
+                                </children>
+                            </VBox>
+                        </children>
+                    </VBox>
+
+                    <VBox spacing="0.0" styleClass="section-card">
+                        <children>
+                            <HBox styleClass="section-card-header">
+                                <children>
+                                    <Label text="✏ Modifier le statut"
+                                           styleClass="section-card-title"/>
+                                </children>
+                            </HBox>
+
+                            <HBox alignment="CENTER_LEFT"
+                                  spacing="18.0"
+                                  styleClass="section-card-body">
+                                <padding>
+                                    <Insets top="18.0" right="18.0" bottom="18.0" left="18.0"/>
+                                </padding>
+                                <children>
+                                    <Label text="Nouveau statut :" styleClass="info-line"/>
+                                    <ComboBox fx:id="nouveauStatutCombo"
+                                              prefWidth="180.0"/>
+                                    <Region HBox.hgrow="ALWAYS"/>
+                                    <Button fx:id="btnMettreAJourStatut"
+                                            text="✔ Mettre à jour"
+                                            onAction="#mettreAJourStatutCommande"
+                                            styleClass="btn-update"/>
+                                </children>
+                            </HBox>
+                        </children>
+                    </VBox>
+
+                    <VBox spacing="0.0" styleClass="section-card">
+                        <children>
+                            <HBox styleClass="section-card-header">
+                                <children>
+                                    <Label text="📄 Facture"
+                                           styleClass="section-card-title"/>
+                                </children>
+                            </HBox>
+
+                            <HBox spacing="12.0" styleClass="section-card-body">
+                                <padding>
+                                    <Insets top="18.0" right="18.0" bottom="18.0" left="18.0"/>
+                                </padding>
+                                <children>
+                                    <Button fx:id="btnTelechargerFacture"
+                                            text="⬇ Télécharger la facture"
+                                            onAction="#telechargerFacture"
+                                            styleClass="btn-yellow"/>
+                                </children>
+                            </HBox>
+                        </children>
+                    </VBox>
+
+                    <VBox spacing="0.0" styleClass="section-card danger-card">
+                        <children>
+                            <HBox styleClass="danger-header">
+                                <children>
+                                    <Label text="🗑 Zone dangereuse"
+                                           styleClass="section-card-title-white"/>
+                                </children>
+                            </HBox>
+
+                            <VBox spacing="14.0" styleClass="section-card-body">
+                                <padding>
+                                    <Insets top="18.0" right="18.0" bottom="18.0" left="18.0"/>
+                                </padding>
+                                <children>
+                                    <Label text="Une fois supprimée, cette commande ne pourra pas être récupérée."
+                                           wrapText="true"
+                                           styleClass="danger-text"/>
+                                    <Button fx:id="btnSupprimerCommande"
+                                            text="🗑 Supprimer cette commande"
+                                            onAction="#supprimerCommande"
+                                            styleClass="btn-danger"/>
+                                </children>
+                            </VBox>
+                        </children>
+                    </VBox>
+                </VBox>
+            </content>
+        </ScrollPane>
+    </center>
+</BorderPane>

@@ -543,3 +543,16 @@
     -fx-background-color: #0fa3bf;
     -fx-border-color: #0fa3bf;
 }
+
+.calendar-slot-button-reserved {
+    -fx-background-color: #fee2e2;
+    -fx-border-color: #f87171;
+    -fx-text-fill: #991b1b;
+    -fx-opacity: 1;
+    -fx-cursor: default;
+}
+
+.calendar-slot-button-reserved:hover {
+    -fx-background-color: #fecaca;
+    -fx-border-color: #ef4444;
+}

@@ -106,4 +106,30 @@ public class FicheMedicaleService implements IGeneralService<FicheMedicale> {
     public FicheMedicale recupererParId(int id) {
         return null;
     }
+
+    public FicheMedicale getByRendezVousId(int rendezVousId) {
+        String sql = "SELECT * FROM fiche_medicale WHERE rendez_vous_id = ? LIMIT 1";
+        try (PreparedStatement ps = cn.prepareStatement(sql)) {
+            ps.setInt(1, rendezVousId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return new FicheMedicale(
+                            rs.getInt("id"),
+                            (Integer)rs.getObject("rendez_vous_id"),
+                            rs.getString("diagnostic"),
+                            rs.getString("observations"),
+                            rs.getString("resultats_examens"),
+                            rs.getTimestamp("start_time"),
+                            rs.getTimestamp("end_time"),
+                            (Integer)rs.getObject("duree_minutes"),
+                            rs.getTimestamp("created_at"),
+                            rs.getString("signature")
+                    );
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 }

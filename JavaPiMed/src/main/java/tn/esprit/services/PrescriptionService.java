@@ -91,4 +91,30 @@ public class PrescriptionService implements IGeneralService<Prescription> {
     public Prescription recupererParId(int id) {
         return null;
     }
+
+    public List<Prescription> getByFicheMedicaleId(int ficheMedicaleId) {
+        List<Prescription> list = new ArrayList<>();
+        String sql = "SELECT * FROM prescription WHERE fiche_medicale_id = ?";
+        try (PreparedStatement ps = cn.prepareStatement(sql)) {
+            ps.setInt(1, ficheMedicaleId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Prescription p = new Prescription(
+                            rs.getInt("id"),
+                            rs.getInt("fiche_medicale_id"),
+                            rs.getString("nom_medicament"),
+                            rs.getString("dose"),
+                            rs.getString("frequence"),
+                            rs.getInt("duree"),
+                            rs.getString("instructions"),
+                            rs.getTimestamp("created_at")
+                    );
+                    list.add(p);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
 }

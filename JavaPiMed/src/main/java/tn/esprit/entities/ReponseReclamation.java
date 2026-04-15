@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 public class ReponseReclamation {
 
     private int id_reponse;
-    private int id_reclamation;
+    private Reclamation reclamation; // ✅ objet complet
     private String message;
     private String type_reponse;
     private LocalDateTime date_creation_rep;
@@ -15,10 +15,10 @@ public class ReponseReclamation {
     public ReponseReclamation() {
     }
 
-    public ReponseReclamation(int id_reclamation, String message, String type_reponse,
+    public ReponseReclamation(Reclamation reclamation, String message, String type_reponse,
                               LocalDateTime date_creation_rep, LocalDateTime date_modification_rep,
                               boolean is_read) {
-        this.id_reclamation = id_reclamation;
+        this.reclamation = reclamation;
         this.message = message;
         this.type_reponse = type_reponse;
         this.date_creation_rep = date_creation_rep;
@@ -26,17 +26,19 @@ public class ReponseReclamation {
         this.is_read = is_read;
     }
 
-    public ReponseReclamation(int id_reponse, int id_reclamation, String message, String type_reponse,
+    public ReponseReclamation(int id_reponse, Reclamation reclamation, String message, String type_reponse,
                               LocalDateTime date_creation_rep, LocalDateTime date_modification_rep,
                               boolean is_read) {
         this.id_reponse = id_reponse;
-        this.id_reclamation = id_reclamation;
+        this.reclamation = reclamation;
         this.message = message;
         this.type_reponse = type_reponse;
         this.date_creation_rep = date_creation_rep;
         this.date_modification_rep = date_modification_rep;
         this.is_read = is_read;
     }
+
+    // ================= GETTERS / SETTERS =================
 
     public int getId_reponse() {
         return id_reponse;
@@ -46,12 +48,12 @@ public class ReponseReclamation {
         this.id_reponse = id_reponse;
     }
 
-    public int getId_reclamation() {
-        return id_reclamation;
+    public Reclamation getReclamation() {
+        return reclamation;
     }
 
-    public void setId_reclamation(int id_reclamation) {
-        this.id_reclamation = id_reclamation;
+    public void setReclamation(Reclamation reclamation) {
+        this.reclamation = reclamation;
     }
 
     public String getMessage() {
@@ -98,7 +100,7 @@ public class ReponseReclamation {
     public String toString() {
         return "ReponseReclamation{" +
                 "id_reponse=" + id_reponse +
-                ", id_reclamation=" + id_reclamation +
+                ", reclamation=" + (reclamation != null ? reclamation.getId_reclamation() : null) +
                 ", message='" + message + '\'' +
                 ", type_reponse='" + type_reponse + '\'' +
                 ", date_creation_rep=" + date_creation_rep +

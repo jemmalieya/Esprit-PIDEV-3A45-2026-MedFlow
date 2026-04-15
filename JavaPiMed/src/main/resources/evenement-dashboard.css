@@ -372,45 +372,47 @@
     -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 10, 0.12, 0, 2);
 }
 
-.events-table {
+/* === Ajout pour mettre en valeur le tableau des réclamations === */
+.highlight-table {
+    -fx-background-color: linear-gradient(to bottom, #eaf6ff 80%, #dbefff 100%);
+    -fx-border-color: #1298b7;
+    -fx-border-width: 2px;
+    -fx-border-radius: 28px;
+    -fx-effect: dropshadow(gaussian, #1298b7, 12, 0.18, 0, 3);
+}
+
+.highlight-table-view {
     -fx-background-color: transparent;
-    -fx-table-cell-border-color: transparent;
-    -fx-padding: 0;
-}
-
-.events-table .column-header-background {
-    -fx-background-color: #dfe8f4;
-    -fx-background-radius: 24 24 0 0;
-    -fx-padding: 10 0 10 0;
-}
-
-.events-table .column-header,
-.events-table .filler {
-    -fx-background-color: transparent;
-    -fx-border-color: transparent;
-    -fx-size: 58px;
-}
-
-.events-table .column-header .label {
-    -fx-text-fill: #0c2f74;
+    -fx-table-cell-border-color: #1298b7;
+    -fx-border-radius: 18px;
     -fx-font-size: 15px;
+}
+
+.highlight-table-view .column-header-background {
+    -fx-background-color: #1298b7;
+    -fx-background-radius: 24 24 0 0;
+}
+
+.highlight-table-view .column-header .label {
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
     -fx-font-weight: bold;
 }
 
-.events-table .table-row-cell {
+.highlight-table-view .table-row-cell {
     -fx-background-color: white;
-    -fx-cell-size: 58px;
-    -fx-border-color: transparent transparent #edf2f8 transparent;
+    -fx-cell-size: 62px;
+    -fx-border-color: transparent transparent #b6e2fa transparent;
 }
 
-.events-table .table-row-cell:hover {
-    -fx-background-color: #f8fbff;
+.highlight-table-view .table-row-cell:hover {
+    -fx-background-color: #e6f7ff;
 }
 
-.events-table .table-cell {
-    -fx-text-fill: #4b6185;
-    -fx-font-size: 14px;
-    -fx-padding: 10 8;
+.highlight-table-view .table-cell {
+    -fx-text-fill: #0c2f74;
+    -fx-font-size: 15px;
+    -fx-padding: 12 10;
     -fx-border-color: transparent;
 }
 

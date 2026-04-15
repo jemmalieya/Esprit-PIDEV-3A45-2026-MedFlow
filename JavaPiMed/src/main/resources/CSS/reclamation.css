@@ -1,0 +1,356 @@
+/* CARD */
+.table-card {
+    -fx-background-color: white;
+    -fx-background-radius: 18px;
+    -fx-padding: 15;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.06), 12, 0.15, 0, 3);
+}
+
+/* TABLE */
+.table-view {
+    -fx-background-color: transparent;
+}
+
+.table-row-cell {
+    -fx-background-color: white;
+    -fx-border-color: transparent transparent #eef2f7 transparent;
+}
+
+.table-row-cell:hover {
+    -fx-background-color: #f4faff;
+}
+
+.table-row-cell:selected {
+    -fx-background-color: #e0f3ff;
+}
+
+/* BADGES */
+.badge {
+    -fx-padding: 5 10;
+    -fx-background-radius: 12;
+    -fx-font-size: 12px;
+    -fx-text-fill: white;
+}
+
+.badge-green {
+    -fx-background-color: #22c55e;
+}
+
+.badge-orange {
+    -fx-background-color: #f59e0b;
+}
+
+.badge-red {
+    -fx-background-color: #ef4444;
+}
+
+/* BUTTON DELETE */
+.btn-delete {
+    -fx-background-color: #fee2e2;
+    -fx-text-fill: #dc2626;
+    -fx-background-radius: 10;
+    -fx-cursor: hand;
+}
+
+.btn-delete:hover {
+    -fx-background-color: #fecaca;
+}
+/* ================= FORM CARD ================= */
+.info-card {
+    -fx-background-color: white;
+    -fx-background-radius: 22px;
+    -fx-padding: 25;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 18, 0.2, 0, 4);
+}
+
+/* TITRE FORM */
+.info-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1e3a5f;
+}
+
+/* ================= INPUTS ================= */
+.search-box {
+    -fx-background-color: #f8fafc;
+    -fx-border-color: #dbe7f1;
+    -fx-border-radius: 14px;
+    -fx-background-radius: 14px;
+    -fx-padding: 12;
+    -fx-font-size: 14px;
+}
+
+/* FOCUS INPUT */
+.search-box:focused {
+    -fx-border-color: #0ea5e9;
+    -fx-effect: dropshadow(gaussian, rgba(14,165,233,0.25), 8, 0.2, 0, 1);
+}
+
+/* TEXTAREA */
+.text-area {
+    -fx-background-radius: 14px;
+    -fx-border-radius: 14px;
+}
+
+/* COMBOBOX */
+.filter-combo {
+    -fx-background-color: #f8fafc;
+    -fx-border-color: #dbe7f1;
+    -fx-border-radius: 14px;
+    -fx-background-radius: 14px;
+    -fx-pref-height: 42px;
+    -fx-font-size: 14px;
+}
+
+/* FOCUS COMBO */
+.filter-combo:focused {
+    -fx-border-color: #0ea5e9;
+}
+
+/* ================= BOUTON PRINCIPAL ================= */
+.hero-cart-btn {
+    -fx-background-color: linear-gradient(to right, #0ea5e9, #0284c7);
+    -fx-text-fill: white;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 16px;
+    -fx-padding: 12 20 12 20;
+    -fx-cursor: hand;
+}
+
+/* HOVER */
+.hero-cart-btn:hover {
+    -fx-background-color: linear-gradient(to right, #0284c7, #0369a1);
+    -fx-effect: dropshadow(gaussian, rgba(2,132,199,0.4), 12, 0.2, 0, 2);
+}
+
+/* ================= BOUTONS SECONDAIRES ================= */
+.voice-btn {
+    -fx-background-color: #f1f5f9;
+    -fx-border-color: #dbe7f1;
+    -fx-text-fill: #334155;
+    -fx-background-radius: 14px;
+    -fx-border-radius: 14px;
+    -fx-font-size: 14px;
+    -fx-padding: 10 16 10 16;
+    -fx-cursor: hand;
+}
+
+/* HOVER */
+.voice-btn:hover {
+    -fx-background-color: #e2e8f0;
+}
+
+/* ================= MESSAGE ================= */
+#lblMessage {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+/* ================= ALIGNEMENT ================= */
+.main-area {
+    -fx-alignment: center;
+}
+
+/* OPTIONNEL : ESPACEMENT FORM */
+.info-card > * {
+    -fx-spacing: 12;
+}
+/* ===== CARD MODERNE ===== */
+.info-card {
+    -fx-background-color: white;
+    -fx-background-radius: 18;
+    -fx-padding: 25;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0.2, 0, 4);
+}
+
+/* ===== TITRE ===== */
+.info-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1e293b;
+}
+
+/* ===== INPUTS ===== */
+.search-box {
+    -fx-background-radius: 12;
+    -fx-border-radius: 12;
+    -fx-border-color: #e2e8f0;
+    -fx-padding: 10;
+    -fx-background-color: #f8fafc;
+    -fx-font-size: 13px;
+}
+
+.search-box:focused {
+    -fx-border-color: #3b82f6;
+    -fx-background-color: white;
+}
+
+/* ===== COMBO ===== */
+.filter-combo {
+    -fx-background-radius: 12;
+    -fx-border-radius: 12;
+    -fx-border-color: #e2e8f0;
+    -fx-background-color: #f8fafc;
+}
+
+/* ===== BOUTON PRINCIPAL ===== */
+.hero-cart-btn {
+    -fx-background-color: linear-gradient(to right, #0ea5e9, #2563eb);
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 14;
+    -fx-padding: 10 20;
+}
+
+.hero-cart-btn:hover {
+    -fx-background-color: linear-gradient(to right, #0284c7, #1d4ed8);
+}
+
+/* ===== BOUTON ANNULER ===== */
+.cancel-btn {
+    -fx-background-color: #e2e8f0;
+    -fx-text-fill: #334155;
+    -fx-background-radius: 14;
+    -fx-padding: 10 20;
+}
+
+.cancel-btn:hover {
+    -fx-background-color: #cbd5f5;
+}
+
+/* ===== BOUTONS SECONDAIRES ===== */
+.voice-btn {
+    -fx-background-color: white;
+    -fx-border-color: #e2e8f0;
+    -fx-border-radius: 12;
+    -fx-background-radius: 12;
+    -fx-padding: 8 15;
+}
+
+.voice-btn:hover {
+    -fx-background-color: #f1f5f9;
+}
+
+/* ===== PAGE HEADER ===== */
+.page-title {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #0f172a;
+}
+
+.page-subtitle {
+    -fx-text-fill: #64748b;
+}
+/* ===== CARD GLASS EFFECT ===== */
+.info-card {
+    -fx-background-color: rgba(255,255,255,0.95);
+    -fx-background-radius: 20;
+    -fx-padding: 30;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 20, 0.3, 0, 6);
+}
+
+/* ===== TITRES ===== */
+.info-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #0f172a;
+}
+
+.input-label {
+    -fx-text-fill: #475569;
+    -fx-font-size: 12px;
+}
+
+/* ===== INPUT MODERNE ===== */
+.modern-input {
+    -fx-background-color: #f1f5f9;
+    -fx-background-radius: 12;
+    -fx-border-radius: 12;
+    -fx-border-color: transparent;
+    -fx-padding: 10;
+    -fx-font-size: 13px;
+}
+
+.modern-input:focused {
+    -fx-background-color: white;
+    -fx-border-color: #3b82f6;
+    -fx-effect: dropshadow(gaussian, rgba(59,130,246,0.3), 8, 0.3, 0, 0);
+}
+
+/* ===== COMBO ===== */
+.modern-combo {
+    -fx-background-color: #f1f5f9;
+    -fx-background-radius: 12;
+    -fx-border-radius: 12;
+}
+
+/* ===== BOUTONS ===== */
+.btn-primary {
+    -fx-background-color: linear-gradient(to right, #06b6d4, #3b82f6);
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 14;
+    -fx-padding: 10 18;
+    -fx-cursor: hand;
+}
+
+.btn-primary:hover {
+    -fx-scale-x: 1.05;
+    -fx-scale-y: 1.05;
+}
+
+/* ===== ANNULER ===== */
+.btn-cancel {
+    -fx-background-color: #f1f5f9;
+    -fx-text-fill: #334155;
+    -fx-background-radius: 14;
+    -fx-padding: 10 18;
+}
+
+.btn-cancel:hover {
+    -fx-background-color: #e2e8f0;
+}
+
+/* ===== SECONDARY ===== */
+.btn-secondary {
+    -fx-background-color: white;
+    -fx-border-color: #e2e8f0;
+    -fx-border-radius: 12;
+    -fx-background-radius: 12;
+    -fx-padding: 8 14;
+}
+
+.btn-secondary:hover {
+    -fx-background-color: #f8fafc;
+}
+
+/* ===== STATUS ===== */
+.status-label {
+    -fx-font-size: 12px;
+    -fx-text-fill: #22c55e;
+}
+
+/* ===== HOVER INPUT EFFECT ===== */
+.modern-input:hover {
+    -fx-background-color: #e2e8f0;
+}
+/* ERREUR */
+.input-error {
+    -fx-border-color: #ef4444;
+    -fx-border-width: 2;
+}
+
+/* SUCCESS */
+.input-success {
+    -fx-border-color: #22c55e;
+    -fx-border-width: 2;
+}
+.error-label {
+    -fx-text-fill: #ef4444;
+    -fx-font-size: 11px;
+}
+
+.modern-input:error {
+    -fx-border-color: red;
+}

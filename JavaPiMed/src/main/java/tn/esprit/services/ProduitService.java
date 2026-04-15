@@ -5,7 +5,10 @@ import tn.esprit.tools.MyDataBase;
 
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
+
 
 public class ProduitService implements IGeneralService<Produit> {
 
@@ -162,5 +165,84 @@ public class ProduitService implements IGeneralService<Produit> {
         }
 
         return false;
+    }
+
+    public List<Produit> rechercherProduits(List<Produit> liste, String keyword) {
+        if (liste == null) return new ArrayList<>();
+
+        String motCle = keyword == null ? "" : keyword.trim().toLowerCase(Locale.ROOT);
+        if (motCle.isEmpty()) return new ArrayList<>(liste);
+
+        List<Produit> resultat = new ArrayList<>();
+
+        for (Produit p : liste) {
+            if (safe(p.getNom_produit()).toLowerCase(Locale.ROOT).contains(motCle)
+                    || safe(p.getDescription_produit()).toLowerCase(Locale.ROOT).contains(motCle)
+                    || safe(p.getCategorie_produit()).toLowerCase(Locale.ROOT).contains(motCle)
+                    || safe(p.getStatus_produit()).toLowerCase(Locale.ROOT).contains(motCle)
+                    || String.valueOf(p.getPrix_produit()).contains(motCle)
+                    || String.valueOf(p.getQuantite_produit()).contains(motCle)) {
+                resultat.add(p);
+            }
+        }
+
+        return resultat;
+    }
+
+    public List<Produit> filtrerProduits(List<Produit> liste, String categorie, String statut) {
+        if (liste == null) return new ArrayList<>();
+
+        String cat = categorie == null ? "" : categorie.trim().toLowerCase(Locale.ROOT);
+        String stat = statut == null ? "" : statut.trim().toLowerCase(Locale.ROOT);
+
+        List<Produit> resultat = new ArrayList<>(liste);
+
+        if (!cat.isEmpty() && !cat.equals("toutes catégories")) {
+            resultat.removeIf(p ->
+                    !safe(p.getCategorie_produit()).toLowerCase(Locale.ROOT).equals(cat)
+            );
+        }
+
+        if (!stat.isEmpty() && !stat.equals("tous")) {
+            resultat.removeIf(p ->
+                    !safe(p.getStatus_produit()).toLowerCase(Locale.ROOT).equals(stat)
+            );
+        }
+
+        return resultat;
+    }
+    public List<Produit> trierProduits(List<Produit> liste, String tri) {
+        if (liste == null) return new ArrayList<>();
+
+        List<Produit> resultat = new ArrayList<>(liste);
+        String triChoisi = tri == null ? "" : tri.trim();
+
+        switch (triChoisi) {
+            case "Nom A-Z" ->
+                    resultat.sort(Comparator.comparing(p -> safe(p.getNom_produit()).toLowerCase(Locale.ROOT)));
+
+            case "Nom Z-A" ->
+                    resultat.sort(Comparator.comparing((Produit p) -> safe(p.getNom_produit()).toLowerCase(Locale.ROOT)).reversed());
+
+            case "Prix croissant" ->
+                    resultat.sort(Comparator.comparingDouble(Produit::getPrix_produit));
+
+            case "Prix décroissant" ->
+                    resultat.sort(Comparator.comparingDouble(Produit::getPrix_produit).reversed());
+
+            case "Quantité croissante" ->
+                    resultat.sort(Comparator.comparingInt(Produit::getQuantite_produit));
+
+            case "Quantité décroissante" ->
+                    resultat.sort(Comparator.comparingInt(Produit::getQuantite_produit).reversed());
+
+            case "Statut" ->
+                    resultat.sort(Comparator.comparing(p -> safe(p.getStatus_produit()).toLowerCase(Locale.ROOT)));
+        }
+
+        return resultat;
+    }
+    private String safe(String value) {
+        return value == null ? "" : value;
     }
 }

@@ -353,7 +353,7 @@ public class ProduitController {
         applyFiltersAndRefresh();
     }
 
-    private void applyFiltersAndRefresh() {
+    /*private void applyFiltersAndRefresh() {
         filteredList.setAll(masterList);
 
         String keyword = "";
@@ -380,7 +380,26 @@ public class ProduitController {
         refreshRows();
         updateStats();
     }
+*/
+    private void applyFiltersAndRefresh() {
 
+        List<Produit> liste = produitService.recuperer();
+
+        String keyword = searchField != null ? searchField.getText() : "";
+        String categorie = ""; // tu peux ajouter ComboBox plus tard
+        String statut = "";    // idem
+        String tri = sortCombo != null ? sortCombo.getValue() : "";
+
+        // 🔥 APPELS SERVICE
+        liste = produitService.rechercherProduits(liste, keyword);
+        liste = produitService.filtrerProduits(liste, categorie, statut);
+        liste = produitService.trierProduits(liste, tri);
+
+        filteredList.setAll(liste);
+
+        refreshRows();
+        updateStats();
+    }
     private void applySort() {
         if (sortCombo == null || sortCombo.getValue() == null) return;
 

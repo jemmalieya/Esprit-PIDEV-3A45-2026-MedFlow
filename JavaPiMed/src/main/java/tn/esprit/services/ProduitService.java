@@ -137,4 +137,30 @@ public class ProduitService implements IGeneralService<Produit> {
         System.out.println("Produit non trouvé");
         return null;
     }
+    public boolean produitExisteDeja(String nom, String categorie, double prix, String description) {
+        String sql = """
+        SELECT COUNT(*)
+        FROM produit
+        WHERE LOWER(TRIM(nom_produit)) = LOWER(TRIM(?))
+          AND LOWER(TRIM(categorie_produit)) = LOWER(TRIM(?))
+          AND prix_produit = ?
+          AND LOWER(TRIM(description_produit)) = LOWER(TRIM(?))
+    """;
+
+        try (PreparedStatement ps = cn.prepareStatement(sql)) {
+            ps.setString(1, nom);
+            ps.setString(2, categorie);
+            ps.setDouble(3, prix);
+            ps.setString(4, description);
+
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+        } catch (SQLException e) {
+            System.out.println("Erreur test unicité produit : " + e.getMessage());
+        }
+
+        return false;
+    }
 }

@@ -1,6 +1,23 @@
 package tn.esprit.controllers;
 
 import javafx.animation.FadeTransition;
+import javafx.scene.chart.BarChart;
+import javafx.scene.chart.LineChart;
+import javafx.scene.chart.NumberAxis;
+import javafx.scene.chart.PieChart;
+import javafx.scene.chart.XYChart;
+import javafx.scene.control.DatePicker;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.SimpleStringProperty;
+import tn.esprit.entities.Commande;
+import tn.esprit.services.CommandeService;
+import tn.esprit.services.DashboardBIService;
+
+import java.time.LocalDate;
+import java.util.HashMap;
+import java.util.Map;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -72,6 +89,48 @@ public class ProduitController {
     @FXML private Label resultCountLabel;
     @FXML private Button btnPanier;
 
+    // DASHBOARD ADMIN BI
+    @FXML private Label biPeriodeLabel;
+
+    @FXML private DatePicker biDateDebutPicker;
+    @FXML private DatePicker biDateFinPicker;
+    @FXML private ComboBox<String> biCategorieCombo;
+
+    @FXML private Label biCroissanceLabel;
+    @FXML private Label biStockCritiqueLabel;
+
+    @FXML private Label biCaLabel;
+    @FXML private Label biCommandesLabel;
+    @FXML private Label biPanierMoyenLabel;
+    @FXML private Label biConversionLabel;
+
+    @FXML private Label biQuantiteVendueLabel;
+    @FXML private Label biEnAttenteLabel;
+    @FXML private Label biTauxRuptureLabel;
+    @FXML private Label biPeriodeAnalyseeLabel;
+
+    @FXML private LineChart<String, Number> ventesLineChart;
+    @FXML private PieChart statutPieChart;
+    @FXML private BarChart<String, Number> categorieBarChart;
+    @FXML private BarChart<String, Number> caCategorieBarChart;
+
+    @FXML private TableView<Produit> topProduitsTable;
+    @FXML private TableColumn<Produit, String> topNomCol;
+    @FXML private TableColumn<Produit, String> topCategorieCol;
+    @FXML private TableColumn<Produit, Number> topQteCol;
+    @FXML private TableColumn<Produit, String> topCaCol;
+    @FXML private TableColumn<Produit, Number> topStockCol;
+
+    @FXML private TableView<Produit> stockCritiqueTable;
+    @FXML private TableColumn<Produit, String> stockNomCol;
+    @FXML private TableColumn<Produit, String> stockCategorieCol;
+    @FXML private TableColumn<Produit, Number> stockStockCol;
+    @FXML private TableColumn<Produit, String> stockStatutCol;
+
+    @FXML private FlowPane recommandationsContainer;
+
+
+    private final DashboardBIService dashboardBIService = new DashboardBIService();
     private final ProduitService produitService = new ProduitService();
     private final ObservableList<Produit> masterList = FXCollections.observableArrayList();
     private final ObservableList<Produit> filteredList = FXCollections.observableArrayList();
@@ -90,6 +149,10 @@ public class ProduitController {
         initDashboardIfExists();
         initModifierPageIfExists();
         initPharmacieIfExists();
+        initDashboardBIIfExists();
+
+
+
     }
 
     private void initAjoutPageIfExists() {
@@ -1043,7 +1106,43 @@ public class ProduitController {
 
     @FXML
     private void onTableauBordAdmin() {
-        showAlert(Alert.AlertType.INFORMATION, "Dashboard Admin BI", "Tu peux relier ici le dashboard Admin BI.");
+        try {
+            URL url = getClass().getResource("/DashboardAdminBI.fxml");
+            if (url == null) {
+                throw new IOException("Fichier introuvable : /DashboardAdminBI.fxml");
+            }
+
+            FXMLLoader loader = new FXMLLoader(url);
+            Parent root = loader.load();
+
+            Stage stage = null;
+
+            if (produitsListContainer != null && produitsListContainer.getScene() != null) {
+                stage = (Stage) produitsListContainer.getScene().getWindow();
+            } else if (btnAjouterProduit != null && btnAjouterProduit.getScene() != null) {
+                stage = (Stage) btnAjouterProduit.getScene().getWindow();
+            } else if (productGrid != null && productGrid.getScene() != null) {
+                stage = (Stage) productGrid.getScene().getWindow();
+            }
+
+            if (stage == null) return;
+
+            Scene scene = new Scene(root, 1600, 950);
+
+            URL css = getClass().getResource("/CSS/dashboard_admin_bi.css");
+            if (css != null) {
+                scene.getStylesheets().add(css.toExternalForm());
+            }
+
+            stage.setScene(scene);
+            stage.setTitle("Dashboard Admin BI");
+            stage.show();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Erreur Navigation",
+                    "Impossible d'ouvrir DashboardAdminBI.fxml : " + e.getMessage());
+        }
     }
 
     @FXML
@@ -1190,32 +1289,51 @@ public class ProduitController {
         retourProduitSimple();
     }
 
+
+
     private void retourProduitSimple() {
         try {
             produitAmodifier = null;
 
             URL url = getClass().getResource("/ProduitDashboard.fxml");
-            if (url == null) throw new IOException("Fichier introuvable : /FrontFXML/ProduitDashboard.fxml");
+            if (url == null) {
+                throw new IOException("Fichier introuvable : /ProduitDashboard.fxml");
+            }
 
             FXMLLoader loader = new FXMLLoader(url);
             Parent root = loader.load();
 
-            Stage stage;
-            if (btnResetProduit != null && btnResetProduit.getScene() != null) {
+            Stage stage = null;
+
+            if (biPeriodeLabel != null && biPeriodeLabel.getScene() != null) {
+                stage = (Stage) biPeriodeLabel.getScene().getWindow();
+            } else if (produitsListContainer != null && produitsListContainer.getScene() != null) {
+                stage = (Stage) produitsListContainer.getScene().getWindow();
+            } else if (btnResetProduit != null && btnResetProduit.getScene() != null) {
                 stage = (Stage) btnResetProduit.getScene().getWindow();
             } else if (btnAjouterProduit != null && btnAjouterProduit.getScene() != null) {
                 stage = (Stage) btnAjouterProduit.getScene().getWindow();
             } else if (btnModifierProduit != null && btnModifierProduit.getScene() != null) {
                 stage = (Stage) btnModifierProduit.getScene().getWindow();
-            } else {
-                return;
+            } else if (productGrid != null && productGrid.getScene() != null) {
+                stage = (Stage) productGrid.getScene().getWindow();
             }
 
-            stage.setScene(new Scene(root));
+            if (stage == null) return;
+
+            Scene scene = new Scene(root, 1400, 850);
+
+            URL css = getClass().getResource("/CSS/produit-dashboard.css");
+            if (css != null) {
+                scene.getStylesheets().add(css.toExternalForm());
+            }
+
+            stage.setScene(scene);
             stage.setTitle("Gestion des Produits");
             stage.show();
 
         } catch (Exception e) {
+            e.printStackTrace();
             showAlert(Alert.AlertType.ERROR, "Erreur Navigation",
                     "Impossible de retourner à la page produits : " + e.getMessage());
         }
@@ -1616,5 +1734,230 @@ public class ProduitController {
             });
             delay.play();
         });
+    }
+
+    // =========================================================
+    // DASHBOARD ADMIN BI
+    // =========================================================
+    private void initDashboardBIIfExists() {
+        if (biPeriodeLabel == null) return;
+
+        if (biDateFinPicker != null && biDateFinPicker.getValue() == null) {
+            biDateFinPicker.setValue(LocalDate.now());
+        }
+
+        if (biDateDebutPicker != null && biDateDebutPicker.getValue() == null) {
+            biDateDebutPicker.setValue(LocalDate.now().minusDays(6));
+        }
+
+        if (biCategorieCombo != null && biCategorieCombo.getItems().isEmpty()) {
+            biCategorieCombo.getItems().addAll(
+                    "Toutes les catégories",
+                    "Médicament",
+                    "Parapharmacie",
+                    "Matériel",
+                    "Vitamines",
+                    "Beauté & Cosmétique"
+            );
+            biCategorieCombo.setValue("Toutes les catégories");
+        }
+
+        initTopProduitsTable();
+        initStockCritiqueTable();
+        chargerDashboardBI();
+    }
+
+    @FXML
+    private void filtrerDashboardBI() {
+        chargerDashboardBI();
+    }
+
+    @FXML
+    private void chargerPeriode7j() {
+        if (biDateFinPicker != null) biDateFinPicker.setValue(LocalDate.now());
+        if (biDateDebutPicker != null) biDateDebutPicker.setValue(LocalDate.now().minusDays(6));
+        chargerDashboardBI();
+    }
+
+    @FXML
+    private void chargerPeriode30j() {
+        if (biDateFinPicker != null) biDateFinPicker.setValue(LocalDate.now());
+        if (biDateDebutPicker != null) biDateDebutPicker.setValue(LocalDate.now().minusDays(29));
+        chargerDashboardBI();
+    }
+
+    @FXML
+    private void chargerPeriode90j() {
+        if (biDateFinPicker != null) biDateFinPicker.setValue(LocalDate.now());
+        if (biDateDebutPicker != null) biDateDebutPicker.setValue(LocalDate.now().minusDays(89));
+        chargerDashboardBI();
+    }
+
+    private void chargerDashboardBI() {
+        try {
+            LocalDate debut = biDateDebutPicker != null ? biDateDebutPicker.getValue() : LocalDate.now().minusDays(6);
+            LocalDate fin = biDateFinPicker != null ? biDateFinPicker.getValue() : LocalDate.now();
+            String categorie = biCategorieCombo != null ? biCategorieCombo.getValue() : "Toutes les catégories";
+
+            DashboardBIService.DashboardData data = dashboardBIService.chargerDonnees(debut, fin, categorie);
+
+            if (biPeriodeLabel != null) {
+                biPeriodeLabel.setText("Période : " + data.dateDebut + " → " + data.dateFin);
+            }
+
+            if (biCroissanceLabel != null) biCroissanceLabel.setText(data.croissanceMessage);
+            if (biStockCritiqueLabel != null) biStockCritiqueLabel.setText(data.stockCritiqueMessage);
+
+            if (biCaLabel != null) biCaLabel.setText(formatNombreBI(data.chiffreAffaires) + " DT");
+            if (biCommandesLabel != null) biCommandesLabel.setText(String.valueOf(data.totalCommandes));
+            if (biPanierMoyenLabel != null) biPanierMoyenLabel.setText(formatNombreBI(data.panierMoyen));
+            if (biConversionLabel != null) biConversionLabel.setText(String.format(Locale.US, "%.1f%%", data.tauxConversion));
+
+            if (biQuantiteVendueLabel != null) biQuantiteVendueLabel.setText(String.valueOf(data.quantiteVendue));
+            if (biEnAttenteLabel != null) biEnAttenteLabel.setText(String.valueOf(data.enAttente));
+            if (biTauxRuptureLabel != null) biTauxRuptureLabel.setText(String.format(Locale.US, "%.1f%%", data.tauxRupture));
+            if (biPeriodeAnalyseeLabel != null) biPeriodeAnalyseeLabel.setText(String.valueOf(data.periodeAnalysee));
+
+            remplirLineChartBI(data);
+            remplirPieChartBI(data);
+            remplirCategorieChartBI(data);
+            remplirCaCategorieChartBI(data);
+
+            if (topProduitsTable != null) {
+                topProduitsTable.setItems(FXCollections.observableArrayList(data.topProduits));
+            }
+
+            if (stockCritiqueTable != null) {
+                stockCritiqueTable.setItems(FXCollections.observableArrayList(data.stockCritiqueProduits));
+            }
+
+            remplirRecommandationsBI(data);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void initTopProduitsTable() {
+        if (topProduitsTable == null) return;
+
+        if (topNomCol != null) {
+            topNomCol.setCellValueFactory(cell -> new SimpleStringProperty(safe(cell.getValue().getNom_produit())));
+        }
+        if (topCategorieCol != null) {
+            topCategorieCol.setCellValueFactory(cell -> new SimpleStringProperty(safe(cell.getValue().getCategorie_produit())));
+        }
+        if (topQteCol != null) {
+            topQteCol.setCellValueFactory(cell -> new SimpleIntegerProperty(cell.getValue().getQuantite_produit()));
+        }
+        if (topCaCol != null) {
+            topCaCol.setCellValueFactory(cell ->
+                    new SimpleStringProperty(formatNombreBI(cell.getValue().getPrix_produit() * cell.getValue().getQuantite_produit())));
+        }
+        if (topStockCol != null) {
+            topStockCol.setCellValueFactory(cell -> new SimpleIntegerProperty(cell.getValue().getQuantite_produit()));
+        }
+    }
+
+    private void initStockCritiqueTable() {
+        if (stockCritiqueTable == null) return;
+
+        if (stockNomCol != null) {
+            stockNomCol.setCellValueFactory(cell -> new SimpleStringProperty(safe(cell.getValue().getNom_produit())));
+        }
+        if (stockCategorieCol != null) {
+            stockCategorieCol.setCellValueFactory(cell -> new SimpleStringProperty(safe(cell.getValue().getCategorie_produit())));
+        }
+        if (stockStockCol != null) {
+            stockStockCol.setCellValueFactory(cell -> new SimpleIntegerProperty(cell.getValue().getQuantite_produit()));
+        }
+        if (stockStatutCol != null) {
+            stockStatutCol.setCellValueFactory(cell -> new SimpleStringProperty(safe(cell.getValue().getStatus_produit())));
+        }
+    }
+
+    private void remplirLineChartBI(DashboardBIService.DashboardData data) {
+        if (ventesLineChart == null) return;
+
+        ventesLineChart.getData().clear();
+
+        XYChart.Series<String, Number> serieCA = new XYChart.Series<>();
+        serieCA.setName("CA (DT)");
+
+        XYChart.Series<String, Number> serieQte = new XYChart.Series<>();
+        serieQte.setName("Quantités");
+
+        for (Map.Entry<java.time.LocalDate, Double> entry : data.caParJour.entrySet()) {
+            serieCA.getData().add(new XYChart.Data<>(entry.getKey().toString(), entry.getValue()));
+        }
+
+        for (Map.Entry<java.time.LocalDate, Integer> entry : data.quantitesParJour.entrySet()) {
+            serieQte.getData().add(new XYChart.Data<>(entry.getKey().toString(), entry.getValue()));
+        }
+
+        ventesLineChart.getData().addAll(serieCA, serieQte);
+    }
+
+    private void remplirPieChartBI(DashboardBIService.DashboardData data) {
+        if (statutPieChart == null) return;
+
+        statutPieChart.getData().clear();
+
+        for (Map.Entry<String, Integer> entry : data.repartitionStatuts.entrySet()) {
+            statutPieChart.getData().add(new PieChart.Data(entry.getKey(), entry.getValue()));
+        }
+    }
+
+    private void remplirCategorieChartBI(DashboardBIService.DashboardData data) {
+        if (categorieBarChart == null) return;
+
+        categorieBarChart.getData().clear();
+
+        XYChart.Series<String, Number> serieQte = new XYChart.Series<>();
+        serieQte.setName("Quantité");
+
+        XYChart.Series<String, Number> serieCA = new XYChart.Series<>();
+        serieCA.setName("CA (DT)");
+
+        for (Map.Entry<String, Integer> entry : data.quantitesParCategorie.entrySet()) {
+            serieQte.getData().add(new XYChart.Data<>(entry.getKey(), entry.getValue()));
+        }
+
+        for (Map.Entry<String, Double> entry : data.caParCategorie.entrySet()) {
+            serieCA.getData().add(new XYChart.Data<>(entry.getKey(), entry.getValue()));
+        }
+
+        categorieBarChart.getData().addAll(serieQte, serieCA);
+    }
+
+    private void remplirCaCategorieChartBI(DashboardBIService.DashboardData data) {
+        if (caCategorieBarChart == null) return;
+
+        caCategorieBarChart.getData().clear();
+
+        XYChart.Series<String, Number> serie = new XYChart.Series<>();
+        serie.setName("Chiffre d'affaires");
+
+        for (Map.Entry<String, Double> entry : data.caParCategorie.entrySet()) {
+            serie.getData().add(new XYChart.Data<>(entry.getKey(), entry.getValue()));
+        }
+
+        caCategorieBarChart.getData().add(serie);
+    }
+
+    private void remplirRecommandationsBI(DashboardBIService.DashboardData data) {
+        if (recommandationsContainer == null) return;
+
+        recommandationsContainer.getChildren().clear();
+
+        for (String rec : data.recommandations) {
+            Label lbl = new Label("💡 " + rec);
+            lbl.getStyleClass().add("recommendation-chip");
+            recommandationsContainer.getChildren().add(lbl);
+        }
+    }
+
+    private String formatNombreBI(double value) {
+        return String.format(Locale.FRANCE, "%,.2f", value);
     }
 }

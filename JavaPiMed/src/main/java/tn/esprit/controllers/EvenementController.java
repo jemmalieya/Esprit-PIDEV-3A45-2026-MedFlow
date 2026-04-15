@@ -14,7 +14,9 @@ import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
@@ -108,7 +110,7 @@ public class EvenementController {
 
     @FXML
     private void onAutresActions() {
-        // TODO: implement later
+        loadScene("/RessourceDashboard.fxml", "Gestion des Ressources");
     }
 
 
@@ -597,7 +599,7 @@ public class EvenementController {
                         "-fx-padding: 10 16;" +
                         "-fx-font-weight: bold;"
         );
-        detailsBtn.setOnAction(e -> afficherPopupDetails(ev));
+        detailsBtn.setOnAction(e -> afficherPopupDetailsSimple(ev));
 
         content.getChildren().addAll(titre, type, ville, statut, organisateur, desc, detailsBtn);
         card.getChildren().addAll(imageHeader, content);
@@ -687,6 +689,117 @@ public class EvenementController {
         alert.setContentText(details);
         alert.showAndWait();
     }
+    private void afficherPopupDetailsSimple(Evenement ev) {
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("Details evenement");
+        dialog.setHeaderText(null);
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        dialog.getDialogPane().setMinWidth(430);
+        dialog.getDialogPane().setPrefWidth(430);
+        dialog.getDialogPane().setStyle(
+                "-fx-background-color: transparent;" +
+                        "-fx-padding: 0;"
+        );
+
+        VBox modalCard = new VBox(18);
+        modalCard.setStyle(
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 24;" +
+                        "-fx-padding: 24;" +
+                        "-fx-border-color: #e6eef5;" +
+                        "-fx-border-radius: 24;" +
+                        "-fx-effect: dropshadow(gaussian, rgba(13, 44, 111, 0.14), 28, 0.2, 0, 8);"
+        );
+
+        Label overline = new Label("Event details");
+        overline.setStyle(
+                "-fx-text-fill: #11a8c9;" +
+                        "-fx-font-size: 12px;" +
+                        "-fx-font-weight: bold;"
+        );
+
+        Label title = new Label(valueOrDash(ev.getTitre_event()));
+        title.setWrapText(true);
+        title.setStyle(
+                "-fx-text-fill: #16325c;" +
+                        "-fx-font-size: 24px;" +
+                        "-fx-font-weight: bold;"
+        );
+
+        VBox metaBox = new VBox(10,
+                createDetailRow("Type", safe(ev.getType_event())),
+                createDetailRow("City", safe(ev.getVille_event())),
+                createDetailRow("Status", safe(ev.getStatut_event())),
+                createDetailRow("Organizer", safe(ev.getNom_organisateur_event()))
+        );
+        metaBox.setStyle(
+                "-fx-background-color: #f7fbfd;" +
+                        "-fx-background-radius: 18;" +
+                        "-fx-padding: 16;"
+        );
+
+        Label descriptionTitle = new Label("Description");
+        descriptionTitle.setStyle(
+                "-fx-text-fill: #16325c;" +
+                        "-fx-font-size: 14px;" +
+                        "-fx-font-weight: bold;"
+        );
+
+        Label description = new Label(safe(ev.getDescription_event()));
+        description.setWrapText(true);
+        description.setMaxWidth(Double.MAX_VALUE);
+        description.setStyle(
+                "-fx-background-color: #ffffff;" +
+                        "-fx-border-color: #e6eef5;" +
+                        "-fx-border-radius: 16;" +
+                        "-fx-background-radius: 16;" +
+                        "-fx-padding: 14;" +
+                        "-fx-text-fill: #5b6b84;" +
+                        "-fx-font-size: 13px;"
+        );
+
+        modalCard.getChildren().addAll(overline, title, metaBox, descriptionTitle, description);
+        dialog.getDialogPane().setContent(modalCard);
+
+        Button closeButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.CLOSE);
+        closeButton.setText("Close");
+        closeButton.setStyle(
+                "-fx-background-color: #11a8c9;" +
+                        "-fx-text-fill: white;" +
+                        "-fx-font-weight: bold;" +
+                        "-fx-background-radius: 14;" +
+                        "-fx-padding: 10 22;"
+        );
+
+        dialog.showAndWait();
+    }
+
+    private HBox createDetailRow(String labelText, String valueText) {
+        Label label = new Label(labelText);
+        label.setStyle(
+                "-fx-text-fill: #7a8aa2;" +
+                        "-fx-font-size: 12px;" +
+                        "-fx-font-weight: bold;"
+        );
+        label.setMinWidth(82);
+
+        Label value = new Label(valueText);
+        value.setWrapText(true);
+        value.setMaxWidth(Double.MAX_VALUE);
+        value.setStyle(
+                "-fx-text-fill: #183153;" +
+                        "-fx-font-size: 13px;" +
+                        "-fx-font-weight: 600;"
+        );
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        HBox row = new HBox(10, label, spacer, value);
+        row.setFillHeight(true);
+        return row;
+    }
+
     private String shortText(String value, int max) {
         if (value == null) return "";
         if (value.length() <= max) return value;

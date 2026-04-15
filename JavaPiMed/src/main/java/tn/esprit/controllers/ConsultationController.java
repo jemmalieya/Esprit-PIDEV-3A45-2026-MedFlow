@@ -21,7 +21,9 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import tn.esprit.entities.RendezVous;
+import tn.esprit.entities.User;
 import tn.esprit.services.RendezVousService;
+import tn.esprit.services.UserService;
 
 import java.net.URL;
 import java.sql.Timestamp;
@@ -72,6 +74,8 @@ public class ConsultationController implements Initializable {
     private Label selectedSlotLabel;
     @FXML
     private Label selectedModeLabel;
+    @FXML
+    private VBox doctorCardsContainer;
 
     @FXML
     private TableView<RendezVous> myBookingsTable;
@@ -106,6 +110,7 @@ public class ConsultationController implements Initializable {
     private Integer editingRendezVousId;
     private final ObservableList<RendezVous> myBookingsData = FXCollections.observableArrayList();
     private final RendezVousService rendezVousService = new RendezVousService();
+    private final UserService userService = new UserService();
 
     private LocalDate currentWeekStart;
     private LocalDateTime selectedDateTime;
@@ -139,36 +144,7 @@ public class ConsultationController implements Initializable {
         showBookingPage();
         currentWeekStart = LocalDate.now().with(DayOfWeek.MONDAY);
         refreshCalendar();
-    }
-
-    @FXML
-    private void handleSelectDoctor1(ActionEvent event) {
-        if (doctorField != null) {
-            doctorField.setText("Dr. Wael - Cardiologist");
-        }
-        if (doctorField1 != null) {
-            doctorField1.setText("18");
-        }
-    }
-
-    @FXML
-    private void handleSelectDoctor2(ActionEvent event) {
-        if (doctorField != null) {
-            doctorField.setText("Dr. Amira - Dermatologist");
-        }
-        if (doctorField1 != null) {
-            doctorField1.setText("2");
-        }
-    }
-
-    @FXML
-    private void handleSelectDoctor3(ActionEvent event) {
-        if (doctorField != null) {
-            doctorField.setText("Dr. Sami - Pediatrician");
-        }
-        if (doctorField1 != null) {
-            doctorField1.setText("3");
-        }
+        loadDoctorCards();
     }
 
     @FXML
@@ -428,6 +404,84 @@ public class ConsultationController implements Initializable {
         if (selectedSlotLabel != null) {
             selectedSlotLabel.setText(String.format("%02d:00", hour));
         }
+    }
+
+    private void loadDoctorCards() {
+        if (doctorCardsContainer == null) {
+            return;
+        }
+
+        doctorCardsContainer.getChildren().clear();
+        List<User> doctors = userService.getStaffByRoleAndType("STAFF", "RESP_PATIENTS");
+
+        if (doctors.isEmpty()) {
+            Label emptyLabel = new Label("No staff found for role STAFF and type RESP_PATIENTS.");
+            emptyLabel.getStyleClass().add("helper-text");
+            doctorCardsContainer.getChildren().add(emptyLabel);
+            return;
+        }
+
+        for (User doctor : doctors) {
+            doctorCardsContainer.getChildren().add(createDoctorCard(doctor));
+        }
+    }
+
+    private HBox createDoctorCard(User doctor) {
+        HBox card = new HBox(12);
+        card.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        card.getStyleClass().add("doctor-card");
+
+        VBox imagePlaceholder = new VBox();
+        imagePlaceholder.setPrefHeight(56);
+        imagePlaceholder.setPrefWidth(75);
+        imagePlaceholder.getStyleClass().add("doctor-image-placeholder");
+
+        Label avatarLabel = new Label("DR");
+        avatarLabel.getStyleClass().add("doctor-avatar-label");
+        imagePlaceholder.getChildren().add(avatarLabel);
+
+        VBox details = new VBox(2);
+        Label nameLabel = new Label(buildDoctorDisplayName(doctor));
+        nameLabel.getStyleClass().add("doctor-name-label");
+
+        Label specialityLabel = new Label(valueOrDash(doctor.getTypeStaff()));
+        specialityLabel.getStyleClass().add("doctor-speciality-label");
+
+        HBox starsBox = new HBox(2);
+        Label starsLabel = new Label("★ ★ ★ ★ ★");
+        starsLabel.getStyleClass().add("doctor-stars-label");
+        starsBox.getChildren().add(starsLabel);
+
+        Label availabilityLabel = new Label("Available");
+        availabilityLabel.getStyleClass().add("doctor-available-label");
+
+        details.getChildren().addAll(nameLabel, specialityLabel, starsBox, availabilityLabel);
+
+        Button selectBtn = new Button("Select");
+        selectBtn.getStyleClass().add("doctor-select-button");
+        selectBtn.setOnAction(e -> handleSelectDoctor(doctor));
+
+        card.getChildren().addAll(imagePlaceholder, details, selectBtn);
+        return card;
+    }
+
+    private void handleSelectDoctor(User doctor) {
+        if (doctorField != null) {
+            doctorField.setText(buildDoctorDisplayName(doctor));
+        }
+        if (doctorField1 != null) {
+            doctorField1.setText(String.valueOf(doctor.getId()));
+        }
+    }
+
+    private String buildDoctorDisplayName(User doctor) {
+        String prenom = doctor.getPrenom() == null ? "" : doctor.getPrenom().trim();
+        String nom = doctor.getNom() == null ? "" : doctor.getNom().trim();
+        String fullName = (prenom + " " + nom).trim();
+        if (fullName.isBlank()) {
+            return "Staff #" + doctor.getId();
+        }
+        return "Dr. " + fullName;
     }
 
     private void setupMyBookingsTable() {

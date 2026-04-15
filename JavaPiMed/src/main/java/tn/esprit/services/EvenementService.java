@@ -122,6 +122,8 @@ public class EvenementService implements IGeneralService<Evenement> {
                 e.setEmail_contact_event(rs.getString("email_contact_event"));
                 e.setNom_organisateur_event(rs.getString("nom_organisateur_event"));
                 e.setStatut_event(rs.getString("statut_event"));
+                e.setImage_couverture_event(rs.getString("image_couverture_event"));
+                e.setVisibilite_event(rs.getString("visibilite_event"));
 
                 list.add(e);
             }

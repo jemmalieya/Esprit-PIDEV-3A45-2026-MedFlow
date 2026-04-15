@@ -24,8 +24,19 @@
 }
 
 .active-product-btn {
-    -fx-background-color: rgba(255,255,255,0.16);
-    -fx-background-radius: 12px;
+    -fx-background-color: #2ea8d3; /* blue */
+    -fx-background-radius: 14;
+    -fx-border-color: transparent;
+}
+
+.active-product-btn .label {
+    -fx-text-fill: white;
+}
+
+.active-product-btn .sidebar-item-text,
+.active-product-btn .sidebar-item-icon,
+.active-product-btn .sidebar-arrow {
+    -fx-text-fill: white;
 }
 
 .logo-box {

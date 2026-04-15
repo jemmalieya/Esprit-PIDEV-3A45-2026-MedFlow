@@ -49,8 +49,12 @@ public class RendezVousService implements IGeneralService<RendezVous> {
 
     @Override
     public void modifier(RendezVous r) {
+        modifier(r, cn);
+    }
+
+    public void modifier(RendezVous r, Connection connection) {
         String sql = "UPDATE rendez_vous SET datetime=?, statut=?, mode=?, motif=?, created_at=?, idPatient=?, idStaff=?, urgency_level=? WHERE id=?";
-        try (PreparedStatement ps = cn.prepareStatement(sql)) {
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setTimestamp(1, r.getDatetime());
             ps.setString(2, r.getStatut());
             ps.setString(3, r.getMode());
@@ -88,6 +92,35 @@ public class RendezVousService implements IGeneralService<RendezVous> {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+        return list;
+    }
+
+    public List<RendezVous> recupererParStaffId(int idStaff) {
+        List<RendezVous> list = new ArrayList<>();
+        String sql = "SELECT * FROM rendez_vous WHERE idStaff = ? ORDER BY datetime DESC";
+
+        try (PreparedStatement ps = cn.prepareStatement(sql)) {
+            ps.setInt(1, idStaff);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    RendezVous r = new RendezVous(
+                            rs.getInt("id"),
+                            rs.getTimestamp("datetime"),
+                            rs.getString("statut"),
+                            rs.getString("mode"),
+                            rs.getString("motif"),
+                            rs.getTimestamp("created_at"),
+                            rs.getInt("idPatient"),
+                            rs.getInt("idStaff"),
+                            rs.getString("urgency_level")
+                    );
+                    list.add(r);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
         return list;
     }
 }

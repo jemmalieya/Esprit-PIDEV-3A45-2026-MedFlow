@@ -134,51 +134,7 @@
                                 <Label text="Select a Doctor" styleClass="card-title" style="-fx-padding: 16 0 0 0;"/>
                                 <ScrollPane hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" styleClass="doctor-cards-scroll">
                                     <VBox fx:id="doctorCardsContainer" spacing="10" styleClass="doctor-cards-container">
-                                        <!-- Doctor Card 1 -->
-                                        <HBox spacing="12" alignment="CENTER_LEFT" styleClass="doctor-card">
-                                            <VBox styleClass="doctor-image-placeholder" prefHeight="56" prefWidth="75">
-                                                <Label text="👨⚕️" styleClass="doctor-avatar-label"/>
-                                            </VBox>
-                                            <VBox spacing="2">
-                                                <Label text="Dr. Walid" styleClass="doctor-name-label"/>
-                                                <Label text="Cardiologist" styleClass="doctor-speciality-label"/>
-                                                <HBox spacing="2">
-                                                    <Label text="★ ★ ★ ★ ☆" styleClass="doctor-stars-label"/>
-                                                </HBox>
-                                                <Label text="Available" styleClass="doctor-available-label"/>
-                                            </VBox>
-                                            <Button text="Select" styleClass="doctor-select-button" onAction="#handleSelectDoctor1"/>
-                                        </HBox>
-                                        <!-- Doctor Card 2 -->
-                                        <HBox spacing="12" alignment="CENTER_LEFT" styleClass="doctor-card">
-                                            <VBox styleClass="doctor-image-placeholder" prefHeight="56" prefWidth="75">
-                                                <Label text="👩⚕️" styleClass="doctor-avatar-label"/>
-                                            </VBox>
-                                            <VBox spacing="2">
-                                                <Label text="Dr. Amira" styleClass="doctor-name-label"/>
-                                                <Label text="Dermatologist" styleClass="doctor-speciality-label"/>
-                                                <HBox spacing="2">
-                                                    <Label text="★ ★ ★ ★ ★" styleClass="doctor-stars-label"/>
-                                                </HBox>
-                                                <Label text="Available" styleClass="doctor-available-label"/>
-                                            </VBox>
-                                            <Button text="Select" styleClass="doctor-select-button" onAction="#handleSelectDoctor2"/>
-                                        </HBox>
-                                        <!-- Doctor Card 3 -->
-                                        <HBox spacing="12" alignment="CENTER_LEFT" styleClass="doctor-card">
-                                            <VBox styleClass="doctor-image-placeholder" prefHeight="56" prefWidth="75">
-                                                <Label text="👨⚕️" styleClass="doctor-avatar-label"/>
-                                            </VBox>
-                                            <VBox spacing="2">
-                                                <Label text="Dr. Sami" styleClass="doctor-name-label"/>
-                                                <Label text="Pediatrician" styleClass="doctor-speciality-label"/>
-                                                <HBox spacing="2">
-                                                    <Label text="★ ★ ★ ☆ ☆" styleClass="doctor-stars-label"/>
-                                                </HBox>
-                                                <Label text="Unavailable" styleClass="doctor-unavailable-label"/>
-                                            </VBox>
-                                            <Button text="Select" styleClass="doctor-select-button" onAction="#handleSelectDoctor3"/>
-                                        </HBox>
+                                        <!-- Dynamic doctor cards injected by ConsultationController -->
                                     </VBox>
                                 </ScrollPane>
                             </VBox>
@@ -222,56 +178,59 @@
 
                         <!-- PAGE 2: MY BOOKINGS -->
                         <VBox spacing="24" styleClass="page-content" fx:id="myBookingsPage">
-                            <VBox spacing="18" styleClass="booking-card">
-                                <Label text="My Appointments" styleClass="card-title"/>
-                                <Label text="Manage your rendez-vous for the current session patient." styleClass="helper-text"/>
-                                <TableView fx:id="myBookingsTable" VBox.vgrow="ALWAYS" styleClass="my-bookings-table">
-                                    <columns>
-                                        <TableColumn fx:id="colId" text="ID" prefWidth="70"/>
-                                        <TableColumn fx:id="colDateTime" text="Date &amp; Time" prefWidth="210"/>
-                                        <TableColumn fx:id="colMode" text="Mode" prefWidth="110"/>
-                                        <TableColumn fx:id="colMotif" text="Motif" prefWidth="230"/>
-                                        <TableColumn fx:id="colStaff" text="Staff" prefWidth="80"/>
-                                        <TableColumn fx:id="colStatut" text="Statut" prefWidth="110"/>
-                                        <TableColumn fx:id="colActions" text="Actions" prefWidth="180"/>
-                                    </columns>
-                                </TableView>
-                            </VBox>
-                            <VBox fx:id="modifyFormCard" prefWidth="500" spacing="16" styleClass="summary-card" visible="false" managed="false">
-                                <Label text="Modify Form" styleClass="card-title"/>
-
-                                <VBox spacing="12" styleClass="summary-box">
-                                    <VBox spacing="6">
-                                        <Label text="Patient ID" styleClass="field-label"/>
-                                        <TextField fx:id="modifyPatientIdField" editable="false" styleClass="modern-text-field"/>
-                                    </VBox>
-
-                                    <VBox spacing="6">
-                                        <Label text="Doctor/Staff ID" styleClass="field-label"/>
-                                        <TextField fx:id="modifyStaffIdField" promptText="Enter doctor/staff id" styleClass="modern-text-field"/>
-                                    </VBox>
-
-                                    <VBox spacing="6">
-                                        <Label text="Mode" styleClass="field-label"/>
-                                        <ComboBox fx:id="modifyModeComboBox" promptText="Select booking mode" styleClass="modern-combo-box"/>
-                                    </VBox>
-
-                                    <VBox spacing="6">
-                                        <Label text="Date Time" styleClass="field-label"/>
-                                        <TextField fx:id="modifyDateTimeField" promptText="yyyy-MM-dd HH:mm" styleClass="modern-text-field"/>
-                                    </VBox>
-
-                                    <VBox spacing="6">
-                                        <Label text="Motif" styleClass="field-label"/>
-                                        <TextArea fx:id="modifyMotifArea" promptText="Edit motif..." prefRowCount="4" wrapText="true" styleClass="modern-text-area"/>
-                                    </VBox>
-
-                                    <HBox spacing="10" alignment="CENTER_RIGHT">
-                                        <Button text="Cancel" styleClass="cancel-button" onAction="#handleCancelModify"/>
-                                        <Button text="Confirm Modify" styleClass="confirm-button" onAction="#handleConfirmModify"/>
-                                    </HBox>
+                            <HBox spacing="20" HBox.hgrow="ALWAYS" alignment="TOP_LEFT">
+                                <VBox spacing="18" styleClass="booking-card" HBox.hgrow="ALWAYS">
+                                    <Label text="My Appointments" styleClass="card-title"/>
+                                    <Label text="Manage your rendez-vous for the current session patient." styleClass="helper-text"/>
+                                    <TableView fx:id="myBookingsTable" VBox.vgrow="ALWAYS" styleClass="my-bookings-table">
+                                        <columns>
+                                            <TableColumn fx:id="colId" text="ID" prefWidth="70"/>
+                                            <TableColumn fx:id="colDateTime" text="Date &amp; Time" prefWidth="210"/>
+                                            <TableColumn fx:id="colMode" text="Mode" prefWidth="110"/>
+                                            <TableColumn fx:id="colMotif" text="Motif" prefWidth="230"/>
+                                            <TableColumn fx:id="colStaff" text="Staff" prefWidth="80"/>
+                                            <TableColumn fx:id="colStatut" text="Statut" prefWidth="110"/>
+                                            <TableColumn fx:id="colActions" text="Actions" prefWidth="180"/>
+                                        </columns>
+                                    </TableView>
                                 </VBox>
-                            </VBox>
+
+                                <VBox fx:id="modifyFormCard" prefWidth="500" spacing="16" styleClass="summary-card" visible="false" managed="false">
+                                    <Label text="Modify Form" styleClass="card-title"/>
+
+                                    <VBox spacing="12" styleClass="summary-box">
+                                        <VBox spacing="6">
+                                            <Label text="Patient ID" styleClass="field-label"/>
+                                            <TextField fx:id="modifyPatientIdField" editable="false" styleClass="modern-text-field"/>
+                                        </VBox>
+
+                                        <VBox spacing="6">
+                                            <Label text="Doctor/Staff ID" styleClass="field-label"/>
+                                            <TextField fx:id="modifyStaffIdField" promptText="Enter doctor/staff id" styleClass="modern-text-field"/>
+                                        </VBox>
+
+                                        <VBox spacing="6">
+                                            <Label text="Mode" styleClass="field-label"/>
+                                            <ComboBox fx:id="modifyModeComboBox" promptText="Select booking mode" styleClass="modern-combo-box"/>
+                                        </VBox>
+
+                                        <VBox spacing="6">
+                                            <Label text="Date Time" styleClass="field-label"/>
+                                            <TextField fx:id="modifyDateTimeField" promptText="yyyy-MM-dd HH:mm" styleClass="modern-text-field"/>
+                                        </VBox>
+
+                                        <VBox spacing="6">
+                                            <Label text="Motif" styleClass="field-label"/>
+                                            <TextArea fx:id="modifyMotifArea" promptText="Edit motif..." prefRowCount="4" wrapText="true" styleClass="modern-text-area"/>
+                                        </VBox>
+
+                                        <HBox spacing="10" alignment="CENTER_RIGHT">
+                                            <Button text="Cancel" styleClass="cancel-button" onAction="#handleCancelModify"/>
+                                            <Button text="Confirm Modify" styleClass="confirm-button" onAction="#handleConfirmModify"/>
+                                        </HBox>
+                                    </VBox>
+                                </VBox>
+                            </HBox>
                             
                         </VBox>
 

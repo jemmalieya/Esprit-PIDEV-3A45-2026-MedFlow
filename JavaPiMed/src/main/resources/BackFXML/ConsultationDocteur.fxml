@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<AnchorPane xmlns:fx="http://javafx.com/fxml" fx:controller="tn.esprit.controllers.ConsultationDocteur" prefWidth="1400" prefHeight="800" styleClass="back-root">
+    <VBox prefWidth="220" styleClass="sidebar" AnchorPane.leftAnchor="0.0" AnchorPane.topAnchor="0.0" AnchorPane.bottomAnchor="0.0">
+        <HBox alignment="CENTER_LEFT" spacing="10" styleClass="logo-row">
+            <Label text="❤" styleClass="logo-icon"/>
+            <Label text="MEDFLOW" styleClass="logo-text"/>
+        </HBox>
+
+        <Separator styleClass="side-separator"/>
+
+        <Button text="Dashboard" styleClass="sidebar-link"/>
+
+        <Label text="GESTIONS" styleClass="side-section-label"/>
+        <Button text="Consultation" styleClass="sidebar-link-active"/>
+
+        <Region VBox.vgrow="ALWAYS"/>
+        <Button text="Déconnexion" styleClass="sidebar-link"/>
+    </VBox>
+
+    <VBox spacing="12" styleClass="main-content" AnchorPane.leftAnchor="220.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" AnchorPane.bottomAnchor="0.0">
+        <HBox alignment="CENTER_LEFT" styleClass="page-switcher-bar" spacing="10">
+            <Button fx:id="pageOneBtn" onAction="#handleShowPageOne" text="Mes Rendez Vous" styleClass="page-nav-button,page-nav-button-active"/>
+            <Button fx:id="consultationPageBtn" onAction="#handleShowConsultationPage" text="Consultation" styleClass="page-nav-button"/>
+        </HBox>
+
+        <StackPane VBox.vgrow="ALWAYS">
+            <VBox fx:id="pageOneContainer" spacing="16" visible="true" managed="true">
+
+
+                <HBox alignment="CENTER_LEFT" spacing="16" styleClass="hero-card">
+                    <HBox alignment="CENTER" styleClass="hero-icon-box">
+                        <Label text="📅" styleClass="hero-icon"/>
+                    </HBox>
+                    <VBox spacing="6" HBox.hgrow="ALWAYS">
+                        <Label text="Gestion des Consultations" styleClass="hero-title"/>
+                        <HBox spacing="14" alignment="CENTER_LEFT">
+                            <Label text="0 Consultation(s) dans votre espace" styleClass="hero-subtitle"/>
+                            <Label text="◐ Admin" styleClass="admin-pill"/>
+                        </HBox>
+                    </VBox>
+                    <HBox spacing="10" alignment="CENTER_RIGHT">
+                        <Button text="⊕ Nouveau Consultation" styleClass="hero-primary-button"/>
+                        <Button text="◫ Voir les Formulaires" styleClass="hero-secondary-button"/>
+                    </HBox>
+                </HBox>
+
+                <VBox spacing="12" styleClass="list-header-card">
+                    <HBox alignment="CENTER_LEFT">
+                        <Label text="☰ Liste des Consultations" styleClass="list-title"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Button text="⌂ Alerte Consultations 0" styleClass="alert-soft-button"/>
+                        <ComboBox fx:id="sortComboBox" promptText="Trier..." styleClass="sort-combo"/>
+                    </HBox>
+                    <TextField promptText="Rechercher..." styleClass="search-field"/>
+                </VBox>
+
+                <HBox spacing="14" styleClass="stats-row">
+                    <VBox spacing="8" HBox.hgrow="ALWAYS" styleClass="stat-card">
+                        <Label text="◫" styleClass="stat-icon"/>
+                        <Label text="0" styleClass="stat-number"/>
+                        <Label text="Total Consultation" styleClass="stat-label"/>
+                    </VBox>
+                    <VBox spacing="8" HBox.hgrow="ALWAYS" styleClass="stat-card">
+                        <Label text="☑" styleClass="stat-icon"/>
+                        <Label text="0" styleClass="stat-number"/>
+                        <Label text="Publiés" styleClass="stat-label"/>
+                    </VBox>
+                    <VBox spacing="8" HBox.hgrow="ALWAYS" styleClass="stat-card">
+                        <Label text="⚠" styleClass="stat-icon"/>
+                        <Label text="0" styleClass="stat-number"/>
+                        <Label text="Brouillons" styleClass="stat-label"/>
+                    </VBox>
+                    <VBox spacing="8" HBox.hgrow="ALWAYS" styleClass="stat-card">
+                        <Label text="✕" styleClass="stat-icon"/>
+                        <Label text="0" styleClass="stat-number"/>
+                        <Label text="Autres statuts" styleClass="stat-label"/>
+                    </VBox>
+                </HBox>
+
+                <TableView fx:id="eventTable" styleClass="event-table" maxWidth="1.7976931348623157E308" VBox.vgrow="ALWAYS">
+                    <columns>
+                        <TableColumn text="TITRE" />
+                        <TableColumn text="TYPE" />
+                        <TableColumn text="VILLE" />
+                        <TableColumn text="STATUT" />
+                        <TableColumn text="ORGANISATEUR" />
+                        <TableColumn text="DESCRIPTION" />
+                        <TableColumn text="URGENCE" />
+                        <TableColumn text="ACTIONS" />
+                    </columns>
+                </TableView>
+            </VBox>
+
+            <VBox fx:id="consultationPageContainer" spacing="16" visible="false" managed="false">
+                <HBox alignment="CENTER_LEFT" styleClass="top-search-bar">
+                    <Label text="Consultation" styleClass="consultation-page-title"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Label fx:id="consultationTimerLabel"
+                           text="00:00:00"
+                           styleClass="consultation-page-subtitle"
+                           style="-fx-font-size: 28px; -fx-font-weight: 800; -fx-text-fill: #0f766e; -fx-background-color: #ecfeff; -fx-padding: 8 18; -fx-background-radius: 999;"/>
+                </HBox>
+
+                <VBox spacing="12" styleClass="consultation-book-card" VBox.vgrow="ALWAYS">
+                    <Label text="Ajouter Fiche Medicale" styleClass="consultation-book-heading"/>
+                    <Label text="Selectionnez d'abord un rendez-vous dans la page Mes Rendez Vous, puis remplissez ce formulaire." styleClass="consultation-book-text" wrapText="true"/>
+                    <Label fx:id="selectedRendezVousIdLabel" text="Rendez vous id: -" styleClass="rendezvous-id-label"/>
+
+                    <HBox spacing="20" alignment="TOP_LEFT" VBox.vgrow="ALWAYS">
+                        <VBox spacing="14"
+                              HBox.hgrow="ALWAYS"
+                              prefWidth="0"
+                              style="-fx-background-color: white; -fx-border-color: #dbe3f0; -fx-border-width: 1.4; -fx-border-radius: 18; -fx-background-radius: 18; -fx-padding: 18;">
+                            <Label text="Fiche Medicale" styleClass="consultation-book-heading"/>
+                            <Label text="Remplissez les informations cliniques de la consultation en cours." styleClass="consultation-book-text" wrapText="true"/>
+
+                            <GridPane hgap="12" vgap="10" styleClass="fiche-form-grid">
+                                <Label text="Diagnostic" styleClass="fiche-field-label" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                                <TextField fx:id="diagnosticField" promptText="Ex: Angine virale" styleClass="fiche-input" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+
+                                <Label text="Observations" styleClass="fiche-field-label" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                                <TextArea fx:id="observationsField" promptText="Observations cliniques..." prefRowCount="3" wrapText="true" styleClass="fiche-textarea" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+
+                                <Label text="Resultats Examens" styleClass="fiche-field-label" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                                <TextArea fx:id="resultatsExamensField" promptText="Resultats biologiques / imagerie..." prefRowCount="3" wrapText="true" styleClass="fiche-textarea" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                            </GridPane>
+                        </VBox>
+
+                        <VBox spacing="14"
+                              HBox.hgrow="ALWAYS"
+                              prefWidth="0"
+                              style="-fx-background-color: white; -fx-border-color: #dbe3f0; -fx-border-width: 1.4; -fx-border-radius: 18; -fx-background-radius: 18; -fx-padding: 18;">
+                            <HBox alignment="CENTER_LEFT" spacing="10">
+                                <Label text="Ajouter Prescription" styleClass="consultation-book-heading"/>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Button text="+ Ajouter" onAction="#handleAddPrescriptionRow" styleClass="fiche-secondary-button"/>
+                            </HBox>
+                            <Label text="Préparez la prescription pendant la consultation. Le formulaire est visuel seulement pour l’instant." styleClass="consultation-book-text" wrapText="true"/>
+
+                            <HBox spacing="8" style="-fx-padding: 0 4 0 4;">
+                                <Label text="Nom" styleClass="fiche-field-label" prefWidth="170"/>
+                                <Label text="Dose" styleClass="fiche-field-label" prefWidth="120"/>
+                                <Label text="Fréquence" styleClass="fiche-field-label" prefWidth="135"/>
+                                <Label text="Durée" styleClass="fiche-field-label" prefWidth="130"/>
+                                <Label text="Instructions" styleClass="fiche-field-label" prefWidth="180"/>
+                                <Label text="" prefWidth="30"/>
+                            </HBox>
+
+                            <ScrollPane fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" style="-fx-background-color: transparent; -fx-padding: 0;" VBox.vgrow="ALWAYS">
+                                <content>
+                                    <VBox fx:id="prescriptionRowsContainer" spacing="8" style="-fx-padding: 2 0 2 0;"/>
+                                </content>
+                            </ScrollPane>
+                        </VBox>
+                    </HBox>
+
+                    <HBox alignment="CENTER_RIGHT" spacing="10">
+                        <Button text="Annuler" onAction="#handleClearFicheForm" styleClass="fiche-secondary-button"/>
+                        <Button fx:id="saveFicheButton" text="Enregistrer la fiche et la prescription" onAction="#handleSaveFicheMedicale" styleClass="fiche-primary-button"/>
+                    </HBox>
+                </VBox>
+            </VBox>
+        </StackPane>
+    </VBox>
+</AnchorPane>

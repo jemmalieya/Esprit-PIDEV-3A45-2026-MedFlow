@@ -15,8 +15,12 @@ public class PrescriptionService implements IGeneralService<Prescription> {
 
     @Override
     public void ajouter(Prescription p) {
+        ajouter(p, cn);
+    }
+
+    public void ajouter(Prescription p, Connection connection) {
         String sql = "INSERT INTO prescription(fiche_medicale_id, nom_medicament, dose, frequence, duree, instructions, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)";
-        try (PreparedStatement ps = cn.prepareStatement(sql)) {
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setInt(1, p.getFiche_medicale_id());
             ps.setString(2, p.getNom_medicament());
             ps.setString(3, p.getDose());

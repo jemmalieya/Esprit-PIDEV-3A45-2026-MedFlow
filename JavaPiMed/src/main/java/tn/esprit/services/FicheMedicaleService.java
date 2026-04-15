@@ -15,8 +15,12 @@ public class FicheMedicaleService implements IGeneralService<FicheMedicale> {
 
     @Override
     public void ajouter(FicheMedicale f) {
+        ajouter(f, cn);
+    }
+
+    public int ajouter(FicheMedicale f, Connection connection) {
         String sql = "INSERT INTO fiche_medicale(rendez_vous_id, diagnostic, observations, resultats_examens, start_time, end_time, duree_minutes, created_at, signature) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        try (PreparedStatement ps = cn.prepareStatement(sql)) {
+        try (PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setObject(1, f.getRendez_vous_id());
             ps.setString(2, f.getDiagnostic());
             ps.setString(3, f.getObservations());
@@ -27,9 +31,18 @@ public class FicheMedicaleService implements IGeneralService<FicheMedicale> {
             ps.setTimestamp(8, f.getCreated_at());
             ps.setString(9, f.getSignature());
             ps.executeUpdate();
+
+            try (ResultSet generatedKeys = ps.getGeneratedKeys()) {
+                if (generatedKeys.next()) {
+                    int generatedId = generatedKeys.getInt(1);
+                    f.setId(generatedId);
+                    return generatedId;
+                }
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }
+        return f.getId();
     }
 
     @Override

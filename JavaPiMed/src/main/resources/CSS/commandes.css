@@ -288,3 +288,13 @@
 .th-statut { -fx-pref-width: 220; }
 .th-produits { -fx-pref-width: 210; }
 .th-actions { -fx-pref-width: 230; }
+.toast {
+    -fx-background-color: linear-gradient(to right, #4facfe, #00f2fe);
+    -fx-text-fill: white;
+    -fx-padding: 12 25;
+    -fx-background-radius: 25;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 10, 0, 0, 4);
+}

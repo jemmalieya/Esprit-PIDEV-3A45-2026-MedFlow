@@ -37,6 +37,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -294,6 +295,15 @@ public class ConsultationController implements Initializable {
             if (motif == null || motif.isBlank()) {
                 throw new IllegalArgumentException("Please enter a motif.");
             }
+            motif = motif.trim();
+
+            if (selectedDateTime.isBefore(LocalDateTime.now())) {
+                throw new IllegalArgumentException("The appointment date/time must be in the future.");
+            }
+
+            if (hasDuplicateRendezVous(null, Timestamp.valueOf(selectedDateTime), SESSION_PATIENT_ID, idStaff, mode, motif)) {
+                throw new IllegalArgumentException("A booking with the same date/time, doctor, mode and motif already exists.");
+            }
 
             RendezVous rendezVous = new RendezVous(
                     Timestamp.valueOf(selectedDateTime),
@@ -333,6 +343,7 @@ public class ConsultationController implements Initializable {
             if (motif == null || motif.isBlank()) {
                 throw new IllegalArgumentException("Motif is required.");
             }
+            motif = motif.trim();
 
             String rawDateTime = modifyDateTimeField != null ? modifyDateTimeField.getText() : null;
             if (rawDateTime == null || rawDateTime.isBlank()) {
@@ -342,8 +353,16 @@ public class ConsultationController implements Initializable {
             LocalDateTime dateTime;
             try {
                 dateTime = LocalDateTime.parse(rawDateTime.trim(), modifyDateTimeFormatter);
-            } catch (Exception ex) {
+            } catch (DateTimeParseException ex) {
                 throw new IllegalArgumentException("Invalid date format. Use yyyy-MM-dd HH:mm.");
+            }
+
+            if (dateTime.isBefore(LocalDateTime.now())) {
+                throw new IllegalArgumentException("The appointment date/time must be in the future.");
+            }
+
+            if (hasDuplicateRendezVous(editingRendezVousId, Timestamp.valueOf(dateTime), SESSION_PATIENT_ID, idStaff, mode, motif)) {
+                throw new IllegalArgumentException("Another booking with the same date/time, doctor, mode and motif already exists.");
             }
 
             RendezVous rendezVous = new RendezVous(
@@ -1025,6 +1044,36 @@ public class ConsultationController implements Initializable {
         } catch (NumberFormatException ex) {
             throw new IllegalArgumentException(fieldName + " must be a number.");
         }
+    }
+
+    private boolean hasDuplicateRendezVous(Integer excludedId, Timestamp datetime, int patientId, int staffId, String mode, String motif) {
+        List<RendezVous> all = rendezVousService.recuperer();
+        for (RendezVous existing : all) {
+            if (existing == null) {
+                continue;
+            }
+            if (excludedId != null && existing.getId() == excludedId) {
+                continue;
+            }
+
+            boolean sameDate = existing.getDatetime() != null && existing.getDatetime().equals(datetime);
+            boolean samePatient = existing.getIdPatient() == patientId;
+            boolean sameStaff = existing.getIdStaff() == staffId;
+            boolean sameMode = equalsIgnoreCaseTrim(existing.getMode(), mode);
+            boolean sameMotif = equalsIgnoreCaseTrim(existing.getMotif(), motif);
+
+            if (sameDate && samePatient && sameStaff && sameMode && sameMotif) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean equalsIgnoreCaseTrim(String a, String b) {
+        if (a == null || b == null) {
+            return false;
+        }
+        return a.trim().equalsIgnoreCase(b.trim());
     }
 
     private String valueOrDash(String value) {

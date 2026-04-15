@@ -38,8 +38,10 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public class ConsultationDocteur {
 
@@ -133,14 +135,6 @@ public class ConsultationDocteur {
     @FXML
     private TextField detailUrgenceEditField;
     @FXML
-    private Button rdvModifyButton;
-    @FXML
-    private Button rdvCancelButton;
-    @FXML
-    private Button rdvConfirmButton;
-    @FXML
-    private Button rdvDeleteButton;
-    @FXML
     private VBox detailFicheMedicaleBox;
     @FXML
     private Label detailFicheMedicaleMessage;
@@ -214,7 +208,6 @@ public class ConsultationDocteur {
     private Timeline consultationTimer;
     private RendezVous currentDetailRendezVous;
     private FicheMedicale currentDetailFiche;
-    private boolean rendezVousEditMode;
     private boolean ficheEditMode;
     private boolean prescriptionsEditMode;
     private List<Prescription> prescriptionsSnapshot = new ArrayList<>();
@@ -735,6 +728,11 @@ public class ConsultationDocteur {
             return;
         }
 
+        if (ficheMedicaleService.getByRendezVousId(selectedRendezVousId) != null) {
+            showError("Doublon detecte", "Une fiche medicale existe deja pour ce rendez-vous.");
+            return;
+        }
+
         String diagnostic = diagnosticField == null ? "" : diagnosticField.getText().trim();
         String observations = observationsField == null ? "" : observationsField.getText().trim();
         String resultatsExamens = resultatsExamensField == null ? "" : resultatsExamensField.getText().trim();
@@ -873,6 +871,10 @@ public class ConsultationDocteur {
                 throw new IllegalArgumentException("La duree de la ligne prescription #" + rowNumber + " doit etre un nombre.");
             }
 
+            if (duree <= 0) {
+                throw new IllegalArgumentException("La duree de la ligne prescription #" + rowNumber + " doit etre superieure a 0.");
+            }
+
             Prescription prescription = new Prescription();
             prescription.setNom_medicament(nom);
             prescription.setDose(dose);
@@ -881,6 +883,19 @@ public class ConsultationDocteur {
             prescription.setInstructions(instructions);
             prescription.setCreated_at(createdAt);
             prescriptions.add(prescription);
+        }
+
+        Set<String> uniquenessSet = new HashSet<>();
+        for (Prescription prescription : prescriptions) {
+            String key = prescriptionKey(
+                    prescription.getNom_medicament(),
+                    prescription.getDose(),
+                    prescription.getFrequence(),
+                    prescription.getInstructions()
+            );
+            if (!uniquenessSet.add(key)) {
+                throw new IllegalArgumentException("Doublon detecte: la meme prescription ne peut pas etre ajoutee deux fois dans la meme fiche.");
+            }
         }
 
         return prescriptions;
@@ -1022,7 +1037,6 @@ public class ConsultationDocteur {
         }
 
         currentDetailRendezVous = rendezVous;
-        setRendezVousEditMode(false);
         setFicheEditMode(false);
         setPrescriptionsEditMode(false);
 
@@ -1054,7 +1068,6 @@ public class ConsultationDocteur {
     private void clearDetailPanel() {
         currentDetailRendezVous = null;
         currentDetailFiche = null;
-        setRendezVousEditMode(false);
         setFicheEditMode(false);
         setPrescriptionsEditMode(false);
 
@@ -1188,86 +1201,6 @@ public class ConsultationDocteur {
     }
 
     @FXML
-    private void handleEditRendezVousSection(ActionEvent event) {
-        if (currentDetailRendezVous == null) {
-            showError("Selection requise", "Selectionnez d'abord un rendez-vous.");
-            return;
-        }
-
-        if (detailDateTimeEditField != null) detailDateTimeEditField.setText(currentDetailRendezVous.getDatetime() == null ? "" : currentDetailRendezVous.getDatetime().toString());
-        if (detailModeEditField != null) detailModeEditField.setText(nullSafe(currentDetailRendezVous.getMode()));
-        if (detailMotifEditField != null) detailMotifEditField.setText(nullSafe(currentDetailRendezVous.getMotif()));
-        if (detailPatientEditField != null) detailPatientEditField.setText(String.valueOf(currentDetailRendezVous.getIdPatient()));
-        if (detailStatutEditField != null) detailStatutEditField.setText(nullSafe(currentDetailRendezVous.getStatut()));
-        if (detailUrgenceEditField != null) detailUrgenceEditField.setText(nullSafe(currentDetailRendezVous.getUrgency_level()));
-
-        setRendezVousEditMode(true);
-    }
-
-    @FXML
-    private void handleCancelEditRendezVousSection(ActionEvent event) {
-        setRendezVousEditMode(false);
-        if (currentDetailRendezVous != null) {
-            displayDetailPanel(currentDetailRendezVous);
-        }
-    }
-
-    @FXML
-    private void handleConfirmEditRendezVousSection(ActionEvent event) {
-        if (currentDetailRendezVous == null) {
-            return;
-        }
-
-        try {
-            String rawDateTime = detailDateTimeEditField == null ? "" : detailDateTimeEditField.getText().trim();
-            Timestamp datetime = Timestamp.valueOf(rawDateTime);
-            int patientId = Integer.parseInt(detailPatientEditField.getText().trim());
-
-            currentDetailRendezVous.setDatetime(datetime);
-            currentDetailRendezVous.setMode(textOrNull(detailModeEditField));
-            currentDetailRendezVous.setMotif(textOrNull(detailMotifEditField));
-            currentDetailRendezVous.setStatut(textOrNull(detailStatutEditField));
-            currentDetailRendezVous.setUrgency_level(textOrNull(detailUrgenceEditField));
-            currentDetailRendezVous.setIdPatient(patientId);
-
-            rendezVousService.modifier(currentDetailRendezVous);
-            setRendezVousEditMode(false);
-            eventTable.refresh();
-            displayDetailPanel(currentDetailRendezVous);
-            showInfo("Succes", "Rendez-vous modifie avec succes.");
-        } catch (IllegalArgumentException ex) {
-            showError("Valeur invalide", "DateTime attendu: yyyy-MM-dd HH:mm:ss[.f] et Patient ID numerique.");
-        }
-    }
-
-    @FXML
-    private void handleDeleteRendezVousSection(ActionEvent event) {
-        if (currentDetailRendezVous == null) {
-            showError("Selection requise", "Selectionnez d'abord un rendez-vous.");
-            return;
-        }
-
-        if (!confirmAction("Supprimer Rendez-vous", "Supprimer ce rendez-vous et ses donnees liees ?")) {
-            return;
-        }
-
-        if (currentDetailFiche != null) {
-            List<Prescription> prescriptions = prescriptionService.getByFicheMedicaleId(currentDetailFiche.getId());
-            for (Prescription prescription : prescriptions) {
-                prescriptionService.supprimer(prescription);
-            }
-            ficheMedicaleService.supprimer(currentDetailFiche);
-        }
-
-        int deletedId = currentDetailRendezVous.getId();
-        rendezVousService.supprimer(currentDetailRendezVous);
-        doctorRendezVous.removeIf(r -> r != null && r.getId() == deletedId);
-        allDoctorRendezVous.removeIf(r -> r != null && r.getId() == deletedId);
-        clearDetailPanel();
-        showInfo("Succes", "Rendez-vous supprime avec succes.");
-    }
-
-    @FXML
     private void handleEditFicheSection(ActionEvent event) {
         if (currentDetailFiche == null) {
             showError("Fiche absente", "Aucune fiche medicale a modifier pour ce rendez-vous.");
@@ -1297,15 +1230,29 @@ public class ConsultationDocteur {
         }
 
         try {
-            Integer duree = null;
+            String diagnostic = requiredText(detailDiagnosticEditArea, "Le diagnostic est obligatoire.");
+            String observations = requiredText(detailObservationsEditArea, "Les observations sont obligatoires.");
+            String resultats = requiredText(detailResultatsEditArea, "Les resultats d'examens sont obligatoires.");
+
             String dureeRaw = detailDureeEditField == null ? "" : detailDureeEditField.getText().trim();
-            if (!dureeRaw.isEmpty()) {
-                duree = Integer.parseInt(dureeRaw);
+            if (dureeRaw.isEmpty()) {
+                throw new IllegalArgumentException("La duree de consultation est obligatoire.");
             }
 
-            currentDetailFiche.setDiagnostic(textOrNull(detailDiagnosticEditArea));
-            currentDetailFiche.setObservations(textOrNull(detailObservationsEditArea));
-            currentDetailFiche.setResultats_examens(textOrNull(detailResultatsEditArea));
+            int duree;
+            try {
+                duree = Integer.parseInt(dureeRaw);
+            } catch (NumberFormatException ex) {
+                throw new IllegalArgumentException("La duree doit etre un nombre entier.");
+            }
+
+            if (duree <= 0) {
+                throw new IllegalArgumentException("La duree doit etre superieure a 0.");
+            }
+
+            currentDetailFiche.setDiagnostic(diagnostic);
+            currentDetailFiche.setObservations(observations);
+            currentDetailFiche.setResultats_examens(resultats);
             currentDetailFiche.setDuree_minutes(duree);
 
             ficheMedicaleService.modifier(currentDetailFiche);
@@ -1314,8 +1261,8 @@ public class ConsultationDocteur {
                 loadFicheMedicale(currentDetailRendezVous.getId());
             }
             showInfo("Succes", "Fiche medicale modifiee avec succes.");
-        } catch (NumberFormatException ex) {
-            showError("Valeur invalide", "La duree doit etre numerique.");
+        } catch (IllegalArgumentException ex) {
+            showError("Valeur invalide", ex.getMessage());
         }
     }
 
@@ -1374,6 +1321,28 @@ public class ConsultationDocteur {
             detailPrescriptionsTable.requestFocus();
         }
 
+        try {
+            Set<String> uniquenessSet = new HashSet<>();
+            int rowIndex = 1;
+            for (Prescription prescription : detailPrescriptions) {
+                validatePrescriptionRow(prescription, rowIndex);
+
+                String key = prescriptionKey(
+                        prescription.getNom_medicament(),
+                        prescription.getDose(),
+                        prescription.getFrequence(),
+                        prescription.getInstructions()
+                );
+                if (!uniquenessSet.add(key)) {
+                    throw new IllegalArgumentException("La prescription de la ligne #" + rowIndex + " est en doublon.");
+                }
+                rowIndex++;
+            }
+        } catch (IllegalArgumentException ex) {
+            showError("Validation prescriptions", ex.getMessage());
+            return;
+        }
+
         for (Prescription prescription : detailPrescriptions) {
             prescriptionService.modifier(prescription);
         }
@@ -1409,33 +1378,6 @@ public class ConsultationDocteur {
             detailNoPrescriptionsLabel.setManaged(true);
         }
         showInfo("Succes", "Prescriptions supprimees avec succes.");
-    }
-
-    private void setRendezVousEditMode(boolean enabled) {
-        rendezVousEditMode = enabled;
-        toggleEditableField(detailDateTimeLabel, detailDateTimeEditField, enabled);
-        toggleEditableField(detailModeLabel, detailModeEditField, enabled);
-        toggleEditableField(detailMotifLabel, detailMotifEditField, enabled);
-        toggleEditableField(detailPatientLabel, detailPatientEditField, enabled);
-        toggleEditableField(detailStatutLabel, detailStatutEditField, enabled);
-        toggleEditableField(detailUrgenceLabel, detailUrgenceEditField, enabled);
-
-        if (rdvModifyButton != null) {
-            rdvModifyButton.setVisible(!enabled);
-            rdvModifyButton.setManaged(!enabled);
-        }
-        if (rdvDeleteButton != null) {
-            rdvDeleteButton.setVisible(!enabled);
-            rdvDeleteButton.setManaged(!enabled);
-        }
-        if (rdvCancelButton != null) {
-            rdvCancelButton.setVisible(enabled);
-            rdvCancelButton.setManaged(enabled);
-        }
-        if (rdvConfirmButton != null) {
-            rdvConfirmButton.setVisible(enabled);
-            rdvConfirmButton.setManaged(enabled);
-        }
     }
 
     private void setFicheEditMode(boolean enabled) {
@@ -1556,5 +1498,46 @@ public class ConsultationDocteur {
         alert.setContentText(message);
         Optional<ButtonType> result = alert.showAndWait();
         return result.isPresent() && result.get() == ButtonType.OK;
+    }
+
+    private String requiredText(TextArea area, String errorMessage) {
+        String value = textOrNull(area);
+        if (value == null) {
+            throw new IllegalArgumentException(errorMessage);
+        }
+        return value;
+    }
+
+    private void validatePrescriptionRow(Prescription prescription, int rowIndex) {
+        if (prescription == null) {
+            throw new IllegalArgumentException("La ligne de prescription #" + rowIndex + " est invalide.");
+        }
+        if (isBlank(prescription.getNom_medicament())) {
+            throw new IllegalArgumentException("Le nom du medicament est obligatoire (ligne #" + rowIndex + ").");
+        }
+        if (isBlank(prescription.getDose())) {
+            throw new IllegalArgumentException("La dose est obligatoire (ligne #" + rowIndex + ").");
+        }
+        if (isBlank(prescription.getFrequence())) {
+            throw new IllegalArgumentException("La frequence est obligatoire (ligne #" + rowIndex + ").");
+        }
+        if (isBlank(prescription.getInstructions())) {
+            throw new IllegalArgumentException("Les instructions sont obligatoires (ligne #" + rowIndex + ").");
+        }
+        if (prescription.getDuree() <= 0) {
+            throw new IllegalArgumentException("La duree doit etre superieure a 0 (ligne #" + rowIndex + ").");
+        }
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
+    }
+
+    private String prescriptionKey(String nom, String dose, String frequence, String instructions) {
+        return normalizeKeyPart(nom) + "|" + normalizeKeyPart(dose) + "|" + normalizeKeyPart(frequence) + "|" + normalizeKeyPart(instructions);
+    }
+
+    private String normalizeKeyPart(String value) {
+        return value == null ? "" : value.trim().toLowerCase();
     }
 }

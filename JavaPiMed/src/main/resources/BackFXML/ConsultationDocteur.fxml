@@ -130,13 +130,6 @@
                                 </HBox>
                             </VBox>
 
-                            <HBox spacing="8" alignment="CENTER_RIGHT">
-                                <Button fx:id="rdvModifyButton" text="Modifier" onAction="#handleEditRendezVousSection" styleClass="fiche-secondary-button"/>
-                                <Button fx:id="rdvCancelButton" text="Annuler" onAction="#handleCancelEditRendezVousSection" styleClass="fiche-secondary-button" visible="false" managed="false"/>
-                                <Button fx:id="rdvConfirmButton" text="Confirmer" onAction="#handleConfirmEditRendezVousSection" styleClass="fiche-primary-button" visible="false" managed="false"/>
-                                <Button fx:id="rdvDeleteButton" text="Supprimer" onAction="#handleDeleteRendezVousSection" style="-fx-background-color: #ef4444; -fx-text-fill: white; -fx-font-weight: 700; -fx-background-radius: 8;"/>
-                            </HBox>
-
                             <Label text="🏥 Fiche Médicale" style="-fx-text-fill: #1f2937; -fx-font-size: 16; -fx-font-weight: bold; -fx-padding: 8 0 8 0;"/>
 
                             <VBox fx:id="detailFicheMedicaleBox" spacing="10" style="-fx-border-color: #e5e7eb; -fx-border-width: 0 0 1 0; -fx-padding: 0 0 14 0;">

@@ -171,6 +171,7 @@ public class ConsultationController implements Initializable {
     private final ObservableList<FicheMedicale> myRecordsData = FXCollections.observableArrayList();
     private final ObservableList<Prescription> recordPrescriptionsData = FXCollections.observableArrayList();
     private final HashMap<Integer, Boolean> expandedRecordState = new HashMap<>();
+    private final Set<LocalDateTime> selectedDoctorReservedSlots = new HashSet<>();
     private final RendezVousService rendezVousService = new RendezVousService();
     private final UserService userService = new UserService();
     private final FicheMedicaleService ficheMedicaleService = new FicheMedicaleService();
@@ -178,6 +179,7 @@ public class ConsultationController implements Initializable {
 
     private LocalDate currentWeekStart;
     private LocalDateTime selectedDateTime;
+    private Integer selectedDoctorId;
 
     private final DateTimeFormatter weekRangeFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.ENGLISH);
     private final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("EEE dd MMM yyyy 'at' HH:mm", Locale.ENGLISH);
@@ -199,6 +201,10 @@ public class ConsultationController implements Initializable {
         if (modifyPatientIdField != null) {
             modifyPatientIdField.setText(String.valueOf(SESSION_PATIENT_ID));
             modifyPatientIdField.setEditable(false);
+        }
+
+        if (doctorField1 != null) {
+            doctorField1.textProperty().addListener((obs, oldValue, newValue) -> syncSelectedDoctorFromField());
         }
 
         if (myBookingsSortComboBox != null) {
@@ -317,6 +323,7 @@ public class ConsultationController implements Initializable {
             );
 
             rendezVousService.ajouter(rendezVous);
+            reloadReservedSlotsForSelectedDoctor();
             showInfo("Success", "Appointment saved successfully.");
             loadMyBookings();
         } catch (IllegalArgumentException ex) {
@@ -378,6 +385,7 @@ public class ConsultationController implements Initializable {
             );
 
             rendezVousService.modifier(rendezVous);
+            reloadReservedSlotsForSelectedDoctor();
             showInfo("Updated", "Appointment updated successfully.");
             editingRendezVousId = null;
             clearModifyForm();
@@ -530,6 +538,13 @@ public class ConsultationController implements Initializable {
                 slotBtn.setMaxHeight(30);
 
                 final int selectedHour = hour;
+                LocalDateTime slotDateTime = date.atTime(selectedHour, 0);
+                boolean reserved = selectedDoctorReservedSlots.contains(slotDateTime);
+                if (reserved) {
+                    slotBtn.getStyleClass().add("calendar-slot-button-reserved");
+                    slotBtn.setText("occupé(e)");
+                    slotBtn.setDisable(true);
+                }
                 slotBtn.setOnAction(e -> handleSlotSelection(date, selectedHour));
                 HBox.setHgrow(slotBtn, Priority.NEVER);
                 row.getChildren().add(slotBtn);
@@ -539,7 +554,13 @@ public class ConsultationController implements Initializable {
     }
 
     private void handleSlotSelection(LocalDate date, int hour) {
-        selectedDateTime = date.atTime(hour, 0);
+        LocalDateTime candidate = date.atTime(hour, 0);
+        if (selectedDoctorReservedSlots.contains(candidate)) {
+            showError("Slot indisponible", "Ce creneau est deja reserve pour ce medecin.");
+            return;
+        }
+
+        selectedDateTime = candidate;
         if (selectedDateLabel != null) {
             selectedDateLabel.setText(dateTimeFormatter.format(selectedDateTime));
         }
@@ -614,6 +635,82 @@ public class ConsultationController implements Initializable {
         if (doctorField1 != null) {
             doctorField1.setText(String.valueOf(doctor.getId()));
         }
+
+        selectedDoctorId = doctor.getId();
+        reloadReservedSlotsForSelectedDoctor();
+    }
+
+    private void syncSelectedDoctorFromField() {
+        if (doctorField1 == null) {
+            return;
+        }
+
+        String raw = doctorField1.getText();
+        if (raw == null || raw.isBlank()) {
+            selectedDoctorId = null;
+            selectedDoctorReservedSlots.clear();
+            refreshCalendar();
+            return;
+        }
+
+        try {
+            int parsedId = Integer.parseInt(raw.trim());
+            if (parsedId <= 0) {
+                selectedDoctorId = null;
+                selectedDoctorReservedSlots.clear();
+                refreshCalendar();
+                return;
+            }
+
+            if (selectedDoctorId == null || selectedDoctorId != parsedId) {
+                selectedDoctorId = parsedId;
+                reloadReservedSlotsForSelectedDoctor();
+            }
+        } catch (NumberFormatException ex) {
+            selectedDoctorId = null;
+            selectedDoctorReservedSlots.clear();
+            refreshCalendar();
+        }
+    }
+
+    private void reloadReservedSlotsForSelectedDoctor() {
+        selectedDoctorReservedSlots.clear();
+
+        if (selectedDoctorId == null || selectedDoctorId <= 0) {
+            refreshCalendar();
+            return;
+        }
+
+        List<RendezVous> doctorAppointments = rendezVousService.recupererParStaffId(selectedDoctorId);
+        for (RendezVous rendezVous : doctorAppointments) {
+            if (rendezVous == null || rendezVous.getDatetime() == null) {
+                continue;
+            }
+
+            LocalDateTime slot = rendezVous.getDatetime().toLocalDateTime()
+                    .withMinute(0)
+                    .withSecond(0)
+                    .withNano(0);
+            selectedDoctorReservedSlots.add(slot);
+        }
+
+        if (selectedDateTime != null) {
+            LocalDateTime selectedSlotHour = selectedDateTime
+                    .withMinute(0)
+                    .withSecond(0)
+                    .withNano(0);
+            if (selectedDoctorReservedSlots.contains(selectedSlotHour)) {
+                selectedDateTime = null;
+                if (selectedDateLabel != null) {
+                    selectedDateLabel.setText("No date selected");
+                }
+                if (selectedSlotLabel != null) {
+                    selectedSlotLabel.setText("No slot selected");
+                }
+            }
+        }
+
+        refreshCalendar();
     }
 
     private String buildDoctorDisplayName(User doctor) {

@@ -1,0 +1,510 @@
+.login-root {
+    /* Dark, modern medical gradient background */
+    -fx-background-color: linear-gradient(to bottom right, #0F172A, #1E293B 55%, #0EA5E9);
+    -fx-font-family: "Inter", "Poppins", "Segoe UI", "Arial";
+    -fx-padding: 32; 
+}
+
+.login-background-shape {
+    -fx-pref-width: 420;
+    -fx-pref-height: 420;
+    -fx-background-radius: 220;
+}
+
+.shape-one {
+    -fx-background-color: rgba(15, 163, 191, 0.12);
+    -fx-translate-x: -170;
+    -fx-translate-y: -150;
+}
+
+.shape-two {
+    -fx-background-color: rgba(11, 137, 170, 0.12);
+    -fx-translate-x: 190;
+    -fx-translate-y: 150;
+}
+
+.login-shell {
+    /* Split layout container: left visual, right login card */
+    -fx-background-color: transparent;
+    -fx-spacing: 0;
+}
+
+.login-brand-panel {
+    /* Left visual area: gradient + subtle medical illustration */
+    -fx-background-image: url("../images/login-bg-medical.jpg");
+    -fx-background-repeat: no-repeat;
+    -fx-background-size: cover;
+    -fx-background-position: center center;
+    /* Two-layer radius so the image and overlay share the same soft corners */
+    -fx-background-color: rgba(15, 23, 42, 0.90), rgba(15, 23, 42, 0.90);
+    -fx-background-radius: 32, 32;
+    -fx-background-insets: 0, 0.5;
+    -fx-border-color: rgba(148, 163, 184, 0.45);
+    -fx-border-radius: 32;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.85), 34, 0.45, 0, 20);
+}
+
+.brand-title {
+    -fx-text-fill: white;
+    -fx-font-size: 24px;
+    -fx-font-weight: 900;
+}
+
+.brand-subtitle {
+    -fx-text-fill: rgba(224, 247, 252, 0.92);
+    -fx-font-size: 12px;
+}
+
+.brand-tagline {
+    -fx-text-fill: #cdeff8;
+    -fx-font-size: 11px;
+}
+
+.hero-title {
+    -fx-text-fill: white;
+    -fx-font-size: 34px;
+    -fx-font-weight: 900;
+    -fx-line-spacing: 4px;
+}
+
+.hero-text {
+    -fx-text-fill: #dbf6fb;
+    -fx-font-size: 15px;
+    -fx-line-spacing: 3px;
+}
+
+.brand-feature-box {
+    -fx-background-color: rgba(255, 255, 255, 0.12);
+    -fx-background-radius: 24;
+    -fx-padding: 22;
+    -fx-border-color: rgba(255, 255, 255, 0.14);
+    -fx-border-radius: 24;
+}
+
+.feature-box-title {
+    -fx-text-fill: #19424e;
+    -fx-font-size: 15px;
+    -fx-font-weight: 800;
+}
+
+.login-brand-panel .feature-box-title {
+    -fx-text-fill: white;
+}
+
+.feature-item {
+    -fx-text-fill: #edfafd;
+    -fx-font-size: 13px;
+    -fx-font-weight: 700;
+}
+
+.metric-card {
+    -fx-background-color: rgba(255, 255, 255, 0.14);
+    -fx-background-radius: 22;
+    -fx-padding: 16 18;
+}
+
+.metric-value {
+    -fx-text-fill: white;
+    -fx-font-size: 24px;
+    -fx-font-weight: 900;
+}
+
+.metric-label {
+    -fx-text-fill: #dbf6fb;
+    -fx-font-size: 12px;
+}
+
+.footer-note {
+    -fx-text-fill: #dbf6fb;
+    -fx-font-size: 12px;
+}
+
+.login-form-panel {
+    /* Glassmorphism login card on the right */
+    -fx-background-color: rgba(255, 255, 255, 0.08);
+    -fx-background-radius: 24;
+    -fx-border-radius: 24;
+    -fx-border-color: rgba(148, 163, 184, 0.55);
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.80), 32, 0.42, 0, 18);
+}
+
+.form-title {
+    -fx-text-fill: #e5e7eb;
+    -fx-font-size: 26px;
+    -fx-font-weight: 800;
+}
+
+.form-subtitle {
+    -fx-text-fill: #9ca3af;
+    -fx-font-size: 13px;
+    -fx-font-weight: 500;
+}
+
+.field-label-login {
+    -fx-text-fill: #e5e7eb;
+    -fx-font-size: 12px;
+    -fx-font-weight: 600;
+    -fx-letter-spacing: 0.04em;
+    -fx-text-transform: uppercase;
+}
+
+.login-field {
+    -fx-background-color: #1E293B;
+    -fx-background-radius: 12;
+    -fx-border-color: transparent;
+    -fx-border-radius: 12;
+    -fx-padding: 10 14;
+    -fx-text-fill: #e5e7eb;
+    -fx-prompt-text-fill: #6b7280;
+}
+
+.login-field:focused {
+    -fx-background-color: #111827;
+    -fx-border-color: #0EA5E9;
+    -fx-effect: dropshadow(gaussian, rgba(14, 165, 233, 0.55), 18, 0.30, 0, 4);
+}
+
+.remember-check {
+    -fx-text-fill: #244753;
+    -fx-font-size: 13px;
+}
+
+.remember-check .box {
+    -fx-background-color: white;
+    -fx-border-color: #bbe7f2;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+}
+
+.remember-check:selected .box {
+    -fx-background-color: #0fa3bf;
+    -fx-border-color: #0fa3bf;
+}
+
+.remember-check:selected .mark {
+    -fx-background-color: white;
+}
+
+.login-link {
+    -fx-text-fill: #0a88aa;
+    -fx-font-size: 13px;
+    -fx-font-weight: 700;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+
+.login-link:hover {
+    -fx-underline: true;
+}
+
+.status-message {
+    -fx-background-radius: 14;
+    -fx-padding: 11 13;
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.06), 10, 0.1, 0, 2);
+}
+
+.status-error {
+    -fx-background-color: #fff1f1;
+    -fx-text-fill: #c0392b;
+}
+
+.status-success {
+    -fx-background-color: #e7faef;
+    -fx-text-fill: #18794e;
+}
+
+.primary-action,
+.secondary-action {
+    -fx-background-radius: 12;
+    -fx-padding: 10 20;
+    -fx-font-size: 13px;
+    -fx-font-weight: 800;
+    -fx-cursor: hand;
+}
+
+
+.primary-action {
+    -fx-background-color: linear-gradient(to right, #3B82F6, #06B6D4);
+    -fx-text-fill: white;
+    -fx-effect: dropshadow(gaussian, rgba(15, 163, 191, 0.28), 18, 0.15, 0, 6);
+}
+
+
+.secondary-action {
+    -fx-background-color: rgba(4, 108, 140, 0.22);
+    -fx-text-fill: #e0f7fb;
+    -fx-border-color: rgba(255, 255, 255, 0.36);
+    -fx-border-radius: 18;
+}
+
+.primary-action:hover,
+.secondary-action:hover {
+    -fx-opacity: 0.96;
+    -fx-translate-y: -1;
+}
+
+.register-label {
+    -fx-text-fill: #e5f6fc;
+    -fx-font-size: 12px;
+}
+
+.login-link-secondary {
+    -fx-text-fill: #0b89aa;
+    -fx-font-size: 12px;
+    -fx-font-weight: 800;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+
+.login-link-secondary:hover {
+    -fx-underline: true;
+}
+
+.hero-stat-row {
+    -fx-padding: 6 0 0 0;
+}
+
+.hero-stat-chip {
+    -fx-background-color: rgba(255, 255, 255, 0.20);
+    -fx-background-radius: 32;
+    -fx-padding: 6 14;
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 11px;
+    -fx-font-weight: 800;
+}
+
+.hero-footer-block {
+    -fx-padding: 40 0 0 0;
+}
+
+.hero-footer-title {
+    -fx-text-fill: #f0fbff;
+    -fx-font-size: 13px;
+    -fx-font-weight: 700;
+}
+
+.hero-footer-text {
+    -fx-text-fill: #d0edf7;
+    -fx-font-size: 12px;
+}
+
+.hero-cta-row {
+    -fx-padding: 10 0 0 0;
+}
+
+.hero-primary-cta,
+.hero-secondary-cta {
+    -fx-background-radius: 999;
+    -fx-padding: 10 24;
+    -fx-font-size: 13px;
+    -fx-font-weight: 800;
+    -fx-cursor: hand;
+}
+
+.hero-primary-cta {
+    -fx-background-color: linear-gradient(to right, #1dd5f3, #0fa3bf);
+    -fx-text-fill: white;
+    -fx-effect: dropshadow(gaussian, rgba(15, 163, 191, 0.35), 20, 0.25, 0, 6);
+}
+
+.hero-secondary-cta {
+    -fx-background-color: rgba(255, 255, 255, 0.10);
+    -fx-text-fill: #e9fbff;
+    -fx-border-color: rgba(255, 255, 255, 0.55);
+    -fx-border-radius: 999;
+}
+
+.hero-primary-cta:hover,
+.hero-secondary-cta:hover {
+    -fx-translate-y: -1;
+    -fx-opacity: 0.96;
+}
+
+.login-help-box {
+    -fx-background-color: linear-gradient(to bottom right, #f7fcfd, #edf8fb);
+    -fx-background-radius: 20;
+    -fx-padding: 18;
+    -fx-border-color: #d6edf3;
+    -fx-border-radius: 20;
+}
+
+.help-text {
+    -fx-text-fill: #5f7c87;
+    -fx-font-size: 12px;
+}
+
+.help-title {
+    -fx-text-fill: #244753;
+    -fx-font-size: 13px;
+    -fx-font-weight: 800;
+}
+
+.hero-card-row {
+    -fx-padding: 12 0 0 0;
+}
+
+.hero-card {
+    -fx-background-radius: 22;
+    -fx-border-radius: 22;
+    -fx-padding: 16 18;
+    -fx-background-color: rgba(255, 255, 255, 0.08);
+    -fx-border-color: rgba(255, 255, 255, 0.16);
+}
+
+.hero-card-primary {
+    -fx-background-color: rgba(15, 163, 191, 0.26);
+}
+
+.hero-card-secondary {
+    -fx-background-color: rgba(11, 137, 170, 0.22);
+}
+
+.hero-card-tertiary {
+    -fx-background-color: rgba(0, 94, 122, 0.26);
+}
+
+.hero-card-title {
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 16px;
+    -fx-font-weight: 800;
+}
+
+.hero-card-text {
+    -fx-text-fill: #e2f7fb;
+    -fx-font-size: 12px;
+}
+
+.hero-card-tag {
+    -fx-text-fill: #fdfefe;
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+}
+
+.info-card-container {
+    -fx-alignment: CENTER_LEFT;
+}
+
+.info-card {
+    -fx-background-color: rgba(255, 255, 255, 0.96);
+    -fx-background-radius: 16;
+    -fx-border-radius: 16;
+    -fx-border-color: #cfe8f1;
+    -fx-padding: 12 14;
+    -fx-min-width: 0;
+    -fx-pref-width: 0;
+}
+
+.info-card-title {
+    -fx-text-fill: #0b89aa;
+    -fx-font-size: 12px;
+    -fx-font-weight: 800;
+}
+
+.info-card-text {
+    -fx-text-fill: #5f7c87;
+    -fx-font-size: 11px;
+}
+
+/* Signup layout root */
+.signup-root {
+    -fx-background-color: #020617;
+    -fx-font-family: "Inter", "Poppins", "Segoe UI", "Arial";
+}
+
+.login-right-pane {
+    -fx-alignment: CENTER;
+}
+
+/* Signup specific styles */
+.signup-logo-title {
+    -fx-text-fill: #e5e7eb;
+    -fx-font-size: 18px;
+    -fx-font-weight: 800;
+}
+
+.signup-logo-subtitle {
+    -fx-text-fill: #9ca3af;
+    -fx-font-size: 11px;
+}
+
+.signup-top-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #e5e7eb;
+    -fx-border-color: rgba(148, 163, 184, 0.6);
+    -fx-border-radius: 999;
+    -fx-background-radius: 999;
+    -fx-padding: 5 14;
+    -fx-font-size: 11px;
+}
+
+.signup-top-button-accent {
+    -fx-background-color: rgba(14, 165, 233, 0.12);
+    -fx-text-fill: #38bdf8;
+    -fx-border-color: rgba(56, 189, 248, 0.8);
+    -fx-border-radius: 999;
+    -fx-background-radius: 999;
+    -fx-padding: 5 16;
+    -fx-font-size: 11px;
+}
+
+.signup-card {
+    -fx-background-color: #020617;
+    -fx-background-radius: 24;
+    -fx-border-radius: 24;
+    -fx-border-color: rgba(30, 64, 175, 0.55);
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.9), 32, 0.45, 0, 20);
+}
+
+.signup-title {
+    -fx-text-fill: #e5e7eb;
+    -fx-font-size: 28px;
+    -fx-font-weight: 800;
+}
+
+.signup-field-label {
+    -fx-text-fill: #9ca3af;
+    -fx-font-size: 12px;
+}
+
+.signup-date-picker {
+    -fx-background-color: #1E293B;
+    -fx-background-radius: 12;
+    -fx-border-radius: 12;
+    -fx-border-color: transparent;
+    -fx-text-fill: #e5e7eb;
+}
+
+.signup-conditions-text {
+    -fx-text-fill: #9ca3af;
+    -fx-font-size: 11px;
+}
+
+.signup-conditions-link {
+    -fx-text-fill: #38bdf8;
+    -fx-font-size: 11px;
+}
+
+.signup-captcha-box {
+    -fx-background-color: #020617;
+    -fx-border-color: rgba(148, 163, 184, 0.55);
+    -fx-border-radius: 12;
+    -fx-background-radius: 12;
+    -fx-padding: 14 20;
+}
+
+.signup-captcha-text {
+    -fx-text-fill: #6b7280;
+    -fx-font-size: 11px;
+}
+
+.signup-primary-button {
+    -fx-background-color: linear-gradient(to right, #0ea5e9, #22c55e);
+    -fx-text-fill: white;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+    -fx-padding: 10 32;
+    -fx-font-size: 13px;
+    -fx-font-weight: 800;
+}

@@ -1,7 +1,9 @@
 package tn.esprit.controllers;
 import com.lowagie.text.*;
 import com.lowagie.text.pdf.*;
-
+import javafx.scene.Node;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.DialogPane;
 import javafx.animation.FadeTransition;
 import javafx.animation.PauseTransition;
 import javafx.animation.SequentialTransition;
@@ -35,6 +37,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class CommandeController {
 
@@ -998,16 +1001,12 @@ public class CommandeController {
             commandeSelectionneeBack.setStatut_commande(nouveauStatutCombo.getValue());
             service.modifier(commandeSelectionneeBack);
 
-            Alert a = new Alert(Alert.AlertType.INFORMATION);
-            a.setTitle("Succès");
-            a.setHeaderText(null);
-            a.setContentText("Statut mis à jour avec succès.");
-            a.showAndWait();
-
+            showCommandeToast("Statut mis à jour avec succès.", "commande-toast-success", "✔");
             populateBackDetails();
 
         } catch (Exception e) {
             e.printStackTrace();
+            showCommandeToast("Erreur lors de la mise à jour du statut.", "commande-toast-danger", "✖");
         }
     }
 
@@ -1015,26 +1014,26 @@ public class CommandeController {
     private void supprimerCommande() {
         if (commandeSelectionneeBack == null) return;
 
-        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.setTitle("Confirmation");
-        confirm.setHeaderText("Suppression de la commande");
-        confirm.setContentText("Voulez-vous vraiment supprimer cette commande ?");
+        boolean confirmed = showStyledCommandeConfirmationDialog(
+                "🗑 Supprimer la commande",
+                "Voulez-vous vraiment supprimer cette commande ? Cette action est irréversible.",
+                "Supprimer",
+                "Annuler",
+                "danger"
+        );
 
-        if (confirm.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK) {
-            try {
-                service.supprimer(commandeSelectionneeBack);
+        if (!confirmed) {
+            return;
+        }
 
-                Alert a = new Alert(Alert.AlertType.INFORMATION);
-                a.setTitle("Succès");
-                a.setHeaderText(null);
-                a.setContentText("Commande supprimée avec succès.");
-                a.showAndWait();
+        try {
+            service.supprimer(commandeSelectionneeBack);
+            showCommandeToast("Commande supprimée avec succès.", "commande-toast-danger", "🗑");
+            retourListeCommandes();
 
-                retourListeCommandes();
-
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            showCommandeToast("Erreur lors de la suppression de la commande.", "commande-toast-danger", "✖");
         }
     }
 
@@ -1461,6 +1460,8 @@ public class CommandeController {
         cell.setBackgroundColor(Color.WHITE);
         table.addCell(cell);
     }
+
+
     private void telechargerFactureCommande(Commande commande) {
         if (commande == null) return;
 
@@ -1486,21 +1487,161 @@ public class CommandeController {
 
             pdfService.genererFactureCommande(commande, file.getAbsolutePath());
 
-            Alert ok = new Alert(Alert.AlertType.INFORMATION);
-            ok.setTitle("Facture générée");
-            ok.setHeaderText(null);
-            ok.setContentText("La facture PDF a été enregistrée avec succès.");
-            ok.showAndWait();
+            showCommandeToast("Facture téléchargée avec succès !", "commande-toast-warning", "📄");
 
         } catch (Exception e) {
             e.printStackTrace();
-
-            Alert err = new Alert(Alert.AlertType.ERROR);
-            err.setTitle("Erreur PDF");
-            err.setHeaderText(null);
-            err.setContentText("Impossible de générer la facture PDF : " + e.getMessage());
-            err.showAndWait();
+            showCommandeToast("Erreur lors du téléchargement de la facture.", "commande-toast-danger", "✖");
         }
     }
 
+
+    private boolean showStyledCommandeConfirmationDialog(String title, String message, String confirmText, String cancelText, String variant) {
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("");
+        dialog.setHeaderText(null);
+
+        DialogPane pane = dialog.getDialogPane();
+        pane.getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        URL cssUrl = getClass().getResource("/CSS/commande_back.css");
+        if (cssUrl != null) {
+            pane.getStylesheets().add(cssUrl.toExternalForm());
+        }
+        pane.getStyleClass().add("confirm-dialog");
+
+        VBox content = new VBox(18);
+        content.setAlignment(Pos.CENTER);
+        content.setPadding(new Insets(24));
+
+        Label icon = new Label("danger".equals(variant) ? "⚠" : "✅");
+        icon.getStyleClass().add("confirm-dialog-icon");
+
+        Label titleLabel = new Label(title);
+        titleLabel.getStyleClass().add("confirm-dialog-title");
+        titleLabel.setWrapText(true);
+
+        Label msgLabel = new Label(message);
+        msgLabel.getStyleClass().add("confirm-dialog-message");
+        msgLabel.setWrapText(true);
+
+        content.getChildren().addAll(icon, titleLabel, msgLabel);
+        pane.setContent(content);
+
+        Button okButton = (Button) pane.lookupButton(ButtonType.OK);
+        Button cancelButton = (Button) pane.lookupButton(ButtonType.CANCEL);
+
+        okButton.setText(confirmText);
+        cancelButton.setText(cancelText);
+
+        okButton.getStyleClass().add(
+                "danger".equals(variant) ? "confirm-danger-btn" : "confirm-success-btn"
+        );
+        cancelButton.getStyleClass().add("confirm-cancel-btn");
+
+        Optional<ButtonType> result = dialog.showAndWait();
+        return result.isPresent() && result.get() == ButtonType.OK;
+    }
+
+    private void showCommandeToast(String message, String styleClass, String iconText) {
+        Node anchor = null;
+
+        if (commandesRowsContainer != null && commandesRowsContainer.getScene() != null) {
+            anchor = commandesRowsContainer;
+        } else if (btnTelechargerFacture != null && btnTelechargerFacture.getScene() != null) {
+            anchor = btnTelechargerFacture;
+        } else if (btnSupprimerCommande != null && btnSupprimerCommande.getScene() != null) {
+            anchor = btnSupprimerCommande;
+        }
+
+        if (anchor == null) return;
+
+        Scene scene = anchor.getScene();
+        if (scene == null) return;
+
+        javafx.stage.Window window = scene.getWindow();
+        if (window == null) return;
+
+        HBox toast = new HBox(10);
+        toast.setAlignment(Pos.CENTER_LEFT);
+        toast.getStyleClass().addAll("floating-toast", styleClass);
+        toast.setMaxWidth(360);
+
+        Label icon = new Label(iconText);
+        icon.getStyleClass().add("toast-icon");
+
+        Label textLabel = new Label(message);
+        textLabel.getStyleClass().add("toast-text");
+        textLabel.setWrapText(true);
+        textLabel.setMaxWidth(290);
+
+        toast.getChildren().addAll(icon, textLabel);
+
+        javafx.stage.Popup popup = new javafx.stage.Popup();
+        popup.getContent().add(toast);
+        popup.setAutoHide(false);
+        popup.setHideOnEscape(false);
+        popup.setAutoFix(true);
+
+        popup.show(window);
+
+        URL cssUrl = getClass().getResource("/CSS/commande_back.css");
+        if (cssUrl != null && popup.getScene() != null) {
+            popup.getScene().getStylesheets().add(cssUrl.toExternalForm());
+        }
+
+        toast.applyCss();
+        toast.layout();
+
+        double popupWidth = Math.max(320, toast.prefWidth(-1));
+        double x = window.getX() + scene.getWidth() - popupWidth - 24;
+        double y = window.getY() + scene.getHeight() - 110;
+
+        popup.setX(x);
+        popup.setY(y);
+
+        toast.setOpacity(0);
+        toast.setTranslateY(16);
+        icon.setScaleX(0.7);
+        icon.setScaleY(0.7);
+
+        FadeTransition fadeIn = new FadeTransition(Duration.millis(220), toast);
+        fadeIn.setFromValue(0);
+        fadeIn.setToValue(1);
+
+        javafx.animation.TranslateTransition slideIn =
+                new javafx.animation.TranslateTransition(Duration.millis(220), toast);
+        slideIn.setFromY(16);
+        slideIn.setToY(0);
+
+        javafx.animation.ScaleTransition popIcon =
+                new javafx.animation.ScaleTransition(Duration.millis(260), icon);
+        popIcon.setFromX(0.7);
+        popIcon.setFromY(0.7);
+        popIcon.setToX(1.0);
+        popIcon.setToY(1.0);
+
+        javafx.animation.ParallelTransition enter =
+                new javafx.animation.ParallelTransition(fadeIn, slideIn, popIcon);
+
+        PauseTransition pause = new PauseTransition(Duration.seconds(2.0));
+
+        FadeTransition fadeOut = new FadeTransition(Duration.millis(220), toast);
+        fadeOut.setFromValue(1);
+        fadeOut.setToValue(0);
+
+        javafx.animation.TranslateTransition slideOut =
+                new javafx.animation.TranslateTransition(Duration.millis(220), toast);
+        slideOut.setFromY(0);
+        slideOut.setToY(10);
+
+        javafx.animation.ParallelTransition exit =
+                new javafx.animation.ParallelTransition(fadeOut, slideOut);
+
+        javafx.animation.SequentialTransition sequence =
+                new javafx.animation.SequentialTransition(enter, pause, exit);
+
+        sequence.setOnFinished(e -> popup.hide());
+        sequence.play();
+    }
 }

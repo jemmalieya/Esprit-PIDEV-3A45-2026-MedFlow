@@ -707,3 +707,96 @@
 
     -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 10, 0, 0, 4);
 }
+/* ===================== TOASTS + CONFIRM POPUP ===================== */
+.floating-toast {
+    -fx-background-radius: 18px;
+    -fx-padding: 14 16 14 16;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.18), 14, 0.18, 0, 4);
+    -fx-alignment: center-left;
+}
+
+.commande-toast-warning {
+    -fx-background-color: linear-gradient(to right, #f6bd52, #e59b22);
+}
+
+.commande-toast-danger {
+    -fx-background-color: linear-gradient(to right, #ef5b5b, #dc3f3f);
+}
+
+.commande-toast-success {
+    -fx-background-color: linear-gradient(to right, #0fa2bf, #118fc2);
+}
+
+.toast-icon {
+    -fx-font-size: 18px;
+    -fx-text-fill: white;
+}
+
+.toast-text {
+    -fx-text-fill: white;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
+.confirm-dialog {
+    -fx-background-color: linear-gradient(to bottom, #f8fcff, #eef7fb);
+    -fx-background-radius: 24px;
+    -fx-border-radius: 24px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.18), 20, 0.18, 0, 4);
+}
+
+.confirm-dialog .header-panel {
+    -fx-background-color: transparent;
+}
+
+.confirm-dialog .button-bar {
+    -fx-padding: 0 18 18 18;
+}
+
+.confirm-dialog-icon {
+    -fx-font-size: 38px;
+}
+
+.confirm-dialog-title {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #16345c;
+}
+
+.confirm-dialog-message {
+    -fx-font-size: 14px;
+    -fx-text-fill: #627793;
+    -fx-text-alignment: center;
+}
+
+.confirm-success-btn {
+    -fx-background-color: linear-gradient(to right, #0fa2bf, #118fc2);
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 14px;
+    -fx-padding: 10 22 10 22;
+    -fx-cursor: hand;
+}
+
+.confirm-danger-btn {
+    -fx-background-color: linear-gradient(to right, #ef5b5b, #dc3f3f);
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 14px;
+    -fx-padding: 10 22 10 22;
+    -fx-cursor: hand;
+}
+
+.confirm-cancel-btn {
+    -fx-background-color: white;
+    -fx-border-color: #bfd6e5;
+    -fx-text-fill: #5b708b;
+    -fx-font-weight: bold;
+    -fx-background-radius: 14px;
+    -fx-border-radius: 14px;
+    -fx-padding: 10 22 10 22;
+    -fx-cursor: hand;
+}

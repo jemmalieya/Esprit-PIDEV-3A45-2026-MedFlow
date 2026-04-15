@@ -1137,8 +1137,7 @@ public class ProduitController {
 
             produitService.ajouter(produit);
 
-            showAlert(Alert.AlertType.INFORMATION, "Succès", "Produit ajouté avec succès !");
-            viderChampsPrivate();
+            showDashboardToast("Produit ajouté avec succès !", "dashboard-toast-success", "✅");
             retourProduit(event);
 
         } catch (Exception e) {
@@ -1184,8 +1183,7 @@ public class ProduitController {
 
             produitService.modifier(produitAmodifier);
 
-            showAlert(Alert.AlertType.INFORMATION, "Succès", "Produit modifié avec succès !");
-            produitAmodifier = null;
+            showDashboardToast("Produit modifié avec succès !", "dashboard-toast-info", "✏");
             retourProduit(event);
 
         } catch (Exception e) {
@@ -1289,21 +1287,28 @@ public class ProduitController {
     }
 
     private void supprimerProduitAvecConfirmation(Produit produit) {
-        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.setTitle("Confirmation");
-        confirm.setHeaderText("Suppression du produit");
-        confirm.setContentText("Voulez-vous vraiment supprimer le produit : " + safe(produit.getNom_produit()) + " ?");
+        boolean confirmed = showStyledConfirmationDialog(
+                "🗑 Supprimer le produit",
+                "Voulez-vous vraiment supprimer \"" + safe(produit.getNom_produit()) + "\" ?",
+                "Supprimer",
+                "Annuler",
+                "danger"
+        );
 
-        Optional<ButtonType> result = confirm.showAndWait();
+        if (!confirmed) return;
 
-        if (result.isPresent() && result.get() == ButtonType.OK) {
+        try {
             produitService.supprimer(produit);
             masterList.remove(produit);
             applyFiltersAndRefresh();
-            showAlert(Alert.AlertType.INFORMATION, "Suppression réussie", "Le produit a été supprimé avec succès.");
+
+            showDashboardToast("Produit supprimé avec succès.", "dashboard-toast-danger", "🗑");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            showDashboardToast("Erreur lors de la suppression.", "dashboard-toast-danger", "✖");
         }
     }
-
     private void validateNom(String value) {
         String nom = value == null ? "" : value.trim();
 
@@ -1600,7 +1605,8 @@ public class ProduitController {
 
     private void showStockInsufficiencyAlert(String produitName, int availableStock) {
         Platform.runLater(() -> {
-            String text = "Stock insuffisant pour " + produitName + " (reste : " + availableStock + ")";
+            String text = "⚠ Stock insuffisant !\n" + produitName +
+                    " disponible : " + availableStock + " unités";
             showFloatingToast(text, "toast-warning", "⚠");
         });
     }
@@ -2061,5 +2067,154 @@ public class ProduitController {
             showAlert(Alert.AlertType.ERROR, "Erreur popup", "Impossible d'afficher les détails : " + e.getMessage());
         }
     }
+    private boolean showStyledConfirmationDialog(String title, String message, String confirmText, String cancelText, String variant) {
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("");
+        dialog.setHeaderText(null);
+
+        DialogPane pane = dialog.getDialogPane();
+        pane.getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        URL cssUrl = getClass().getResource("/CSS/produit-dashboard.css");
+        if (cssUrl != null) {
+            pane.getStylesheets().add(cssUrl.toExternalForm());
+        }
+        pane.getStyleClass().add("confirm-dialog");
+
+        VBox content = new VBox(18);
+        content.setAlignment(Pos.CENTER);
+        content.setPadding(new Insets(24));
+
+        Label icon = new Label("danger".equals(variant) ? "⚠" : "✅");
+        icon.getStyleClass().add("confirm-dialog-icon");
+
+        Label titleLabel = new Label(title);
+        titleLabel.getStyleClass().add("confirm-dialog-title");
+        titleLabel.setWrapText(true);
+
+        Label msgLabel = new Label(message);
+        msgLabel.getStyleClass().add("confirm-dialog-message");
+        msgLabel.setWrapText(true);
+
+        content.getChildren().addAll(icon, titleLabel, msgLabel);
+        pane.setContent(content);
+
+        Button okButton = (Button) pane.lookupButton(ButtonType.OK);
+        Button cancelButton = (Button) pane.lookupButton(ButtonType.CANCEL);
+
+        okButton.setText(confirmText);
+        cancelButton.setText(cancelText);
+
+        okButton.getStyleClass().add(
+                "danger".equals(variant) ? "confirm-danger-btn" : "confirm-success-btn"
+        );
+        cancelButton.getStyleClass().add("confirm-cancel-btn");
+
+        Optional<ButtonType> result = dialog.showAndWait();
+        return result.isPresent() && result.get() == ButtonType.OK;
+    }
+
+    private void showDashboardToast(String message, String styleClass, String iconText) {
+        Node anchor = null;
+
+        if (produitsListContainer != null && produitsListContainer.getScene() != null) {
+            anchor = produitsListContainer;
+        } else if (btnAjouterProduit != null && btnAjouterProduit.getScene() != null) {
+            anchor = btnAjouterProduit;
+        } else if (btnModifierProduit != null && btnModifierProduit.getScene() != null) {
+            anchor = btnModifierProduit;
+        }
+
+        if (anchor == null) return;
+
+        Scene scene = anchor.getScene();
+        if (scene == null) return;
+
+        javafx.stage.Window window = scene.getWindow();
+        if (window == null) return;
+
+        HBox toast = new HBox(10);
+        toast.setAlignment(Pos.CENTER_LEFT);
+        toast.getStyleClass().addAll("floating-toast", styleClass);
+        toast.setMaxWidth(360);
+
+        Label icon = new Label(iconText);
+        icon.getStyleClass().add("toast-icon");
+
+        Label textLabel = new Label(message);
+        textLabel.getStyleClass().add("toast-text");
+        textLabel.setWrapText(true);
+        textLabel.setMaxWidth(290);
+
+        toast.getChildren().addAll(icon, textLabel);
+
+        javafx.stage.Popup popup = new javafx.stage.Popup();
+        popup.getContent().add(toast);
+        popup.setAutoHide(false);
+        popup.setHideOnEscape(false);
+        popup.setAutoFix(true);
+
+        popup.show(window);
+
+        URL cssUrl = getClass().getResource("/CSS/produit-dashboard.css");
+        if (cssUrl != null && popup.getScene() != null) {
+            popup.getScene().getStylesheets().add(cssUrl.toExternalForm());
+        }
+
+        toast.applyCss();
+        toast.layout();
+
+        double popupWidth = Math.max(320, toast.prefWidth(-1));
+        double x = window.getX() + scene.getWidth() - popupWidth - 24;
+        double y = window.getY() + scene.getHeight() - 110;
+
+        popup.setX(x);
+        popup.setY(y);
+
+        toast.setOpacity(0);
+        toast.setTranslateY(16);
+        icon.setScaleX(0.7);
+        icon.setScaleY(0.7);
+
+        FadeTransition fadeIn = new FadeTransition(Duration.millis(220), toast);
+        fadeIn.setFromValue(0);
+        fadeIn.setToValue(1);
+
+        javafx.animation.TranslateTransition slideIn =
+                new javafx.animation.TranslateTransition(Duration.millis(220), toast);
+        slideIn.setFromY(16);
+        slideIn.setToY(0);
+
+        javafx.animation.ScaleTransition popIcon =
+                new javafx.animation.ScaleTransition(Duration.millis(260), icon);
+        popIcon.setFromX(0.7);
+        popIcon.setFromY(0.7);
+        popIcon.setToX(1.0);
+        popIcon.setToY(1.0);
+
+        javafx.animation.ParallelTransition enter =
+                new javafx.animation.ParallelTransition(fadeIn, slideIn, popIcon);
+
+        PauseTransition pause = new PauseTransition(Duration.seconds(2.0));
+
+        FadeTransition fadeOut = new FadeTransition(Duration.millis(220), toast);
+        fadeOut.setFromValue(1);
+        fadeOut.setToValue(0);
+
+        javafx.animation.TranslateTransition slideOut =
+                new javafx.animation.TranslateTransition(Duration.millis(220), toast);
+        slideOut.setFromY(0);
+        slideOut.setToY(10);
+
+        javafx.animation.ParallelTransition exit =
+                new javafx.animation.ParallelTransition(fadeOut, slideOut);
+
+        javafx.animation.SequentialTransition sequence =
+                new javafx.animation.SequentialTransition(enter, pause, exit);
+
+        sequence.setOnFinished(e -> popup.hide());
+        sequence.play();
+    }
+
 
 }

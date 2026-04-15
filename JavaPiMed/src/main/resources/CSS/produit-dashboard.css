@@ -358,15 +358,25 @@
     -fx-font-weight: bold;
 }
 
-.header-cell-image { -fx-pref-width: 60px; }
-.header-cell-nom { -fx-pref-width: 110px; }
-.header-cell-prix { -fx-pref-width: 100px; }
-.header-cell-qte { -fx-pref-width: 110px; }
-.header-cell-cat { -fx-pref-width: 150px; }
-.header-cell-statut { -fx-pref-width: 135px; }
-.header-cell-desc { -fx-pref-width: 120px; }
-.header-cell-actions { -fx-pref-width: 90px; }
-
+.header-cell-image { -fx-pref-width: 90px; }
+.header-cell-nom { -fx-pref-width: 180px; }
+.header-cell-prix { -fx-pref-width: 120px; }
+.header-cell-qte { -fx-pref-width: 120px; }
+.header-cell-cat { -fx-pref-width: 160px; }
+.header-cell-statut { -fx-pref-width: 150px; }
+.header-cell-desc { -fx-pref-width: 260px; }
+.header-cell-actions { -fx-pref-width: 130px; }
+.header-cell-image,
+.header-cell-nom,
+.header-cell-prix,
+.header-cell-qte,
+.header-cell-cat,
+.header-cell-statut,
+.header-cell-desc,
+.header-cell-actions {
+    -fx-alignment: CENTER-LEFT;
+    -fx-padding: 0 10 0 10;
+}
 .rows-container {
     -fx-background-color: white;
 }

@@ -285,7 +285,11 @@ public class CommandeService implements IGeneralService<Commande> {
         List<Commande> liste = new ArrayList<>();
 
         try (Statement st = cn.createStatement();
-             ResultSet rs = st.executeQuery("SELECT * FROM commande")) {
+             ResultSet rs = st.executeQuery("""
+    SELECT c.*, u.nom, u.prenom, u.email_user
+    FROM commande c
+    LEFT JOIN user u ON c.user_id = u.id
+""");) {
 
             while (rs.next()) {
 
@@ -294,6 +298,10 @@ public class CommandeService implements IGeneralService<Commande> {
 
                 User u = new User();
                 u.setId(rs.getInt("user_id"));
+                u.setNom(rs.getString("nom"));
+                u.setPrenom(rs.getString("prenom"));
+                u.setEmailUser(rs.getString("email_user"));
+
                 c.setUser(u);
 
                 c.setDate_creation_commande(rs.getTimestamp("date_creation_commande").toLocalDateTime());

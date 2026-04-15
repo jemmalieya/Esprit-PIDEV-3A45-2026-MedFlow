@@ -251,7 +251,7 @@
                 <content>
                     <VBox styleClass="table-like-wrapper">
                         <children>
-                            <HBox spacing="8.0" styleClass="table-like-header">
+                            <HBox spacing="0.0" styleClass="table-like-header">
                                 <children>
                                     <Label text="🖼 IMAGE" styleClass="header-cell-image"/>
                                     <Label text="🏷 NOM" styleClass="header-cell-nom"/>

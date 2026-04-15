@@ -49,24 +49,25 @@ public class RessourceService {
     }
 
     public void modifier(Ressource r) {
-        String sql = "UPDATE ressource SET nom_ressource = ?, categorie_ressource = ?, type_ressource = ?, chemin_fichier_ressource = ?, mime_type_ressource = ?, taille_kb_ressource = ?, url_externe_ressource = ?, quantite_disponible_ressource = ?, unite_ressource = ?, fournisseur_ressource = ?, cout_estime_ressource = ?, est_publique_ressource = ?, notes_ressource = ?, date_mise_a_jour_ressource = ? WHERE id = ?";
+        String sql = "UPDATE ressource SET evenement_id = ?, nom_ressource = ?, categorie_ressource = ?, type_ressource = ?, chemin_fichier_ressource = ?, mime_type_ressource = ?, taille_kb_ressource = ?, url_externe_ressource = ?, quantite_disponible_ressource = ?, unite_ressource = ?, fournisseur_ressource = ?, cout_estime_ressource = ?, est_publique_ressource = ?, notes_ressource = ?, date_mise_a_jour_ressource = ? WHERE id = ?";
 
         try (PreparedStatement ps = cn.prepareStatement(sql)) {
-            ps.setString(1, r.getNom_ressource());
-            ps.setString(2, r.getCategorie_ressource());
-            ps.setString(3, r.getType_ressource());
-            ps.setString(4, r.getChemin_fichier_ressource());
-            ps.setString(5, r.getMime_type_ressource());
-            ps.setInt(6, r.getTaille_kb_ressource());
-            ps.setString(7, r.getUrl_externe_ressource());
-            ps.setInt(8, r.getQuantite_disponible_ressource());
-            ps.setString(9, r.getUnite_ressource());
-            ps.setString(10, r.getFournisseur_ressource());
-            ps.setDouble(11, r.getCout_estime_ressource());
-            ps.setBoolean(12, r.isEst_publique_ressource());
-            ps.setString(13, r.getNotes_ressource());
-            ps.setDate(14, new java.sql.Date(r.getDate_mise_a_jour_ressource().getTime()));
-            ps.setInt(15, r.getId());
+            ps.setInt(1, r.getEvenement().getId());
+            ps.setString(2, r.getNom_ressource());
+            ps.setString(3, r.getCategorie_ressource());
+            ps.setString(4, r.getType_ressource());
+            ps.setString(5, r.getChemin_fichier_ressource());
+            ps.setString(6, r.getMime_type_ressource());
+            ps.setInt(7, r.getTaille_kb_ressource());
+            ps.setString(8, r.getUrl_externe_ressource());
+            ps.setInt(9, r.getQuantite_disponible_ressource());
+            ps.setString(10, r.getUnite_ressource());
+            ps.setString(11, r.getFournisseur_ressource());
+            ps.setDouble(12, r.getCout_estime_ressource());
+            ps.setBoolean(13, r.isEst_publique_ressource());
+            ps.setString(14, r.getNotes_ressource());
+            ps.setDate(15, new java.sql.Date(r.getDate_mise_a_jour_ressource().getTime()));
+            ps.setInt(16, r.getId());
 
             ps.executeUpdate();
             System.out.println("Ressource modifiée");

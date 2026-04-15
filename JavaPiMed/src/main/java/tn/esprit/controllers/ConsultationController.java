@@ -8,6 +8,8 @@ import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
@@ -20,8 +22,12 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import tn.esprit.entities.Prescription;
+import tn.esprit.entities.FicheMedicale;
 import tn.esprit.entities.RendezVous;
 import tn.esprit.entities.User;
+import tn.esprit.services.FicheMedicaleService;
+import tn.esprit.services.PrescriptionService;
 import tn.esprit.services.RendezVousService;
 import tn.esprit.services.UserService;
 
@@ -31,10 +37,15 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.ResourceBundle;
+import javafx.util.Duration;
 
 public class ConsultationController implements Initializable {
 
@@ -80,6 +91,52 @@ public class ConsultationController implements Initializable {
     @FXML
     private TableView<RendezVous> myBookingsTable;
     @FXML
+    private TextField myBookingsSearchField;
+    @FXML
+    private ComboBox<String> myBookingsSortComboBox;
+    @FXML
+    private TextField myRecordsSearchField;
+    @FXML
+    private ComboBox<String> myRecordsSortComboBox;
+    @FXML
+    private VBox myRecordsPage;
+    @FXML
+    private TableView<FicheMedicale> myRecordsTable;
+    @FXML
+    private TableColumn<FicheMedicale, Number> recordColId;
+    @FXML
+    private TableColumn<FicheMedicale, Number> recordColRdvId;
+    @FXML
+    private TableColumn<FicheMedicale, String> recordColDateTime;
+    @FXML
+    private TableColumn<FicheMedicale, String> recordColDiagnostic;
+    @FXML
+    private TableColumn<FicheMedicale, String> recordColObservations;
+    @FXML
+    private TableColumn<FicheMedicale, String> recordColResults;
+    @FXML
+    private TableColumn<FicheMedicale, String> recordColDuration;
+    @FXML
+    private TableColumn<FicheMedicale, String> recordColSignature;
+    @FXML
+    private TableColumn<FicheMedicale, Void> recordColActions;
+    @FXML
+    private VBox recordDetailsPanel;
+    @FXML
+    private Label recordDetailsSummaryLabel;
+    @FXML
+    private Label recordNoPrescriptionsLabel;
+    @FXML
+    private TableView<Prescription> recordPrescriptionsTable;
+    @FXML
+    private TableColumn<Prescription, String> recordPrescriptionNomColumn;
+    @FXML
+    private TableColumn<Prescription, String> recordPrescriptionDoseColumn;
+    @FXML
+    private TableColumn<Prescription, String> recordPrescriptionFrequenceColumn;
+    @FXML
+    private TableColumn<Prescription, String> recordPrescriptionInstructionsColumn;
+    @FXML
     private TableColumn<RendezVous, Number> colId;
     @FXML
     private TableColumn<RendezVous, String> colDateTime;
@@ -109,8 +166,14 @@ public class ConsultationController implements Initializable {
 
     private Integer editingRendezVousId;
     private final ObservableList<RendezVous> myBookingsData = FXCollections.observableArrayList();
+    private final ObservableList<RendezVous> allMyBookingsData = FXCollections.observableArrayList();
+    private final ObservableList<FicheMedicale> myRecordsData = FXCollections.observableArrayList();
+    private final ObservableList<Prescription> recordPrescriptionsData = FXCollections.observableArrayList();
+    private final HashMap<Integer, Boolean> expandedRecordState = new HashMap<>();
     private final RendezVousService rendezVousService = new RendezVousService();
     private final UserService userService = new UserService();
+    private final FicheMedicaleService ficheMedicaleService = new FicheMedicaleService();
+    private final PrescriptionService prescriptionService = new PrescriptionService();
 
     private LocalDate currentWeekStart;
     private LocalDateTime selectedDateTime;
@@ -137,6 +200,38 @@ public class ConsultationController implements Initializable {
             modifyPatientIdField.setEditable(false);
         }
 
+        if (myBookingsSortComboBox != null) {
+            myBookingsSortComboBox.getItems().addAll(
+                    "Date ASC",
+                    "Date DESC",
+                    "Statut: Demande",
+                    "Statut: Confirmé",
+                    "Statut: Terminé"
+            );
+            myBookingsSortComboBox.setOnAction(e -> applyMyBookingsFilterAndSort());
+        }
+
+        if (myBookingsSearchField != null) {
+            myBookingsSearchField.textProperty().addListener((obs, oldValue, newValue) -> applyMyBookingsFilterAndSort());
+        }
+
+        if (myRecordsSortComboBox != null) {
+            myRecordsSortComboBox.getItems().addAll(
+                    "Date ASC",
+                    "Date DESC",
+                    "Diagnostic A-Z",
+                    "Diagnostic Z-A"
+            );
+            myRecordsSortComboBox.setOnAction(e -> applyMyRecordsFilterAndSort());
+        }
+
+        if (myRecordsSearchField != null) {
+            myRecordsSearchField.textProperty().addListener((obs, oldValue, newValue) -> applyMyRecordsFilterAndSort());
+        }
+
+        setupMyRecordsTable();
+        setupRecordPrescriptionsTable();
+
         hideModifyForm();
         setupMyBookingsTable();
         loadMyBookings();
@@ -158,11 +253,7 @@ public class ConsultationController implements Initializable {
     }
     @FXML
     private void handleShowMyRecords(ActionEvent event) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("My Medical Records");
-        alert.setHeaderText(null);
-        alert.setContentText("This feature is under development. You will be able to view and manage your medical records here in the future.");
-        alert.showAndWait();
+        showMyRecordsPage();
     }
 
     @FXML
@@ -308,6 +399,10 @@ public class ConsultationController implements Initializable {
         bookingPage.setManaged(false);
         myBookingsPage.setVisible(true);
         myBookingsPage.setManaged(true);
+        if (myRecordsPage != null) {
+            myRecordsPage.setVisible(false);
+            myRecordsPage.setManaged(false);
+        }
 
         bookingPageBtn.getStyleClass().remove("page-nav-button-active");
         if (!bookingPageBtn.getStyleClass().contains("page-nav-button")) {
@@ -319,6 +414,34 @@ public class ConsultationController implements Initializable {
         }
 
         loadMyBookings();
+    }
+
+    private void showMyRecordsPage() {
+        bookingPage.setVisible(false);
+        bookingPage.setManaged(false);
+        myBookingsPage.setVisible(false);
+        myBookingsPage.setManaged(false);
+        if (myRecordsPage != null) {
+            myRecordsPage.setVisible(true);
+            myRecordsPage.setManaged(true);
+        }
+
+        bookingPageBtn.getStyleClass().remove("page-nav-button-active");
+        if (!bookingPageBtn.getStyleClass().contains("page-nav-button")) {
+            bookingPageBtn.getStyleClass().add("page-nav-button");
+        }
+        myBookingsPageBtn.getStyleClass().remove("page-nav-button-active");
+        if (!myBookingsPageBtn.getStyleClass().contains("page-nav-button")) {
+            myBookingsPageBtn.getStyleClass().add("page-nav-button");
+        }
+        if (myRecordsPageBtn != null) {
+            myRecordsPageBtn.getStyleClass().remove("page-nav-button");
+            if (!myRecordsPageBtn.getStyleClass().contains("page-nav-button-active")) {
+                myRecordsPageBtn.getStyleClass().add("page-nav-button-active");
+            }
+        }
+
+        applyMyRecordsFilterAndSort();
     }
 
     private void refreshCalendar() {
@@ -538,7 +661,307 @@ public class ConsultationController implements Initializable {
             return;
         }
         List<RendezVous> all = rendezVousService.recuperer();
-        myBookingsData.setAll(all.stream().filter(r -> r.getIdPatient() == SESSION_PATIENT_ID).toList());
+        allMyBookingsData.setAll(all.stream().filter(r -> r.getIdPatient() == SESSION_PATIENT_ID).toList());
+        applyMyBookingsFilterAndSort();
+        loadMyRecords();
+    }
+
+    private void setupMyRecordsTable() {
+        if (myRecordsTable == null) {
+            return;
+        }
+
+        recordColId.setCellValueFactory(data -> new SimpleIntegerProperty(data.getValue().getId()));
+        recordColRdvId.setCellValueFactory(data -> new SimpleIntegerProperty(data.getValue().getRendez_vous_id() == null ? 0 : data.getValue().getRendez_vous_id()));
+        recordColDateTime.setCellValueFactory(data -> {
+            Timestamp ts = findRendezVousTimestamp(data.getValue().getRendez_vous_id());
+            String formatted = ts == null ? "-" : dateTimeFormatter.format(ts.toLocalDateTime());
+            return new SimpleStringProperty(formatted);
+        });
+        recordColDiagnostic.setCellValueFactory(data -> new SimpleStringProperty(valueOrDash(data.getValue().getDiagnostic())));
+        recordColObservations.setCellValueFactory(data -> new SimpleStringProperty(valueOrDash(data.getValue().getObservations())));
+        recordColResults.setCellValueFactory(data -> new SimpleStringProperty(valueOrDash(data.getValue().getResultats_examens())));
+        recordColDuration.setCellValueFactory(data -> {
+            Integer duration = data.getValue().getDuree_minutes();
+            return new SimpleStringProperty(duration == null ? "-" : duration + " min");
+        });
+        recordColSignature.setCellValueFactory(data -> new SimpleStringProperty(valueOrDash(data.getValue().getSignature())));
+
+        recordColActions.setCellFactory(col -> new TableCell<>() {
+            private final Button toggleBtn = new Button("▼");
+
+            {
+                toggleBtn.getStyleClass().add("table-modify-button");
+                toggleBtn.setOnAction(e -> {
+                    FicheMedicale ficheMedicale = getTableView().getItems().get(getIndex());
+                    toggleRecordPrescriptions(ficheMedicale);
+                });
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) {
+                    setGraphic(null);
+                    return;
+                }
+
+                FicheMedicale ficheMedicale = getTableView().getItems().get(getIndex());
+                boolean expanded = ficheMedicale != null && expandedRecordState.getOrDefault(ficheMedicale.getId(), false);
+                toggleBtn.setText(expanded ? "▲" : "▼");
+                setGraphic(toggleBtn);
+            }
+        });
+
+        myRecordsTable.setItems(myRecordsData);
+        myRecordsTable.setPlaceholder(new Label("No medical records found for this patient."));
+    }
+
+    private void setupRecordPrescriptionsTable() {
+        if (recordPrescriptionsTable == null) {
+            return;
+        }
+
+        recordPrescriptionsTable.setItems(recordPrescriptionsData);
+        recordPrescriptionNomColumn.setCellValueFactory(data -> new SimpleStringProperty(valueOrDash(data.getValue().getNom_medicament())));
+        recordPrescriptionDoseColumn.setCellValueFactory(data -> new SimpleStringProperty(valueOrDash(data.getValue().getDose())));
+        recordPrescriptionFrequenceColumn.setCellValueFactory(data -> new SimpleStringProperty(valueOrDash(data.getValue().getFrequence())));
+        recordPrescriptionInstructionsColumn.setCellValueFactory(data -> new SimpleStringProperty(valueOrDash(data.getValue().getInstructions())));
+        recordPrescriptionsTable.setPlaceholder(new Label("No prescriptions found."));
+    }
+
+    private void loadMyRecords() {
+        if (myRecordsTable == null) {
+            return;
+        }
+
+        Set<Integer> patientRendezVousIds = new HashSet<>();
+        for (RendezVous rendezVous : allMyBookingsData) {
+            patientRendezVousIds.add(rendezVous.getId());
+        }
+
+        List<FicheMedicale> allRecords = ficheMedicaleService.recuperer();
+        List<FicheMedicale> filtered = new ArrayList<>();
+        for (FicheMedicale ficheMedicale : allRecords) {
+            Integer rendezVousId = ficheMedicale.getRendez_vous_id();
+            if (rendezVousId != null && patientRendezVousIds.contains(rendezVousId)) {
+                filtered.add(ficheMedicale);
+            }
+        }
+
+        myRecordsData.setAll(filtered);
+        applyMyRecordsFilterAndSort();
+    }
+
+    private void showRecordPrescriptions(FicheMedicale ficheMedicale) {
+        if (ficheMedicale == null) {
+            return;
+        }
+
+        List<Prescription> prescriptions = prescriptionService.getByFicheMedicaleId(ficheMedicale.getId());
+        recordPrescriptionsData.setAll(prescriptions);
+
+        if (recordDetailsSummaryLabel != null) {
+            recordDetailsSummaryLabel.setText("Fiche #" + ficheMedicale.getId() + " linked to rendez-vous #" + valueOrDash(String.valueOf(ficheMedicale.getRendez_vous_id())));
+        }
+
+        showRecordDetailsPanel(!recordPrescriptionsData.isEmpty());
+    }
+
+    private void toggleRecordPrescriptions(FicheMedicale ficheMedicale) {
+        if (ficheMedicale == null) {
+            return;
+        }
+
+        boolean currentlyExpanded = expandedRecordState.getOrDefault(ficheMedicale.getId(), false);
+        if (currentlyExpanded) {
+            collapseRecordDetailsPanel(ficheMedicale.getId());
+            expandedRecordState.put(ficheMedicale.getId(), false);
+            return;
+        }
+
+        expandedRecordState.replaceAll((key, value) -> false);
+        expandedRecordState.put(ficheMedicale.getId(), true);
+        showRecordPrescriptions(ficheMedicale);
+        animateRecordPanelOpen();
+    }
+
+    private void showRecordDetailsPanel(boolean hasPrescriptions) {
+        if (recordDetailsPanel != null) {
+            recordDetailsPanel.setVisible(true);
+            recordDetailsPanel.setManaged(true);
+        }
+        if (recordPrescriptionsTable != null) {
+            recordPrescriptionsTable.setVisible(hasPrescriptions);
+            recordPrescriptionsTable.setManaged(hasPrescriptions);
+        }
+        if (recordNoPrescriptionsLabel != null) {
+            recordNoPrescriptionsLabel.setVisible(!hasPrescriptions);
+            recordNoPrescriptionsLabel.setManaged(!hasPrescriptions);
+        }
+    }
+
+    private void collapseRecordDetailsPanel(int ficheId) {
+        if (recordDetailsPanel == null) {
+            return;
+        }
+
+        Timeline collapseTimeline = new Timeline(
+                new KeyFrame(Duration.millis(180), e -> {
+                    recordDetailsPanel.setVisible(false);
+                    recordDetailsPanel.setManaged(false);
+                    recordPrescriptionsData.clear();
+                })
+        );
+        collapseTimeline.play();
+    }
+
+    private void animateRecordPanelOpen() {
+        if (recordDetailsPanel == null) {
+            return;
+        }
+
+        recordDetailsPanel.setOpacity(0.0);
+        recordDetailsPanel.setVisible(true);
+        recordDetailsPanel.setManaged(true);
+
+        Timeline openTimeline = new Timeline(
+                new KeyFrame(Duration.millis(1), e -> recordDetailsPanel.setOpacity(0.0)),
+                new KeyFrame(Duration.millis(220), e -> recordDetailsPanel.setOpacity(1.0))
+        );
+        openTimeline.play();
+    }
+
+    private void applyMyRecordsFilterAndSort() {
+        String query = myRecordsSearchField == null || myRecordsSearchField.getText() == null
+                ? ""
+                : myRecordsSearchField.getText().trim().toLowerCase();
+
+        List<FicheMedicale> filtered = new ArrayList<>();
+        for (FicheMedicale ficheMedicale : myRecordsData) {
+            if (matchesRecordSearch(ficheMedicale, query)) {
+                filtered.add(ficheMedicale);
+            }
+        }
+
+        if (myRecordsSortComboBox != null) {
+            String selectedSort = myRecordsSortComboBox.getValue();
+            if ("Date ASC".equals(selectedSort)) {
+                filtered.sort(Comparator.comparing(this::recordTimestampForSort, Comparator.nullsLast(Comparator.naturalOrder())));
+            } else if ("Date DESC".equals(selectedSort)) {
+                filtered.sort(Comparator.comparing(this::recordTimestampForSort, Comparator.nullsLast(Comparator.reverseOrder())));
+            } else if ("Diagnostic A-Z".equals(selectedSort)) {
+                filtered.sort(Comparator.comparing(f -> valueOrDash(f.getDiagnostic()).toLowerCase()));
+            } else if ("Diagnostic Z-A".equals(selectedSort)) {
+                filtered.sort(Comparator.comparing((FicheMedicale f) -> valueOrDash(f.getDiagnostic()).toLowerCase()).reversed());
+            }
+        }
+
+        myRecordsTable.setItems(FXCollections.observableArrayList(filtered));
+    }
+
+    private boolean matchesRecordSearch(FicheMedicale ficheMedicale, String query) {
+        if (ficheMedicale == null) {
+            return false;
+        }
+        if (query == null || query.isBlank()) {
+            return true;
+        }
+
+        String id = String.valueOf(ficheMedicale.getId());
+        String rdvId = ficheMedicale.getRendez_vous_id() == null ? "" : String.valueOf(ficheMedicale.getRendez_vous_id());
+        String dateTime = recordTimestampForSort(ficheMedicale) == null ? "" : dateTimeFormatter.format(recordTimestampForSort(ficheMedicale).toLocalDateTime()).toLowerCase();
+        String diagnostic = valueOrDash(ficheMedicale.getDiagnostic()).toLowerCase();
+        String observations = valueOrDash(ficheMedicale.getObservations()).toLowerCase();
+        String results = valueOrDash(ficheMedicale.getResultats_examens()).toLowerCase();
+        String signature = valueOrDash(ficheMedicale.getSignature()).toLowerCase();
+
+        return id.contains(query)
+                || rdvId.contains(query)
+                || dateTime.contains(query)
+                || diagnostic.contains(query)
+                || observations.contains(query)
+                || results.contains(query)
+                || signature.contains(query);
+    }
+
+    private Timestamp recordTimestampForSort(FicheMedicale ficheMedicale) {
+        if (ficheMedicale == null) {
+            return null;
+        }
+
+        Timestamp createdAt = ficheMedicale.getCreated_at();
+        if (createdAt != null) {
+            return createdAt;
+        }
+
+        return findRendezVousTimestamp(ficheMedicale.getRendez_vous_id());
+    }
+
+    private Timestamp findRendezVousTimestamp(Integer rendezVousId) {
+        if (rendezVousId == null) {
+            return null;
+        }
+
+        for (RendezVous rendezVous : allMyBookingsData) {
+            if (rendezVous != null && rendezVous.getId() == rendezVousId) {
+                return rendezVous.getDatetime();
+            }
+        }
+        return null;
+    }
+
+    private void applyMyBookingsFilterAndSort() {
+        String query = myBookingsSearchField == null || myBookingsSearchField.getText() == null
+                ? ""
+                : myBookingsSearchField.getText().trim().toLowerCase();
+
+        List<RendezVous> filtered = new ArrayList<>();
+        for (RendezVous rendezVous : allMyBookingsData) {
+            if (matchesBookingSearch(rendezVous, query)) {
+                filtered.add(rendezVous);
+            }
+        }
+
+        if (myBookingsSortComboBox != null) {
+            String selectedSort = myBookingsSortComboBox.getValue();
+            if ("Date ASC".equals(selectedSort)) {
+                filtered.sort(Comparator.comparing(RendezVous::getDatetime, Comparator.nullsLast(Comparator.naturalOrder())));
+            } else if ("Date DESC".equals(selectedSort)) {
+                filtered.sort(Comparator.comparing(RendezVous::getDatetime, Comparator.nullsLast(Comparator.reverseOrder())));
+            } else if ("Statut: Demande".equals(selectedSort)) {
+                filtered.sort(Comparator.comparingInt(r -> "Demande".equalsIgnoreCase(valueOrDash(r.getStatut())) ? 0 : 1));
+            } else if ("Statut: Confirmé".equals(selectedSort)) {
+                filtered.sort(Comparator.comparingInt(r -> "Confirmé".equalsIgnoreCase(valueOrDash(r.getStatut())) ? 0 : 1));
+            } else if ("Statut: Terminé".equals(selectedSort)) {
+                filtered.sort(Comparator.comparingInt(r -> "Terminé".equalsIgnoreCase(valueOrDash(r.getStatut())) ? 0 : 1));
+            }
+        }
+
+        myBookingsData.setAll(filtered);
+    }
+
+    private boolean matchesBookingSearch(RendezVous rdv, String query) {
+        if (rdv == null) {
+            return false;
+        }
+        if (query == null || query.isBlank()) {
+            return true;
+        }
+
+        String dateTime = rdv.getDatetime() == null ? "" : rdv.getDatetime().toString().toLowerCase();
+        String mode = valueOrDash(rdv.getMode()).toLowerCase();
+        String motif = valueOrDash(rdv.getMotif()).toLowerCase();
+        String statut = valueOrDash(rdv.getStatut()).toLowerCase();
+        String staff = String.valueOf(rdv.getIdStaff());
+        String id = String.valueOf(rdv.getId());
+
+        return id.contains(query)
+                || dateTime.contains(query)
+                || mode.contains(query)
+                || motif.contains(query)
+                || statut.contains(query)
+                || staff.contains(query);
     }
 
     private void startEditing(RendezVous rdv) {

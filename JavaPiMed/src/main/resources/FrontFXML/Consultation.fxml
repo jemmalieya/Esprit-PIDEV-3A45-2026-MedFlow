@@ -182,6 +182,10 @@
                                 <VBox spacing="18" styleClass="booking-card" HBox.hgrow="ALWAYS">
                                     <Label text="My Appointments" styleClass="card-title"/>
                                     <Label text="Manage your rendez-vous for the current session patient." styleClass="helper-text"/>
+                                    <HBox spacing="12" alignment="CENTER_LEFT">
+                                        <TextField fx:id="myBookingsSearchField" promptText="Search rendez-vous..." styleClass="modern-text-field" HBox.hgrow="ALWAYS"/>
+                                        <ComboBox fx:id="myBookingsSortComboBox" promptText="Tri..." prefWidth="190" styleClass="modern-combo-box"/>
+                                    </HBox>
                                     <TableView fx:id="myBookingsTable" VBox.vgrow="ALWAYS" styleClass="my-bookings-table">
                                         <columns>
                                             <TableColumn fx:id="colId" text="ID" prefWidth="70"/>
@@ -235,7 +239,47 @@
                         </VBox>
 
                         <!-- PAGE 3: MY RECORDS -->
-                        
+                        <VBox spacing="24" styleClass="page-content" fx:id="myRecordsPage" visible="false" managed="false">
+                            <HBox spacing="20" HBox.hgrow="ALWAYS" alignment="TOP_LEFT">
+                                <VBox spacing="18" styleClass="booking-card" HBox.hgrow="ALWAYS">
+                                    <Label text="My Medical Records" styleClass="card-title"/>
+                                    <Label text="Medical records linked to your booked rendez-vous." styleClass="helper-text"/>
+                                    <HBox spacing="12" alignment="CENTER_LEFT">
+                                        <TextField fx:id="myRecordsSearchField" promptText="Search medical records..." styleClass="modern-text-field" HBox.hgrow="ALWAYS"/>
+                                        <ComboBox fx:id="myRecordsSortComboBox" promptText="Tri..." prefWidth="190" styleClass="modern-combo-box"/>
+                                    </HBox>
+                                    <TableView fx:id="myRecordsTable" VBox.vgrow="ALWAYS" styleClass="my-bookings-table">
+                                        <columns>
+                                            <TableColumn fx:id="recordColId" text="ID" prefWidth="70"/>
+                                            <TableColumn fx:id="recordColRdvId" text="Rendez-vous" prefWidth="110"/>
+                                            <TableColumn fx:id="recordColDateTime" text="Date &amp; Time" prefWidth="170"/>
+                                            <TableColumn fx:id="recordColDiagnostic" text="Diagnostic" prefWidth="200"/>
+                                            <TableColumn fx:id="recordColObservations" text="Observations" prefWidth="220"/>
+                                            <TableColumn fx:id="recordColResults" text="Results" prefWidth="220"/>
+                                            <TableColumn fx:id="recordColDuration" text="Duration" prefWidth="110"/>
+                                            <TableColumn fx:id="recordColSignature" text="Signature" prefWidth="140"/>
+                                            <TableColumn fx:id="recordColActions" text="Action" prefWidth="90"/>
+                                        </columns>
+                                    </TableView>
+
+                                    <VBox fx:id="recordDetailsPanel" spacing="14" visible="false" managed="false" styleClass="summary-card">
+                                        <Label text="Prescriptions of selected fiche medicale" styleClass="card-title"/>
+                                        <Label fx:id="recordDetailsSummaryLabel" text="Select the arrow in the Action column to view prescriptions." styleClass="helper-text" wrapText="true"/>
+
+                                        <TableView fx:id="recordPrescriptionsTable" VBox.vgrow="ALWAYS" styleClass="my-bookings-table">
+                                            <columns>
+                                                <TableColumn fx:id="recordPrescriptionNomColumn" text="Médicament" prefWidth="160"/>
+                                                <TableColumn fx:id="recordPrescriptionDoseColumn" text="Dose" prefWidth="100"/>
+                                                <TableColumn fx:id="recordPrescriptionFrequenceColumn" text="Fréquence" prefWidth="130"/>
+                                                <TableColumn fx:id="recordPrescriptionInstructionsColumn" text="Instructions" prefWidth="220"/>
+                                            </columns>
+                                        </TableView>
+
+                                        <Label fx:id="recordNoPrescriptionsLabel" text="There is no prescription for this fiche medicale." styleClass="empty-state-message" visible="false" managed="false" wrapText="true"/>
+                                    </VBox>
+                                </VBox>
+                            </HBox>
+                        </VBox>
 
                         
                     </StackPane>

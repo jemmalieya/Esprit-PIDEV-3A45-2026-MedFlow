@@ -10,17 +10,26 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.effect.DropShadow;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import tn.esprit.entities.Evenement;
 import tn.esprit.services.EvenementService;
-
+import java.io.File;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
 public class EvenementController {
+    private static final double DEFAULT_SCENE_WIDTH = 1650;
+    private static final double DEFAULT_SCENE_HEIGHT = 960;
 
     /* ===================== DASHBOARD FIELDS ===================== */
     @FXML private Label totalEventsLabel;
@@ -73,6 +82,10 @@ public class EvenementController {
 
     private static Evenement evenementAModifier;
     @FXML
+    private javafx.scene.layout.FlowPane cardsContainer;
+
+
+    @FXML
     private void toggleSubmenu() {
         if (submenuVBox == null || evenementArrow == null) return;
 
@@ -110,7 +123,10 @@ public class EvenementController {
         initDashboardIfExists();
         initAjoutEvenementIfExists();
         chargerEvenementAModifier();
+        initCardsBackIfExists();
     }
+
+
 
     /* ===================== DASHBOARD INIT ===================== */
     private void initDashboardIfExists() {
@@ -139,6 +155,7 @@ public class EvenementController {
 
         addActionsColumn();
         evenementTable.setPlaceholder(new Label("Aucun événement trouvé"));
+
     }
 
     private void configureSort() {
@@ -199,12 +216,7 @@ public class EvenementController {
 
                 // ✅ VOIR
                 viewBtn.setOnAction(e -> {
-                    Evenement ev = getTableView().getItems().get(getIndex());
-                    showAlert(
-                            Alert.AlertType.INFORMATION,
-                            "Détails de l'événement",
-                            buildDetail(ev)
-                    );
+                    ouvrirPageCardsBack();
                 });
 
                 // ✅ MODIFIER (placeholder for now)
@@ -281,22 +293,26 @@ public class EvenementController {
 
     @FXML
     private void retourListeEvenements() {
+        evenementAModifier = null;
         loadScene("/EvenementDashboard.fxml", "Gestion des Événements");
     }
-
     private void loadScene(String fxml, String title) {
         try {
             Parent root = FXMLLoader.load(getClass().getResource(fxml));
-            Stage stage = (Stage)
-                    (evenementTable != null ? evenementTable : tfTitreEvent).getScene().getWindow();
-            stage.setScene(new Scene(root));
-            stage.setTitle(title);
-            stage.show();
+
+            Stage stage = resolveCurrentStage();
+
+            if (stage == null) {
+                throw new Exception("Impossible de récupérer la fenêtre actuelle.");
+            }
+
+            applySceneToStage(stage, root, title);
+
         } catch (Exception e) {
             e.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Erreur", "Navigation échouée : " + e.getMessage());
         }
     }
-
     /* ===================== AJOUT EVENEMENT ===================== */
     @FXML
     private void ajouterEvenement() {
@@ -339,10 +355,12 @@ public class EvenementController {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/ModifierEvenement.fxml"));
             Parent root = loader.load();
 
-            Stage stage = (Stage) evenementTable.getScene().getWindow();
-            stage.setScene(new Scene(root));
+            Stage stage = resolveCurrentStage();
+            if (stage == null) {
+                throw new Exception("Impossible de rÃ©cupÃ©rer la fenÃªtre actuelle.");
+            }
             stage.setTitle("Modifier événement");
-            stage.show();
+            applySceneToStage(stage, root, "Modifier Ã©vÃ©nement");
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -352,6 +370,8 @@ public class EvenementController {
 
     private void chargerEvenementAModifier() {
         if (evenementAModifier == null) return;
+
+        if (tfTitreEvent == null) return;
 
         tfTitreEvent.setText(evenementAModifier.getTitre_event());
         tfSlugEvent.setText(evenementAModifier.getSlug_event());
@@ -392,7 +412,6 @@ public class EvenementController {
         tfOrganisateurEvent.setText(evenementAModifier.getNom_organisateur_event());
         tfImageEvent.setText(evenementAModifier.getImage_couverture_event());
     }
-
 
 
     @FXML
@@ -472,6 +491,253 @@ public class EvenementController {
             showAlert(Alert.AlertType.ERROR, "Erreur modification", e.getMessage());
         }
     }
+
+    private void initCardsBackIfExists() {
+        if (cardsContainer == null) return;
+
+        try {
+            List<Evenement> events = evenementService.recuperer();
+            cardsContainer.getChildren().clear();
+
+            for (Evenement ev : events) {
+                cardsContainer.getChildren().add(createEventCardBack(ev));
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Erreur", e.getMessage());
+        }
+    }
+    private VBox createEventCardBack(Evenement ev) {
+        VBox card = new VBox(14);
+        card.setPrefWidth(320);
+        card.setMinWidth(320);
+        card.setStyle(
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 22;" +
+                        "-fx-border-color: #dfe6ee;" +
+                        "-fx-border-radius: 22;" +
+                        "-fx-padding: 0;"
+        );
+
+        DropShadow baseShadow = new DropShadow();
+        baseShadow.setRadius(12);
+        baseShadow.setSpread(0.08);
+        baseShadow.setOffsetY(3);
+        baseShadow.setColor(Color.rgb(17, 34, 68, 0.10));
+        card.setEffect(baseShadow);
+
+        card.setOnMouseEntered(e -> {
+            DropShadow hoverShadow = new DropShadow();
+            hoverShadow.setRadius(26);
+            hoverShadow.setSpread(0.12);
+            hoverShadow.setOffsetY(10);
+            hoverShadow.setColor(Color.rgb(18, 152, 183, 0.28));
+            card.setEffect(hoverShadow);
+            card.setTranslateY(-6);
+            card.setStyle(
+                    "-fx-background-color: white;" +
+                            "-fx-background-radius: 22;" +
+                            "-fx-border-color: #9fdceb;" +
+                            "-fx-border-radius: 22;" +
+                            "-fx-padding: 0;"
+            );
+        });
+
+        card.setOnMouseExited(e -> {
+            card.setEffect(baseShadow);
+            card.setTranslateY(0);
+            card.setStyle(
+                    "-fx-background-color: white;" +
+                            "-fx-background-radius: 22;" +
+                            "-fx-border-color: #dfe6ee;" +
+                            "-fx-border-radius: 22;" +
+                            "-fx-padding: 0;"
+            );
+        });
+
+        StackPane imageHeader = buildEventImageHeader(ev);
+        VBox.setVgrow(imageHeader, Priority.NEVER);
+
+        VBox content = new VBox(10);
+        content.setStyle("-fx-padding: 0 18 18 18;");
+
+        Label titre = new Label(valueOrDash(ev.getTitre_event()));
+        titre.setWrapText(true);
+        titre.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #0b2c6f;");
+
+        Label type = new Label("🏷 Type : " + safe(ev.getType_event()));
+        Label ville = new Label("📍 Ville : " + safe(ev.getVille_event()));
+        Label statut = new Label("✔ Statut : " + safe(ev.getStatut_event()));
+        Label organisateur = new Label("👤 Organisateur : " + safe(ev.getNom_organisateur_event()));
+
+        Label desc = new Label(shortText(valueOrDash(ev.getDescription_event()), 110));
+        desc.setWrapText(true);
+        desc.setStyle("-fx-text-fill: #5f6f86; -fx-font-size: 13px;");
+
+        for (Label meta : List.of(type, ville, statut, organisateur)) {
+            meta.setWrapText(true);
+            meta.setStyle("-fx-text-fill: #4c5f7a; -fx-font-size: 13px; -fx-font-weight: 600;");
+        }
+
+        Button detailsBtn = new Button("Détails");
+        detailsBtn.setStyle(
+                "-fx-background-color: #11a8c9;" +
+                        "-fx-text-fill: white;" +
+                        "-fx-background-radius: 12;" +
+                        "-fx-padding: 8 16;" +
+                        "-fx-font-weight: bold;"
+        );
+        detailsBtn.setText("Details");
+        detailsBtn.setMaxWidth(Double.MAX_VALUE);
+        detailsBtn.setStyle(
+                "-fx-background-color: #11a8c9;" +
+                        "-fx-text-fill: white;" +
+                        "-fx-background-radius: 14;" +
+                        "-fx-padding: 10 16;" +
+                        "-fx-font-weight: bold;"
+        );
+        detailsBtn.setOnAction(e -> afficherPopupDetails(ev));
+
+        content.getChildren().addAll(titre, type, ville, statut, organisateur, desc, detailsBtn);
+        card.getChildren().addAll(imageHeader, content);
+
+        return card;
+    }
+
+    private StackPane buildEventImageHeader(Evenement ev) {
+        StackPane imageHeader = new StackPane();
+        imageHeader.setPrefHeight(180);
+        imageHeader.setMinHeight(180);
+        imageHeader.setStyle(
+                "-fx-background-color: linear-gradient(to right, #dff7fb, #dce8ff);" +
+                        "-fx-background-radius: 22 22 0 0;"
+        );
+
+        Image image = loadEventImage(ev.getImage_couverture_event());
+        if (image != null) {
+            ImageView imageView = new ImageView(image);
+            imageView.setFitWidth(320);
+            imageView.setFitHeight(180);
+            imageView.setPreserveRatio(false);
+            imageView.setSmooth(true);
+            imageHeader.getChildren().add(imageView);
+        } else {
+            Label placeholder = new Label("Aucune image");
+            placeholder.setStyle(
+                    "-fx-text-fill: #2e6f8d;" +
+                            "-fx-font-size: 18px;" +
+                            "-fx-font-weight: bold;"
+            );
+            imageHeader.getChildren().add(placeholder);
+        }
+
+        Label badge = new Label(valueOrDash(ev.getVisibilite_event()));
+        badge.setStyle(
+                "-fx-background-color: rgba(255,255,255,0.92);" +
+                        "-fx-background-radius: 999;" +
+                        "-fx-padding: 6 12;" +
+                        "-fx-text-fill: #0b2c6f;" +
+                        "-fx-font-size: 12px;" +
+                        "-fx-font-weight: bold;"
+        );
+        StackPane.setMargin(badge, new javafx.geometry.Insets(14, 14, 0, 0));
+        StackPane.setAlignment(badge, javafx.geometry.Pos.TOP_RIGHT);
+        imageHeader.getChildren().add(badge);
+
+        return imageHeader;
+    }
+
+    private Image loadEventImage(String imagePath) {
+        if (imagePath == null || imagePath.isBlank()) {
+            return null;
+        }
+
+        try {
+            if (imagePath.startsWith("http://") || imagePath.startsWith("https://") || imagePath.startsWith("file:/")) {
+                return new Image(imagePath, true);
+            }
+
+            File file = new File(imagePath);
+            if (file.exists()) {
+                return new Image(file.toURI().toString(), true);
+            }
+        } catch (Exception ignored) {
+        }
+
+        return null;
+    }
+
+    private String valueOrDash(String value) {
+        return (value == null || value.isBlank()) ? "-" : value;
+    }
+
+    private void afficherPopupDetails(Evenement ev) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Détails de l'événement");
+        alert.setHeaderText(safe(ev.getTitre_event()));
+
+        String details =
+                "Type : " + safe(ev.getType_event()) + "\n" +
+                        "Ville : " + safe(ev.getVille_event()) + "\n" +
+                        "Statut : " + safe(ev.getStatut_event()) + "\n" +
+                        "Organisateur : " + safe(ev.getNom_organisateur_event()) + "\n" +
+                        "Description : " + safe(ev.getDescription_event());
+
+        alert.setContentText(details);
+        alert.showAndWait();
+    }
+    private String shortText(String value, int max) {
+        if (value == null) return "";
+        if (value.length() <= max) return value;
+        return value.substring(0, max) + "...";
+    }
+    private void ouvrirPageCardsBack() {
+        try {
+            Parent root = FXMLLoader.load(getClass().getResource("/EvenementCardsBack.fxml"));
+
+            Stage stage = resolveCurrentStage();
+            if (stage == null) {
+                throw new Exception("Impossible de rÃ©cupÃ©rer la fenÃªtre actuelle.");
+            }
+            stage.setTitle("Événements - Vue Cards");
+            applySceneToStage(stage, root, "Ã‰vÃ©nements - Vue Cards");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Erreur", "Impossible d'ouvrir la vue cards : " + e.getMessage());
+        }
+    }
+
+    private Stage resolveCurrentStage() {
+        if (evenementTable != null && evenementTable.getScene() != null) {
+            return (Stage) evenementTable.getScene().getWindow();
+        }
+        if (tfTitreEvent != null && tfTitreEvent.getScene() != null) {
+            return (Stage) tfTitreEvent.getScene().getWindow();
+        }
+        if (cardsContainer != null && cardsContainer.getScene() != null) {
+            return (Stage) cardsContainer.getScene().getWindow();
+        }
+        return null;
+    }
+
+    private void applySceneToStage(Stage stage, Parent root, String title) {
+        boolean wasMaximized = stage.isMaximized();
+        double sceneWidth = stage.getWidth() > 0 ? stage.getWidth() : DEFAULT_SCENE_WIDTH;
+        double sceneHeight = stage.getHeight() > 0 ? stage.getHeight() : DEFAULT_SCENE_HEIGHT;
+
+        stage.setScene(new Scene(root, sceneWidth, sceneHeight));
+        stage.setTitle(title);
+        stage.setResizable(true);
+        stage.setWidth(sceneWidth);
+        stage.setHeight(sceneHeight);
+        stage.setMaximized(wasMaximized);
+        stage.centerOnScreen();
+        stage.show();
+    }
+
+
 
     /* ===================== UTIL ===================== */
     private String safe(String v) { return v == null ? "" : v.toLowerCase(Locale.ROOT); }

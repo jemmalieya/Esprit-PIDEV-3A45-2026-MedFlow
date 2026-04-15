@@ -1,5 +1,6 @@
 package tn.esprit.controllers;
-
+import javafx.scene.control.Dialog;
+import javafx.scene.control.DialogPane;
 import javafx.animation.FadeTransition;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
@@ -252,19 +253,20 @@ public class PanierController {
         Button deleteBtn = new Button("🗑");
         deleteBtn.getStyleClass().add("delete-cart-btn");
         deleteBtn.setOnAction(e -> {
-            Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-            confirm.setTitle("Confirmation");
-            confirm.setHeaderText("Suppression de l'article");
-            confirm.setContentText("Voulez-vous vraiment supprimer cet article du panier : " + produit.getNom_produit() + " ?");
+            boolean confirmed = showStyledConfirmationDialog(
+                    "🗑 Supprimer l'article",
+                    "Voulez-vous retirer \"" + produit.getNom_produit() + "\" du panier ?",
+                    "Supprimer",
+                    "Annuler",
+                    "danger"
+            );
 
-            Optional<ButtonType> result = confirm.showAndWait();
-            if (result.isPresent() && result.get() == ButtonType.OK) {
+            if (confirmed) {
                 CartSession.supprimerToutesOccurrences(produit);
                 showSuccessAlert("Article supprimé du panier : " + produit.getNom_produit());
                 refreshPanier();
             }
         });
-
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
@@ -274,13 +276,15 @@ public class PanierController {
 
     @FXML
     private void viderPanier() {
-        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.setTitle("Confirmation");
-        confirm.setHeaderText("Vider le panier");
-        confirm.setContentText("Voulez-vous vraiment vider le panier ? Tous les articles seront supprimés.");
+        boolean confirmed = showStyledConfirmationDialog(
+                "🧹 Vider le panier",
+                "Voulez-vous vraiment vider le panier ? Tous les articles seront supprimés.",
+                "Vider",
+                "Annuler",
+                "danger"
+        );
 
-        Optional<ButtonType> result = confirm.showAndWait();
-        if (result.isPresent() && result.get() == ButtonType.OK) {
+        if (confirmed) {
             CartSession.viderPanier();
             showSuccessAlert("Panier vidé avec succès.");
             refreshPanier();
@@ -315,14 +319,15 @@ public class PanierController {
             return;
         }
 
-        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.setTitle("Confirmation");
-        confirm.setHeaderText("Validation de la commande");
-        confirm.setContentText("Voulez-vous vraiment confirmer cette commande ?");
+        boolean confirmed = showStyledConfirmationDialog(
+                "✅ Confirmer la commande",
+                "Voulez-vous vraiment confirmer cette commande ?",
+                "Confirmer",
+                "Annuler",
+                "success"
+        );
 
-        Optional<ButtonType> result = confirm.showAndWait();
-
-        if (result.isEmpty() || result.get() != ButtonType.OK) {
+        if (!confirmed) {
             return;
         }
 
@@ -343,16 +348,16 @@ public class PanierController {
         }
 
         User user = new User();
-        user.setId(1); // adapte ici avec l'utilisateur connecté
+        user.setId(1);
 
         boolean succes = commandeService.validerCommandeDepuisPanier(user, lignes);
 
         if (succes) {
-            showAlert("Succès", "Commande validée et enregistrée avec succès.");
+            showSuccessAlert("Commande validée avec succès.");
             CartSession.viderPanier();
             refreshPanier();
         } else {
-            showAlert("Erreur", "Échec lors de la validation de la commande.");
+            showFloatingToast("Échec lors de la validation de la commande.", "toast-danger", "✖");
         }
     }
 
@@ -361,108 +366,158 @@ public class PanierController {
     }
 
     private void showAlert(String title, String content) {
-        Platform.runLater(() -> {
-            // Custom overlay alert instead of modal dialog
-            Label alertLabel = new Label(content);
-            alertLabel.getStyleClass().add("info-alert");
-            alertLabel.setMaxWidth(400);
-            alertLabel.setAlignment(Pos.CENTER);
-
-            StackPane alertContainer = new StackPane();
-            alertContainer.getChildren().add(alertLabel);
-            alertContainer.setAlignment(Pos.TOP_CENTER);
-            alertContainer.setPadding(new Insets(20, 20, 0, 20));
-
-            BorderPane root = (BorderPane) panierContainer.getScene().getRoot();
-            ScrollPane scroll = (ScrollPane) root.getCenter();
-            VBox panierMain = (VBox) scroll.getContent();
-            panierMain.getChildren().add(0, alertContainer);
-
-            alertLabel.setOpacity(0);
-            FadeTransition fadeIn = new FadeTransition(Duration.seconds(0.5), alertLabel);
-            fadeIn.setFromValue(0);
-            fadeIn.setToValue(1);
-            fadeIn.play();
-
-            PauseTransition delay = new PauseTransition(Duration.seconds(3));
-            delay.setOnFinished(event -> {
-                FadeTransition fadeOut = new FadeTransition(Duration.seconds(0.5), alertLabel);
-                fadeOut.setFromValue(1);
-                fadeOut.setToValue(0);
-                fadeOut.setOnFinished(e -> panierMain.getChildren().remove(alertContainer));
-                fadeOut.play();
-            });
-            delay.play();
-        });
+        showFloatingToast(content, "toast-info", "ℹ");
     }
 
     private void showStockInsufficiencyAlert(String productName, int availableQuantity) {
-        Platform.runLater(() -> {
-            Label stockAlert = new Label("Stock insuffisant pour " + productName + ". Disponible: " + availableQuantity);
-            stockAlert.getStyleClass().add("stock-insuff-alert");
-            stockAlert.setMaxWidth(400);
-            stockAlert.setAlignment(Pos.CENTER);
-
-            StackPane alertContainer = new StackPane();
-            alertContainer.getChildren().add(stockAlert);
-            alertContainer.setAlignment(Pos.TOP_CENTER);
-            alertContainer.setPadding(new Insets(20, 20, 0, 20));
-
-            BorderPane root = (BorderPane) panierContainer.getScene().getRoot();
-            ScrollPane scroll = (ScrollPane) root.getCenter();
-            VBox panierMain = (VBox) scroll.getContent();
-            panierMain.getChildren().add(0, alertContainer);
-
-            stockAlert.setOpacity(0);
-            FadeTransition fadeIn = new FadeTransition(Duration.seconds(0.5), stockAlert);
-            fadeIn.setFromValue(0);
-            fadeIn.setToValue(1);
-            fadeIn.play();
-
-            PauseTransition delay = new PauseTransition(Duration.seconds(3));
-            delay.setOnFinished(event -> {
-                FadeTransition fadeOut = new FadeTransition(Duration.seconds(0.5), stockAlert);
-                fadeOut.setFromValue(1);
-                fadeOut.setToValue(0);
-                fadeOut.setOnFinished(e -> panierMain.getChildren().remove(alertContainer));
-                fadeOut.play();
-            });
-            delay.play();
-        });
+        String message = "Stock insuffisant pour " + productName + " (reste : " + availableQuantity + ")";
+        showFloatingToast(message, "toast-warning", "⚠");
     }
 
+
     private void showSuccessAlert(String message) {
-        Platform.runLater(() -> {
-            Label successAlert = new Label(message);
-            successAlert.getStyleClass().add("success-alert");
-            successAlert.setMaxWidth(400);
-            successAlert.setAlignment(Pos.CENTER);
+        showFloatingToast(message, "toast-success", "✅");
+    }
 
-            StackPane alertContainer = new StackPane();
-            alertContainer.getChildren().add(successAlert);
-            alertContainer.setAlignment(Pos.TOP_CENTER);
-            alertContainer.setPadding(new Insets(20, 20, 0, 20));
+    private void showFloatingToast(String message, String styleClass, String iconText) {
+        if (panierContainer == null || panierContainer.getScene() == null) return;
 
-            BorderPane root = (BorderPane) panierContainer.getScene().getRoot();
-            ScrollPane scroll = (ScrollPane) root.getCenter();
-            VBox panierMain = (VBox) scroll.getContent();
-            panierMain.getChildren().add(0, alertContainer);
+        Scene scene = panierContainer.getScene();
+        if (scene == null) return;
 
-            successAlert.setOpacity(0);
-            FadeTransition fadeIn = new FadeTransition(Duration.seconds(0.5), successAlert);
-            fadeIn.setFromValue(0);
-            fadeIn.setToValue(1);
-            fadeIn.play();
+        javafx.stage.Window window = scene.getWindow();
+        if (window == null) return;
 
-            PauseTransition delay = new PauseTransition(Duration.seconds(3));
-            delay.setOnFinished(event -> {
-                FadeTransition fadeOut = new FadeTransition(Duration.seconds(0.5), successAlert);
-                fadeOut.setFromValue(1);
-                fadeOut.setToValue(0);
-                fadeOut.setOnFinished(e -> panierMain.getChildren().remove(alertContainer));
-                fadeOut.play();
-            });
-            delay.play();
-        });
+        HBox toast = new HBox(10);
+        toast.setAlignment(Pos.CENTER_LEFT);
+        toast.getStyleClass().addAll("floating-toast", styleClass);
+        toast.setMaxWidth(360);
+
+        Label icon = new Label(iconText);
+        icon.getStyleClass().add("toast-icon");
+
+        Label textLabel = new Label(message);
+        textLabel.getStyleClass().add("toast-text");
+        textLabel.setWrapText(true);
+        textLabel.setMaxWidth(290);
+
+        toast.getChildren().addAll(icon, textLabel);
+
+        javafx.stage.Popup popup = new javafx.stage.Popup();
+        popup.getContent().add(toast);
+        popup.setAutoHide(false);
+        popup.setHideOnEscape(false);
+        popup.setAutoFix(true);
+
+        popup.show(window);
+
+        URL cssUrl = getClass().getResource("/CSS/panier.css");
+        if (cssUrl != null && popup.getScene() != null) {
+            popup.getScene().getStylesheets().add(cssUrl.toExternalForm());
+        }
+
+        toast.applyCss();
+        toast.layout();
+
+        double popupWidth = Math.max(320, toast.prefWidth(-1));
+        double x = window.getX() + scene.getWidth() - popupWidth - 24;
+        double y = window.getY() + scene.getHeight() - 110;
+
+        popup.setX(x);
+        popup.setY(y);
+
+        toast.setOpacity(0);
+        toast.setTranslateY(16);
+        icon.setScaleX(0.7);
+        icon.setScaleY(0.7);
+
+        FadeTransition fadeIn = new FadeTransition(Duration.millis(220), toast);
+        fadeIn.setFromValue(0);
+        fadeIn.setToValue(1);
+
+        javafx.animation.TranslateTransition slideIn =
+                new javafx.animation.TranslateTransition(Duration.millis(220), toast);
+        slideIn.setFromY(16);
+        slideIn.setToY(0);
+
+        javafx.animation.ScaleTransition popIcon =
+                new javafx.animation.ScaleTransition(Duration.millis(260), icon);
+        popIcon.setFromX(0.7);
+        popIcon.setFromY(0.7);
+        popIcon.setToX(1.0);
+        popIcon.setToY(1.0);
+
+        javafx.animation.ParallelTransition enter =
+                new javafx.animation.ParallelTransition(fadeIn, slideIn, popIcon);
+
+        PauseTransition pause = new PauseTransition(Duration.seconds(2.1));
+
+        FadeTransition fadeOut = new FadeTransition(Duration.millis(220), toast);
+        fadeOut.setFromValue(1);
+        fadeOut.setToValue(0);
+
+        javafx.animation.TranslateTransition slideOut =
+                new javafx.animation.TranslateTransition(Duration.millis(220), toast);
+        slideOut.setFromY(0);
+        slideOut.setToY(10);
+
+        javafx.animation.ParallelTransition exit =
+                new javafx.animation.ParallelTransition(fadeOut, slideOut);
+
+        javafx.animation.SequentialTransition sequence =
+                new javafx.animation.SequentialTransition(enter, pause, exit);
+
+        sequence.setOnFinished(e -> popup.hide());
+        sequence.play();
+    }
+
+    private boolean showStyledConfirmationDialog(String title, String message, String confirmText, String cancelText, String variant) {
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("");
+        dialog.setHeaderText(null);
+
+        DialogPane pane = dialog.getDialogPane();
+        pane.getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        URL cssUrl = getClass().getResource("/CSS/panier.css");
+        if (cssUrl != null) {
+            pane.getStylesheets().add(cssUrl.toExternalForm());
+        }
+        pane.getStyleClass().add("confirm-dialog");
+
+        VBox content = new VBox(18);
+        content.setAlignment(Pos.CENTER);
+        content.setPadding(new Insets(24));
+
+        Label icon = new Label(
+                "danger".equals(variant) ? "⚠" :
+                        "success".equals(variant) ? "✅" : "ℹ"
+        );
+        icon.getStyleClass().add("confirm-dialog-icon");
+
+        Label titleLabel = new Label(title);
+        titleLabel.getStyleClass().add("confirm-dialog-title");
+        titleLabel.setWrapText(true);
+
+        Label msgLabel = new Label(message);
+        msgLabel.getStyleClass().add("confirm-dialog-message");
+        msgLabel.setWrapText(true);
+
+        content.getChildren().addAll(icon, titleLabel, msgLabel);
+        pane.setContent(content);
+
+        Button okButton = (Button) pane.lookupButton(ButtonType.OK);
+        Button cancelButton = (Button) pane.lookupButton(ButtonType.CANCEL);
+
+        okButton.setText(confirmText);
+        cancelButton.setText(cancelText);
+
+        okButton.getStyleClass().add(
+                "danger".equals(variant) ? "confirm-danger-btn" : "confirm-success-btn"
+        );
+        cancelButton.getStyleClass().add("confirm-cancel-btn");
+
+        Optional<ButtonType> result = dialog.showAndWait();
+        return result.isPresent() && result.get() == ButtonType.OK;
     }
 }

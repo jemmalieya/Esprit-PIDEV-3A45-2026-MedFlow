@@ -1,0 +1,51 @@
+/* Admin dashboard dedicated styles (loaded on top of evenement-dashboard.css) */
+
+.admin-filter-card {
+    -fx-background-color: linear-gradient(to right, #25aeca, #4c83f2);
+    -fx-background-radius: 22px;
+}
+
+.admin-filter-card .list-title {
+    -fx-font-size: 24px;
+}
+
+.admin-filter-card .top-search-box {
+    -fx-padding: 12 14;
+    -fx-background-radius: 16px;
+}
+
+.compact-stat-card {
+    -fx-padding: 12 12;
+    -fx-background-radius: 18px;
+    -fx-border-radius: 18px;
+}
+
+.compact-stat-card .stat-badge {
+    -fx-pref-width: 34px;
+    -fx-pref-height: 34px;
+    -fx-min-width: 34px;
+    -fx-min-height: 34px;
+    -fx-max-width: 34px;
+    -fx-max-height: 34px;
+}
+
+.compact-stat-card .stat-emoji {
+    -fx-font-size: 14px;
+}
+
+.compact-stat-card .stat-number {
+    -fx-font-size: 24px;
+}
+
+.compact-stat-card .stat-text {
+    -fx-font-size: 13px;
+}
+
+.ban-btn {
+    -fx-background-color: #fff7e7;
+    -fx-text-fill: #bf8b08;
+}
+
+.ban-btn:hover {
+    -fx-background-color: #ffefca;
+}

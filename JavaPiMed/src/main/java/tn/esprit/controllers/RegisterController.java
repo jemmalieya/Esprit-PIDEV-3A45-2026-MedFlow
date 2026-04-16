@@ -62,6 +62,33 @@ public class RegisterController {
     @FXML
     private Label signupStatusLabel;
 
+    @FXML
+    private Label cinErrorLabel;
+
+    @FXML
+    private Label nomErrorLabel;
+
+    @FXML
+    private Label prenomErrorLabel;
+
+    @FXML
+    private Label dateNaissanceErrorLabel;
+
+    @FXML
+    private Label telephoneErrorLabel;
+
+    @FXML
+    private Label emailErrorLabel;
+
+    @FXML
+    private Label adresseErrorLabel;
+
+    @FXML
+    private Label passwordErrorLabel;
+
+    @FXML
+    private Label confirmPasswordErrorLabel;
+
     private final UserService userService = new UserService();
 
     // Validation flags
@@ -237,31 +264,64 @@ public class RegisterController {
         boolean visible = message != null && !message.isEmpty();
         signupStatusLabel.setVisible(visible);
         signupStatusLabel.setManaged(visible);
-        String color = success ? "#16a34a" : "#dc2626";
-        signupStatusLabel.setStyle("-fx-text-fill: " + color + "; -fx-font-size: 12px; -fx-font-weight: bold;");
+        signupStatusLabel.getStyleClass().removeAll("status-error", "status-success");
+        if (visible) {
+            signupStatusLabel.getStyleClass().add(success ? "status-success" : "status-error");
+        }
     }
 
     private void markError(TextField field) {
         if (field != null) {
-            field.setStyle("-fx-border-color: #dc2626; -fx-border-width: 1.2; -fx-background-radius: 6; -fx-border-radius: 6;");
+            field.setStyle("-fx-border-color: #dc2626; -fx-border-width: 1.2; -fx-background-radius: 6; -fx-border-radius: 6; -fx-text-fill: #e5e7eb; -fx-prompt-text-fill: #9ca3af;");
         }
     }
 
     private void markValid(TextField field) {
         if (field != null) {
+            field.setStyle("-fx-border-color: #16a34a; -fx-border-width: 1.2; -fx-background-radius: 6; -fx-border-radius: 6; -fx-text-fill: #e5e7eb; -fx-prompt-text-fill: #9ca3af;");
+        }
+    }
+
+    private void markError(DatePicker field) {
+        if (field != null) {
+            field.setStyle("-fx-border-color: #dc2626; -fx-border-width: 1.2; -fx-background-radius: 6; -fx-border-radius: 6;");
+        }
+    }
+
+    private void markValid(DatePicker field) {
+        if (field != null) {
             field.setStyle("-fx-border-color: #16a34a; -fx-border-width: 1.2; -fx-background-radius: 6; -fx-border-radius: 6;");
         }
+    }
+
+    private void showFieldError(Label label, String message) {
+        if (label == null) return;
+        label.setText(message == null ? "" : message);
+        boolean visible = message != null && !message.isBlank();
+        label.setVisible(visible);
+        label.setManaged(visible);
     }
 
     private void clearValidationStyles() {
         if (cinField != null) cinField.setStyle("");
         if (nomField != null) nomField.setStyle("");
         if (prenomField != null) prenomField.setStyle("");
+        if (dateNaissancePicker != null) dateNaissancePicker.setStyle("");
         if (telephoneField != null) telephoneField.setStyle("");
         if (emailField != null) emailField.setStyle("");
         if (adresseField != null) adresseField.setStyle("");
         if (motDePasseField != null) motDePasseField.setStyle("");
         if (confirmerMotDePasseField != null) confirmerMotDePasseField.setStyle("");
+
+        showFieldError(cinErrorLabel, "");
+        showFieldError(nomErrorLabel, "");
+        showFieldError(prenomErrorLabel, "");
+        showFieldError(dateNaissanceErrorLabel, "");
+        showFieldError(telephoneErrorLabel, "");
+        showFieldError(emailErrorLabel, "");
+        showFieldError(adresseErrorLabel, "");
+        showFieldError(passwordErrorLabel, "");
+        showFieldError(confirmPasswordErrorLabel, "");
     }
 
     private void validateCin() {
@@ -269,9 +329,11 @@ public class RegisterController {
         if (value.matches("\\d{8}")) {
             cinValid = true;
             markValid(cinField);
+            showFieldError(cinErrorLabel, "");
         } else {
             cinValid = false;
             markError(cinField);
+            showFieldError(cinErrorLabel, value.isEmpty() ? "Le CIN est obligatoire." : "Le CIN doit contenir exactement 8 chiffres.");
         }
     }
 
@@ -280,9 +342,11 @@ public class RegisterController {
         if (!value.isEmpty()) {
             nomValid = true;
             markValid(nomField);
+            showFieldError(nomErrorLabel, "");
         } else {
             nomValid = false;
             markError(nomField);
+            showFieldError(nomErrorLabel, "Le nom est obligatoire.");
         }
     }
 
@@ -291,17 +355,23 @@ public class RegisterController {
         if (!value.isEmpty()) {
             prenomValid = true;
             markValid(prenomField);
+            showFieldError(prenomErrorLabel, "");
         } else {
             prenomValid = false;
             markError(prenomField);
+            showFieldError(prenomErrorLabel, "Le prénom est obligatoire.");
         }
     }
 
     private void validateDateNaissance() {
         if (dateNaissancePicker.getValue() != null) {
             dateNaissanceValid = true;
+            markValid(dateNaissancePicker);
+            showFieldError(dateNaissanceErrorLabel, "");
         } else {
             dateNaissanceValid = false;
+            markError(dateNaissancePicker);
+            showFieldError(dateNaissanceErrorLabel, "La date de naissance est obligatoire.");
         }
     }
 
@@ -310,15 +380,18 @@ public class RegisterController {
         if (value.isEmpty()) {
             telephoneValid = false;
             markError(telephoneField);
+            showFieldError(telephoneErrorLabel, "Le téléphone est obligatoire.");
             return;
         }
         // 8 digits or +216 followed by 8 digits
         if (value.matches("\\d{8}") || value.matches("\\+216\\d{8}")) {
             telephoneValid = true;
             markValid(telephoneField);
+            showFieldError(telephoneErrorLabel, "");
         } else {
             telephoneValid = false;
             markError(telephoneField);
+            showFieldError(telephoneErrorLabel, "Format invalide. Exemple: 54430709 ou +21654430709.");
         }
     }
 
@@ -327,14 +400,17 @@ public class RegisterController {
         if (value.isEmpty()) {
             emailValid = false;
             markError(emailField);
+            showFieldError(emailErrorLabel, "L'adresse e-mail est obligatoire.");
             return;
         }
         if (value.matches("^[^@]+@[^@]+\\.[^@]+$")) {
             emailValid = true;
             markValid(emailField);
+            showFieldError(emailErrorLabel, "");
         } else {
             emailValid = false;
             markError(emailField);
+            showFieldError(emailErrorLabel, "Adresse e-mail invalide.");
         }
     }
 
@@ -344,9 +420,11 @@ public class RegisterController {
             // Adresse optionnelle : on considère valide mais sans style particulier
             adresseValid = true;
             if (adresseField != null) adresseField.setStyle("");
+            showFieldError(adresseErrorLabel, "");
         } else {
             adresseValid = true;
             markValid(adresseField);
+            showFieldError(adresseErrorLabel, "");
         }
     }
 
@@ -355,9 +433,11 @@ public class RegisterController {
         if (value.length() >= 8) {
             passwordValid = true;
             markValid(motDePasseField);
+            showFieldError(passwordErrorLabel, "");
         } else {
             passwordValid = false;
             markError(motDePasseField);
+            showFieldError(passwordErrorLabel, "Le mot de passe doit contenir au moins 8 caractères.");
         }
     }
 
@@ -367,9 +447,11 @@ public class RegisterController {
         if (!pwd.isEmpty() && pwd.equals(confirm)) {
             confirmPasswordValid = true;
             markValid(confirmerMotDePasseField);
+            showFieldError(confirmPasswordErrorLabel, "");
         } else {
             confirmPasswordValid = false;
             markError(confirmerMotDePasseField);
+            showFieldError(confirmPasswordErrorLabel, "Les mots de passe ne correspondent pas.");
         }
     }
 

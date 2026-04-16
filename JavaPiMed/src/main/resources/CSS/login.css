@@ -468,6 +468,13 @@
     -fx-font-size: 12px;
 }
 
+.field-error {
+    -fx-text-fill: #fca5a5;
+    -fx-font-size: 11px;
+    -fx-font-weight: 600;
+    -fx-padding: 0 2 2 2;
+}
+
 .signup-date-picker {
     -fx-background-color: #1E293B;
     -fx-background-radius: 12;

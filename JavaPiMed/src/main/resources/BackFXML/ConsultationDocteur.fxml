@@ -3,7 +3,7 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<AnchorPane xmlns:fx="http://javafx.com/fxml" fx:controller="tn.esprit.controllers.ConsultationDocteur" prefWidth="1400" prefHeight="800" styleClass="back-root">
+<AnchorPane xmlns:fx="http://javafx.com/fxml" fx:controller="tn.esprit.controllers.ConsultationDocteur" prefWidth="1400" prefHeight="800" styleClass="back-root" stylesheets="@CSS/dashboardBackCSS.css">
     <VBox prefWidth="220" styleClass="sidebar" AnchorPane.leftAnchor="0.0" AnchorPane.topAnchor="0.0" AnchorPane.bottomAnchor="0.0">
         <HBox alignment="CENTER_LEFT" spacing="10" styleClass="logo-row">
             <Label text="❤" styleClass="logo-icon"/>

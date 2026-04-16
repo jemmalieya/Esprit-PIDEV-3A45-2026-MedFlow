@@ -317,7 +317,7 @@ public class LoginController {
                 // Responsable patients : back-office fiches/patients.
                 // TODO: remplace la chaîne vide par le chemin FXML réel
                 //       (ex: "/PatientsDashboard.fxml").
-                navigateTo(event, "/ConsultationDocteur.fxml", "MedFlow - Espace Patients (back-office)");
+                navigateTo(event, "/BackFXML/ConsultationDocteur.fxml", "MedFlow - Espace Patients (back-office)");
             } else if ("RESP_USERS".equals(typeStaff)) {
                 // Responsable utilisateurs : back-office gestion utilisateurs.
                 // TODO: remplace la chaîne vide par le chemin FXML réel

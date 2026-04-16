@@ -42,6 +42,7 @@
             <artifactId>junit-jupiter</artifactId>
             <version>5.10.1</version>
             <scope>test</scope>
+        </dependency>
         <!-- BCrypt for password hashing/verification -->
         <dependency>
             <groupId>org.mindrot</groupId>

@@ -23,10 +23,7 @@ public class DashboardBIServiceEvenement {
         for (Evenement e : events) {
             if (e.getDate_debut_event() != null) {
 
-                LocalDate d = e.getDate_debut_event()
-                        .toInstant()
-                        .atZone(ZoneId.systemDefault())
-                        .toLocalDate();
+                LocalDate d = ((java.sql.Date) e.getDate_debut_event()).toLocalDate();
 
                 if (!d.isBefore(debut) && !d.isAfter(fin)) {
                     filtres.add(e);

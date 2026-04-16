@@ -165,13 +165,15 @@
                             </HBox>
 
                             <Region HBox.hgrow="ALWAYS"/>
-
-                            <HBox spacing="12.0" alignment="CENTER_RIGHT">
+                            <HBox alignment="CENTER_RIGHT" spacing="10.0">
                                 <children>
-                                    <Label text="🔔 Alertes Réclamations 0" styleClass="pill-label"/>
-                                    <ComboBox fx:id="sortCombo" styleClass="sort-combo"/>
+                                    <ComboBox fx:id="sortCombo"
+                                              prefWidth="180.0"
+                                              styleClass="combo-box"/>
                                 </children>
                             </HBox>
+
+
                         </children>
                     </HBox>
 
@@ -205,18 +207,6 @@
                             </StackPane>
                             <Label fx:id="reponduesLabel" text="0" styleClass="stat-number"/>
                             <Label text="Répondues" styleClass="stat-text"/>
-                        </children>
-                    </VBox>
-
-                    <VBox spacing="16.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
-                        <children>
-                            <StackPane prefWidth="46.0" prefHeight="46.0" styleClass="stat-badge orange-badge">
-                                <children>
-                                    <Label text="⏳" styleClass="stat-emoji"/>
-                                </children>
-                            </StackPane>
-                            <Label fx:id="enAttenteLabel" text="0" styleClass="stat-number"/>
-                            <Label text="En Attente" styleClass="stat-text"/>
                         </children>
                     </VBox>
 

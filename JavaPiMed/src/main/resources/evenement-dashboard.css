@@ -445,3 +445,89 @@
     -fx-background-color: #fff0f0;
     -fx-text-fill: #e15b5b;
 }
+
+/* ===================== FORM STYLES ===================== */
+.form-card {
+    -fx-background-color: white;
+    -fx-background-radius: 26px;
+    -fx-border-color: #dfe7f2;
+    -fx-border-radius: 26px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 10, 0.12, 0, 2);
+}
+
+.form-section-title {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1298b7;
+    -fx-padding: 0 0 12 0;
+}
+
+.form-label {
+    -fx-font-size: 15px;
+    -fx-font-weight: 600;
+    -fx-text-fill: #536b92;
+    -fx-padding: 8 0;
+}
+
+.form-combo {
+    -fx-pref-height: 46px;
+    -fx-background-color: #f5f8ff;
+    -fx-background-radius: 12px;
+    -fx-border-color: #dfe7f2;
+    -fx-border-radius: 12px;
+    -fx-font-size: 14px;
+    -fx-padding: 10 12;
+}
+
+.form-combo:focused {
+    -fx-background-color: white;
+    -fx-border-color: #1298b7;
+    -fx-border-width: 2px;
+}
+
+.form-textarea {
+    -fx-control-inner-background: #f5f8ff;
+    -fx-text-fill: #0c2f74;
+    -fx-font-size: 14px;
+    -fx-font-family: "Segoe UI", Arial, sans-serif;
+    -fx-padding: 12;
+    -fx-border-color: #dfe7f2;
+    -fx-border-radius: 12px;
+    -fx-background-radius: 12px;
+}
+
+.form-textarea:focused {
+    -fx-control-inner-background: white;
+    -fx-border-color: #1298b7;
+    -fx-border-width: 2px;
+}
+
+.submit-btn {
+    -fx-background-color: #1298b7;
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 18px;
+    -fx-padding: 12 32;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(18,152,183,0.25), 8, 0.2, 0, 2);
+}
+
+.submit-btn:hover {
+    -fx-background-color: #0f7a96;
+    -fx-effect: dropshadow(gaussian, rgba(18,152,183,0.35), 10, 0.25, 0, 3);
+}
+
+.cancel-btn {
+    -fx-background-color: #e5eef6;
+    -fx-text-fill: #536b92;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 18px;
+    -fx-padding: 12 32;
+    -fx-cursor: hand;
+}
+
+.cancel-btn:hover {
+    -fx-background-color: #d5dfe8;
+}

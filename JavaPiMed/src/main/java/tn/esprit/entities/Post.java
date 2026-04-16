@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 public class Post {
 
     private int id;
-    private Integer user_id;
+    private User user;
     private String titre;
     private String contenu;
     private String localisation;
@@ -27,12 +27,12 @@ public class Post {
     public Post() {
     }
 
-    public Post(Integer user_id, String titre, String contenu, String localisation, String img_post,
+    public Post(User user, String titre, String contenu, String localisation, String img_post,
                 String hashtags, String visibilite, LocalDateTime date_creation, boolean est_anonyme,
                 String categorie, String humeur, int nbr_reactions, int nbr_commentaires,
                 boolean is_approved, String moderation_status, String moderation_message,
                 boolean moderation_seen) {
-        this.user_id = user_id;
+        this.user = user;
         this.titre = titre;
         this.contenu = contenu;
         this.localisation = localisation;
@@ -51,13 +51,13 @@ public class Post {
         this.moderation_seen = moderation_seen;
     }
 
-    public Post(int id, Integer user_id, String titre, String contenu, String localisation, String img_post,
+    public Post(int id, User user, String titre, String contenu, String localisation, String img_post,
                 String hashtags, String visibilite, LocalDateTime date_creation,
                 LocalDateTime date_modification, boolean est_anonyme, String categorie,
                 String humeur, int nbr_reactions, int nbr_commentaires, boolean is_approved,
                 String moderation_status, String moderation_message, boolean moderation_seen) {
         this.id = id;
-        this.user_id = user_id;
+        this.user = user;
         this.titre = titre;
         this.contenu = contenu;
         this.localisation = localisation;
@@ -86,12 +86,12 @@ public class Post {
     }
 
 
-    public Integer getUser_id() {
-        return user_id;
+    public User getUser() {
+        return user;
     }
 
-    public void setUser_id(Integer user_id) {
-        this.user_id = user_id;
+    public void setUser(User user) {
+        this.user = user;
     }
 
     public String getTitre() {
@@ -230,11 +230,23 @@ public class Post {
         this.moderation_seen = moderation_seen;
     }
 
+    // Ajoute la méthode getUserId() pour Post
+    // (utile pour la persistance et la récupération)
+    public int getUser_id() {
+        return user != null ? user.getId() : 0;
+    }
+
+    // Dans la classe Post :
+    public void setUser_id(int id) {
+        if (this.user == null) this.user = new User();
+        this.user.setId(id);
+    }
+
     @Override
     public String toString() {
         return "Post{" +
                 "id=" + id +
-                ", user_id=" + user_id +
+                ", user=" + (user != null ? user.toString() : null) +
                 ", titre='" + titre + '\'' +
                 ", contenu='" + contenu + '\'' +
                 ", localisation='" + localisation + '\'' +

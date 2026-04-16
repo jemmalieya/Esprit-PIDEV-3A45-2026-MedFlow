@@ -42,6 +42,11 @@ public class NavigationController {
             Stage stage = (Stage) ((Button) event.getSource()).getScene().getWindow();
             stage.setScene(new Scene(root, 1400, 820));
             stage.setTitle("Dashboard");
+            stage.show();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
     private Button accueilButton;
 
     @FXML
@@ -419,11 +424,6 @@ public class NavigationController {
         }
     }
 
-
-    @FXML
-    private void handleRendezVous(ActionEvent event) {
-        navigate(event, "/FrontFXML/Consultation.fxml", "MedFlow - Consultation");
-    }
     @FXML
     private void handleAccueil(ActionEvent event) {
         navigate(event, "/FrontFXML/Accueil.fxml", "MedFlow - Accueil");

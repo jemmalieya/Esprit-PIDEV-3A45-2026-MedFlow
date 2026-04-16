@@ -12,16 +12,18 @@ public class MyDataBase {
     static MyDataBase myDB;
     private MyDataBase()  {
         try{
+            // Ensure the MySQL JDBC driver is loaded
+            Class.forName("com.mysql.cj.jdbc.Driver");
             cnx= DriverManager.getConnection(url,user,password);
             System.out.println("Connected to database successfully");
         }
-        catch(SQLException e){
+        catch(SQLException | ClassNotFoundException e){
             System.out.println(e.getMessage());}
     }
     public static MyDataBase getInstance()
     {
         if(myDB==null) {
-            MyDataBase myDB = new MyDataBase();
+            myDB = new MyDataBase();
 
         }
         return myDB;

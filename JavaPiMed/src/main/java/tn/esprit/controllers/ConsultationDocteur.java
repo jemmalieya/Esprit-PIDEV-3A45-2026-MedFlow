@@ -5,7 +5,9 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
+import javafx.embed.swing.SwingFXUtils;
 import javafx.fxml.FXML;
+import javafx.scene.SnapshotParameters;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
@@ -18,11 +20,23 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.cell.TextFieldTableCell;
+import javafx.scene.chart.BarChart;
+import javafx.scene.chart.PieChart;
+import javafx.scene.chart.XYChart;
+import javafx.scene.image.WritableImage;
 import javafx.scene.input.KeyCode;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.stage.FileChooser;
+import javafx.stage.Window;
 import javafx.util.converter.DefaultStringConverter;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory;
+import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import tn.esprit.entities.FicheMedicale;
 import tn.esprit.entities.Prescription;
 import tn.esprit.entities.RendezVous;
@@ -36,10 +50,16 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.io.File;
+import java.io.IOException;
+import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -76,10 +96,16 @@ public class ConsultationDocteur {
     private Button consultationPageBtn;
 
     @FXML
+    private Button statsPageBtn;
+
+    @FXML
     private VBox pageOneContainer;
 
     @FXML
     private VBox consultationPageContainer;
+
+    @FXML
+    private VBox statsPageContainer;
 
     @FXML
     private TableView<RendezVous> eventTable;
@@ -199,6 +225,25 @@ public class ConsultationDocteur {
     @FXML
     private Button prescriptionDeleteButton;
 
+    @FXML
+    private Label statsTotalRendezVousLabel;
+    @FXML
+    private Label statsConfirmedRendezVousLabel;
+    @FXML
+    private Label statsFinishedRendezVousLabel;
+    @FXML
+    private Label statsFichesCountLabel;
+    @FXML
+    private Label statsPrescriptionsCountLabel;
+    @FXML
+    private PieChart rdvStatusPieChart;
+    @FXML
+    private PieChart rdvModePieChart;
+    @FXML
+    private PieChart topMedicamentsPieChart;
+    @FXML
+    private BarChart<String, Number> urgencyBarChart;
+
     private final ObservableList<RendezVous> doctorRendezVous = FXCollections.observableArrayList();
     private final ObservableList<RendezVous> allDoctorRendezVous = FXCollections.observableArrayList();
     private final ObservableList<Prescription> detailPrescriptions = FXCollections.observableArrayList();
@@ -258,7 +303,7 @@ public class ConsultationDocteur {
 
         updateConsultationTimingLabels(null, null, null, "00:00:00");
 
-        showPage(true);
+        showPage(1);
     }
 
     // Handle doctor selection
@@ -330,12 +375,103 @@ public class ConsultationDocteur {
 
     @FXML
     private void handleShowPageOne(ActionEvent event) {
-        showPage(true);
+        showPage(1);
     }
 
     @FXML
     private void handleShowConsultationPage(ActionEvent event) {
-        showPage(false);
+        showPage(2);
+    }
+
+    @FXML
+    private void handleShowStatsPage(ActionEvent event) {
+        refreshStatsData();
+        showPage(3);
+    }
+
+    @FXML
+    private void handleExportStatsPng(ActionEvent event) {
+        if (statsPageContainer == null || statsPageContainer.getScene() == null) {
+            showError("Export impossible", "La page statistiques n'est pas prête.");
+            return;
+        }
+
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Exporter les statistiques en PNG");
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Image PNG", "*.png"));
+        chooser.setInitialFileName("consultation-stats.png");
+
+        Window window = statsPageContainer.getScene().getWindow();
+        File file = chooser.showSaveDialog(window);
+        if (file == null) {
+            return;
+        }
+
+        try {
+            WritableImage snapshot = snapshotRegion(statsPageContainer);
+            BufferedImage bufferedImage = SwingFXUtils.fromFXImage(snapshot, null);
+            ImageIO.write(bufferedImage, "png", file);
+            showInfo("Export réussi", "PNG généré: " + file.getAbsolutePath());
+        } catch (IOException ex) {
+            showError("Erreur export PNG", "Impossible d'exporter le PNG: " + ex.getMessage());
+        }
+    }
+
+    @FXML
+    private void handleExportStatsPdf(ActionEvent event) {
+        if (statsPageContainer == null || statsPageContainer.getScene() == null) {
+            showError("Export impossible", "La page statistiques n'est pas prête.");
+            return;
+        }
+
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Exporter les statistiques en PDF");
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Document PDF", "*.pdf"));
+        chooser.setInitialFileName("consultation-stats.pdf");
+
+        Window window = statsPageContainer.getScene().getWindow();
+        File file = chooser.showSaveDialog(window);
+        if (file == null) {
+            return;
+        }
+
+        try (PDDocument document = new PDDocument()) {
+            WritableImage snapshot = snapshotRegion(statsPageContainer);
+            BufferedImage bufferedImage = SwingFXUtils.fromFXImage(snapshot, null);
+
+            PDPage page = new PDPage(PDRectangle.A4);
+            document.addPage(page);
+
+            PDImageXObject pdImage = LosslessFactory.createFromImage(document, bufferedImage);
+            float margin = 24f;
+            float pageWidth = page.getMediaBox().getWidth() - (2 * margin);
+            float pageHeight = page.getMediaBox().getHeight() - (2 * margin);
+
+            float imageWidth = pdImage.getWidth();
+            float imageHeight = pdImage.getHeight();
+            float scale = Math.min(pageWidth / imageWidth, pageHeight / imageHeight);
+
+            float drawWidth = imageWidth * scale;
+            float drawHeight = imageHeight * scale;
+            float x = (page.getMediaBox().getWidth() - drawWidth) / 2f;
+            float y = (page.getMediaBox().getHeight() - drawHeight) / 2f;
+
+            try (var contentStream = new org.apache.pdfbox.pdmodel.PDPageContentStream(document, page)) {
+                contentStream.drawImage(pdImage, x, y, drawWidth, drawHeight);
+            }
+
+            document.save(file);
+            showInfo("Export réussi", "PDF généré: " + file.getAbsolutePath());
+        } catch (IOException ex) {
+            showError("Erreur export PDF", "Impossible d'exporter le PDF: " + ex.getMessage());
+        }
+    }
+
+    private WritableImage snapshotRegion(Region region) {
+        region.applyCss();
+        region.layout();
+        SnapshotParameters params = new SnapshotParameters();
+        return region.snapshot(params, null);
     }
 
     @FXML
@@ -591,6 +727,7 @@ public class ConsultationDocteur {
         List<RendezVous> list = rendezVousService.recupererParStaffId(SESSION_DOCTOR_ID);
         allDoctorRendezVous.setAll(list);
         applySearchAndSort();
+        refreshStatsData();
     }
 
     private void applySearchAndSort() {
@@ -670,6 +807,7 @@ public class ConsultationDocteur {
         rendezVous.setStatut("Confirmé");
         rendezVousService.modifier(rendezVous);
         eventTable.refresh();
+        refreshStatsData();
     }
 
     private void startConsultation(RendezVous rendezVous) {
@@ -683,26 +821,181 @@ public class ConsultationDocteur {
         updateConsultationTimingLabels(consultationStartTime, null, null, "00:00:00");
         setSaveButtonEnabled(true);
         startConsultationTimer();
-        showPage(false);
+        showPage(2);
     }
 
-    private void showPage(boolean firstPage) {
+    private void showPage(int page) {
+        boolean showPageOne = page == 1;
+        boolean showConsultationPage = page == 2;
+        boolean showStatsPage = page == 3;
+
         if (pageOneContainer != null) {
-            pageOneContainer.setVisible(firstPage);
-            pageOneContainer.setManaged(firstPage);
+            pageOneContainer.setVisible(showPageOne);
+            pageOneContainer.setManaged(showPageOne);
         }
 
         if (consultationPageContainer != null) {
-            consultationPageContainer.setVisible(!firstPage);
-            consultationPageContainer.setManaged(!firstPage);
+            consultationPageContainer.setVisible(showConsultationPage);
+            consultationPageContainer.setManaged(showConsultationPage);
         }
 
-        updatePageButtons(firstPage);
+        if (statsPageContainer != null) {
+            statsPageContainer.setVisible(showStatsPage);
+            statsPageContainer.setManaged(showStatsPage);
+        }
+
+        updatePageButtons(page);
     }
 
-    private void updatePageButtons(boolean firstPage) {
-        setButtonActive(pageOneBtn, firstPage);
-        setButtonActive(consultationPageBtn, !firstPage);
+    private void updatePageButtons(int page) {
+        setButtonActive(pageOneBtn, page == 1);
+        setButtonActive(consultationPageBtn, page == 2);
+        setButtonActive(statsPageBtn, page == 3);
+    }
+
+    private void refreshStatsData() {
+        if (statsTotalRendezVousLabel == null) {
+            return;
+        }
+
+        List<RendezVous> rendezVousList = new ArrayList<>(allDoctorRendezVous);
+        Set<Integer> rendezVousIds = new HashSet<>();
+        for (RendezVous rendezVous : rendezVousList) {
+            if (rendezVous != null) {
+                rendezVousIds.add(rendezVous.getId());
+            }
+        }
+
+        List<FicheMedicale> doctorFiches = new ArrayList<>();
+        for (FicheMedicale ficheMedicale : ficheMedicaleService.recuperer()) {
+            if (ficheMedicale == null || ficheMedicale.getRendez_vous_id() == null) {
+                continue;
+            }
+            if (rendezVousIds.contains(ficheMedicale.getRendez_vous_id())) {
+                doctorFiches.add(ficheMedicale);
+            }
+        }
+
+        List<Prescription> doctorPrescriptions = new ArrayList<>();
+        for (FicheMedicale ficheMedicale : doctorFiches) {
+            doctorPrescriptions.addAll(prescriptionService.getByFicheMedicaleId(ficheMedicale.getId()));
+        }
+
+        int totalRendezVous = rendezVousList.size();
+        int confirmedRendezVous = countByStatus(rendezVousList, "Confirmé");
+        int finishedRendezVous = countByStatus(rendezVousList, "Terminé");
+
+        statsTotalRendezVousLabel.setText(String.valueOf(totalRendezVous));
+        statsConfirmedRendezVousLabel.setText(String.valueOf(confirmedRendezVous));
+        statsFinishedRendezVousLabel.setText(String.valueOf(finishedRendezVous));
+        statsFichesCountLabel.setText(String.valueOf(doctorFiches.size()));
+        statsPrescriptionsCountLabel.setText(String.valueOf(doctorPrescriptions.size()));
+
+        Map<String, Integer> statusDistribution = new LinkedHashMap<>();
+        statusDistribution.put("Demande", countByStatus(rendezVousList, "Demande"));
+        statusDistribution.put("Confirmé", confirmedRendezVous);
+        statusDistribution.put("Terminé", finishedRendezVous);
+        statusDistribution.put("Autres", Math.max(0, totalRendezVous - statusDistribution.get("Demande") - confirmedRendezVous - finishedRendezVous));
+        updatePieChart(rdvStatusPieChart, statusDistribution);
+
+        Map<String, Integer> modeDistribution = new LinkedHashMap<>();
+        for (RendezVous rendezVous : rendezVousList) {
+            String mode = normalizeLabel(rendezVous == null ? null : rendezVous.getMode(), "Non défini");
+            modeDistribution.put(mode, modeDistribution.getOrDefault(mode, 0) + 1);
+        }
+        updatePieChart(rdvModePieChart, modeDistribution);
+
+        Map<String, Integer> urgenceDistribution = new LinkedHashMap<>();
+        urgenceDistribution.put("HIGH", 0);
+        urgenceDistribution.put("MEDIUM", 0);
+        urgenceDistribution.put("LOW", 0);
+        urgenceDistribution.put("AUTRE", 0);
+
+        for (RendezVous rendezVous : rendezVousList) {
+            String urgence = normalizeLabel(rendezVous == null ? null : rendezVous.getUrgency_level(), "AUTRE").toUpperCase();
+            if (!urgenceDistribution.containsKey(urgence)) {
+                urgence = "AUTRE";
+            }
+            urgenceDistribution.put(urgence, urgenceDistribution.get(urgence) + 1);
+        }
+        updateUrgencyChart(urgenceDistribution);
+
+        Map<String, Integer> medicamentDistribution = new LinkedHashMap<>();
+        for (Prescription prescription : doctorPrescriptions) {
+            String medicament = normalizeLabel(prescription == null ? null : prescription.getNom_medicament(), "Non précisé");
+            medicamentDistribution.put(medicament, medicamentDistribution.getOrDefault(medicament, 0) + 1);
+        }
+        updatePieChart(topMedicamentsPieChart, keepTopEntries(medicamentDistribution, 6));
+    }
+
+    private int countByStatus(List<RendezVous> rendezVousList, String status) {
+        int count = 0;
+        for (RendezVous rendezVous : rendezVousList) {
+            if (rendezVous != null && status.equalsIgnoreCase(normalizeLabel(rendezVous.getStatut(), ""))) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private void updatePieChart(PieChart pieChart, Map<String, Integer> distribution) {
+        if (pieChart == null) {
+            return;
+        }
+
+        ObservableList<PieChart.Data> data = FXCollections.observableArrayList();
+        for (Map.Entry<String, Integer> entry : distribution.entrySet()) {
+            if (entry.getValue() > 0) {
+                data.add(new PieChart.Data(entry.getKey() + " (" + entry.getValue() + ")", entry.getValue()));
+            }
+        }
+
+        if (data.isEmpty()) {
+            data.add(new PieChart.Data("Aucune donnée", 1));
+        }
+        pieChart.setData(data);
+    }
+
+    private void updateUrgencyChart(Map<String, Integer> distribution) {
+        if (urgencyBarChart == null) {
+            return;
+        }
+
+        XYChart.Series<String, Number> series = new XYChart.Series<>();
+        for (Map.Entry<String, Integer> entry : distribution.entrySet()) {
+            series.getData().add(new XYChart.Data<>(entry.getKey(), entry.getValue()));
+        }
+
+        urgencyBarChart.getData().clear();
+        urgencyBarChart.getData().add(series);
+    }
+
+    private Map<String, Integer> keepTopEntries(Map<String, Integer> source, int maxItems) {
+        List<Map.Entry<String, Integer>> entries = new ArrayList<>(source.entrySet());
+        entries.sort((a, b) -> Integer.compare(b.getValue(), a.getValue()));
+
+        Map<String, Integer> top = new LinkedHashMap<>();
+        int others = 0;
+        for (int i = 0; i < entries.size(); i++) {
+            Map.Entry<String, Integer> entry = entries.get(i);
+            if (i < maxItems) {
+                top.put(entry.getKey(), entry.getValue());
+            } else {
+                others += entry.getValue();
+            }
+        }
+
+        if (others > 0) {
+            top.put("Autres", others);
+        }
+        return top;
+    }
+
+    private String normalizeLabel(String value, String defaultValue) {
+        if (value == null || value.trim().isEmpty() || "-".equals(value.trim())) {
+            return defaultValue;
+        }
+        return value.trim();
     }
 
     private void setButtonActive(Button button, boolean active) {
@@ -795,9 +1088,10 @@ public class ConsultationDocteur {
             showInfo("Succes", "Fiche medicale et prescription(s) ajoutees avec succes.");
             clearFicheForm();
             consultationStartTime = null;
-            showPage(true);
+            showPage(1);
             loadDoctorRendezVous();
             eventTable.refresh();
+            refreshStatsData();
         } catch (SQLException ex) {
             try {
                 connection.rollback();
@@ -823,7 +1117,7 @@ public class ConsultationDocteur {
         updateConsultationTimingLabels(null, null, null, "00:00:00");
         setSaveButtonEnabled(false);
         clearFicheForm();
-        showPage(true);
+        showPage(1);
     }
 
     private void clearFicheForm() {
@@ -1260,6 +1554,7 @@ public class ConsultationDocteur {
             if (currentDetailRendezVous != null) {
                 loadFicheMedicale(currentDetailRendezVous.getId());
             }
+            refreshStatsData();
             showInfo("Succes", "Fiche medicale modifiee avec succes.");
         } catch (IllegalArgumentException ex) {
             showError("Valeur invalide", ex.getMessage());
@@ -1290,6 +1585,7 @@ public class ConsultationDocteur {
             loadFicheMedicale(currentDetailRendezVous.getId());
             loadPrescriptions(currentDetailRendezVous.getId());
         }
+        refreshStatsData();
         showInfo("Succes", "Fiche medicale supprimee avec succes.");
     }
 
@@ -1348,6 +1644,7 @@ public class ConsultationDocteur {
         }
 
         setPrescriptionsEditMode(false);
+        refreshStatsData();
         showInfo("Succes", "Prescriptions modifiees avec succes.");
     }
 
@@ -1377,6 +1674,7 @@ public class ConsultationDocteur {
             detailNoPrescriptionsLabel.setVisible(true);
             detailNoPrescriptionsLabel.setManaged(true);
         }
+        refreshStatsData();
         showInfo("Succes", "Prescriptions supprimees avec succes.");
     }
 

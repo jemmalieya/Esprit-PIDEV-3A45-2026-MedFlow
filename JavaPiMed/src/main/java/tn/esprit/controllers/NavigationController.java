@@ -13,7 +13,7 @@ public class NavigationController {
     @FXML
     private void handleRendezVous(ActionEvent event) {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/FrontFXML/Consultation.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/FrontFXML/ConsultationLayout.fxml"));
             Parent root = loader.load();
             Stage stage = (Stage) ((Button) event.getSource()).getScene().getWindow();
             stage.setScene(new Scene(root, 1400, 820));

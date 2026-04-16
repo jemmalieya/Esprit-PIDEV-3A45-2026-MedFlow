@@ -65,26 +65,31 @@
                         </VBox>
 
                         <HBox spacing="18.0">
-                            <VBox spacing="10.0" HBox.hgrow="ALWAYS">
+                            <VBox spacing="6.0" HBox.hgrow="ALWAYS">
                                 <Label text="Prénom"/>
                                 <TextField fx:id="profileFirstNameField" prefHeight="40"/>
+                                <Label fx:id="profileFirstNameErrorLabel" text="" styleClass="field-error" visible="false" managed="false" wrapText="true"/>
 
                                 <Label text="Téléphone"/>
                                 <TextField fx:id="profilePhoneField" prefHeight="40"/>
+                                <Label fx:id="profilePhoneErrorLabel" text="" styleClass="field-error" visible="false" managed="false" wrapText="true"/>
 
                                 <Label text="Cin"/>
                                 <TextField fx:id="profileCinField" prefHeight="40" editable="false"/>
                             </VBox>
 
-                            <VBox spacing="10.0" HBox.hgrow="ALWAYS">
+                            <VBox spacing="6.0" HBox.hgrow="ALWAYS">
                                 <Label text="Nom"/>
                                 <TextField fx:id="profileLastNameField" prefHeight="40"/>
+                                <Label fx:id="profileLastNameErrorLabel" text="" styleClass="field-error" visible="false" managed="false" wrapText="true"/>
 
                                 <Label text="Adresse"/>
                                 <TextField fx:id="profileAddressField" prefHeight="40"/>
+                                <Label fx:id="profileAddressErrorLabel" text="" styleClass="field-error" visible="false" managed="false" wrapText="true"/>
 
                                 <Label text="Date naissance"/>
                                 <DatePicker fx:id="profileBirthDatePicker" prefHeight="40"/>
+                                <Label fx:id="profileBirthDateErrorLabel" text="" styleClass="field-error" visible="false" managed="false" wrapText="true"/>
                             </VBox>
                         </HBox>
 

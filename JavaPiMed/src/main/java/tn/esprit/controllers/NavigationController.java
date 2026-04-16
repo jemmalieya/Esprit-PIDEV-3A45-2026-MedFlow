@@ -77,6 +77,21 @@ public class NavigationController {
     private Label profileMessageLabel;
 
     @FXML
+    private Label profileFirstNameErrorLabel;
+
+    @FXML
+    private Label profileLastNameErrorLabel;
+
+    @FXML
+    private Label profilePhoneErrorLabel;
+
+    @FXML
+    private Label profileAddressErrorLabel;
+
+    @FXML
+    private Label profileBirthDateErrorLabel;
+
+    @FXML
     private Label profileInitialsLabel;
 
     // Sidebar user info (présent sur toutes les pages front)
@@ -512,12 +527,25 @@ public class NavigationController {
         }
     }
 
+    private void showFieldError(Label label, String message) {
+        if (label == null) return;
+        label.setText(message == null ? "" : message);
+        boolean visible = message != null && !message.isBlank();
+        label.setVisible(visible);
+        label.setManaged(visible);
+    }
+
     private void clearProfileValidationStyles() {
         if (profileFirstNameField != null) profileFirstNameField.setStyle("");
         if (profileLastNameField != null) profileLastNameField.setStyle("");
         if (profilePhoneField != null) profilePhoneField.setStyle("");
         if (profileAddressField != null) profileAddressField.setStyle("");
         if (profileCinField != null) profileCinField.setStyle("");
+        showFieldError(profileFirstNameErrorLabel, "");
+        showFieldError(profileLastNameErrorLabel, "");
+        showFieldError(profilePhoneErrorLabel, "");
+        showFieldError(profileAddressErrorLabel, "");
+        showFieldError(profileBirthDateErrorLabel, "");
     }
 
     private void validateProfileFirstName() {
@@ -525,9 +553,11 @@ public class NavigationController {
         if (!value.isEmpty()) {
             profileFirstNameValid = true;
             markProfileValid(profileFirstNameField);
+            showFieldError(profileFirstNameErrorLabel, "");
         } else {
             profileFirstNameValid = false;
             markProfileError(profileFirstNameField);
+            showFieldError(profileFirstNameErrorLabel, "⚠ Prénom obligatoire.");
         }
     }
 
@@ -536,9 +566,11 @@ public class NavigationController {
         if (!value.isEmpty()) {
             profileLastNameValid = true;
             markProfileValid(profileLastNameField);
+            showFieldError(profileLastNameErrorLabel, "");
         } else {
             profileLastNameValid = false;
             markProfileError(profileLastNameField);
+            showFieldError(profileLastNameErrorLabel, "⚠ Nom obligatoire.");
         }
     }
 
@@ -547,14 +579,17 @@ public class NavigationController {
         if (value.isEmpty()) {
             profilePhoneValid = false;
             markProfileError(profilePhoneField);
+            showFieldError(profilePhoneErrorLabel, "⚠ Téléphone obligatoire.");
             return;
         }
         if (value.matches("\\d{8}") || value.matches("\\+216\\d{8}")) {
             profilePhoneValid = true;
             markProfileValid(profilePhoneField);
+            showFieldError(profilePhoneErrorLabel, "");
         } else {
             profilePhoneValid = false;
             markProfileError(profilePhoneField);
+            showFieldError(profilePhoneErrorLabel, "⚠ Format invalide. Ex\u00a0: 54430709 ou +21654430709");
         }
     }
 
@@ -563,9 +598,11 @@ public class NavigationController {
         if (value.isEmpty()) {
             profileAddressValid = false;
             markProfileError(profileAddressField);
+            showFieldError(profileAddressErrorLabel, "⚠ Adresse obligatoire.");
         } else {
             profileAddressValid = true;
             markProfileValid(profileAddressField);
+            showFieldError(profileAddressErrorLabel, "");
         }
     }
 
@@ -583,8 +620,10 @@ public class NavigationController {
     private void validateProfileBirthDate() {
         if (profileBirthDatePicker != null && profileBirthDatePicker.getValue() != null) {
             profileBirthDateValid = true;
+            showFieldError(profileBirthDateErrorLabel, "");
         } else {
             profileBirthDateValid = false;
+            showFieldError(profileBirthDateErrorLabel, "⚠ Date de naissance obligatoire.");
         }
     }
 

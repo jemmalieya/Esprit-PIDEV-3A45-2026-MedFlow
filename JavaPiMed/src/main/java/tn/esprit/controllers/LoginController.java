@@ -41,6 +41,12 @@ public class LoginController {
     private Label statusLabel;
 
     @FXML
+    private Label emailErrorLabel;
+
+    @FXML
+    private Label passwordErrorLabel;
+
+    @FXML
     private HBox shellRoot;
 
     @FXML
@@ -55,6 +61,8 @@ public class LoginController {
     private final UserService userService = new UserService();
 
     private boolean drawerOpen = false;
+    private boolean emailValid;
+    private boolean passwordValid;
 
     @FXML
     private void initialize() {
@@ -76,13 +84,18 @@ public class LoginController {
             ParallelTransition animation = new ParallelTransition(fadeIn, scaleIn);
             animation.play();
         }
-                // Validation flags
-                private boolean emailValid;
-                private boolean passwordValid;
 
         animateBackgroundShape(shapeOne, true);
         animateBackgroundShape(shapeTwo, false);
+
+        if (emailField != null) {
+            emailField.textProperty().addListener((obs, o, n) -> validateEmail());
+        }
+        if (passwordField != null) {
+            passwordField.textProperty().addListener((obs, o, n) -> validatePassword());
+        }
     }
+
     private void animateBackgroundShape(AnchorPane shape, boolean upwards) {
         if (shape == null) {
             return;
@@ -103,31 +116,28 @@ public class LoginController {
 
         ParallelTransition combo = new ParallelTransition(floatAnim, scaleAnim);
         combo.play();
-                    // Live validation
-                    if (emailField != null) {
-                        emailField.textProperty().addListener((obs, o, n) -> validateEmail());
-                    }
-                    if (passwordField != null) {
-                        passwordField.textProperty().addListener((obs, o, n) -> validatePassword());
-                    }
     }
 
     @FXML
     private void toggleLoginDrawer(ActionEvent event) {
-                    if (!validateForm()) {
-                        showStatus("Veuillez corriger les champs en rouge.", false);
-                        return;
-                    }
+        if (!validateForm()) {
+            showStatus("Veuillez corriger les champs en rouge.", false);
+            return;
+        }
 
-                    String email = emailField.getText() == null ? "" : emailField.getText().trim();
-                    String password = passwordField.getText() == null ? "" : passwordField.getText().trim();
+        String email = emailField.getText() == null ? "" : emailField.getText().trim();
+        String password = passwordField.getText() == null ? "" : passwordField.getText().trim();
 
         if (email.isEmpty() || password.isEmpty()) {
             showStatus("Veuillez renseigner votre e-mail et votre mot de passe.", false);
             return;
         }
-                    if (emailField != null) emailField.setStyle("");
-                    if (passwordField != null) passwordField.setStyle("");
+        if (emailField != null) {
+            emailField.setStyle("");
+        }
+        if (passwordField != null) {
+            passwordField.setStyle("");
+        }
 
         User user = userService.authenticate(email, password);
         if (user == null) {
@@ -135,49 +145,6 @@ public class LoginController {
             return;
         }
 
-
-                private void markError(TextField field) {
-                    if (field != null) {
-                        field.setStyle("-fx-border-color: #dc2626; -fx-border-width: 1.2; -fx-background-radius: 6; -fx-border-radius: 6;");
-                    }
-                }
-
-                private void markValid(TextField field) {
-                    if (field != null) {
-                        field.setStyle("-fx-border-color: #16a34a; -fx-border-width: 1.2; -fx-background-radius: 6; -fx-border-radius: 6;");
-                    }
-                }
-
-                private void validateEmail() {
-                    String value = emailField.getText() == null ? "" : emailField.getText().trim();
-                    if (value.isEmpty()) {
-                        emailValid = false;
-                        markError(emailField);
-                    } else if (value.matches("^[^@]+@[^@]+\\.[^@]+$")) {
-                        emailValid = true;
-                        markValid(emailField);
-                    } else {
-                        emailValid = false;
-                        markError(emailField);
-                    }
-                }
-
-                private void validatePassword() {
-                    String value = passwordField.getText() == null ? "" : passwordField.getText();
-                    if (value.isEmpty()) {
-                        passwordValid = false;
-                        markError(passwordField);
-                    } else {
-                        passwordValid = true;
-                        markValid(passwordField);
-                    }
-                }
-
-                private boolean validateForm() {
-                    validateEmail();
-                    validatePassword();
-                    return emailValid && passwordValid;
-                }
         if (!user.isVerified()) {
             showStatus("Votre compte n'est pas encore verifie.", false);
             return;
@@ -191,10 +158,75 @@ public class LoginController {
     }
 
     @FXML
+    private void handleLogin(ActionEvent event) {
+        toggleLoginDrawer(event);
+    }
+
+    private void markError(TextField field) {
+        if (field != null) {
+            field.setStyle("-fx-border-color: #dc2626; -fx-border-width: 1.2; -fx-background-radius: 6; -fx-border-radius: 6; -fx-text-fill: #e5e7eb; -fx-prompt-text-fill: #9ca3af;");
+        }
+    }
+
+    private void markValid(TextField field) {
+        if (field != null) {
+            field.setStyle("-fx-border-color: #16a34a; -fx-border-width: 1.2; -fx-background-radius: 6; -fx-border-radius: 6; -fx-text-fill: #e5e7eb; -fx-prompt-text-fill: #9ca3af;");
+        }
+    }
+
+    private void showFieldError(Label label, String message) {
+        if (label == null) return;
+        label.setText(message == null ? "" : message);
+        boolean visible = message != null && !message.isBlank();
+        label.setVisible(visible);
+        label.setManaged(visible);
+    }
+
+    private void validateEmail() {
+        String value = emailField.getText() == null ? "" : emailField.getText().trim();
+        if (value.isEmpty()) {
+            emailValid = false;
+            markError(emailField);
+            showFieldError(emailErrorLabel, "⚠ Adresse e-mail obligatoire.");
+        } else if (value.matches("^[^@]+@[^@]+\\.[^@]+$")) {
+            emailValid = true;
+            markValid(emailField);
+            showFieldError(emailErrorLabel, "");
+        } else {
+            emailValid = false;
+            markError(emailField);
+            showFieldError(emailErrorLabel, "⚠ Format invalide. Ex\u00a0: vous@example.com");
+        }
+    }
+
+    private void validatePassword() {
+        String value = passwordField.getText() == null ? "" : passwordField.getText();
+        if (value.isEmpty()) {
+            passwordValid = false;
+            markError(passwordField);
+            showFieldError(passwordErrorLabel, "⚠ Mot de passe obligatoire.");
+        } else {
+            passwordValid = true;
+            markValid(passwordField);
+            showFieldError(passwordErrorLabel, "");
+        }
+    }
+
+    private boolean validateForm() {
+        validateEmail();
+        validatePassword();
+        return emailValid && passwordValid;
+    }
+
+    @FXML
     private void handleClear(ActionEvent event) {
         emailField.clear();
         passwordField.clear();
         rememberMeCheckBox.setSelected(false);
+        if (emailField != null) emailField.setStyle("");
+        if (passwordField != null) passwordField.setStyle("");
+        showFieldError(emailErrorLabel, "");
+        showFieldError(passwordErrorLabel, "");
         hideStatus();
     }
 
@@ -225,7 +257,19 @@ public class LoginController {
             }
             FXMLLoader loader = new FXMLLoader(getClass().getResource(resourcePath));
             Parent root = loader.load();
-            stage.setScene(new Scene(root, 1400, 820));
+            Scene scene = new Scene(root, 1400, 820);
+
+            // Ensure admin dashboard keeps its dedicated stylesheet when opened from login.
+            if ("/EvenementDashboard.fxml".equals(resourcePath)) {
+                String css = getClass().getResource("/evenement-dashboard.css") != null
+                        ? getClass().getResource("/evenement-dashboard.css").toExternalForm()
+                        : null;
+                if (css != null && !scene.getStylesheets().contains(css)) {
+                    scene.getStylesheets().add(css);
+                }
+            }
+
+            stage.setScene(scene);
             stage.setTitle(title);
             stage.setMaximized(true);
             stage.show();
@@ -251,9 +295,7 @@ public class LoginController {
 
         // Tous les autres rôles (ADMIN, STAFF, ...) : d'abord le back-office
         if ("ADMIN".equals(role)) {
-            // TODO: si tu crées un FXML dédié aux commandes admin,
-            //       remplace "/EvenementDashboard.fxml" par ce nouveau fichier.
-            navigateTo(event, "/EvenementDashboard.fxml", "MedFlow - Tableau de bord Admin");
+            navigateTo(event, "/AdminDashboard.fxml", "MedFlow - Tableau de bord Admin");
         } else if ("STAFF".equals(role)) {
             String typeStaff = user.getTypeStaff();
             if (typeStaff != null) {

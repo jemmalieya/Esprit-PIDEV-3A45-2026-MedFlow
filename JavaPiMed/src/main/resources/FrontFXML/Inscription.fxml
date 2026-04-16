@@ -56,7 +56,7 @@
                     <Label text="Renseignez vos informations pour activer votre espace MedFlow." styleClass="form-subtitle" wrapText="true"/>
                 </VBox>
 
-                <GridPane hgap="18.0" vgap="16.0">
+                <GridPane hgap="18.0" vgap="8.0">
                     <columnConstraints>
                         <ColumnConstraints percentWidth="50"/>
                         <ColumnConstraints percentWidth="50"/>
@@ -65,38 +65,47 @@
                     <!-- CIN -->
                     <Label text="CIN" styleClass="signup-field-label" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
                     <TextField fx:id="cinField" promptText="8 chiffres" styleClass="login-field" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                    <Label fx:id="cinErrorLabel" text="" styleClass="field-error" managed="false" visible="false" wrapText="true" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
 
                     <!-- Nom -->
                     <Label text="Nom" styleClass="signup-field-label" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
                     <TextField fx:id="nomField" promptText="Votre nom" styleClass="login-field" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+                    <Label fx:id="nomErrorLabel" text="" styleClass="field-error" managed="false" visible="false" wrapText="true" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
 
                     <!-- Prénom -->
-                    <Label text="Prénom" styleClass="signup-field-label" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
-                    <TextField fx:id="prenomField" promptText="Votre prénom" styleClass="login-field" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+                    <Label text="Prénom" styleClass="signup-field-label" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+                    <TextField fx:id="prenomField" promptText="Votre prénom" styleClass="login-field" GridPane.rowIndex="4" GridPane.columnIndex="0"/>
+                    <Label fx:id="prenomErrorLabel" text="" styleClass="field-error" managed="false" visible="false" wrapText="true" GridPane.rowIndex="5" GridPane.columnIndex="0"/>
 
                     <!-- Date de naissance -->
-                    <Label text="Date de naissance" styleClass="signup-field-label" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
-                    <DatePicker fx:id="dateNaissancePicker" promptText="jj/mm/aaaa" styleClass="signup-date-picker" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+                    <Label text="Date de naissance" styleClass="signup-field-label" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+                    <DatePicker fx:id="dateNaissancePicker" promptText="jj/mm/aaaa" styleClass="signup-date-picker" GridPane.rowIndex="4" GridPane.columnIndex="1"/>
+                    <Label fx:id="dateNaissanceErrorLabel" text="" styleClass="field-error" managed="false" visible="false" wrapText="true" GridPane.rowIndex="5" GridPane.columnIndex="1"/>
 
                     <!-- Téléphone -->
-                    <Label text="Téléphone" styleClass="signup-field-label" GridPane.rowIndex="4" GridPane.columnIndex="0"/>
-                    <TextField fx:id="telephoneField" promptText="54430709 ou +21654430709" styleClass="login-field" GridPane.rowIndex="5" GridPane.columnIndex="0"/>
+                    <Label text="Téléphone" styleClass="signup-field-label" GridPane.rowIndex="6" GridPane.columnIndex="0"/>
+                    <TextField fx:id="telephoneField" promptText="54430709 ou +21654430709" styleClass="login-field" GridPane.rowIndex="7" GridPane.columnIndex="0"/>
+                    <Label fx:id="telephoneErrorLabel" text="" styleClass="field-error" managed="false" visible="false" wrapText="true" GridPane.rowIndex="8" GridPane.columnIndex="0"/>
 
                     <!-- Adresse e-mail -->
-                    <Label text="Adresse e-mail" styleClass="signup-field-label" GridPane.rowIndex="4" GridPane.columnIndex="1"/>
-                    <TextField fx:id="emailField" promptText="exemple@email.com" styleClass="login-field" GridPane.rowIndex="5" GridPane.columnIndex="1"/>
+                    <Label text="Adresse e-mail" styleClass="signup-field-label" GridPane.rowIndex="6" GridPane.columnIndex="1"/>
+                    <TextField fx:id="emailField" promptText="exemple@email.com" styleClass="login-field" GridPane.rowIndex="7" GridPane.columnIndex="1"/>
+                    <Label fx:id="emailErrorLabel" text="" styleClass="field-error" managed="false" visible="false" wrapText="true" GridPane.rowIndex="8" GridPane.columnIndex="1"/>
 
                     <!-- Adresse -->
-                    <Label text="Adresse (optionnel)" styleClass="signup-field-label" GridPane.rowIndex="6" GridPane.columnIndex="0"/>
-                    <TextField fx:id="adresseField" promptText="Votre adresse" styleClass="login-field" GridPane.rowIndex="7" GridPane.columnIndex="0"/>
+                    <Label text="Adresse (optionnel)" styleClass="signup-field-label" GridPane.rowIndex="9" GridPane.columnIndex="0"/>
+                    <TextField fx:id="adresseField" promptText="Votre adresse" styleClass="login-field" GridPane.rowIndex="10" GridPane.columnIndex="0"/>
+                    <Label fx:id="adresseErrorLabel" text="" styleClass="field-error" managed="false" visible="false" wrapText="true" GridPane.rowIndex="11" GridPane.columnIndex="0"/>
 
                     <!-- Mot de passe -->
-                    <Label text="Mot de passe" styleClass="signup-field-label" GridPane.rowIndex="6" GridPane.columnIndex="1"/>
-                    <PasswordField fx:id="motDePasseField" promptText="••••••••" styleClass="login-field" GridPane.rowIndex="7" GridPane.columnIndex="1"/>
+                    <Label text="Mot de passe" styleClass="signup-field-label" GridPane.rowIndex="9" GridPane.columnIndex="1"/>
+                    <PasswordField fx:id="motDePasseField" promptText="••••••••" styleClass="login-field" GridPane.rowIndex="10" GridPane.columnIndex="1"/>
+                    <Label fx:id="passwordErrorLabel" text="" styleClass="field-error" managed="false" visible="false" wrapText="true" GridPane.rowIndex="11" GridPane.columnIndex="1"/>
 
                     <!-- Confirmer le mot de passe -->
-                    <Label text="Confirmer le mot de passe" styleClass="signup-field-label" GridPane.rowIndex="8" GridPane.columnIndex="1"/>
-                    <PasswordField fx:id="confirmerMotDePasseField" promptText="••••••••" styleClass="login-field" GridPane.rowIndex="9" GridPane.columnIndex="1"/>
+                    <Label text="Confirmer le mot de passe" styleClass="signup-field-label" GridPane.rowIndex="12" GridPane.columnIndex="1"/>
+                    <PasswordField fx:id="confirmerMotDePasseField" promptText="••••••••" styleClass="login-field" GridPane.rowIndex="13" GridPane.columnIndex="1"/>
+                    <Label fx:id="confirmPasswordErrorLabel" text="" styleClass="field-error" managed="false" visible="false" wrapText="true" GridPane.rowIndex="14" GridPane.columnIndex="1"/>
                 </GridPane>
 
                 <!-- Conditions -->

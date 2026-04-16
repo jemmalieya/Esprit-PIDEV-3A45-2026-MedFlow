@@ -63,14 +63,16 @@
             <Label text="Connectez-vous à votre tableau de bord médical" styleClass="form-subtitle" wrapText="true"/>
         </VBox>
 
-        <VBox spacing="8.0">
+        <VBox spacing="4.0">
             <Label text="Adresse e-mail" styleClass="field-label-login"/>
             <TextField fx:id="emailField" promptText="vous@example.com" styleClass="login-field"/>
+            <Label fx:id="emailErrorLabel" text="" styleClass="field-error" visible="false" managed="false" wrapText="true"/>
         </VBox>
 
-        <VBox spacing="8.0">
+        <VBox spacing="4.0">
             <Label text="Mot de passe" styleClass="field-label-login"/>
             <PasswordField fx:id="passwordField" promptText="Entrez votre mot de passe" styleClass="login-field"/>
+            <Label fx:id="passwordErrorLabel" text="" styleClass="field-error" visible="false" managed="false" wrapText="true"/>
         </VBox>
 
         <HBox alignment="CENTER_LEFT" spacing="12.0">

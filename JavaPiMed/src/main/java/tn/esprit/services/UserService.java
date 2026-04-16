@@ -1,5 +1,7 @@
 package tn.esprit.services;
 
+import org.mindrot.jbcrypt.BCrypt;
+import tn.esprit.entities.Reclamation;
 import tn.esprit.entities.User;
 import tn.esprit.tools.MyDataBase;
 
@@ -18,6 +20,15 @@ public class UserService implements IGeneralService<User> {
 
     @Override
     public void ajouter(User user) {
+        String dbError = ajouterAvecRetour(user);
+        if (dbError == null) {
+            System.out.println("Utilisateur ajoute avec succes");
+        } else {
+            System.out.println("Erreur lors de l'ajout de l'utilisateur : " + dbError);
+        }
+    }
+
+    public String ajouterAvecRetour(User user) {
         String sql = "INSERT INTO user(cin, profile_picture, nom, prenom, date_naissance, telephone_user, email_user, adresse_user, password, is_verified, statut_compte, role_systeme) " +
                 "VALUES(?,?,?,?,?,?,?,?,?,?,?,?)";
         try (PreparedStatement ps = cnx.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -47,10 +58,9 @@ public class UserService implements IGeneralService<User> {
                     user.setId(rs.getInt(1));
                 }
             }
-
-            System.out.println("Utilisateur ajouté avec succès");
+            return null;
         } catch (SQLException e) {
-            System.out.println("Erreur lors de l'ajout de l'utilisateur : " + e.getMessage());
+            return e.getMessage();
         }
     }
 
@@ -113,6 +123,12 @@ public class UserService implements IGeneralService<User> {
         return users;
     }
 
+    @Override
+    public User recupererParId(int id) {
+        return null;
+    }
+
+
     public User findById(int id) {
         String sql = "SELECT id, cin, profile_picture, nom, prenom, date_naissance, telephone_user, email_user, adresse_user, password, is_verified, statut_compte, role_systeme FROM user WHERE id = ?";
         try (PreparedStatement ps = cnx.prepareStatement(sql)) {
@@ -126,6 +142,57 @@ public class UserService implements IGeneralService<User> {
             System.out.println("Erreur lors de la recherche de l'utilisateur : " + e.getMessage());
         }
         return null;
+    }
+
+    public User authenticate(String email, String plainPassword) {
+        String sql = "SELECT id, cin, profile_picture, nom, prenom, date_naissance, telephone_user, email_user, adresse_user, password, is_verified, statut_compte, role_systeme, type_staff FROM user WHERE email_user = ?";
+        try (PreparedStatement ps = cnx.prepareStatement(sql)) {
+            ps.setString(1, email);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) {
+                    return null;
+                }
+
+                String hashedPassword = rs.getString("password");
+                if (hashedPassword == null || plainPassword == null) {
+                    return null;
+                }
+                boolean passwordMatches;
+                // Normalize $2b$/$2y$ → $2a$ because jBCrypt 0.4 only supports $2a$
+                String checkHash = hashedPassword;
+                if (checkHash.startsWith("$2b$") || checkHash.startsWith("$2y$")) {
+                    checkHash = "$2a$" + checkHash.substring(4);
+                }
+                try {
+                    passwordMatches = BCrypt.checkpw(plainPassword, checkHash);
+                } catch (IllegalArgumentException e) {
+                    // Not a valid BCrypt hash at all — fall back to plain text
+                    passwordMatches = hashedPassword.equals(plainPassword);
+                }
+                if (!passwordMatches) {
+                    return null;
+                }
+
+                User user = mapResultSetToUser(rs);
+                user.setTypeStaff(rs.getString("type_staff"));
+                return user;
+            }
+        } catch (SQLException e) {
+            System.out.println("Erreur lors de l'authentification : " + e.getMessage());
+            return null;
+        }
+    }
+
+    public boolean updateStatutCompte(int userId, String statutCompte) {
+        String sql = "UPDATE user SET statut_compte = ? WHERE id = ?";
+        try (PreparedStatement ps = cnx.prepareStatement(sql)) {
+            ps.setString(1, statutCompte);
+            ps.setInt(2, userId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.out.println("Erreur lors de la mise a jour du statut compte : " + e.getMessage());
+            return false;
+        }
     }
 
     private User mapResultSetToUser(ResultSet rs) throws SQLException {
@@ -151,4 +218,5 @@ public class UserService implements IGeneralService<User> {
 
         return user;
     }
+
 }

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.BorderPane?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml/1"
+            xmlns="http://javafx.com/javafx/21"
+            prefWidth="1400.0" prefHeight="820.0"
+            stylesheets="@../CSS/booking.css"
+            styleClass="root-pane">
+
+    <!-- LEFT SIDEBAR -->
+    <left>
+        <fx:include source="Sidebar.fxml"/>
+    </left>
+
+    <!-- CONSULTATION CONTENT -->
+    <center>
+        <fx:include source="Consultation.fxml"/>
+    </center>
+
+</BorderPane>

@@ -7,12 +7,13 @@ import tn.esprit.entities.User;
 import tn.esprit.tools.MyDataBase;
 
 import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 public class CommandeService implements IGeneralService<Commande> {
 
-    private Connection cn;
+    private final Connection cn;
 
     public CommandeService() {
         cn = MyDataBase.getInstance().getCnx();
@@ -28,11 +29,137 @@ public class CommandeService implements IGeneralService<Commande> {
         return total;
     }
 
+    public boolean validerCommandeDepuisPanier(User user, List<CommandeProduit> lignes) {
+        if (user == null || !isUserValid(user)) {
+            System.out.println("Utilisateur invalide. Commande annulée.");
+            return false;
+        }
+
+        if (lignes == null || lignes.isEmpty()) {
+            System.out.println("Aucune ligne de commande.");
+            return false;
+        }
+
+        try {
+            cn.setAutoCommit(false);
+
+            for (CommandeProduit cp : lignes) {
+                if (cp.getProduit() == null) {
+                    throw new SQLException("Produit null dans une ligne.");
+                }
+
+                Produit produitBDD = recupererProduitParId(cp.getProduit().getId_produit());
+                if (produitBDD == null) {
+                    throw new SQLException("Produit introuvable : " + cp.getProduit().getId_produit());
+                }
+
+                if (produitBDD.getQuantite_produit() < cp.getQuantite_commandee()) {
+                    throw new SQLException("Stock insuffisant pour le produit : " + produitBDD.getNom_produit());
+                }
+            }
+
+            Commande commande = new Commande();
+            commande.setUser(user);
+            commande.setDate_creation_commande(LocalDateTime.now());
+            commande.setStatut_commande("confirmée");
+            commande.setStripe_session_id(null);
+            commande.setPaid_at(null);
+            commande.setCommande_produits(lignes);
+            commande.setMontant_total_cents(calculerMontantTotal(lignes));
+
+            String sqlCommande = "INSERT INTO commande (user_id, date_creation_commande, statut_commande, stripe_session_id, paid_at, montant_total_cents) VALUES (?, ?, ?, ?, ?, ?)";
+            int idCommande;
+
+            try (PreparedStatement ps = cn.prepareStatement(sqlCommande, Statement.RETURN_GENERATED_KEYS)) {
+                ps.setInt(1, user.getId());
+                ps.setTimestamp(2, Timestamp.valueOf(commande.getDate_creation_commande()));
+                ps.setString(3, commande.getStatut_commande());
+                ps.setNull(4, Types.VARCHAR);
+                ps.setNull(5, Types.TIMESTAMP);
+                ps.setInt(6, commande.getMontant_total_cents());
+
+                int rows = ps.executeUpdate();
+                if (rows == 0) {
+                    throw new SQLException("Insertion commande échouée.");
+                }
+
+                ResultSet rs = ps.getGeneratedKeys();
+                if (!rs.next()) {
+                    throw new SQLException("ID commande non récupéré.");
+                }
+
+                idCommande = rs.getInt(1);
+            }
+
+            String sqlLigne = "INSERT INTO commande_produit (quantite_commandee, commande_id, produit_id) VALUES (?, ?, ?)";
+            try (PreparedStatement psLigne = cn.prepareStatement(sqlLigne)) {
+                for (CommandeProduit cp : lignes) {
+                    psLigne.setInt(1, cp.getQuantite_commandee());
+                    psLigne.setInt(2, idCommande);
+                    psLigne.setInt(3, cp.getProduit().getId_produit());
+                    psLigne.executeUpdate();
+                }
+            }
+
+            String sqlUpdateStock = "UPDATE produit SET quantite_produit = ?, status_produit = ? WHERE id_produit = ?";
+            try (PreparedStatement psStock = cn.prepareStatement(sqlUpdateStock)) {
+                for (CommandeProduit cp : lignes) {
+                    Produit produitBDD = recupererProduitParId(cp.getProduit().getId_produit());
+                    int nouveauStock = produitBDD.getQuantite_produit() - cp.getQuantite_commandee();
+                    String nouveauStatut = (nouveauStock <= 0) ? "Rupture" : "Disponible";
+
+                    psStock.setInt(1, nouveauStock);
+                    psStock.setString(2, nouveauStatut);
+                    psStock.setInt(3, cp.getProduit().getId_produit());
+                    psStock.executeUpdate();
+                }
+            }
+
+            cn.commit();
+            cn.setAutoCommit(true);
+
+            System.out.println("Commande validée avec succès.");
+            return true;
+
+        } catch (SQLException ex) {
+            try {
+                cn.rollback();
+                cn.setAutoCommit(true);
+            } catch (SQLException e) {
+                System.out.println("Erreur rollback : " + e.getMessage());
+            }
+            System.out.println("Erreur validation commande : " + ex.getMessage());
+            return false;
+        }
+    }
+
+    private Produit recupererProduitParId(int id) {
+        String sql = "SELECT * FROM produit WHERE id_produit = ?";
+        try (PreparedStatement ps = cn.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                return new Produit(
+                        rs.getInt("id_produit"),
+                        rs.getString("nom_produit"),
+                        rs.getString("description_produit"),
+                        rs.getDouble("prix_produit"),
+                        rs.getInt("quantite_produit"),
+                        rs.getString("image_produit"),
+                        rs.getString("categorie_produit"),
+                        rs.getString("status_produit")
+                );
+            }
+        } catch (SQLException e) {
+            System.out.println("Erreur récupération produit : " + e.getMessage());
+        }
+        return null;
+    }
 
     @Override
     public void ajouter(Commande c) {
-
-        if (c.getUser() == null || !isUserValid(c.getUser()))  {
+        if (c.getUser() == null || !isUserValid(c.getUser())) {
             System.out.println("Utilisateur invalide. Commande annulée.");
             return;
         }
@@ -56,7 +183,10 @@ public class CommandeService implements IGeneralService<Commande> {
             ps.setInt(6, c.getMontant_total_cents());
 
             int rows = ps.executeUpdate();
-            if (rows == 0) { System.out.println("Erreur lors de l'ajout."); return; }
+            if (rows == 0) {
+                System.out.println("Erreur lors de l'ajout.");
+                return;
+            }
 
             ResultSet rs = ps.getGeneratedKeys();
             if (rs.next()) {
@@ -81,10 +211,8 @@ public class CommandeService implements IGeneralService<Commande> {
         }
     }
 
-
     @Override
     public void modifier(Commande c) {
-
         c.setMontant_total_cents(calculerMontantTotal(c.getCommande_produits()));
 
         String sql = "UPDATE commande SET user_id=?, date_creation_commande=?, statut_commande=?, stripe_session_id=?, paid_at=?, montant_total_cents=? WHERE id_commande=?";
@@ -105,7 +233,10 @@ public class CommandeService implements IGeneralService<Commande> {
             ps.setInt(7, c.getId_commande());
 
             int rows = ps.executeUpdate();
-            if (rows == 0) { System.out.println("Commande introuvable."); return; }
+            if (rows == 0) {
+                System.out.println("Commande introuvable.");
+                return;
+            }
 
             try (PreparedStatement psDel = cn.prepareStatement("DELETE FROM commande_produit WHERE commande_id=?")) {
                 psDel.setInt(1, c.getId_commande());
@@ -130,10 +261,8 @@ public class CommandeService implements IGeneralService<Commande> {
         }
     }
 
-
     @Override
     public void supprimer(Commande c) {
-
         try {
             try (PreparedStatement psDel = cn.prepareStatement("DELETE FROM commande_produit WHERE commande_id=?")) {
                 psDel.setInt(1, c.getId_commande());
@@ -151,14 +280,16 @@ public class CommandeService implements IGeneralService<Commande> {
         }
     }
 
-
     @Override
     public List<Commande> recuperer() {
-
         List<Commande> liste = new ArrayList<>();
 
         try (Statement st = cn.createStatement();
-             ResultSet rs = st.executeQuery("SELECT * FROM commande")) {
+             ResultSet rs = st.executeQuery("""
+    SELECT c.*, u.nom, u.prenom, u.email_user
+    FROM commande c
+    LEFT JOIN user u ON c.user_id = u.id
+""");) {
 
             while (rs.next()) {
 
@@ -167,6 +298,10 @@ public class CommandeService implements IGeneralService<Commande> {
 
                 User u = new User();
                 u.setId(rs.getInt("user_id"));
+                u.setNom(rs.getString("nom"));
+                u.setPrenom(rs.getString("prenom"));
+                u.setEmailUser(rs.getString("email_user"));
+
                 c.setUser(u);
 
                 c.setDate_creation_commande(rs.getTimestamp("date_creation_commande").toLocalDateTime());
@@ -182,25 +317,10 @@ public class CommandeService implements IGeneralService<Commande> {
                         cp.setId_ligne_commande(rsL.getInt("id_ligne_commande"));
                         cp.setQuantite_commandee(rsL.getInt("quantite_commandee"));
 
-                        // produit comme objet — même pattern que ProduitService
                         int produitId = rsL.getInt("produit_id");
-                        try (PreparedStatement psP = cn.prepareStatement("SELECT * FROM produit WHERE id_produit=?")) {
-                            psP.setInt(1, produitId);
-                            ResultSet rsP = psP.executeQuery();
-                            if (rsP.next()) {
-                                Produit p = new Produit(
-                                        rsP.getInt("id_produit"),
-                                        rsP.getString("nom_produit"),
-                                        rsP.getString("description_produit"),
-                                        rsP.getDouble("prix_produit"),
-                                        rsP.getInt("quantite_produit"),
-                                        rsP.getString("image_produit"),
-                                        rsP.getString("categorie_produit"),
-                                        rsP.getString("status_produit")
-                                );
-                                cp.setProduit(p);
-                            }
-                        }
+                        Produit p = recupererProduitParId(produitId);
+                        cp.setProduit(p);
+
                         lignes.add(cp);
                     }
                 }
@@ -218,14 +338,12 @@ public class CommandeService implements IGeneralService<Commande> {
 
     @Override
     public Commande recupererParId(int id) {
-
         try (PreparedStatement ps = cn.prepareStatement("SELECT * FROM commande WHERE id_commande=?")) {
 
             ps.setInt(1, id);
             ResultSet rs = ps.executeQuery();
 
             if (rs.next()) {
-
                 Commande c = new Commande();
                 c.setId_commande(id);
 
@@ -237,7 +355,6 @@ public class CommandeService implements IGeneralService<Commande> {
                 c.setStatut_commande(rs.getString("statut_commande"));
                 c.setMontant_total_cents(rs.getInt("montant_total_cents"));
 
-                // ----- charger lignes inline -----
                 List<CommandeProduit> lignes = new ArrayList<>();
                 try (PreparedStatement psL = cn.prepareStatement("SELECT * FROM commande_produit WHERE commande_id=?")) {
                     psL.setInt(1, id);
@@ -247,30 +364,14 @@ public class CommandeService implements IGeneralService<Commande> {
                         cp.setId_ligne_commande(rsL.getInt("id_ligne_commande"));
                         cp.setQuantite_commandee(rsL.getInt("quantite_commandee"));
 
-                        // produit comme objet — même pattern que ProduitService
                         int produitId = rsL.getInt("produit_id");
-                        try (PreparedStatement psP = cn.prepareStatement("SELECT * FROM produit WHERE id_produit=?")) {
-                            psP.setInt(1, produitId);
-                            ResultSet rsP = psP.executeQuery();
-                            if (rsP.next()) {
-                                Produit p = new Produit(
-                                        rsP.getInt("id_produit"),
-                                        rsP.getString("nom_produit"),
-                                        rsP.getString("description_produit"),
-                                        rsP.getDouble("prix_produit"),
-                                        rsP.getInt("quantite_produit"),
-                                        rsP.getString("image_produit"),
-                                        rsP.getString("categorie_produit"),
-                                        rsP.getString("status_produit")
-                                );
-                                cp.setProduit(p);
-                            }
-                        }
+                        Produit p = recupererProduitParId(produitId);
+                        cp.setProduit(p);
+
                         lignes.add(cp);
                     }
                 }
                 c.setCommande_produits(lignes);
-                // ----------------------------------
 
                 return c;
             }
@@ -282,18 +383,21 @@ public class CommandeService implements IGeneralService<Commande> {
         return null;
     }
 
-
     private boolean isUserValid(User user) {
         try (PreparedStatement ps = cn.prepareStatement("SELECT id FROM user WHERE id=?")) {
             ps.setInt(1, user.getId());
             return ps.executeQuery().next();
-        } catch (SQLException e) { return false; }
+        } catch (SQLException e) {
+            return false;
+        }
     }
 
     private boolean isProduitValid(int id) {
         try (PreparedStatement ps = cn.prepareStatement("SELECT id_produit FROM produit WHERE id_produit=?")) {
             ps.setInt(1, id);
             return ps.executeQuery().next();
-        } catch (SQLException e) { return false; }
+        } catch (SQLException e) {
+            return false;
+        }
     }
 }

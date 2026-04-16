@@ -19,6 +19,7 @@
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="tn.esprit.controllers.EvenementController"
             prefWidth="1650.0" prefHeight="960.0"
+            stylesheets="@evenement-dashboard.css"
             styleClass="root-pane">
 
     <left>
@@ -154,6 +155,10 @@
                         <children>
                             <Button text="⊕ Nouveau Événement" onAction="#onNewEvent" styleClass="yellow-btn"/>
                             <Button text="📄 Voir les Formulaires" styleClass="white-btn"/>
+
+                            <Button text="📄 Export PDF"
+                                    onAction="#handleExportPDF"
+                                    styleClass="primary-button"/>
                         </children>
                     </HBox>
                 </children>
@@ -177,8 +182,17 @@
 
                             <HBox spacing="12.0" alignment="CENTER_RIGHT">
                                 <children>
+
                                     <Label text="🔔 Alerte Événements 0" styleClass="pill-label"/>
-                                    <ComboBox fx:id="sortCombo" styleClass="sort-combo"/>
+
+                                    <!-- TRI -->
+                                    <ComboBox fx:id="sortCombo" promptText="Trier" styleClass="sort-combo"/>
+
+                                    <!-- 🔥 FILTRES -->
+                                    <ComboBox fx:id="filterTypeCombo" promptText="Type" styleClass="filter-combo"/>
+                                    <ComboBox fx:id="filterStatutCombo" promptText="Statut" styleClass="filter-combo"/>
+                                    <ComboBox fx:id="filterVilleCombo" promptText="Ville" styleClass="filter-combo"/>
+
                                 </children>
                             </HBox>
                         </children>
@@ -245,7 +259,7 @@
 
             <VBox styleClass="table-wrapper" VBox.vgrow="ALWAYS">
                 <children>
-                    <TableView fx:id="evenementTable" VBox.vgrow="ALWAYS" styleClass="events-table">
+                    <TableView fx:id="evenementTable" VBox.vgrow="ALWAYS" prefHeight="500" styleClass="events-table">
                         <columns>
                             <TableColumn fx:id="titreCol" prefWidth="240.0" text="TITRE"/>
                             <TableColumn fx:id="typeCol" prefWidth="150.0" text="TYPE"/>
@@ -258,6 +272,12 @@
                     </TableView>
                 </children>
             </VBox>
+            
+            <HBox alignment="BOTTOM_RIGHT">
+                <children>
+                    <Button text="⇢ Espace front" onAction="#onGoToFront" styleClass="white-btn"/>
+                </children>
+            </HBox>
         </VBox>
     </center>
 </BorderPane>

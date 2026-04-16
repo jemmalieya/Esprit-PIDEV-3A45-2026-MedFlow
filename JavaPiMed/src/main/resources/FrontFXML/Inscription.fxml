@@ -120,8 +120,13 @@
                 <Label fx:id="signupStatusLabel" text="" wrapText="true" managed="false" visible="false" styleClass="status-message"/>
 
                 <!-- Submit button -->
-                <HBox alignment="CENTER_RIGHT">
+                <HBox fx:id="registerButtonBox" alignment="CENTER_RIGHT">
                     <Button text="S'inscrire" onAction="#handleRegister" styleClass="primary-action"/>
+                </HBox>
+
+                <!-- Success redirect button (shown after successful registration) -->
+                <HBox fx:id="successButtonBox" alignment="CENTER_RIGHT" managed="false" visible="false">
+                    <Button text="Se connecter maintenant" onAction="#handleGoToLogin" styleClass="primary-action"/>
                 </HBox>
 
                 <!-- Already have an account? -->

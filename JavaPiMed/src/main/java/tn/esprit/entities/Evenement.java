@@ -1,6 +1,7 @@
 package tn.esprit.entities;
 
 import java.util.Date;
+import java.util.List;
 
 public class Evenement {
 
@@ -28,41 +29,40 @@ public class Evenement {
     private Date date_creation_event;
     private Date date_mise_a_jour_event;
 
-    public Evenement() {
-    }
+    // Remove 'user_id' and just use 'User' object
+    private User user;
 
-    public Evenement(int id, String demandes_json, String titre_event, String slug_event, String type_event,
-                     String description_event, String objectif_event, String statut_event, Date date_debut_event,
-                     Date date_fin_event, String nom_lieu_event, String adresse_event, String ville_event,
-                     int nb_participants_max_event, boolean inscription_obligatoire_event,
-                     Date date_limite_inscription_event, String email_contact_event, String tel_contact_event,
-                     String nom_organisateur_event, String image_couverture_event, String visibilite_event,
-                     Date date_creation_event, Date date_mise_a_jour_event) {
+    // List of associated Ressources for the Evenement
+    private List<Ressource> ressources;
+
+    public Evenement() {}
+
+    // Constructor with User and List of Ressources
+    public Evenement(int id, String titre_event, User user, List<Ressource> ressources) {
         this.id = id;
-        this.demandes_json = demandes_json;
         this.titre_event = titre_event;
-        this.slug_event = slug_event;
-        this.type_event = type_event;
-        this.description_event = description_event;
-        this.objectif_event = objectif_event;
-        this.statut_event = statut_event;
-        this.date_debut_event = date_debut_event;
-        this.date_fin_event = date_fin_event;
-        this.nom_lieu_event = nom_lieu_event;
-        this.adresse_event = adresse_event;
-        this.ville_event = ville_event;
-        this.nb_participants_max_event = nb_participants_max_event;
-        this.inscription_obligatoire_event = inscription_obligatoire_event;
-        this.date_limite_inscription_event = date_limite_inscription_event;
-        this.email_contact_event = email_contact_event;
-        this.tel_contact_event = tel_contact_event;
-        this.nom_organisateur_event = nom_organisateur_event;
-        this.image_couverture_event = image_couverture_event;
-        this.visibilite_event = visibilite_event;
-        this.date_creation_event = date_creation_event;
-        this.date_mise_a_jour_event = date_mise_a_jour_event;
+        this.user = user;
+        this.ressources = ressources;
     }
 
+    // Getters and setters for 'user' and 'ressources'
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public List<Ressource> getRessources() {
+        return ressources;
+    }
+
+    public void setRessources(List<Ressource> ressources) {
+        this.ressources = ressources;
+    }
+
+    // Getters and setters for other fields
     public int getId() {
         return id;
     }
@@ -70,7 +70,6 @@ public class Evenement {
     public void setId(int id) {
         this.id = id;
     }
-
 
     public String getDemandes_json() {
         return demandes_json;

@@ -7,6 +7,8 @@ import tn.esprit.tools.MyDataBase;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Comparator;
+import java.util.Locale;
 
 public class EvenementService implements IGeneralService<Evenement> {
 
@@ -253,5 +255,94 @@ public class EvenementService implements IGeneralService<Evenement> {
         }
 
         return false;
+    }
+
+    public List<Evenement> rechercherEvenements(List<Evenement> liste, String keyword) {
+        if (liste == null) return new ArrayList<>();
+
+        String motCle = keyword == null ? "" : keyword.trim().toLowerCase(Locale.ROOT);
+        if (motCle.isEmpty()) return new ArrayList<>(liste);
+
+        List<Evenement> resultat = new ArrayList<>();
+
+        for (Evenement e : liste) {
+            if (safe(e.getTitre_event()).toLowerCase(Locale.ROOT).contains(motCle)
+                    || safe(e.getDescription_event()).toLowerCase(Locale.ROOT).contains(motCle)
+                    || safe(e.getType_event()).toLowerCase(Locale.ROOT).contains(motCle)
+                    || safe(e.getVille_event()).toLowerCase(Locale.ROOT).contains(motCle)
+                    || safe(e.getStatut_event()).toLowerCase(Locale.ROOT).contains(motCle)
+                    || safe(e.getNom_organisateur_event()).toLowerCase(Locale.ROOT).contains(motCle)
+                    || safe(e.getEmail_contact_event()).toLowerCase(Locale.ROOT).contains(motCle)) {
+                resultat.add(e);
+            }
+        }
+
+        return resultat;
+    }
+
+    public List<Evenement> filtrerEvenements(List<Evenement> liste, String type, String statut, String ville) {
+        if (liste == null) return new ArrayList<>();
+
+        String typeChoisi = type == null ? "" : type.trim().toLowerCase(Locale.ROOT);
+        String statutChoisi = statut == null ? "" : statut.trim().toLowerCase(Locale.ROOT);
+        String villeChoisie = ville == null ? "" : ville.trim().toLowerCase(Locale.ROOT);
+
+        List<Evenement> resultat = new ArrayList<>(liste);
+
+        if (!typeChoisi.isEmpty() && !typeChoisi.equals("tous")) {
+            resultat.removeIf(e ->
+                    !safe(e.getType_event()).toLowerCase(Locale.ROOT).equals(typeChoisi)
+            );
+        }
+
+        if (!statutChoisi.isEmpty() && !statutChoisi.equals("tous")) {
+            resultat.removeIf(e ->
+                    !safe(e.getStatut_event()).toLowerCase(Locale.ROOT).equals(statutChoisi)
+            );
+        }
+
+        if (!villeChoisie.isEmpty() && !villeChoisie.equals("toutes")) {
+            resultat.removeIf(e ->
+                    !safe(e.getVille_event()).toLowerCase(Locale.ROOT).equals(villeChoisie)
+            );
+        }
+
+        return resultat;
+    }
+
+    public List<Evenement> trierEvenements(List<Evenement> liste, String tri) {
+        if (liste == null) return new ArrayList<>();
+
+        List<Evenement> resultat = new ArrayList<>(liste);
+        String triChoisi = tri == null ? "" : tri.trim();
+
+        switch (triChoisi) {
+            case "Titre A-Z" ->
+                    resultat.sort(Comparator.comparing(e -> safe(e.getTitre_event()).toLowerCase(Locale.ROOT)));
+
+            case "Titre Z-A" ->
+                    resultat.sort(Comparator.comparing((Evenement e) -> safe(e.getTitre_event()).toLowerCase(Locale.ROOT)).reversed());
+
+            case "Ville A-Z" ->
+                    resultat.sort(Comparator.comparing(e -> safe(e.getVille_event()).toLowerCase(Locale.ROOT)));
+
+            case "Ville Z-A" ->
+                    resultat.sort(Comparator.comparing((Evenement e) -> safe(e.getVille_event()).toLowerCase(Locale.ROOT)).reversed());
+
+            case "Statut" ->
+                    resultat.sort(Comparator.comparing(e -> safe(e.getStatut_event()).toLowerCase(Locale.ROOT)));
+
+            case "Type" ->
+                    resultat.sort(Comparator.comparing(e -> safe(e.getType_event()).toLowerCase(Locale.ROOT)));
+
+            case "Organisateur" ->
+                    resultat.sort(Comparator.comparing(e -> safe(e.getNom_organisateur_event()).toLowerCase(Locale.ROOT)));
+        }
+
+        return resultat;
+    }
+
+    private String safe(String value) {
+        return value == null ? "" : value;
     }
 }

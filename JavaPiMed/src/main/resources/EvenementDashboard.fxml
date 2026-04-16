@@ -157,6 +157,10 @@
                         <children>
                             <Button text="⊕ Nouveau Événement" onAction="#onNewEvent" styleClass="yellow-btn"/>
                             <Button text="📄 Voir les Formulaires" styleClass="white-btn"/>
+
+                            <Button text="📄 Export PDF"
+                                    onAction="#handleExportPDF"
+                                    styleClass="primary-button"/>
                         </children>
                     </HBox>
                 </children>
@@ -180,8 +184,17 @@
 
                             <HBox spacing="12.0" alignment="CENTER_RIGHT">
                                 <children>
+
                                     <Label text="🔔 Alerte Événements 0" styleClass="pill-label"/>
-                                    <ComboBox fx:id="sortCombo" styleClass="sort-combo"/>
+
+                                    <!-- TRI -->
+                                    <ComboBox fx:id="sortCombo" promptText="Trier" styleClass="sort-combo"/>
+
+                                    <!-- 🔥 FILTRES -->
+                                    <ComboBox fx:id="filterTypeCombo" promptText="Type" styleClass="filter-combo"/>
+                                    <ComboBox fx:id="filterStatutCombo" promptText="Statut" styleClass="filter-combo"/>
+                                    <ComboBox fx:id="filterVilleCombo" promptText="Ville" styleClass="filter-combo"/>
+
                                 </children>
                             </HBox>
                         </children>

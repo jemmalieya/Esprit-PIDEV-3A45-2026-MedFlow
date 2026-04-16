@@ -446,8 +446,13 @@
                                                         </VBox>
 
                                                         <TextField fx:id="tfImageEvent"
-                                                                   promptText="https://.../image.jpg"
+                                                                   promptText="https://.../image.jpg ou C:\image.jpg"
                                                                    styleClass="custom-field"/>
+
+                                                        <Button text="Choisir une image depuis le PC"
+                                                                onAction="#choisirImageDepuisPC"
+                                                                maxWidth="Infinity"
+                                                                styleClass="btn-retour"/>
 
                                                         <Label styleClass="upload-help"
                                                                text="Formats acceptés : JPG / PNG / WEBP"/>

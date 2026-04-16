@@ -1,0 +1,486 @@
+.root-pane {
+    -fx-background-color: linear-gradient(to bottom, #f4f8fc, #eef3f9);
+    -fx-font-family: "Segoe UI", Arial, sans-serif;
+}
+
+/* ===================== SIDEBAR ===================== */
+.sidebar {
+    -fx-background-color: linear-gradient(to bottom, #1298b7, #5b8fe7);
+    -fx-pref-width: 250px;
+    -fx-min-width: 250px;
+    -fx-max-width: 250px;
+}
+
+.sidebar-btn {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 10 12;
+    -fx-background-radius: 12px;
+    -fx-cursor: hand;
+}
+
+.sidebar-btn:hover {
+    -fx-background-color: rgba(255,255,255,0.08);
+}
+
+.active-product-btn {
+    -fx-background-color: rgba(255,255,255,0.16);
+    -fx-background-radius: 12px;
+}
+
+.logo-box {
+    -fx-padding: 10 10 18 10;
+    -fx-border-color: transparent transparent rgba(255,255,255,0.18) transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.logo-heart {
+    -fx-font-size: 26px;
+    -fx-text-fill: #ff2f3a;
+    -fx-font-family: "Segoe UI Emoji";
+}
+
+.logo-plus {
+    -fx-font-size: 16px;
+    -fx-text-fill: #0fd3df;
+    -fx-font-weight: bold;
+    -fx-translate-y: 2;
+}
+
+.logo-text {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+
+.sidebar-separator {
+    -fx-opacity: 0;
+}
+
+.sidebar-section-title {
+    -fx-text-fill: #d9f3ff;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-padding: 12 0 8 0;
+}
+
+.sidebar-item {
+    -fx-padding: 10 12;
+    -fx-spacing: 10;
+    -fx-alignment: CENTER_LEFT;
+    -fx-background-radius: 12px;
+    -fx-cursor: hand;
+}
+
+.sidebar-item:hover {
+    -fx-background-color: rgba(255,255,255,0.08);
+}
+
+.sidebar-item-icon {
+    -fx-text-fill: #dff8ff;
+    -fx-font-size: 17px;
+}
+
+.sidebar-item-text {
+    -fx-text-fill: white;
+    -fx-font-size: 15px;
+    -fx-font-weight: 600;
+}
+
+.sidebar-arrow {
+    -fx-text-fill: #dff8ff;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+}
+
+.submenu-card {
+    -fx-background-color: white;
+    -fx-background-radius: 28px;
+    -fx-padding: 22 18 22 18;
+    -fx-spacing: 18;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.06), 12, 0.12, 0, 3);
+}
+
+.submenu-title {
+    -fx-text-fill: #b5bad0;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
+.submenu-link {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-text-fill: #222;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-padding: 6 0 6 0;
+    -fx-alignment: CENTER_LEFT;
+    -fx-cursor: hand;
+}
+
+.submenu-link:hover {
+    -fx-text-fill: #1298b7;
+}
+
+/* ===================== MAIN ===================== */
+.main-area {
+    -fx-background-color: transparent;
+}
+
+.bi-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-border-color: transparent;
+}
+
+.bi-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+/* ===================== SEARCH ===================== */
+.top-search-box {
+    -fx-background-color: rgba(255,255,255,0.90);
+    -fx-background-radius: 28px;
+    -fx-padding: 22 24;
+    -fx-effect: dropshadow(gaussian, rgba(37, 84, 144, 0.10), 18, 0.18, 0, 5);
+}
+
+.top-search-input {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-font-size: 15px;
+    -fx-text-fill: #46526b;
+    -fx-prompt-text-fill: #a3acbc;
+}
+
+.search-btn {
+    -fx-background-color: linear-gradient(to right, #16bfd5, #0fb7a6);
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 16px;
+    -fx-padding: 12 18;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(15,183,166,0.25), 12, 0.2, 0, 4);
+}
+
+.search-btn:hover {
+    -fx-background-color: linear-gradient(to right, #12b0c5, #0ca89b);
+}
+
+.notif-icon {
+    -fx-font-size: 22px;
+}
+
+/* ===================== WOW HERO BI ===================== */
+.hero-bi-card {
+    -fx-background-color: linear-gradient(to right, #ffffff, #f7fbff);
+    -fx-background-radius: 30px;
+    -fx-border-radius: 30px;
+    -fx-effect: dropshadow(gaussian, rgba(35, 68, 120, 0.10), 20, 0.18, 0, 5);
+}
+
+.hero-bi-icon-box {
+    -fx-background-color: linear-gradient(to bottom right, #1abfd7, #5b6fff);
+    -fx-background-radius: 26px;
+    -fx-effect: dropshadow(gaussian, rgba(91,111,255,0.20), 14, 0.18, 0, 4);
+}
+
+.hero-bi-icon {
+    -fx-font-size: 34px;
+}
+
+.hero-bi-title {
+    -fx-font-size: 44px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2a3654;
+}
+
+.hero-bi-period {
+    -fx-background-color: #eef0ff;
+    -fx-text-fill: #5d71c9;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 18px;
+    -fx-padding: 8 16;
+}
+
+.hero-bi-badge {
+    -fx-background-color: linear-gradient(to right, #e8fbff, #edf2ff);
+    -fx-text-fill: #4b607d;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 18px;
+    -fx-padding: 8 14;
+}
+
+/* ===================== PERIOD BUTTONS ===================== */
+.period-btn,
+.period-btn-active {
+    -fx-background-radius: 16px;
+    -fx-padding: 12 20;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+}
+
+.period-btn {
+    -fx-background-color: white;
+    -fx-text-fill: #7f8698;
+    -fx-border-color: #dfe5f0;
+    -fx-border-radius: 16px;
+}
+
+.period-btn-active {
+    -fx-background-color: linear-gradient(to right, #4d73ff, #6178ff);
+    -fx-text-fill: white;
+    -fx-effect: dropshadow(gaussian, rgba(77,115,255,0.25), 12, 0.2, 0, 4);
+}
+
+/* ===================== FILTER ===================== */
+.filter-card {
+    -fx-background-color: rgba(255,255,255,0.92);
+    -fx-padding: 18 22;
+    -fx-background-radius: 26px;
+    -fx-border-radius: 26px;
+    -fx-effect: dropshadow(gaussian, rgba(40, 75, 130, 0.08), 16, 0.15, 0, 4);
+}
+
+.filter-label {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #8090ad;
+}
+
+.filter-btn {
+    -fx-background-color: linear-gradient(to right, #10b7d8, #09c4b9);
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 18px;
+    -fx-padding: 14 26;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(9,196,185,0.20), 10, 0.15, 0, 4);
+}
+
+/* ===================== ALERTES ===================== */
+.bi-alert-green,
+.bi-alert-yellow {
+    -fx-padding: 18 20;
+    -fx-background-radius: 18px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.03), 8, 0.10, 0, 2);
+}
+
+.bi-alert-green {
+    -fx-background-color: #edf9f1;
+    -fx-border-color: #35c276;
+    -fx-border-width: 0 0 0 6;
+    -fx-border-radius: 18px;
+}
+
+.bi-alert-yellow {
+    -fx-background-color: #fff8e8;
+    -fx-border-color: #efbf42;
+    -fx-border-width: 0 0 0 6;
+    -fx-border-radius: 18px;
+}
+
+.bi-alert-text {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #405271;
+}
+
+/* ===================== BIG KPI ===================== */
+.bi-kpi-card {
+    -fx-padding: 26 24;
+    -fx-background-radius: 28px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 16, 0.15, 0, 4);
+    -fx-pref-height: 170px;
+}
+
+.bi-kpi-blue {
+    -fx-background-color: linear-gradient(to right, #4f7dff, #4968db);
+}
+
+.bi-kpi-green {
+    -fx-background-color: linear-gradient(to right, #27ca7d, #15baa6);
+}
+
+.bi-kpi-yellow {
+    -fx-background-color: linear-gradient(to right, #f7cb41, #dbaa00);
+}
+
+.bi-kpi-purple {
+    -fx-background-color: linear-gradient(to right, #7b52e7, #6032ca);
+}
+
+.bi-kpi-title {
+    -fx-text-fill: rgba(255,255,255,0.95);
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+.bi-kpi-value {
+    -fx-text-fill: white;
+    -fx-font-size: 34px;
+    -fx-font-weight: bold;
+}
+
+.bi-kpi-sub {
+    -fx-text-fill: rgba(255,255,255,0.88);
+    -fx-font-size: 14px;
+    -fx-font-weight: 600;
+}
+
+/* ===================== MINI KPI ===================== */
+.mini-kpi-card {
+    -fx-background-color: rgba(255,255,255,0.92);
+    -fx-background-radius: 24px;
+    -fx-border-radius: 24px;
+    -fx-padding: 24 26;
+    -fx-effect: dropshadow(gaussian, rgba(40, 75, 130, 0.08), 16, 0.14, 0, 4);
+}
+
+.mini-kpi-title {
+    -fx-text-fill: #8390a9;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
+.mini-kpi-value {
+    -fx-text-fill: #1c2d50;
+    -fx-font-size: 36px;
+    -fx-font-weight: bold;
+}
+
+.mini-kpi-sub {
+    -fx-text-fill: #97a2b7;
+    -fx-font-size: 13px;
+}
+
+/* ===================== CHART / TABLE CARDS ===================== */
+.chart-card,
+.table-card,
+.recommend-card {
+    -fx-background-color: rgba(255,255,255,0.94);
+    -fx-background-radius: 28px;
+    -fx-border-radius: 28px;
+    -fx-padding: 22;
+    -fx-effect: dropshadow(gaussian, rgba(35, 68, 120, 0.08), 16, 0.15, 0, 4);
+}
+
+.pie-card {
+    -fx-pref-width: 430px;
+}
+
+.chart-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #26344f;
+}
+
+.chart-subtitle {
+    -fx-font-size: 13px;
+    -fx-text-fill: #96a0b4;
+}
+
+/* ===================== TABLE ===================== */
+.table-view {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.table-view .column-header-background {
+    -fx-background-color: #f7f9fd;
+    -fx-background-radius: 16 16 0 0;
+}
+
+.table-view .column-header {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent #e8edf5 transparent;
+}
+
+.table-view .column-header .label {
+    -fx-text-fill: #7f8aa3;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+.table-view .table-cell {
+    -fx-padding: 12 10;
+    -fx-font-size: 13px;
+    -fx-text-fill: #24324e;
+    -fx-border-color: transparent transparent #f0f3f8 transparent;
+}
+
+.table-row-cell {
+    -fx-background-color: rgba(255,255,255,0.95);
+}
+
+.table-row-cell:filled:selected {
+    -fx-background-color: #eef4ff;
+}
+
+/* ===================== RECOMMANDATIONS ===================== */
+.recommend-card {
+    -fx-background-color: linear-gradient(to right, #1f2b5a, #2b3d76);
+}
+
+.recommend-title {
+    -fx-font-size: 21px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+
+.recommendation-chip {
+    -fx-background-color: rgba(255,255,255,0.14);
+    -fx-text-fill: white;
+    -fx-padding: 12 18;
+    -fx-background-radius: 15px;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
+/* ===================== CHART ===================== */
+.chart {
+    -fx-background-color: transparent;
+    -fx-padding: 8 0 0 0;
+}
+
+.chart-plot-background {
+    -fx-background-color: #fcfdff;
+    -fx-background-radius: 16px;
+}
+
+.chart-vertical-grid-lines,
+.chart-horizontal-grid-lines {
+    -fx-stroke: #e9edf5;
+}
+
+.axis {
+    -fx-tick-label-fill: #8b95aa;
+    -fx-font-size: 11px;
+}
+.bi-kpi-card {
+    -fx-padding: 26 24;
+    -fx-background-radius: 28px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 16, 0.15, 0, 4);
+    -fx-pref-height: 170px;
+}
+
+.bi-kpi-blue {
+    -fx-background-color: linear-gradient(to right, #4f7dff, #4968db);
+}
+
+.bi-kpi-green {
+    -fx-background-color: linear-gradient(to right, #27ca7d, #15baa6);
+}
+
+.bi-kpi-yellow {
+    -fx-background-color: linear-gradient(to right, #f7cb41, #dbaa00);
+}
+
+.bi-kpi-purple {
+    -fx-background-color: linear-gradient(to right, #7b52e7, #6032ca);
+}

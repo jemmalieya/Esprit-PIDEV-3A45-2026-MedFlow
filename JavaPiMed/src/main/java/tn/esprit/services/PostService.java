@@ -19,8 +19,9 @@ public class PostService {
     // =========================
     // AJOUT
     // =========================
-    public void ajouter(Post p) {
+    public boolean ajouter(Post p) {
         String sql = "INSERT INTO post(user_id, titre, contenu, localisation, img_post, hashtags, visibilite, date_creation, est_anonyme, categorie, humeur, nbr_reactions, nbr_commentaires, is_approved, moderation_status, moderation_message, moderation_seen) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+
         try {
             PreparedStatement ps = cn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
             ps.setInt(1, p.getUser_id());
@@ -41,19 +42,26 @@ public class PostService {
             ps.setString(16, p.getModeration_message());
             ps.setBoolean(17, p.isModeration_seen());
 
-            ps.executeUpdate();
+            int rows = ps.executeUpdate();
 
-            ResultSet rs = ps.getGeneratedKeys();
-            if (rs.next()) {
-                p.setId(rs.getInt(1));
+            if (rows > 0) {
+                ResultSet rs = ps.getGeneratedKeys();
+                if (rs.next()) {
+                    p.setId(rs.getInt(1));
+                }
+
+                System.out.println("Ajout effectué : id=" + p.getId());
+                return true;
             }
 
-            System.out.println("Ajout effectué : id=" + p.getId());
+            return false;
+
         } catch (SQLException e) {
+            System.out.println("Erreur lors de l'ajout du post : " + e.getMessage());
             e.printStackTrace();
+            return false;
         }
     }
-
     // =========================
     // RECUPERER
     // =========================
@@ -153,5 +161,46 @@ public class PostService {
         }
         System.out.println("❌ Post avec id=" + id + " non trouvé");
         return null;
+    }
+
+    // Retourne la liste de tous les posts avec l'utilisateur renseigné (chargement basique par id)
+    public List<Post> getAllPosts() {
+        List<Post> posts = new ArrayList<>();
+        String sql = "SELECT * FROM post";
+        try {
+            Statement st = cn.createStatement();
+            ResultSet rs = st.executeQuery(sql);
+            while (rs.next()) {
+                Post p = new Post();
+                p.setId(rs.getInt("id"));
+                int userId = rs.getInt("user_id");
+                p.setTitre(rs.getString("titre"));
+                p.setContenu(rs.getString("contenu"));
+                p.setLocalisation(rs.getString("localisation"));
+                p.setImg_post(rs.getString("img_post"));
+                p.setHashtags(rs.getString("hashtags"));
+                p.setVisibilite(rs.getString("visibilite"));
+                p.setDate_creation(rs.getTimestamp("date_creation").toLocalDateTime());
+                Timestamp tsModif = rs.getTimestamp("date_modification");
+                p.setDate_modification(tsModif != null ? tsModif.toLocalDateTime() : null);
+                p.setEst_anonyme(rs.getBoolean("est_anonyme"));
+                p.setCategorie(rs.getString("categorie"));
+                p.setHumeur(rs.getString("humeur"));
+                p.setNbr_reactions(rs.getInt("nbr_reactions"));
+                p.setNbr_commentaires(rs.getInt("nbr_commentaires"));
+                p.setIs_approved(rs.getBoolean("is_approved"));
+                p.setModeration_status(rs.getString("moderation_status"));
+                p.setModeration_message(rs.getString("moderation_message"));
+                p.setModeration_seen(rs.getBoolean("moderation_seen"));
+                // Charger l'utilisateur minimalement (par id)
+                tn.esprit.entities.User user = new tn.esprit.entities.User();
+                user.setId(userId);
+                p.setUser(user);
+                posts.add(p);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return posts;
     }
 }

@@ -5,7 +5,8 @@ import java.time.LocalDateTime;
 public class Reclamation {
 
     private int id_reclamation;
-    private int user_id;
+    private User user;
+
     private String reference_reclamation;
     private String contenu;
     private String description;
@@ -39,14 +40,14 @@ public class Reclamation {
     private LocalDateTime translated_at;
     private LocalDateTime analysis_at;
 
-    // 🔹 Constructor vide
+    // 🔹 Constructeur vide
     public Reclamation() {
     }
 
-    // 🔹 Constructor sans ID
-    public Reclamation(int user_id, String reference_reclamation, String contenu, String description,
+    // 🔹 Constructeur sans ID
+    public Reclamation(User user, String reference_reclamation, String contenu, String description,
                        String type, String statut_reclamation, String priorite) {
-        this.user_id = user_id;
+        this.user = user;
         this.reference_reclamation = reference_reclamation;
         this.contenu = contenu;
         this.description = description;
@@ -55,8 +56,8 @@ public class Reclamation {
         this.priorite = priorite;
     }
 
-    // 🔹 Constructor complet
-    public Reclamation(int id_reclamation, int user_id, String reference_reclamation, String contenu,
+    // 🔹 Constructeur complet
+    public Reclamation(int id_reclamation, User user, String reference_reclamation, String contenu,
                        String description, String type, String piece_jointe_path,
                        String statut_reclamation, String priorite, LocalDateTime date_limite,
                        LocalDateTime date_creation_r, LocalDateTime date_modification_r,
@@ -69,7 +70,7 @@ public class Reclamation {
                        LocalDateTime translated_at, LocalDateTime analysis_at) {
 
         this.id_reclamation = id_reclamation;
-        this.user_id = user_id;
+        this.user = user;
         this.reference_reclamation = reference_reclamation;
         this.contenu = contenu;
         this.description = description;
@@ -107,12 +108,12 @@ public class Reclamation {
         this.id_reclamation = id_reclamation;
     }
 
-    public int getUser_id() {
-        return user_id;
+    public User getUser() {
+        return user;
     }
 
-    public void setUser_id(int user_id) {
-        this.user_id = user_id;
+    public void setUser(User user) {
+        this.user = user;
     }
 
     public String getReference_reclamation() {
@@ -320,7 +321,7 @@ public class Reclamation {
     public String toString() {
         return "Reclamation{" +
                 "id_reclamation=" + id_reclamation +
-                ", user_id=" + user_id +
+                ", user_id=" + (user != null ? user.getId() : null) +
                 ", reference_reclamation='" + reference_reclamation + '\'' +
                 ", contenu='" + contenu + '\'' +
                 ", description='" + description + '\'' +

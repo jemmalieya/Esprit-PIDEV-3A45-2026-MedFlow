@@ -1,22 +1,33 @@
 package tn.esprit.mains;
 
+import tn.esprit.entities.Reclamation;
 import tn.esprit.entities.ReponseReclamation;
+import tn.esprit.services.ReclamationService;
 import tn.esprit.services.ReponseService;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 public class ReponseMain {
 
     public static void main(String[] args) {
 
         ReponseService service = new ReponseService();
+        ReclamationService reclamationService = new ReclamationService();
 
         // =========================
         // AJOUT
         // =========================
+
+        // ✅ on récupère la vraie reclamation depuis la base
+        Reclamation reclamation = reclamationService.recupererParId(4);
+
+        if (reclamation == null) {
+            System.out.println("Reclamation introuvable !");
+            return;
+        }
+
         ReponseReclamation r = new ReponseReclamation();
-        r.setId_reclamation(4); // ici on fixe l'id_reclamation statiquement
+        r.setReclamation(reclamation); // ✅ FIX IMPORTANT
         r.setMessage("Merci pour votre réclamation");
         r.setType_reponse("Email");
         r.setDate_creation_rep(LocalDateTime.now());
@@ -36,8 +47,9 @@ public class ReponseMain {
         // =========================
         // MODIFICATION
         // =========================
-        int idToModify = r.getId_reponse(); // modifier la dernière ajoutée
+        int idToModify = r.getId_reponse();
         ReponseReclamation repToModify = service.findById(idToModify);
+
         if (repToModify != null) {
             repToModify.setMessage("Message modifié pour test");
             repToModify.setType_reponse("SMS");
@@ -58,14 +70,15 @@ public class ReponseMain {
         // =========================
         // SUPPRESSION
         // =========================
-        int idToDelete = 4; // supprimer la dernière ajoutée
+        int idToDelete = r.getId_reponse();
         ReponseReclamation repToDelete = service.findById(idToDelete);
+
         if (repToDelete != null) {
             service.supprimer(repToDelete);
         }
 
         // =========================
-        // AFFICHAGE FINAL
+        // FINAL
         // =========================
         System.out.println("\n===== APRES SUPPRESSION =====");
         for (ReponseReclamation rep : service.recuperer()) {

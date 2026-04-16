@@ -1,159 +1,102 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
-<?import javafx.scene.control.Button?>
-<?import javafx.scene.control.ComboBox?>
-<?import javafx.scene.control.Label?>
-<?import javafx.scene.control.ScrollPane?>
-<?import javafx.scene.control.TableColumn?>
-<?import javafx.scene.control.TableView?>
-<?import javafx.scene.control.TextArea?>
-<?import javafx.scene.control.TextField?>
-<?import javafx.scene.layout.BorderPane?>
-<?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
 
 <BorderPane xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
-            prefWidth="1400.0"
-            prefHeight="820.0"
-            stylesheets="@../CSS/booking.css"
             fx:controller="tn.esprit.controllers.ReclamationController"
-            styleClass="root-pane">
+            stylesheets="@../CSS/reclamation.css,@../CSS/booking.css"
+            styleClass="root-pane"
+            prefWidth="1400" prefHeight="820">
 
-    <!-- LEFT SIDEBAR -->
+    <!-- SIDEBAR (INCHANGÉ) -->
     <left>
         <fx:include source="Sidebar.fxml"/>
     </left>
 
-    <!-- MAIN BODY -->
+    <!-- ================= CENTER ================= -->
     <center>
-        <ScrollPane pannable="true"
-                    fitToWidth="true"
-                    hbarPolicy="NEVER"
-                    vbarPolicy="AS_NEEDED"
-                    styleClass="main-scroll">
-
+        <ScrollPane fitToWidth="true" styleClass="main-scroll">
             <content>
-                <VBox spacing="24" styleClass="main-area">
+
+                <VBox spacing="18" styleClass="main-area">
+
                     <padding>
-                        <Insets top="26" right="28" bottom="26" left="28"/>
+                        <Insets top="25" right="30" bottom="25" left="30"/>
                     </padding>
 
-                    <!-- HEADER -->
-                    <VBox spacing="6" styleClass="page-header">
-                        <Label text="Réclamation" styleClass="page-title"/>
-                        <Label text="Créer, modifier et suivre les réclamations dans une interface moderne et claire."
-                               wrapText="true"
+                    <!-- ================= HEADER ================= -->
+                    <VBox spacing="8" styleClass="page-header">
+                        <Label text="📋 Gestion des Réclamations"
+                               styleClass="page-title"/>
+
+                        <Label text="Créer une nouvelle réclamation rapidement"
                                styleClass="page-subtitle"/>
                     </VBox>
 
-                    <!-- CONTENT -->
-                    <HBox spacing="20.0" VBox.vgrow="ALWAYS">
+                    <!-- ================= FORM CENTERED ================= -->
+                    <HBox alignment="CENTER">
 
-                        <!-- FORM -->
-                        <VBox spacing="15.0"
-                              prefWidth="420.0"
-                              style="-fx-background-color: white; -fx-background-radius: 18; -fx-border-color: #dbeafe; -fx-border-radius: 18;">
-                            <padding>
-                                <Insets top="25" right="25" bottom="25" left="25"/>
-                            </padding>
+                        <VBox spacing="15"
+                              styleClass="info-card"
+                              prefWidth="500">
 
-                            <Label text="Gestion des Réclamations"
-                                   style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #0f172a;"/>
+                            <Label text="➕ Nouvelle Réclamation"
+                                   styleClass="info-title"/>
 
-                            <Label text="Créer ou modifier une réclamation"
-                                   style="-fx-font-size: 13px; -fx-text-fill: #64748b;"/>
+                            <VBox spacing="5">
+                                <Label text="Contenu" styleClass="input-label"/>
+                                <TextField fx:id="tfContenu" styleClass="modern-input"/>
+                                <Label fx:id="errContenu" styleClass="error-label"/>
+                            </VBox>
 
-                            <Label text="Contenu"
-                                   style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
-                            <TextField fx:id="tfContenu"
-                                       promptText="Saisir le contenu"
-                                       prefHeight="40"
-                                       style="-fx-background-radius: 10; -fx-border-radius: 10; -fx-border-color: #cbd5e1;"/>
+                            <VBox spacing="5">
+                                <Label text="Description" styleClass="input-label"/>
+                                <TextArea fx:id="taDescription" styleClass="modern-input"/>
+                                <Label fx:id="errDescription" styleClass="error-label"/>
+                            </VBox>
 
-                            <Label text="Description"
-                                   style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
-                            <TextArea fx:id="taDescription"
-                                      promptText="Saisir la description"
-                                      prefHeight="120"
-                                      wrapText="true"
-                                      style="-fx-background-radius: 10; -fx-border-radius: 10; -fx-border-color: #cbd5e1;"/>
+                            <VBox spacing="5">
+                                <Label text="Type" styleClass="input-label"/>
+                                <ComboBox fx:id="cbType" styleClass="modern-combo"/>
+                                <Label fx:id="errType" styleClass="error-label"/>
+                            </VBox>
 
-                            <Label text="Type"
-                                   style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
-                            <ComboBox fx:id="cbType"
-                                      prefHeight="40"
-                                      prefWidth="370"
-                                      style="-fx-background-radius: 10; -fx-border-radius: 10;"/>
+                            <VBox spacing="5">
+                                <Label text="Priorité" styleClass="input-label"/>
+                                <ComboBox fx:id="cbPriorite" styleClass="modern-combo"/>
+                                <Label fx:id="errPriorite" styleClass="error-label"/>
+                            </VBox>
 
-                            <Label text="Priorité"
-                                   style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
-                            <ComboBox fx:id="cbPriorite"
-                                      prefHeight="40"
-                                      prefWidth="370"
-                                      style="-fx-background-radius: 10; -fx-border-radius: 10;"/>
+                            <Button text="➕ Envoyer la Réclamation"
+                                    onAction="#ajouterReclamation"
+                                    styleClass="hero-cart-btn"/>
+
+                            <Button text="❌ Annuler "
+                                    onAction="#goToList"
+                                    styleClass="cancel-btn"/>
 
                             <HBox spacing="10">
-                                <Button text="Ajouter"
-                                        onAction="#ajouterReclamation"
-                                        prefWidth="85"
-                                        prefHeight="40"
-                                        style="-fx-background-color: #16a34a; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-cursor: hand;"/>
 
-                                <Button text="Modifier"
-                                        onAction="#modifierReclamation"
-                                        prefWidth="85"
-                                        prefHeight="40"
-                                        style="-fx-background-color: #f59e0b; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-cursor: hand;"/>
+                                <!-- 🔥 NAVIGATION VERS LISTE -->
+                                <Button text="📊 Voir toutes les réclamations"
+                                        onAction="#goToList"
+                                        styleClass="voice-btn"/>
 
-                                <Button text="Supprimer"
-                                        onAction="#supprimerReclamation"
-                                        prefWidth="85"
-                                        prefHeight="40"
-                                        style="-fx-background-color: #dc2626; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-cursor: hand;"/>
-
-                                <Button text="Vider"
+                                <Button text="🧹 Vider"
                                         onAction="#viderChamps"
-                                        prefWidth="85"
-                                        prefHeight="40"
-                                        style="-fx-background-color: #334155; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-cursor: hand;"/>
+                                        styleClass="voice-btn"/>
                             </HBox>
 
-                            <Label fx:id="lblMessage"
-                                   text=""
-                                   wrapText="true"
-                                   style="-fx-font-size: 13px; -fx-font-weight: bold;"/>
-                        </VBox>
-
-                        <!-- TABLE -->
-                        <VBox spacing="15.0"
-                              HBox.hgrow="ALWAYS"
-                              style="-fx-background-color: white; -fx-background-radius: 18; -fx-border-color: #dbeafe; -fx-border-radius: 18;">
-                            <padding>
-                                <Insets top="25" right="25" bottom="25" left="25"/>
-                            </padding>
-
-                            <Label text="Liste des Réclamations"
-                                   style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #0f172a;"/>
-
-                            <TableView fx:id="tableReclamations"
-                                       VBox.vgrow="ALWAYS"
-                                       style="-fx-background-radius: 12; -fx-border-radius: 12; -fx-border-color: #cbd5e1;">
-                                <columns>
-                                    <TableColumn fx:id="colId" text="ID" prefWidth="60"/>
-                                    <TableColumn fx:id="colReference" text="Référence" prefWidth="160"/>
-                                    <TableColumn fx:id="colContenu" text="Contenu" prefWidth="170"/>
-                                    <TableColumn fx:id="colDescription" text="Description" prefWidth="240"/>
-                                    <TableColumn fx:id="colType" text="Type" prefWidth="130"/>
-                                    <TableColumn fx:id="colStatut" text="Statut" prefWidth="120"/>
-                                    <TableColumn fx:id="colPriorite" text="Priorité" prefWidth="120"/>
-                                </columns>
-                            </TableView>
+                            <Label fx:id="lblMessage"/>
                         </VBox>
 
                     </HBox>
+
                 </VBox>
+
             </content>
         </ScrollPane>
     </center>

@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx/25"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="tn.esprit.controllers.ReponseFormController"
+            prefWidth="1150.0"
+            prefHeight="720.0"
+            stylesheets="@/CSS/reponse.css,@/evenement-dashboard.css"
+            styleClass="root-pane">
+
+    <!-- ================= SIDEBAR ================= -->
+    <left>
+        <VBox prefWidth="250.0" minWidth="250.0" maxWidth="250.0" styleClass="sidebar">
+            <children>
+
+                <HBox alignment="CENTER_LEFT" spacing="14.0" styleClass="logo-box">
+                    <children>
+                        <StackPane prefWidth="40.0" prefHeight="40.0">
+                            <children>
+                                <Label text="❤" styleClass="logo-heart"/>
+                                <Label text="✚" styleClass="logo-plus"/>
+                            </children>
+                        </StackPane>
+                        <Label text="MEDFLOW" styleClass="logo-text"/>
+                    </children>
+                </HBox>
+
+                <Region prefHeight="1.0" maxHeight="1.0" styleClass="sidebar-separator"/>
+
+                <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="sidebar-item">
+                    <children>
+                        <Label text="🩺" styleClass="sidebar-item-icon"/>
+                        <Label text="Dashboard" styleClass="sidebar-item-text"/>
+                    </children>
+                </HBox>
+
+                <Label text="GESTIONS" styleClass="sidebar-section-title"/>
+
+                <Button text=""
+                        onAction="#toggleSubmenu"
+                        alignment="CENTER_LEFT"
+                        maxWidth="Infinity"
+                        prefWidth="220.0"
+                        contentDisplay="GRAPHIC_ONLY"
+                        styleClass="sidebar-item, sidebar-btn">
+                    <graphic>
+                        <HBox alignment="CENTER_LEFT" spacing="10.0" maxWidth="Infinity">
+                            <children>
+                                <Label text="📅" styleClass="sidebar-item-icon"/>
+                                <Label text="Événements" styleClass="sidebar-item-text"/>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Label fx:id="evenementArrow" text="⌄" styleClass="sidebar-arrow"/>
+                            </children>
+                        </HBox>
+                    </graphic>
+                </Button>
+
+                <VBox fx:id="submenuVBox"
+                      spacing="18.0"
+                      styleClass="submenu-card"
+                      managed="false"
+                      visible="false"
+                      maxWidth="220.0">
+                    <children>
+                        <Label text="GESTION DES ÉVÉNEMENTS :" styleClass="submenu-title"/>
+
+                        <Button text="Voir tous les événements"
+                                onAction="#onVoirTousEvenements"
+                                maxWidth="Infinity"
+                                alignment="CENTER_LEFT"
+                                styleClass="submenu-link"/>
+
+                        <Button text="↗ Tableau de bord Admin BI"
+                                onAction="#onTableauBordAdmin"
+                                maxWidth="Infinity"
+                                alignment="CENTER_LEFT"
+                                styleClass="submenu-link"/>
+
+                        <Button text="Autres actions"
+                                onAction="#onAutresActions"
+                                maxWidth="Infinity"
+                                alignment="CENTER_LEFT"
+                                styleClass="submenu-link"/>
+                    </children>
+                </VBox>
+
+                <Region VBox.vgrow="ALWAYS"/>
+
+                <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="sidebar-item">
+                    <children>
+                        <Label text="↪" styleClass="sidebar-item-icon"/>
+                        <Label text="Déconnexion" styleClass="sidebar-item-text"/>
+                    </children>
+                </HBox>
+
+            </children>
+            <padding>
+                <Insets top="24.0" right="18.0" bottom="24.0" left="18.0"/>
+            </padding>
+        </VBox>
+    </left>
+
+    <!-- ================= CONTENU ================= -->
+    <center>
+        <ScrollPane fitToWidth="true"
+                    fitToHeight="false"
+                    pannable="true"
+                    hbarPolicy="NEVER"
+                    vbarPolicy="AS_NEEDED"
+                    style="-fx-background-color: transparent; -fx-border-color: transparent;">
+            <content>
+                <VBox spacing="20.0" styleClass="main-area">
+                    <padding>
+                        <Insets top="18.0" right="22.0" bottom="18.0" left="22.0"/>
+                    </padding>
+
+                    <!-- Header -->
+                    <HBox alignment="CENTER_LEFT" spacing="20.0" styleClass="hero-card">
+                        <children>
+                            <StackPane minWidth="88.0" minHeight="88.0" prefWidth="88.0" prefHeight="88.0" styleClass="hero-icon-box">
+                                <children>
+                                    <Label text="💬" styleClass="hero-icon"/>
+                                </children>
+                            </StackPane>
+
+                            <VBox spacing="10.0">
+                                <children>
+                                    <Label text="Gestion des Réponses aux Réclamations" styleClass="hero-title"/>
+                                    <HBox spacing="14.0" alignment="CENTER_LEFT">
+                                        <children>
+                                            <Label fx:id="reclamationLabel"
+                                                   text="Réclamation : REF-001"
+                                                   styleClass="hero-subtitle"/>
+                                            <Label text="🛡 Admin" styleClass="admin-badge"/>
+                                        </children>
+                                    </HBox>
+                                </children>
+                            </VBox>
+
+                            <Region HBox.hgrow="ALWAYS"/>
+
+                            <HBox spacing="16.0" alignment="CENTER_RIGHT">
+                                <children>
+                                    <Button text="⬅ Retour"
+                                            onAction="#onRetour"
+                                            styleClass="white-btn"/>
+                                </children>
+                            </HBox>
+                        </children>
+                        <padding>
+                            <Insets top="26.0" right="28.0" bottom="26.0" left="28.0"/>
+                        </padding>
+                    </HBox>
+
+                    <!-- Bloc central compact -->
+                    <HBox alignment="TOP_CENTER">
+                        <children>
+                            <VBox spacing="18.0" maxWidth="860.0" prefWidth="860.0">
+
+                                <!-- Détails -->
+                                <VBox spacing="16.0" styleClass="list-header-card">
+                                    <children>
+                                        <HBox alignment="CENTER_LEFT" spacing="12.0">
+                                            <children>
+                                                <Label text="📋" styleClass="list-icon"/>
+                                                <Label text="Détails de la Réclamation" styleClass="list-title"/>
+                                            </children>
+                                        </HBox>
+
+                                        <VBox spacing="12.0" styleClass="details-box">
+                                            <children>
+                                                <Label fx:id="contenuLabel" text="Contenu : ..." styleClass="detail-label"/>
+                                                <Label fx:id="descriptionLabel" text="Description : ..." styleClass="detail-label"/>
+                                                <Label fx:id="typeLabel" text="Type : ..." styleClass="detail-label"/>
+                                                <Label fx:id="statutLabel" text="Statut : ..." styleClass="detail-label status-label"/>
+                                            </children>
+                                        </VBox>
+                                    </children>
+                                    <padding>
+                                        <Insets top="22.0" right="24.0" bottom="22.0" left="24.0"/>
+                                    </padding>
+                                </VBox>
+
+                                <!-- Formulaire -->
+                                <VBox spacing="18.0" styleClass="form-card">
+                                    <children>
+
+                                        <HBox alignment="CENTER_LEFT" spacing="12.0">
+                                            <children>
+                                                <Label text="📝" styleClass="list-icon"/>
+                                                <Label text="Votre Réponse" styleClass="list-title"/>
+                                            </children>
+                                        </HBox>
+
+                                        <VBox spacing="16.0">
+                                            <children>
+                                                <VBox spacing="8.0">
+                                                    <children>
+                                                        <Label text="Type de Réponse" styleClass="field-label"/>
+                                                        <ComboBox fx:id="typeReponseCombo"
+                                                                  promptText="Sélectionner le type"
+                                                                  prefWidth="360.0"
+                                                                  maxWidth="360.0"
+                                                                  styleClass="form-combo"/>
+
+                                                    </children>
+                                                </VBox>
+
+                                                <VBox spacing="8.0">
+                                                    <children>
+                                                        <Label text="Message" styleClass="field-label"/>
+                                                        <TextArea fx:id="messageArea"
+                                                                  promptText="Saisir votre réponse..."
+                                                                  wrapText="true"
+                                                                  prefHeight="200.0"
+                                                                  styleClass="form-textarea"/>
+                                                        <Label fx:id="errorLabel"
+                                                               text=""
+                                                               style="-fx-text-fill: red; -fx-font-size: 12px;" />
+                                                    </children>
+                                                </VBox>
+
+                                                <HBox spacing="16.0" alignment="CENTER_RIGHT">
+                                                    <children>
+                                                        <Button text="Annuler"
+                                                                onAction="#onAnnuler"
+                                                                styleClass="cancel-btn"/>
+                                                        <Button text="✔ Envoyer"
+                                                                onAction="#onEnvoyer"
+                                                                styleClass="submit-btn"/>
+                                                    </children>
+                                                </HBox>
+                                            </children>
+                                        </VBox>
+
+                                    </children>
+                                    <padding>
+                                        <Insets top="22.0" right="24.0" bottom="22.0" left="24.0"/>
+                                    </padding>
+                                </VBox>
+
+                            </VBox>
+                        </children>
+                    </HBox>
+
+                </VBox>
+            </content>
+        </ScrollPane>
+    </center>
+</BorderPane>

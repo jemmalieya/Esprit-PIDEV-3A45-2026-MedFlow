@@ -20,9 +20,11 @@ import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import tn.esprit.entities.Evenement;
+import tn.esprit.services.DashboardBIServiceEvenement;
 import tn.esprit.services.EvenementService;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.sql.Date;
 import java.sql.SQLException;
 import java.time.LocalDate;
@@ -30,6 +32,10 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import javafx.stage.FileChooser;
+
+
+
 
 public class EvenementController {
 
@@ -57,12 +63,12 @@ public class EvenementController {
     @FXML private TableColumn<Evenement, Void> actionsCol;
 
     @FXML private VBox submenuVBox;
-    @FXML private Button voirTousBtn;
+ //   @FXML private Button voirTousBtn;
 
-    /* ===================== CARDS ===================== */
+    //el container mta3 el events
     @FXML private FlowPane cardsContainer;
 
-    /* ===================== FORMULAIRE AJOUT / MODIF (NOUVEAUX fx:id) ===================== */
+    /* ===================== FORMULAIRE AJOUT / MODIF ) ===================== */
     @FXML private Button btnAjouterEvent;
     @FXML private Button btnModifierEvent;
     @FXML private Button btnResetEvent;
@@ -92,11 +98,13 @@ public class EvenementController {
     @FXML private TextField tfTelContact;
     @FXML private TextField tfOrganisateurEvent;
     @FXML private TextField tfImageEvent;
+    @FXML private Label frontPageMarker;
 
     /* ===================== DATA ===================== */
     private final EvenementService evenementService = new EvenementService();
     private final ObservableList<Evenement> masterList = FXCollections.observableArrayList();
-    private FilteredList<Evenement> filteredList;
+    private final DashboardBIServiceEvenement dashboardService = new DashboardBIServiceEvenement();
+
     private static Evenement evenementAModifier;
 
     /* ===================== VALIDATION ===================== */
@@ -123,6 +131,35 @@ public class EvenementController {
     private boolean isImageValid = true;
     private boolean isVisibiliteValid = true;
     private boolean isLoading = false;
+    private static Evenement evenementSelectionneFront;
+
+    /* ===================== DETAIL FRONT ===================== */
+    @FXML private ImageView detailImageView;
+
+    @FXML private Label titreDetailLabel;
+    @FXML private Label villeDetailLabel;
+    @FXML private Label adresseDetailLabel;
+    @FXML private Label visibiliteDetailLabel;
+
+    @FXML private Label descriptionDetailLabel;
+    @FXML private Label objectifDetailLabel;
+
+    @FXML private Label organisateurDetailLabel;
+    @FXML private Label emailDetailLabel;
+    @FXML private Label telDetailLabel;
+    @FXML private Label nbPlacesDetailLabel;
+    @FXML private Label inscriptionDetailLabel;
+    @FXML private Label dateLimiteDetailLabel;
+
+    @FXML private Label typeBadge;
+    @FXML private Label statutBadge;
+    @FXML private Label dateBadge;
+    @FXML private ComboBox<String> filterTypeCombo;
+    @FXML private ComboBox<String> filterStatutCombo;
+    @FXML private ComboBox<String> filterVilleCombo;
+
+
+
 
     @FXML
     public void initialize() {
@@ -130,11 +167,31 @@ public class EvenementController {
         initFormIfExists();
         initCardsBackIfExists();
         chargerEvenementAModifier();
+        initFiltres();
+        chargerDetailFrontIfExists();
+
+        try {
+            DashboardBIServiceEvenement.DashboardData data =
+                    dashboardService.chargerDonnees(null, null);
+
+            if (totalEventsLabel != null)
+                totalEventsLabel.setText(String.valueOf(data.totalEvenements));
+
+            if (publiesLabel != null)
+                publiesLabel.setText(String.valueOf(data.publies));
+
+            if (brouillonsLabel != null)
+                brouillonsLabel.setText(String.valueOf(data.brouillons));
+
+            if (archivesLabel != null)
+                archivesLabel.setText(String.valueOf(data.archives));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
-    /* =========================================================
-       ===================== INITIALIZATIONS ====================
-       ========================================================= */
+
 
     private void initDashboardIfExists() {
         if (evenementTable == null) return;
@@ -179,17 +236,19 @@ public class EvenementController {
             List<Evenement> events = evenementService.recuperer();
             cardsContainer.getChildren().clear();
 
+            boolean isFront = (frontPageMarker != null);
+
             for (Evenement ev : events) {
-                cardsContainer.getChildren().add(createEventCardBack(ev));
+                cardsContainer.getChildren().add(
+                        isFront ? createEventCardFront(ev) : createEventCardBack(ev)
+                );
             }
         } catch (Exception e) {
             showAlert(Alert.AlertType.ERROR, "Erreur", e.getMessage());
         }
     }
 
-    /* =========================================================
-       ===================== FORM HELPERS =======================
-       ========================================================= */
+
 
     private TextField getTitreField() { return tfTitreEvent; }
     private TextField getSlugField() { return tfSlugEvent; }
@@ -222,9 +281,7 @@ public class EvenementController {
 
     private ComboBox<String> getVisibiliteCombo() { return cbVisibiliteEvent; }
 
-    /* =========================================================
-       ===================== VALIDATION UI ======================
-       ========================================================= */
+
 
     private void installValidationLabels() {
         titreMsg = createValidationLabel();
@@ -693,31 +750,34 @@ public class EvenementController {
         String v = safeValue(getImageField().getText()).trim();
 
         if (v.isEmpty()) {
-            setFieldError(getImageField(), imageMsg,
-                    "L'image de couverture est obligatoire.");
+            setFieldError(getImageField(), imageMsg, "L'image de couverture est obligatoire.");
             isImageValid = false;
             return;
         }
 
-        if (!(v.startsWith("http://") || v.startsWith("https://"))) {
+        boolean isUrl = v.startsWith("http://") || v.startsWith("https://");
+        boolean isLocalFile = new File(v).exists();
+
+        if (!isUrl && !isLocalFile) {
             setFieldError(getImageField(), imageMsg,
-                    "L'image doit être une URL valide (http ou https).");
+                    "L'image doit être une URL valide ou un fichier local existant.");
             isImageValid = false;
             return;
         }
 
-        if (!(v.toLowerCase().endsWith(".jpg")
-                || v.toLowerCase().endsWith(".jpeg")
-                || v.toLowerCase().endsWith(".png")
-                || v.toLowerCase().endsWith(".webp"))) {
+        String lower = v.toLowerCase();
+
+        if (!(lower.endsWith(".jpg")
+                || lower.endsWith(".jpeg")
+                || lower.endsWith(".png")
+                || lower.endsWith(".webp"))) {
             setFieldError(getImageField(), imageMsg,
                     "Format image invalide (jpg, jpeg, png, webp).");
             isImageValid = false;
             return;
         }
 
-        setFieldSuccess(getImageField(), imageMsg,
-                "Image de couverture valide.");
+        setFieldSuccess(getImageField(), imageMsg, "Image de couverture valide.");
         isImageValid = true;
     }
     private void validateVisibilite() {
@@ -788,9 +848,7 @@ public class EvenementController {
         showAlert(Alert.AlertType.ERROR, "Champs invalides", errors.toString());
     }
 
-    /* =========================================================
-       ===================== AJOUT / MODIF ======================
-       ========================================================= */
+
 
     @FXML
     void ajouterEvenement(ActionEvent event) {
@@ -907,7 +965,7 @@ public class EvenementController {
     private void chargerEvenementAModifier() {
         if (evenementAModifier == null || getTitreField() == null) return;
 
-        isLoading = true; // 🔥 IMPORTANT
+        isLoading = true;
 
         getTitreField().setText(safeValue(evenementAModifier.getTitre_event()));
         if (getSlugField() != null) getSlugField().setText(safeValue(evenementAModifier.getSlug_event()));
@@ -947,17 +1005,17 @@ public class EvenementController {
         if (getImageField() != null) getImageField().setText(safeValue(evenementAModifier.getImage_couverture_event()));
         if (getVisibiliteCombo() != null) getVisibiliteCombo().setValue(safeValue(evenementAModifier.getVisibilite_event()));
 
-        isLoading = false; // 🔥 IMPORTANT
+        isLoading = false;
     }
     private LocalDate convertToLocalDate(java.util.Date date) {
         if (date == null) return null;
 
-        // ✅ java.sql.Date SAFE conversion
+
         if (date instanceof java.sql.Date sqlDate) {
             return sqlDate.toLocalDate();
         }
 
-        // ✅ fallback for java.util.Date
+
         return date.toInstant()
                 .atZone(ZoneId.systemDefault())
                 .toLocalDate();
@@ -1009,25 +1067,27 @@ public class EvenementController {
         addActionsColumn();
         evenementTable.setPlaceholder(new Label("Aucun événement trouvé"));
     }
-
     private void configureSort() {
         if (sortCombo == null) return;
 
         sortCombo.setItems(FXCollections.observableArrayList(
-                "Titre A-Z", "Titre Z-A", "Ville A-Z", "Statut"
+                "Titre A-Z", "Titre Z-A", "Ville A-Z", "Ville Z-A", "Statut", "Type", "Organisateur"
         ));
-        sortCombo.setOnAction(e -> applySort());
-    }
 
+        sortCombo.setOnAction(e -> appliquerRechercheFiltreTri());
+    }
     private void loadData() {
         try {
             masterList.setAll(evenementService.recuperer());
-            filteredList = new FilteredList<>(masterList, p -> true);
-            evenementTable.setItems(filteredList);
+
+            if (evenementTable != null) {
+                evenementTable.setItems(masterList);
+            }
 
             if (inventoryCountLabel != null) {
                 inventoryCountLabel.setText(masterList.size() + " événement(s)");
             }
+
         } catch (SQLException e) {
             showAlert(Alert.AlertType.ERROR, "Erreur", e.getMessage());
         }
@@ -1036,46 +1096,54 @@ public class EvenementController {
     private void configureSearch() {
         if (searchField == null) return;
 
-        searchField.textProperty().addListener((o, a, b) -> {
-            String k = b == null ? "" : b.toLowerCase(Locale.ROOT);
+        searchField.textProperty().addListener((obs, oldVal, newVal) -> appliquerRechercheFiltreTri());
 
-            filteredList.setPredicate(ev ->
-                    k.isEmpty()
-                            || safeValue(ev.getTitre_event()).toLowerCase(Locale.ROOT).contains(k)
-                            || safeValue(ev.getVille_event()).toLowerCase(Locale.ROOT).contains(k)
-                            || safeValue(ev.getType_event()).toLowerCase(Locale.ROOT).contains(k)
-                            || safeValue(ev.getStatut_event()).toLowerCase(Locale.ROOT).contains(k)
-                            || safeValue(ev.getNom_organisateur_event()).toLowerCase(Locale.ROOT).contains(k)
-                            || safeValue(ev.getDescription_event()).toLowerCase(Locale.ROOT).contains(k)
-            );
-            updateStats();
-        });
-    }
+        if (filterTypeCombo != null) {
+            filterTypeCombo.setOnAction(e -> appliquerRechercheFiltreTri());
+        }
 
-    private void applySort() {
-        if (sortCombo == null || sortCombo.getValue() == null) return;
+        if (filterStatutCombo != null) {
+            filterStatutCombo.setOnAction(e -> appliquerRechercheFiltreTri());
+        }
 
-        switch (sortCombo.getValue()) {
-            case "Titre Z-A" ->
-                    FXCollections.sort(masterList, (a, b) -> safeValue(b.getTitre_event()).compareToIgnoreCase(safeValue(a.getTitre_event())));
-            case "Ville A-Z" ->
-                    FXCollections.sort(masterList, (a, b) -> safeValue(a.getVille_event()).compareToIgnoreCase(safeValue(b.getVille_event())));
-            case "Statut" ->
-                    FXCollections.sort(masterList, (a, b) -> safeValue(a.getStatut_event()).compareToIgnoreCase(safeValue(b.getStatut_event())));
-            default ->
-                    FXCollections.sort(masterList, (a, b) -> safeValue(a.getTitre_event()).compareToIgnoreCase(safeValue(b.getTitre_event())));
+        if (filterVilleCombo != null) {
+            filterVilleCombo.setOnAction(e -> appliquerRechercheFiltreTri());
         }
     }
 
-    private void updateStats() {
-        if (filteredList == null) return;
+    private void appliquerRechercheFiltreTri() {
+        try {
+            List<Evenement> resultat = evenementService.recuperer();
 
-        int total = filteredList.size();
+            String keyword = searchField != null ? searchField.getText() : "";
+            String type = filterTypeCombo != null ? filterTypeCombo.getValue() : "";
+            String statut = filterStatutCombo != null ? filterStatutCombo.getValue() : "";
+            String ville = filterVilleCombo != null ? filterVilleCombo.getValue() : "";
+            String tri = sortCombo != null ? sortCombo.getValue() : "";
+
+            resultat = evenementService.rechercherEvenements(resultat, keyword);
+            resultat = evenementService.filtrerEvenements(resultat, type, statut, ville);
+            resultat = evenementService.trierEvenements(resultat, tri);
+
+            masterList.setAll(resultat);
+
+            if (evenementTable != null) {
+                evenementTable.setItems(masterList);
+            }
+
+            updateStats();
+
+        } catch (SQLException e) {
+            showAlert(Alert.AlertType.ERROR, "Erreur", e.getMessage());
+        }
+    }
+    private void updateStats() {
+        int total = masterList.size();
         int publies = 0;
         int brouillons = 0;
         int archives = 0;
 
-        for (Evenement e : filteredList) {
+        for (Evenement e : masterList) {
             String statut = safeValue(e.getStatut_event()).toLowerCase(Locale.ROOT);
             if (statut.contains("publi")) publies++;
             else if (statut.contains("brouillon")) brouillons++;
@@ -1358,9 +1426,7 @@ public class EvenementController {
         loadScene("/EvenementCardsBack.fxml", "Événements - Vue Cards");
     }
 
-    /* =========================================================
-       ===================== NAVIGATION =========================
-       ========================================================= */
+
 
     @FXML
     private void toggleSubmenu() {
@@ -1471,9 +1537,244 @@ public class EvenementController {
         stage.show();
     }
 
-    /* =========================================================
-       ===================== UTIL ===============================
-       ========================================================= */
+
+
+
+    //FronT
+    private void ouvrirDetailEvenementFront(Evenement ev) {
+        try {
+            evenementSelectionneFront = ev;
+
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/FrontFXML/EvenementDetail.fxml"));
+            Parent root = loader.load();
+
+            Stage stage = null;
+
+            if (cardsContainer != null && cardsContainer.getScene() != null) {
+                stage = (Stage) cardsContainer.getScene().getWindow();
+            } else {
+                stage = resolveCurrentStage();
+            }
+
+            if (stage != null) {
+                stage.setScene(new Scene(root, 1400, 820));
+                stage.setTitle("Détail Événement");
+                stage.show();
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Erreur", "Impossible d'ouvrir le détail front : " + e.getMessage());
+        }
+    }
+
+    private void chargerDetailFrontIfExists() {
+        if (titreDetailLabel == null || evenementSelectionneFront == null) return;
+
+        Evenement ev = evenementSelectionneFront;
+
+        titreDetailLabel.setText(valueOrDash(ev.getTitre_event()));
+        villeDetailLabel.setText("📍 " + valueOrDash(ev.getVille_event()));
+        adresseDetailLabel.setText("📌 " + valueOrDash(ev.getAdresse_event()));
+        visibiliteDetailLabel.setText("👁 " + valueOrDash(ev.getVisibilite_event()));
+
+        descriptionDetailLabel.setText(valueOrDash(ev.getDescription_event()));
+        objectifDetailLabel.setText(valueOrDash(ev.getObjectif_event()));
+
+        organisateurDetailLabel.setText("👤 " + valueOrDash(ev.getNom_organisateur_event()));
+        emailDetailLabel.setText("✉ " + valueOrDash(ev.getEmail_contact_event()));
+        telDetailLabel.setText("☎ " + valueOrDash(ev.getTel_contact_event()));
+        nbPlacesDetailLabel.setText("👥 Participants max : " + ev.getNb_participants_max_event());
+        inscriptionDetailLabel.setText("📝 Inscription obligatoire : " + (ev.isInscription_obligatoire_event() ? "Oui" : "Non"));
+
+        if (ev.getDate_limite_inscription_event() != null) {
+            dateLimiteDetailLabel.setText("⏳ Date limite inscription : " + ev.getDate_limite_inscription_event().toString());
+        } else {
+            dateLimiteDetailLabel.setText("⏳ Date limite inscription : -");
+        }
+
+        if (typeBadge != null) {
+            typeBadge.setText(valueOrDash(ev.getType_event()));
+        }
+
+        if (statutBadge != null) {
+            statutBadge.setText(valueOrDash(ev.getStatut_event()));
+        }
+
+        if (dateBadge != null) {
+            String debut = ev.getDate_debut_event() != null ? ev.getDate_debut_event().toString() : "-";
+            String fin = ev.getDate_fin_event() != null ? ev.getDate_fin_event().toString() : "-";
+            dateBadge.setText(debut + " → " + fin);
+        }
+
+        if (detailImageView != null) {
+            Image image = loadEventImage(ev.getImage_couverture_event());
+            if (image != null) {
+                detailImageView.setImage(image);
+            }
+        }
+    }
+    private void initFiltres() {
+        if (filterTypeCombo != null) {
+            filterTypeCombo.setItems(FXCollections.observableArrayList(
+                    "Tous", "Campagne", "Conférence", "Atelier", "Caritatif", "Autre"
+            ));
+            filterTypeCombo.setValue("Tous");
+        }
+
+        if (filterStatutCombo != null) {
+            filterStatutCombo.setItems(FXCollections.observableArrayList(
+                    "Tous", "Publié", "Brouillon", "Annulé"
+            ));
+            filterStatutCombo.setValue("Tous");
+        }
+
+        if (filterVilleCombo != null) {
+            filterVilleCombo.setItems(FXCollections.observableArrayList(
+                    "Toutes", "Tunis", "Sfax", "Sousse", "Ariana"
+            ));
+            filterVilleCombo.setValue("Toutes");
+        }
+    }
+
+    @FXML
+    private void retourVersListeFront() {
+        try {
+            Parent root = FXMLLoader.load(getClass().getResource("/FrontFXML/Evenement.fxml"));
+            Stage stage = resolveCurrentStage();
+
+            if (stage != null) {
+                stage.setScene(new Scene(root, 1400, 820));
+                stage.setTitle("Événements");
+                stage.show();
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Erreur", "Impossible de revenir à la liste : " + e.getMessage());
+        }
+    }
+
+
+    private VBox createEventCardFront(Evenement ev) {
+        VBox card = new VBox(12);
+        card.setPrefWidth(320);
+        card.setStyle(
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 22;" +
+                        "-fx-border-color: rgba(14,143,176,0.18);" +
+                        "-fx-border-radius: 22;" +
+                        "-fx-padding: 0 0 18 0;" +
+                        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 18, 0.15, 0, 6);"
+        );
+
+        StackPane imageHeader = new StackPane();
+        imageHeader.setPrefHeight(180);
+        imageHeader.setStyle("-fx-background-color: linear-gradient(to right, #dff7fb, #dce8ff); -fx-background-radius: 22 22 0 0;");
+
+        Image image = loadEventImage(ev.getImage_couverture_event());
+        if (image != null) {
+            ImageView imageView = new ImageView(image);
+            imageView.setFitWidth(320);
+            imageView.setFitHeight(180);
+            imageView.setPreserveRatio(false);
+            imageView.setSmooth(true);
+            imageHeader.getChildren().add(imageView);
+        } else {
+            Label noImage = new Label("Aucune image");
+            noImage.setStyle("-fx-text-fill: #2e6f8d; -fx-font-size: 18px; -fx-font-weight: bold;");
+            imageHeader.getChildren().add(noImage);
+        }
+
+        VBox content = new VBox(10);
+        content.setPadding(new Insets(14, 16, 0, 16));
+
+        Label titre = new Label(valueOrDash(ev.getTitre_event()));
+        titre.setWrapText(true);
+        titre.setStyle("-fx-font-size: 22px; -fx-font-weight: 800; -fx-text-fill: #153946;");
+
+        Label ville = new Label("📍 " + valueOrDash(ev.getVille_event()));
+        ville.setStyle("-fx-text-fill: #4d6d78; -fx-font-size: 13px;");
+
+        Label date = new Label("📅 " + (ev.getDate_debut_event() != null ? ev.getDate_debut_event().toString() : "-"));
+        date.setStyle("-fx-text-fill: #4d6d78; -fx-font-size: 13px;");
+
+        Label desc = new Label(shortText(valueOrDash(ev.getDescription_event()), 90));
+        desc.setWrapText(true);
+        desc.setStyle("-fx-text-fill: #5f6f86; -fx-font-size: 13px;");
+
+        HBox actions = new HBox();
+        actions.setPadding(new Insets(8, 16, 0, 16));
+
+        Button detailsBtn = new Button("Détails");
+        detailsBtn.getStyleClass().add("confirm-button");
+        detailsBtn.setOnAction(e -> ouvrirDetailEvenementFront(ev));
+
+        actions.getChildren().add(detailsBtn);
+
+        content.getChildren().addAll(titre, ville, date, desc);
+        card.getChildren().addAll(imageHeader, content, actions);
+
+        return card;
+    }
+    @FXML
+    private void handleExportPDF() {
+        try {
+            DashboardBIServiceEvenement service = new DashboardBIServiceEvenement();
+
+            DashboardBIServiceEvenement.DashboardData data =
+                    service.chargerDonnees(null, null);
+
+            // 🔥 simple PDF (version basique)
+            FileWriter writer = new FileWriter("evenements.pdf");
+
+            writer.write("===== RAPPORT EVENEMENTS =====\n\n");
+            writer.write("Total: " + data.totalEvenements + "\n");
+            writer.write("Publies: " + data.publies + "\n");
+            writer.write("Brouillons: " + data.brouillons + "\n");
+            writer.write("Archives: " + data.archives + "\n");
+
+            writer.close();
+
+            showAlert(Alert.AlertType.INFORMATION, "Succès", "PDF généré avec succès !");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Erreur", "Erreur génération PDF");
+        }
+    }
+    @FXML
+    private void choisirImageDepuisPC() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Choisir une image");
+
+        fileChooser.getExtensionFilters().addAll(
+                new FileChooser.ExtensionFilter("Images", "*.png", "*.jpg", "*.jpeg", "*.webp")
+        );
+
+        Stage stage = resolveCurrentStage();
+        File file = fileChooser.showOpenDialog(stage);
+
+        if (file != null) {
+            tfImageEvent.setText(file.getAbsolutePath());
+        }
+    }
+    private void initCardsFrontIfExists() {
+        if (cardsContainer == null) return;
+
+
+        try {
+            List<Evenement> events = evenementService.recuperer();
+            cardsContainer.getChildren().clear();
+
+            for (Evenement ev : events) {
+                cardsContainer.getChildren().add(createEventCardFront(ev));
+            }
+        } catch (Exception e) {
+            showAlert(Alert.AlertType.ERROR, "Erreur", e.getMessage());
+        }
+    }
+
 
     private String safeValue(String value) {
         return value == null ? "" : value;

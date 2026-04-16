@@ -214,4 +214,70 @@ public class ReponseService {
             e.printStackTrace();
         }
     }
+
+    public boolean existeDoublon(ReponseReclamation r) {
+
+        String sql = """
+        SELECT COUNT(*) 
+        FROM reponse_reclamation 
+        WHERE id_reclamation = ?
+        AND LOWER(TRIM(message)) = LOWER(TRIM(?))
+        AND type_reponse = ?
+    """;
+
+        try {
+            PreparedStatement ps = cn.prepareStatement(sql);
+
+            ps.setInt(1, r.getReclamation().getId_reclamation());
+            ps.setString(2, r.getMessage());
+            ps.setString(3, r.getType_reponse());
+
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
+    public ReponseReclamation getDoublon(ReponseReclamation r) {
+
+        String sql = """
+        SELECT * FROM reponse_reclamation 
+        WHERE id_reclamation = ?
+        AND LOWER(TRIM(message)) = LOWER(TRIM(?))
+        AND type_reponse = ?
+        LIMIT 1
+    """;
+
+        try {
+            PreparedStatement ps = cn.prepareStatement(sql);
+
+            ps.setInt(1, r.getReclamation().getId_reclamation());
+            ps.setString(2, r.getMessage());
+            ps.setString(3, r.getType_reponse());
+
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+
+                ReponseReclamation rep = new ReponseReclamation();
+                rep.setId_reponse(rs.getInt("id_reponse"));
+                rep.setMessage(rs.getString("message"));
+                rep.setType_reponse(rs.getString("type_reponse"));
+
+                return rep;
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
 }

@@ -214,6 +214,7 @@
                                                                   prefWidth="360.0"
                                                                   maxWidth="360.0"
                                                                   styleClass="form-combo"/>
+
                                                     </children>
                                                 </VBox>
 
@@ -225,6 +226,9 @@
                                                                   wrapText="true"
                                                                   prefHeight="200.0"
                                                                   styleClass="form-textarea"/>
+                                                        <Label fx:id="errorLabel"
+                                                               text=""
+                                                               style="-fx-text-fill: red; -fx-font-size: 12px;" />
                                                     </children>
                                                 </VBox>
 

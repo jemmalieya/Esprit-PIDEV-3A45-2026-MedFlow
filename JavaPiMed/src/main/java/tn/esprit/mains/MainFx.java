@@ -8,7 +8,7 @@ import javafx.stage.Stage;
 
 public class MainFx extends Application {
 
-
+ /*
     @Override
     public void start(Stage stage) throws Exception {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/FrontFXML/Accueil.fxml"));
@@ -23,7 +23,7 @@ public class MainFx extends Application {
         stage.setMaximized(true);
         stage.show();
     }
-     /*
+
      @Override
     public void start(Stage stage) throws Exception {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/FrontFXML/Consultation.fxml"));
@@ -38,6 +38,8 @@ public class MainFx extends Application {
         stage.setMaximized(true);
         stage.show();
     }
+     */
+
     @Override
     public void start(Stage stage) throws Exception {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/BackFXML/ConsultationDocteur.fxml"));
@@ -52,7 +54,7 @@ public class MainFx extends Application {
         stage.setMaximized(true);
         stage.show();
     }
- */
+
 
     public static void main(String[] args) {
         launch(args);

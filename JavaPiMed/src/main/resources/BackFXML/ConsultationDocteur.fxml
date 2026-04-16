@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.chart.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
@@ -24,6 +25,7 @@
         <HBox alignment="CENTER_LEFT" styleClass="page-switcher-bar" spacing="10">
             <Button fx:id="pageOneBtn" onAction="#handleShowPageOne" text="Mes Rendez Vous" styleClass="page-nav-button,page-nav-button-active"/>
             <Button fx:id="consultationPageBtn" onAction="#handleShowConsultationPage" text="Consultation" styleClass="page-nav-button"/>
+            <Button fx:id="statsPageBtn" onAction="#handleShowStatsPage" text="Statistiques" styleClass="page-nav-button"/>
         </HBox>
 
         <StackPane VBox.vgrow="ALWAYS">
@@ -271,6 +273,71 @@
                         <Button fx:id="saveFicheButton" text="Enregistrer la fiche et la prescription" onAction="#handleSaveFicheMedicale" styleClass="fiche-primary-button"/>
                     </HBox>
                 </VBox>
+            </VBox>
+
+            <VBox fx:id="statsPageContainer" spacing="16" visible="false" managed="false">
+                <HBox alignment="CENTER_LEFT" styleClass="top-search-bar">
+                    <Label text="Statistiques Consultation" styleClass="consultation-page-title"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Label text="Analyse basée sur les rendez-vous affichés    " styleClass="consultation-page-subtitle"/>
+                    <Button text="Export PNG" onAction="#handleExportStatsPng" styleClass="fiche-secondary-button"/>
+                    <Button text="Export PDF" onAction="#handleExportStatsPdf" styleClass="fiche-primary-button"/>
+                    
+                </HBox>
+
+                <HBox spacing="12" styleClass="stats-row">
+                    <VBox styleClass="stat-card" HBox.hgrow="ALWAYS">
+                        <Label text="Rendez-vous" styleClass="stat-label"/>
+                        <Label fx:id="statsTotalRendezVousLabel" text="0" styleClass="stat-number"/>
+                    </VBox>
+                    <VBox styleClass="stat-card" HBox.hgrow="ALWAYS">
+                        <Label text="Confirmés" styleClass="stat-label"/>
+                        <Label fx:id="statsConfirmedRendezVousLabel" text="0" styleClass="stat-number"/>
+                    </VBox>
+                    <VBox styleClass="stat-card" HBox.hgrow="ALWAYS">
+                        <Label text="Terminés" styleClass="stat-label"/>
+                        <Label fx:id="statsFinishedRendezVousLabel" text="0" styleClass="stat-number"/>
+                    </VBox>
+                    <VBox styleClass="stat-card" HBox.hgrow="ALWAYS">
+                        <Label text="Fiches Médicales" styleClass="stat-label"/>
+                        <Label fx:id="statsFichesCountLabel" text="0" styleClass="stat-number"/>
+                    </VBox>
+                    <VBox styleClass="stat-card" HBox.hgrow="ALWAYS">
+                        <Label text="Prescriptions" styleClass="stat-label"/>
+                        <Label fx:id="statsPrescriptionsCountLabel" text="0" styleClass="stat-number"/>
+                    </VBox>
+                </HBox>
+
+                <HBox spacing="14" VBox.vgrow="ALWAYS">
+                    <VBox spacing="8" styleClass="stat-card" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS">
+                        <Label text="Répartition des Statuts" styleClass="stat-label"/>
+                        <PieChart fx:id="rdvStatusPieChart" legendVisible="true" labelsVisible="true" VBox.vgrow="ALWAYS"/>
+                    </VBox>
+
+                    <VBox spacing="8" styleClass="stat-card" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS">
+                        <Label text="Répartition des Modes" styleClass="stat-label"/>
+                        <PieChart fx:id="rdvModePieChart" legendVisible="true" labelsVisible="true" VBox.vgrow="ALWAYS"/>
+                    </VBox>
+                </HBox>
+
+                <HBox spacing="14" VBox.vgrow="ALWAYS">
+                    <VBox spacing="8" styleClass="stat-card" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS">
+                        <Label text="Niveau d'Urgence" styleClass="stat-label"/>
+                        <BarChart fx:id="urgencyBarChart" legendVisible="false" animated="false" VBox.vgrow="ALWAYS">
+                            <xAxis>
+                                <CategoryAxis/>
+                            </xAxis>
+                            <yAxis>
+                                <NumberAxis lowerBound="0.0" tickUnit="1.0" autoRanging="true"/>
+                            </yAxis>
+                        </BarChart>
+                    </VBox>
+
+                    <VBox spacing="8" styleClass="stat-card" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS">
+                        <Label text="Médicaments les Plus Prescrits" styleClass="stat-label"/>
+                        <PieChart fx:id="topMedicamentsPieChart" legendVisible="true" labelsVisible="true" VBox.vgrow="ALWAYS"/>
+                    </VBox>
+                </HBox>
             </VBox>
         </StackPane>
     </VBox>

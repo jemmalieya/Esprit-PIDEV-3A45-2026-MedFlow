@@ -15,26 +15,15 @@
 <?import javafx.scene.layout.VBox?>
 
 <?import javafx.scene.control.ScrollPane?>
-<BorderPane xmlns:fx="http://javafx.com/fxml/1"
+
+<!-- Just the center content - no BorderPane, no Sidebar include, no controller -->
+<ScrollPane xmlns:fx="http://javafx.com/fxml/1"
             xmlns="http://javafx.com/javafx/21"
-            prefWidth="1400.0" prefHeight="820.0"
-            stylesheets="@../CSS/booking.css"
-            fx:controller="tn.esprit.controllers.ConsultationController"
-            styleClass="root-pane">
-
-    <!-- LEFT SIDEBAR -->
-    <left>
-        <fx:include source="Sidebar.fxml"/>
-    </left>
-
-
-    <!-- MAIN BODY -->
-    <center>
-        <ScrollPane
-                    pannable="true"
-                    hbarPolicy="NEVER"
-                    vbarPolicy="AS_NEEDED"
-                    styleClass="main-scroll">
+            pannable="true"
+            hbarPolicy="NEVER"
+            vbarPolicy="AS_NEEDED"
+            styleClass="main-scroll"
+            fx:controller="tn.esprit.controllers.ConsultationController">
 
             <content>
                 <VBox spacing="24" styleClass="main-area">
@@ -286,6 +275,3 @@
                 </VBox>
             </content>
         </ScrollPane>
-    </center>
-
-</BorderPane>

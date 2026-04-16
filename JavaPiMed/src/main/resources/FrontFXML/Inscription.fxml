@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.*?>
+
+<StackPane xmlns="http://javafx.com/javafx/21"
+           xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="tn.esprit.controllers.RegisterController"
+           fx:id="rootPane"
+           prefHeight="820.0"
+           prefWidth="1400.0"
+           stylesheets="@../CSS/login.css"
+           styleClass="login-root">
+
+    <!-- Soft background shapes (static) -->
+    <AnchorPane styleClass="login-background-shape shape-one" StackPane.alignment="TOP_LEFT"/>
+    <AnchorPane styleClass="login-background-shape shape-two" StackPane.alignment="BOTTOM_RIGHT"/>
+
+    <HBox maxWidth="1200.0" prefHeight="720.0" prefWidth="1200.0" styleClass="login-shell">
+        <!-- Left visual / brand side, same spirit as login -->
+        <VBox spacing="24.0" styleClass="login-brand-panel" HBox.hgrow="ALWAYS">
+            <padding>
+                <Insets top="40.0" right="40.0" bottom="40.0" left="40.0"/>
+            </padding>
+
+            <HBox alignment="TOP_LEFT" spacing="14.0">
+                <ImageView fitHeight="46.0" fitWidth="46.0" pickOnBounds="true" preserveRatio="true">
+                    <image>
+                        <Image url="@../images/logo.png"/>
+                    </image>
+                </ImageView>
+                <VBox spacing="2.0">
+                    <Label text="MEDFLOW" styleClass="brand-title"/>
+                    <Label text="Plateforme de santé connectée" styleClass="brand-subtitle"/>
+                </VBox>
+            </HBox>
+
+            <VBox spacing="10.0" maxWidth="360.0">
+                <Label text="Créez votre compte en quelques secondes." styleClass="hero-title" wrapText="true"/>
+                <Label text="Rejoignez MedFlow pour gérer vos rendez-vous, ordonnances et réclamations dans un espace unique." styleClass="hero-text" wrapText="true"/>
+            </VBox>
+        </VBox>
+
+        <!-- Right signup card side, mirroring the login card -->
+        <VBox alignment="CENTER" prefWidth="460.0" styleClass="login-right-pane">
+            <VBox fx:id="signupCard" maxWidth="420.0" minWidth="380.0" spacing="18.0" styleClass="login-form-panel">
+                <padding>
+                    <Insets top="28.0" right="32.0" bottom="28.0" left="32.0"/>
+                </padding>
+
+                <VBox spacing="8.0">
+                    <Label text="Créer un compte" styleClass="form-title"/>
+                    <Label text="Renseignez vos informations pour activer votre espace MedFlow." styleClass="form-subtitle" wrapText="true"/>
+                </VBox>
+
+                <GridPane hgap="18.0" vgap="8.0">
+                    <columnConstraints>
+                        <ColumnConstraints percentWidth="50"/>
+                        <ColumnConstraints percentWidth="50"/>
+                    </columnConstraints>
+
+                    <!-- CIN -->
+                    <Label text="CIN" styleClass="signup-field-label" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                    <TextField fx:id="cinField" promptText="8 chiffres" styleClass="login-field" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                    <Label fx:id="cinErrorLabel" text="" styleClass="field-error" managed="false" visible="false" wrapText="true" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+
+                    <!-- Nom -->
+                    <Label text="Nom" styleClass="signup-field-label" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+                    <TextField fx:id="nomField" promptText="Votre nom" styleClass="login-field" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+                    <Label fx:id="nomErrorLabel" text="" styleClass="field-error" managed="false" visible="false" wrapText="true" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+
+                    <!-- Prénom -->
+                    <Label text="Prénom" styleClass="signup-field-label" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+                    <TextField fx:id="prenomField" promptText="Votre prénom" styleClass="login-field" GridPane.rowIndex="4" GridPane.columnIndex="0"/>
+                    <Label fx:id="prenomErrorLabel" text="" styleClass="field-error" managed="false" visible="false" wrapText="true" GridPane.rowIndex="5" GridPane.columnIndex="0"/>
+
+                    <!-- Date de naissance -->
+                    <Label text="Date de naissance" styleClass="signup-field-label" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+                    <DatePicker fx:id="dateNaissancePicker" promptText="jj/mm/aaaa" styleClass="signup-date-picker" GridPane.rowIndex="4" GridPane.columnIndex="1"/>
+                    <Label fx:id="dateNaissanceErrorLabel" text="" styleClass="field-error" managed="false" visible="false" wrapText="true" GridPane.rowIndex="5" GridPane.columnIndex="1"/>
+
+                    <!-- Téléphone -->
+                    <Label text="Téléphone" styleClass="signup-field-label" GridPane.rowIndex="6" GridPane.columnIndex="0"/>
+                    <TextField fx:id="telephoneField" promptText="54430709 ou +21654430709" styleClass="login-field" GridPane.rowIndex="7" GridPane.columnIndex="0"/>
+                    <Label fx:id="telephoneErrorLabel" text="" styleClass="field-error" managed="false" visible="false" wrapText="true" GridPane.rowIndex="8" GridPane.columnIndex="0"/>
+
+                    <!-- Adresse e-mail -->
+                    <Label text="Adresse e-mail" styleClass="signup-field-label" GridPane.rowIndex="6" GridPane.columnIndex="1"/>
+                    <TextField fx:id="emailField" promptText="exemple@email.com" styleClass="login-field" GridPane.rowIndex="7" GridPane.columnIndex="1"/>
+                    <Label fx:id="emailErrorLabel" text="" styleClass="field-error" managed="false" visible="false" wrapText="true" GridPane.rowIndex="8" GridPane.columnIndex="1"/>
+
+                    <!-- Adresse -->
+                    <Label text="Adresse (optionnel)" styleClass="signup-field-label" GridPane.rowIndex="9" GridPane.columnIndex="0"/>
+                    <TextField fx:id="adresseField" promptText="Votre adresse" styleClass="login-field" GridPane.rowIndex="10" GridPane.columnIndex="0"/>
+                    <Label fx:id="adresseErrorLabel" text="" styleClass="field-error" managed="false" visible="false" wrapText="true" GridPane.rowIndex="11" GridPane.columnIndex="0"/>
+
+                    <!-- Mot de passe -->
+                    <Label text="Mot de passe" styleClass="signup-field-label" GridPane.rowIndex="9" GridPane.columnIndex="1"/>
+                    <PasswordField fx:id="motDePasseField" promptText="••••••••" styleClass="login-field" GridPane.rowIndex="10" GridPane.columnIndex="1"/>
+                    <Label fx:id="passwordErrorLabel" text="" styleClass="field-error" managed="false" visible="false" wrapText="true" GridPane.rowIndex="11" GridPane.columnIndex="1"/>
+
+                    <!-- Confirmer le mot de passe -->
+                    <Label text="Confirmer le mot de passe" styleClass="signup-field-label" GridPane.rowIndex="12" GridPane.columnIndex="1"/>
+                    <PasswordField fx:id="confirmerMotDePasseField" promptText="••••••••" styleClass="login-field" GridPane.rowIndex="13" GridPane.columnIndex="1"/>
+                    <Label fx:id="confirmPasswordErrorLabel" text="" styleClass="field-error" managed="false" visible="false" wrapText="true" GridPane.rowIndex="14" GridPane.columnIndex="1"/>
+                </GridPane>
+
+                <!-- Conditions -->
+                <HBox alignment="CENTER_LEFT" spacing="8.0">
+                    <CheckBox fx:id="conditionsCheckBox"/>
+                    <Label text="J'accepte les " styleClass="signup-conditions-text"/>
+                    <Hyperlink text="Conditions d'utilisation" styleClass="signup-conditions-link"/>
+                    <Label text=" de MedFlow." styleClass="signup-conditions-text"/>
+                </HBox>
+
+                <!-- Validation / status message -->
+                <Label fx:id="signupStatusLabel" text="" wrapText="true" managed="false" visible="false" styleClass="status-message"/>
+
+                <!-- Submit button -->
+                <HBox fx:id="registerButtonBox" alignment="CENTER_RIGHT">
+                    <Button text="S'inscrire" onAction="#handleRegister" styleClass="primary-action"/>
+                </HBox>
+
+                <!-- Success redirect button (shown after successful registration) -->
+                <HBox fx:id="successButtonBox" alignment="CENTER_RIGHT" managed="false" visible="false">
+                    <Button text="Se connecter maintenant" onAction="#handleGoToLogin" styleClass="primary-action"/>
+                </HBox>
+
+                <!-- Already have an account? -->
+                <HBox alignment="CENTER" spacing="6.0">
+                    <Label text="Vous avez déjà un compte ?" styleClass="register-label"/>
+                    <Hyperlink onAction="#handleGoToLogin" text="Se connecter" styleClass="login-link-secondary"/>
+                </HBox>
+            </VBox>
+        </VBox>
+    </HBox>
+</StackPane>

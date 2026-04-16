@@ -1,5 +1,5 @@
 package tn.esprit.entities;
-import java.sql.Timestamp;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -46,9 +46,6 @@ public class User {
     private int faceFailedAttempts;
     private LocalDateTime faceLockedUntil;
     private String faceReferenceEmbedding;
-
-    public User(int id, String number, String image, String test, String user, LocalDate of, String number1, String mail, String tunis, String hashedpassword, Object password, boolean isVerified, String actif, String patient, Object typeStaff, Object verificationToken, Object tokenExpiresAt, Object staffRequestStatus, Object staffRequestType, Object staffRequestMessage, Object staffRequestedAt, Object staffReviewedAt, int staffReviewedBy, Object googleId, Object resetToken, Object resetTokenExpiresAt, Object banReason, Object bannedAt, Object staffRequestProofPath, Object staffDocuments, Object staffRequestReason, Object totpSecret, boolean totpEnabled, Object lastLoginIp, Object lastLoginCountry, Object lastLoginAt, boolean faceLoginEnabled, Object faceEnrolledAt, Object faceLastVerifiedAt, int faceFailedAttempts, Object faceLockedUntil, Object faceReferenceEmbedding) {
-    }
 
     @Override
     public String toString() {
@@ -226,7 +223,7 @@ public class User {
         this.password = password;
     }
 
-    public Timestamp getDerniereConnexion() {
+    public LocalDateTime getDerniereConnexion() {
         return derniereConnexion;
     }
 
@@ -274,7 +271,7 @@ public class User {
         this.verificationToken = verificationToken;
     }
 
-    public Timestamp getTokenExpiresAt() {
+    public LocalDateTime getTokenExpiresAt() {
         return tokenExpiresAt;
     }
 
@@ -306,7 +303,7 @@ public class User {
         this.staffRequestMessage = staffRequestMessage;
     }
 
-    public Timestamp getStaffRequestedAt() {
+    public LocalDateTime getStaffRequestedAt() {
         return staffRequestedAt;
     }
 
@@ -314,7 +311,7 @@ public class User {
         this.staffRequestedAt = staffRequestedAt;
     }
 
-    public Timestamp getStaffReviewedAt() {
+    public LocalDateTime getStaffReviewedAt() {
         return staffReviewedAt;
     }
 
@@ -346,7 +343,7 @@ public class User {
         this.resetToken = resetToken;
     }
 
-    public Timestamp getResetTokenExpiresAt() {
+    public LocalDateTime getResetTokenExpiresAt() {
         return resetTokenExpiresAt;
     }
 
@@ -362,7 +359,7 @@ public class User {
         this.banReason = banReason;
     }
 
-    public Timestamp getBannedAt() {
+    public LocalDateTime getBannedAt() {
         return bannedAt;
     }
 
@@ -426,7 +423,7 @@ public class User {
         this.lastLoginCountry = lastLoginCountry;
     }
 
-    public Timestamp getLastLoginAt() {
+    public LocalDateTime getLastLoginAt() {
         return lastLoginAt;
     }
 
@@ -442,7 +439,7 @@ public class User {
         this.faceLoginEnabled = faceLoginEnabled;
     }
 
-    public Timestamp getFaceEnrolledAt() {
+    public LocalDateTime getFaceEnrolledAt() {
         return faceEnrolledAt;
     }
 
@@ -450,7 +447,7 @@ public class User {
         this.faceEnrolledAt = faceEnrolledAt;
     }
 
-    public Timestamp getFaceLastVerifiedAt() {
+    public LocalDateTime getFaceLastVerifiedAt() {
         return faceLastVerifiedAt;
     }
 
@@ -466,7 +463,7 @@ public class User {
         this.faceFailedAttempts = faceFailedAttempts;
     }
 
-    public Timestamp getFaceLockedUntil() {
+    public LocalDateTime getFaceLockedUntil() {
         return faceLockedUntil;
     }
 

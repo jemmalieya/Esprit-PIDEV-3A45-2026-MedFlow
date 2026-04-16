@@ -7,4 +7,5 @@ public interface IGeneralService <T>{
     void supprimer(T t);
     void modifier(T t);
     List<T> recuperer();
+    T recupererParId(int id);
 }

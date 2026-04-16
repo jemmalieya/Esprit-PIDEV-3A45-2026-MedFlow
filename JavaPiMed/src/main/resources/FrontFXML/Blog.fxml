@@ -1,42 +1,34 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
-<?import javafx.scene.control.Button?>
-<?import javafx.scene.control.ComboBox?>
-<?import javafx.scene.control.DatePicker?>
 <?import javafx.scene.control.Label?>
-<?import javafx.scene.control.TextArea?>
-<?import javafx.scene.control.TextField?>
-<?import javafx.scene.image.Image?>
-<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.layout.BorderPane?>
-<?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.Priority?>
-<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
-<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.ComboBox?>
 <BorderPane xmlns:fx="http://javafx.com/fxml/1"
             xmlns="http://javafx.com/javafx/21"
-            prefWidth="1400.0" prefHeight="820.0"
-            stylesheets="@../CSS/booking.css"
-            fx:controller="tn.esprit.controllers.NavigationController"
+            prefWidth="1400.0"
+            prefHeight="820.0"
+            fx:controller="tn.esprit.controllers.BlogController"
+            stylesheets="@../CSS/booking.css,@../CSS/blog-cards.css"
             styleClass="root-pane">
 
-    <!-- LEFT SIDEBAR -->
     <left>
         <fx:include source="Sidebar.fxml"/>
     </left>
 
-
-    <!-- MAIN BODY -->
     <center>
-        <ScrollPane
-                pannable="true"
-                hbarPolicy="NEVER"
-                vbarPolicy="AS_NEEDED"
-                styleClass="main-scroll">
+        <ScrollPane fitToWidth="true"
+                    pannable="true"
+                    hbarPolicy="NEVER"
+                    vbarPolicy="AS_NEEDED"
+                    styleClass="main-scroll">
 
             <content>
                 <VBox spacing="24" styleClass="main-area">
@@ -44,16 +36,49 @@
                         <Insets top="26" right="28" bottom="26" left="28"/>
                     </padding>
 
-                    <!-- HEADER -->
                     <VBox spacing="6" styleClass="page-header">
-                        <Label text="Blog" styleClass="page-title"/>
-                        <Label text="Choose the date, the booking mode and the reason. Confirm your appointment in a clean and modern workflow."
-                               wrapText="true"
-                               styleClass="page-subtitle"/>
+                        <HBox alignment="CENTER_LEFT" spacing="14">
+                            <VBox spacing="6">
+                                <Label text="Blog" styleClass="page-title"/>
+                                <Label text="Retrouvez tous les articles, actualités et partages de la communauté MedFlow. Cliquez sur un post pour voir les détails !"
+                                       wrapText="true"
+                                       styleClass="page-subtitle"/>
+                            </VBox>
+
+                            <Region HBox.hgrow="ALWAYS"/>
+
+                            <TextField fx:id="searchField"
+                                       promptText="Rechercher un post..."
+                                       styleClass="blog-search-field"
+                                       prefWidth="260"
+                                       minWidth="220"/>
+
+                            <ComboBox fx:id="sortBox"
+                                      promptText="Trier par"
+                                      styleClass="blog-sort-box"
+                                      prefWidth="190"
+                                      minWidth="170"/>
+
+                            <Button text="+ Nouveau post"
+                                    onAction="#openAddPostPage"
+                                    styleClass="new-post-btn"
+                                    prefWidth="150"
+                                    minWidth="150"/>
+                        </HBox>
                     </VBox>
+                    <HBox spacing="24" alignment="TOP_LEFT">
+                        <VBox fx:id="postsContainer"
+                              spacing="22"
+                              styleClass="posts-column"
+                              HBox.hgrow="ALWAYS"/>
 
-
-
+                        <VBox fx:id="rightSidebar"
+                              spacing="18"
+                              styleClass="blog-right-sidebar"
+                              prefWidth="320.0"
+                              minWidth="320.0"
+                              maxWidth="320.0"/>
+                    </HBox>
 
                 </VBox>
             </content>

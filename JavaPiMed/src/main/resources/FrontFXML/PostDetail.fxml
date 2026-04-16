@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml/1"
+            xmlns="http://javafx.com/javafx/21"
+            prefWidth="1400.0"
+            prefHeight="820.0"
+            fx:controller="tn.esprit.controllers.PostDetailController"
+            stylesheets="@../CSS/booking.css,@../CSS/post-detail.css"
+            styleClass="root-pane">
+
+    <!-- SIDEBAR -->
+    <left>
+        <fx:include source="Sidebar.fxml"/>
+    </left>
+
+    <!-- MAIN -->
+    <center>
+        <ScrollPane fitToWidth="true"
+                    hbarPolicy="NEVER"
+                    vbarPolicy="AS_NEEDED"
+                    styleClass="main-scroll">
+
+            <content>
+                <VBox spacing="26" styleClass="main-area">
+                    <padding>
+                        <Insets top="26" right="28" bottom="26" left="28"/>
+                    </padding>
+
+                    <!-- HEADER -->
+                    <HBox alignment="CENTER_LEFT" spacing="16" styleClass="page-header">
+                        <VBox spacing="6">
+                            <Label text="Détail du Post" styleClass="page-title"/>
+                            <Label text="Consultez le contenu complet du post, ses informations et ses actions."
+                                   styleClass="page-subtitle"/>
+                        </VBox>
+
+                        <Region HBox.hgrow="ALWAYS"/>
+
+                        <Button text="← Retour au blog"
+                                onAction="#goBackToBlog"
+                                styleClass="back-btn"/>
+                    </HBox>
+
+                    <!-- MAIN DETAIL CARD -->
+                    <HBox spacing="28" styleClass="post-detail-card" alignment="TOP_LEFT">
+                        <!-- IMAGE -->
+                        <VBox styleClass="post-image-box">
+                            <ImageView fx:id="postImage"
+                                       fitWidth="460"
+                                       fitHeight="320"
+                                       preserveRatio="false"
+                                       smooth="true"
+                                       styleClass="post-detail-img"/>
+                        </VBox>
+
+                        <!-- CONTENT -->
+                        <VBox spacing="18" styleClass="post-detail-content" HBox.hgrow="ALWAYS">
+                            <HBox alignment="CENTER_LEFT" spacing="10">
+                                <Label fx:id="postCategory"
+                                       text="Service"
+                                       styleClass="post-category-badge"/>
+                            </HBox>
+
+                            <Label fx:id="postTitle"
+                                   text="Titre du post"
+                                   styleClass="post-detail-title"
+                                   wrapText="true"/>
+
+                            <Label fx:id="postSummary"
+                                   text="Résumé du post..."
+                                   styleClass="post-detail-summary"
+                                   wrapText="true"/>
+
+                            <HBox spacing="12" alignment="CENTER_LEFT" styleClass="post-meta-row">
+                                <Label fx:id="postDate"
+                                       text="15 Feb 2026"
+                                       styleClass="post-detail-date"/>
+                                <Label text="•" styleClass="post-detail-dot"/>
+                                <Label fx:id="postLocation"
+                                       text="Tunis"
+                                       styleClass="post-detail-location"/>
+                                <Label text="•" styleClass="post-detail-dot"/>
+                                <Label fx:id="postAuthor"
+                                       text="MedFlow Admin"
+                                       styleClass="post-detail-author"/>
+                            </HBox>
+
+                            <Region styleClass="soft-separator"/>
+
+                            <HBox spacing="14" alignment="CENTER_LEFT">
+                                <Button fx:id="editBtn"
+                                        text="Modifier"
+                                        styleClass="edit-btn"
+                                        onAction="#handleEditPost"/>
+
+                                <Button fx:id="deleteBtn"
+                                        text="Supprimer"
+                                        styleClass="delete-btn"
+                                        onAction="#handleDeletePost"/>
+                            </HBox>
+                        </VBox>
+                    </HBox>
+
+                    <!-- EXTRA INFOS -->
+                    <HBox spacing="22" alignment="TOP_LEFT">
+                        <VBox spacing="16" styleClass="info-card" HBox.hgrow="ALWAYS">
+                            <Label text="Contenu complet" styleClass="section-title"/>
+                            <Label fx:id="postFullContent"
+                                   text="Le contenu complet du post apparaîtra ici..."
+                                   wrapText="true"
+                                   styleClass="full-content-text"/>
+                        </VBox>
+
+                        <VBox spacing="16" styleClass="side-info-column">
+                            <VBox spacing="14" styleClass="info-card">
+                                <Label text="Statistiques" styleClass="section-title"/>
+                                <Label fx:id="reactionsLabel"
+                                       text="0 réaction(s)"
+                                       styleClass="mini-info-text"/>
+                                <Label fx:id="commentsLabel"
+                                       text="0 commentaire(s)"
+                                       styleClass="mini-info-text"/>
+                            </VBox>
+
+                            <VBox spacing="14" styleClass="info-card">
+                                <Label text="Informations" styleClass="section-title"/>
+                                <Label fx:id="visibilityLabel"
+                                       text="Visibilité : Public"
+                                       styleClass="mini-info-text"/>
+                                <Label fx:id="moodLabel"
+                                       text="Humeur : Heureux"
+                                       styleClass="mini-info-text"/>
+                                <Label fx:id="anonymousLabel"
+                                       text="Publication : Non anonyme"
+                                       styleClass="mini-info-text"/>
+                            </VBox>
+
+                            <VBox spacing="14" styleClass="info-card">
+                                <Label text="Hashtags" styleClass="section-title"/>
+                                <VBox fx:id="hashtagsBox" spacing="8"/>
+                            </VBox>
+                        </VBox>
+                    </HBox>
+
+                </VBox>
+            </content>
+        </ScrollPane>
+    </center>
+</BorderPane>

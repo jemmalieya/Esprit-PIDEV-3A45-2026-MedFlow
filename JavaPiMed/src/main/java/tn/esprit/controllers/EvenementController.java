@@ -1454,6 +1454,11 @@ public class EvenementController {
     }
 
     @FXML
+    private void onGoToFront() {
+        loadScene("/FrontFXML/Accueil.fxml", "MedFlow - Espace Patient");
+    }
+
+    @FXML
     private void onNewEvent() {
         loadScene("/AjouterEvenement.fxml", "Nouvel événement");
     }

@@ -5,9 +5,15 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Node;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
 import tn.esprit.entities.Evenement;
 import tn.esprit.services.EvenementService;
 
@@ -290,6 +296,26 @@ public class EvenementController {
     private void onAutresActions(javafx.event.ActionEvent event) {
         // Logique pour autres actions
         // À implémenter selon le besoin
+    }
+
+    @FXML
+    private void onGoToFront(ActionEvent event) {
+        try {
+            Node source = (Node) event.getSource();
+            Stage stage = (Stage) source.getScene().getWindow();
+
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/FrontFXML/Accueil.fxml"));
+            Parent root = loader.load();
+
+            Scene scene = new Scene(root, 1400, 820);
+            stage.setScene(scene);
+            stage.setTitle("MedFlow - Espace Patient");
+            stage.setMaximized(true);
+            stage.show();
+        } catch (Exception e) {
+            showAlert(Alert.AlertType.ERROR, "Navigation", "Impossible d'ouvrir l'espace front.");
+            e.printStackTrace();
+        }
     }
 
     @FXML

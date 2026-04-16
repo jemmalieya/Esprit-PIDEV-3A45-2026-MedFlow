@@ -167,9 +167,15 @@
                             <Region HBox.hgrow="ALWAYS"/>
                             <HBox alignment="CENTER_RIGHT" spacing="10.0">
                                 <children>
-                                    <ComboBox fx:id="sortCombo"
-                                              prefWidth="180.0"
-                                              styleClass="combo-box"/>
+                                    <HBox spacing="8" alignment="CENTER_RIGHT" styleClass="sort-container">
+
+                                        <Label text="🔽 Trier par :" styleClass="sort-label"/>
+
+                                        <ComboBox fx:id="sortCombo"
+                                                  prefWidth="200.0"
+                                                  promptText="Choisir un tri"
+                                                  styleClass="sort-combo"/>
+                                    </HBox>
                                 </children>
                             </HBox>
 

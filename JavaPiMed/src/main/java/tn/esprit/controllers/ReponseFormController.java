@@ -8,6 +8,8 @@ import javafx.stage.Stage;
 import tn.esprit.entities.Reclamation;
 import tn.esprit.entities.ReponseReclamation;
 import tn.esprit.services.ReponseService;
+import javafx.animation.TranslateTransition;
+import javafx.util.Duration;
 
 import java.time.LocalDateTime;
 
@@ -24,11 +26,43 @@ public class ReponseFormController {
 
     @FXML private Label evenementArrow;
     @FXML private VBox submenuVBox;
+    @FXML private Label errorLabel;
 
     private Reclamation reclamation;
     private final ReponseService reponseService = new ReponseService();
     private Runnable afterSave;
+    private boolean validateForm() {
 
+        boolean valid = true;
+
+        // TYPE
+        if (typeReponseCombo.getValue() == null || typeReponseCombo.getValue().isEmpty()) {
+            markError(typeReponseCombo);
+            shake(typeReponseCombo);
+            valid = false;
+        } else {
+            markOk(typeReponseCombo);
+        }
+
+        // MESSAGE
+        String message = messageArea.getText() == null ? "" : messageArea.getText().trim();
+
+        if (message.isEmpty() || message.length() < 5) {
+            markError(messageArea);
+            shake(messageArea);
+            valid = false;
+        } else {
+            markOk(messageArea);
+        }
+
+        if (!valid) {
+            errorLabel.setText("Veuillez corriger les champs en rouge.");
+        } else {
+            errorLabel.setText("");
+        }
+
+        return valid;
+    }
     public void setAfterSave(Runnable afterSave) {
         this.afterSave = afterSave;
     }
@@ -47,6 +81,10 @@ public class ReponseFormController {
                 "Demande d'informations"
         ));
         typeReponseCombo.setValue("Réponse standard");
+        messageArea.textProperty().addListener((obs, oldV, newV) -> validateForm());
+        typeReponseCombo.valueProperty().addListener((obs, oldV, newV) -> validateForm());
+        typeReponseCombo.valueProperty().addListener((obs, o, n) -> validateForm());
+        messageArea.textProperty().addListener((obs, o, n) -> validateForm());
     }
 
     private void loadReclamationDetails() {
@@ -61,6 +99,10 @@ public class ReponseFormController {
 
     @FXML
     private void onEnvoyer() {
+        if (!validateForm()) {
+            return;
+        }
+
         if (reclamation == null) {
             showAlert(Alert.AlertType.ERROR, "Erreur", "Aucune réclamation sélectionnée.");
             return;
@@ -83,6 +125,12 @@ public class ReponseFormController {
         reponse.setIs_read(false);
 
         try {
+            if (reponseService.existeDoublon(reponse)) {
+                showAlert(Alert.AlertType.WARNING,
+                        "Doublon détecté",
+                        "Une réponse identique existe déjà pour cette réclamation.");
+                return;
+            }
             reponseService.ajouter(reponse);
 
             if (afterSave != null) {
@@ -96,6 +144,7 @@ public class ReponseFormController {
             showAlert(Alert.AlertType.ERROR, "Erreur", "Erreur lors de l'envoi: " + e.getMessage());
         }
     }
+
 
     @FXML
     private void onAnnuler() {
@@ -144,5 +193,30 @@ public class ReponseFormController {
         alert.setHeaderText(null);
         alert.setContentText(content);
         alert.showAndWait();
+    }
+    private void markError(Control c) {
+        c.getStyleClass().removeAll("field-ok");
+        if (!c.getStyleClass().contains("field-error")) {
+            c.getStyleClass().add("field-error");
+        }
+    }
+
+    private void markOk(Control c) {
+        c.getStyleClass().removeAll("field-error");
+        if (!c.getStyleClass().contains("field-ok")) {
+            c.getStyleClass().add("field-ok");
+        }
+    }
+
+    private void shake(Control node) {
+
+        TranslateTransition tt = new TranslateTransition(Duration.millis(60), node);
+
+        tt.setFromX(0);
+        tt.setByX(10);
+        tt.setCycleCount(6);
+        tt.setAutoReverse(true);
+
+        tt.play();
     }
 }

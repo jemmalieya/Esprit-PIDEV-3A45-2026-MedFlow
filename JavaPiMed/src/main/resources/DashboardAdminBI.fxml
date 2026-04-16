@@ -1,0 +1,424 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.chart.BarChart?>
+<?import javafx.scene.chart.CategoryAxis?>
+<?import javafx.scene.chart.LineChart?>
+<?import javafx.scene.chart.NumberAxis?>
+<?import javafx.scene.chart.PieChart?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Priority?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx/25"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="tn.esprit.controllers.ProduitController"
+            prefWidth="1400.0" prefHeight="850.0"
+            stylesheets="@CSS/dashboard_admin_bi.css"
+            styleClass="root-pane">
+
+    <!-- ===================== SIDEBAR ===================== -->
+    <left>
+        <VBox prefWidth="250.0" minWidth="250.0" maxWidth="250.0" styleClass="sidebar">
+            <padding>
+                <Insets top="24.0" right="18.0" bottom="24.0" left="18.0"/>
+            </padding>
+
+            <children>
+                <HBox alignment="CENTER_LEFT" spacing="14.0" styleClass="logo-box">
+                    <children>
+                        <StackPane prefWidth="40.0" prefHeight="40.0">
+                            <children>
+                                <Label text="❤" styleClass="logo-heart"/>
+                                <Label text="✚" styleClass="logo-plus"/>
+                            </children>
+                        </StackPane>
+                        <Label text="MEDFLOW" styleClass="logo-text"/>
+                    </children>
+                </HBox>
+
+                <Region prefHeight="1.0" maxHeight="1.0" styleClass="sidebar-separator"/>
+
+                <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="sidebar-item">
+                    <children>
+                        <Label text="🩺" styleClass="sidebar-item-icon"/>
+                        <Label text="Dashboard" styleClass="sidebar-item-text"/>
+                    </children>
+                </HBox>
+
+                <Label text="GESTIONS" styleClass="sidebar-section-title"/>
+
+                <Button fx:id="produitBtn"
+                        text=""
+                        onAction="#toggleSubmenu"
+                        alignment="CENTER_LEFT"
+                        maxWidth="Infinity"
+                        prefWidth="220.0"
+                        contentDisplay="GRAPHIC_ONLY"
+                        styleClass="sidebar-item, sidebar-btn, active-product-btn">
+                    <graphic>
+                        <HBox alignment="CENTER_LEFT" spacing="10.0" maxWidth="Infinity">
+                            <children>
+                                <Label text="📦" styleClass="sidebar-item-icon"/>
+                                <Label text="Produits" styleClass="sidebar-item-text"/>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Label fx:id="produitArrow" text="⌃" styleClass="sidebar-arrow"/>
+                            </children>
+                        </HBox>
+                    </graphic>
+                </Button>
+
+                <VBox fx:id="submenuVBox"
+                      spacing="18.0"
+                      styleClass="submenu-card"
+                      managed="true"
+                      visible="true"
+                      maxWidth="220.0">
+                    <children>
+                        <Label text="GESTION DES PRODUITS :" styleClass="submenu-title"/>
+
+                        <Button text="Voir tous les produits"
+                                onAction="#onVoirTousProduits"
+                                maxWidth="Infinity"
+                                alignment="CENTER_LEFT"
+                                styleClass="submenu-link"/>
+
+                        <Button text="↗ Dashboard Admin BI"
+                                onAction="#onTableauBordAdmin"
+                                maxWidth="Infinity"
+                                alignment="CENTER_LEFT"
+                                styleClass="submenu-link"/>
+
+                        <Button text="Autres actions"
+                                onAction="#onAutresActions"
+                                maxWidth="Infinity"
+                                alignment="CENTER_LEFT"
+                                styleClass="submenu-link"/>
+                    </children>
+                </VBox>
+
+                <Region VBox.vgrow="ALWAYS"/>
+
+                <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="sidebar-item">
+                    <children>
+                        <Label text="↪" styleClass="sidebar-item-icon"/>
+                        <Label text="Déconnexion" styleClass="sidebar-item-text"/>
+                    </children>
+                </HBox>
+            </children>
+        </VBox>
+    </left>
+
+    <!-- ===================== CENTER ===================== -->
+    <center>
+        <ScrollPane fitToWidth="true"
+                    hbarPolicy="NEVER"
+                    vbarPolicy="AS_NEEDED"
+                    styleClass="bi-scroll">
+            <content>
+                <VBox spacing="22.0" styleClass="main-area">
+                    <padding>
+                        <Insets top="18.0" right="22.0" bottom="18.0" left="22.0"/>
+                    </padding>
+
+                    <!-- ===================== TOP SEARCH ===================== -->
+                    <HBox alignment="CENTER_LEFT" spacing="14.0" styleClass="top-search-box">
+                        <children>
+                            <TextField promptText="Search for..." HBox.hgrow="ALWAYS" styleClass="top-search-input"/>
+                            <Button text="🔎" styleClass="search-btn"/>
+                            <Region HBox.hgrow="ALWAYS"/>
+                            <Label text="📬" styleClass="notif-icon"/>
+                        </children>
+                    </HBox>
+
+                    <!-- ===================== HERO BI HEADER ===================== -->
+                    <VBox spacing="18.0" styleClass="hero-bi-card">
+                        <padding>
+                            <Insets top="26.0" right="28.0" bottom="26.0" left="28.0"/>
+                        </padding>
+
+                        <children>
+                            <HBox alignment="CENTER_LEFT" spacing="18.0">
+                                <children>
+                                    <StackPane prefWidth="84.0" prefHeight="84.0" styleClass="hero-bi-icon-box">
+                                        <children>
+                                            <Label text="📊" styleClass="hero-bi-icon"/>
+                                        </children>
+                                    </StackPane>
+
+                                    <VBox spacing="8.0">
+                                        <children>
+                                            <Label text="Tableau de bord BI" styleClass="hero-bi-title"/>
+                                            <HBox spacing="12.0" alignment="CENTER_LEFT">
+                                                <children>
+                                                    <Label fx:id="biPeriodeLabel"
+                                                           text="Période : 2026-02-04 → 2026-04-15"
+                                                           styleClass="hero-bi-period"/>
+                                                    <Label text="✨ Vue analytique premium" styleClass="hero-bi-badge"/>
+                                                </children>
+                                            </HBox>
+                                        </children>
+                                    </VBox>
+
+                                    <Region HBox.hgrow="ALWAYS"/>
+
+                                    <HBox spacing="10.0">
+                                        <children>
+                                            <Button text="7j" onAction="#chargerPeriode7j" styleClass="period-btn-active"/>
+                                            <Button text="30j" onAction="#chargerPeriode30j" styleClass="period-btn"/>
+                                            <Button text="90j" onAction="#chargerPeriode90j" styleClass="period-btn"/>
+                                        </children>
+                                    </HBox>
+                                </children>
+                            </HBox>
+                        </children>
+                    </VBox>
+
+                    <!-- ===================== FILTER CARD ===================== -->
+                    <HBox spacing="16.0" alignment="BOTTOM_LEFT" styleClass="filter-card">
+                        <children>
+                            <VBox spacing="6.0">
+                                <children>
+                                    <Label text="DATE DE DÉBUT" styleClass="filter-label"/>
+                                    <DatePicker fx:id="biDateDebutPicker" prefWidth="200.0"/>
+                                </children>
+                            </VBox>
+
+                            <VBox spacing="6.0">
+                                <children>
+                                    <Label text="DATE DE FIN" styleClass="filter-label"/>
+                                    <DatePicker fx:id="biDateFinPicker" prefWidth="200.0"/>
+                                </children>
+                            </VBox>
+
+                            <VBox spacing="6.0">
+                                <children>
+                                    <Label text="CATÉGORIE" styleClass="filter-label"/>
+                                    <ComboBox fx:id="biCategorieCombo" prefWidth="280.0"/>
+                                </children>
+                            </VBox>
+
+                            <Button text="🔎 Filtrer"
+                                    onAction="#filtrerDashboardBI"
+                                    styleClass="filter-btn"/>
+                        </children>
+                    </HBox>
+
+                    <!-- ===================== ALERTES ===================== -->
+                    <VBox spacing="12.0">
+                        <children>
+                            <HBox alignment="CENTER_LEFT" styleClass="bi-alert-green">
+                                <children>
+                                    <Label fx:id="biCroissanceLabel"
+                                           text="Croissance du CA — Vue synthétique sur la période sélectionnée"
+                                           styleClass="bi-alert-text"/>
+                                </children>
+                            </HBox>
+
+                            <HBox alignment="CENTER_LEFT" styleClass="bi-alert-yellow">
+                                <children>
+                                    <Label fx:id="biStockCritiqueLabel"
+                                           text="Stock critique — 10 produit(s) ont un stock faible"
+                                           styleClass="bi-alert-text"/>
+                                </children>
+                            </HBox>
+                        </children>
+                    </VBox>
+
+                    <!-- ===================== BIG KPI ===================== -->
+                    <HBox spacing="22.0">
+                        <children>
+                            <VBox spacing="12.0" HBox.hgrow="ALWAYS" styleClass="bi-kpi-card, bi-kpi-blue">
+                                <children>
+                                    <Label text="CHIFFRE D'AFFAIRES" styleClass="bi-kpi-title"/>
+                                    <Label fx:id="biCaLabel" text="0 DT" styleClass="bi-kpi-value"/>
+                                    <Label text="DT" styleClass="bi-kpi-sub"/>
+                                </children>
+                            </VBox>
+
+                            <VBox spacing="12.0" HBox.hgrow="ALWAYS" styleClass="bi-kpi-card, bi-kpi-green">
+                                <children>
+                                    <Label text="COMMANDES" styleClass="bi-kpi-title"/>
+                                    <Label fx:id="biCommandesLabel" text="0" styleClass="bi-kpi-value"/>
+                                    <Label text="total période" styleClass="bi-kpi-sub"/>
+                                </children>
+                            </VBox>
+
+                            <VBox spacing="12.0" HBox.hgrow="ALWAYS" styleClass="bi-kpi-card, bi-kpi-yellow">
+                                <children>
+                                    <Label text="PANIER MOYEN" styleClass="bi-kpi-title"/>
+                                    <Label fx:id="biPanierMoyenLabel" text="0" styleClass="bi-kpi-value"/>
+                                    <Label text="DT / commande" styleClass="bi-kpi-sub"/>
+                                </children>
+                            </VBox>
+
+                            <VBox spacing="12.0" HBox.hgrow="ALWAYS" styleClass="bi-kpi-card, bi-kpi-purple">
+                                <children>
+                                    <Label text="TAUX DE CONVERSION" styleClass="bi-kpi-title"/>
+                                    <Label fx:id="biConversionLabel" text="0%" styleClass="bi-kpi-value"/>
+                                    <Label text="validées / total" styleClass="bi-kpi-sub"/>
+                                </children>
+                            </VBox>
+                        </children>
+                    </HBox>
+                    <!-- ===================== MINI KPI ===================== -->
+                    <HBox spacing="22.0">
+                        <children>
+                            <VBox spacing="12.0" styleClass="mini-kpi-card" HBox.hgrow="ALWAYS">
+                                <children>
+                                    <Label text="QTÉ TOTALE VENDUE" styleClass="mini-kpi-title"/>
+                                    <Label fx:id="biQuantiteVendueLabel" text="0" styleClass="mini-kpi-value"/>
+                                    <Label text="unités" styleClass="mini-kpi-sub"/>
+                                </children>
+                            </VBox>
+
+                            <VBox spacing="12.0" styleClass="mini-kpi-card" HBox.hgrow="ALWAYS">
+                                <children>
+                                    <Label text="EN ATTENTE" styleClass="mini-kpi-title"/>
+                                    <Label fx:id="biEnAttenteLabel" text="0" styleClass="mini-kpi-value"/>
+                                    <Label text="commandes" styleClass="mini-kpi-sub"/>
+                                </children>
+                            </VBox>
+
+                            <VBox spacing="12.0" styleClass="mini-kpi-card" HBox.hgrow="ALWAYS">
+                                <children>
+                                    <Label text="TAUX DE RUPTURE" styleClass="mini-kpi-title"/>
+                                    <Label fx:id="biTauxRuptureLabel" text="0%" styleClass="mini-kpi-value"/>
+                                    <Label text="produits en rupture" styleClass="mini-kpi-sub"/>
+                                </children>
+                            </VBox>
+
+                            <VBox spacing="12.0" styleClass="mini-kpi-card" HBox.hgrow="ALWAYS">
+                                <children>
+                                    <Label text="PÉRIODE ANALYSÉE" styleClass="mini-kpi-title"/>
+                                    <Label fx:id="biPeriodeAnalyseeLabel" text="0" styleClass="mini-kpi-value"/>
+                                    <Label text="jours" styleClass="mini-kpi-sub"/>
+                                </children>
+                            </VBox>
+                        </children>
+                    </HBox>
+
+                    <!-- ===================== CHART ROW 1 ===================== -->
+                    <HBox spacing="22.0">
+                        <children>
+                            <VBox spacing="10.0" styleClass="chart-card" HBox.hgrow="ALWAYS">
+                                <children>
+                                    <Label text="📈 Évolution quotidienne des ventes" styleClass="chart-title"/>
+                                    <Label text="CA et quantités par jour" styleClass="chart-subtitle"/>
+                                    <LineChart fx:id="ventesLineChart" prefHeight="340.0" animated="false" createSymbols="true">
+                                        <xAxis>
+                                            <CategoryAxis/>
+                                        </xAxis>
+                                        <yAxis>
+                                            <NumberAxis/>
+                                        </yAxis>
+                                    </LineChart>
+                                </children>
+                            </VBox>
+
+                            <VBox spacing="10.0" styleClass="chart-card pie-card">
+                                <children>
+                                    <Label text="🎯 Répartition par statut" styleClass="chart-title"/>
+                                    <Label text="Distribution des commandes" styleClass="chart-subtitle"/>
+                                    <PieChart fx:id="statutPieChart" prefHeight="340.0"/>
+                                </children>
+                            </VBox>
+                        </children>
+                    </HBox>
+
+                    <!-- ===================== CHART ROW 2 ===================== -->
+                    <HBox spacing="22.0">
+                        <children>
+                            <VBox spacing="10.0" styleClass="chart-card" HBox.hgrow="ALWAYS">
+                                <children>
+                                    <Label text="🏷 Performance par catégorie" styleClass="chart-title"/>
+                                    <Label text="Quantités et CA par catégorie" styleClass="chart-subtitle"/>
+                                    <BarChart fx:id="categorieBarChart" prefHeight="340.0" animated="false">
+                                        <xAxis>
+                                            <CategoryAxis/>
+                                        </xAxis>
+                                        <yAxis>
+                                            <NumberAxis/>
+                                        </yAxis>
+                                    </BarChart>
+                                </children>
+                            </VBox>
+
+                            <VBox spacing="10.0" styleClass="chart-card" HBox.hgrow="ALWAYS">
+                                <children>
+                                    <Label text="📊 CA par catégorie" styleClass="chart-title"/>
+                                    <Label text="Chiffre d'affaires comparé" styleClass="chart-subtitle"/>
+                                    <BarChart fx:id="caCategorieBarChart" prefHeight="340.0" animated="false">
+                                        <xAxis>
+                                            <CategoryAxis/>
+                                        </xAxis>
+                                        <yAxis>
+                                            <NumberAxis/>
+                                        </yAxis>
+                                    </BarChart>
+                                </children>
+                            </VBox>
+                        </children>
+                    </HBox>
+
+                    <!-- ===================== TABLES ===================== -->
+                    <HBox spacing="22.0">
+                        <children>
+                            <VBox spacing="10.0" styleClass="table-card" HBox.hgrow="ALWAYS">
+                                <children>
+                                    <Label text="🏆 Top 10 des produits" styleClass="chart-title"/>
+                                    <Label text="Produits les plus vendus sur la période" styleClass="chart-subtitle"/>
+                                    <TableView fx:id="topProduitsTable" prefHeight="340.0">
+                                        <columns>
+                                            <TableColumn fx:id="topNomCol" text="PRODUIT" prefWidth="220.0"/>
+                                            <TableColumn fx:id="topCategorieCol" text="CATÉGORIE" prefWidth="190.0"/>
+                                            <TableColumn fx:id="topQteCol" text="QTÉ" prefWidth="80.0"/>
+                                            <TableColumn fx:id="topCaCol" text="CA (DT)" prefWidth="110.0"/>
+                                            <TableColumn fx:id="topStockCol" text="STOCK" prefWidth="100.0"/>
+                                        </columns>
+                                    </TableView>
+                                </children>
+                            </VBox>
+
+                            <VBox spacing="10.0" styleClass="table-card" HBox.hgrow="ALWAYS">
+                                <children>
+                                    <Label text="⚠ Stock critique" styleClass="chart-title"/>
+                                    <Label text="Produits à réapprovisionner" styleClass="chart-subtitle"/>
+                                    <TableView fx:id="stockCritiqueTable" prefHeight="340.0">
+                                        <columns>
+                                            <TableColumn fx:id="stockNomCol" text="PRODUIT" prefWidth="220.0"/>
+                                            <TableColumn fx:id="stockCategorieCol" text="CATÉGORIE" prefWidth="180.0"/>
+                                            <TableColumn fx:id="stockStockCol" text="STOCK" prefWidth="90.0"/>
+                                            <TableColumn fx:id="stockStatutCol" text="STATUT" prefWidth="130.0"/>
+                                        </columns>
+                                    </TableView>
+                                </children>
+                            </VBox>
+                        </children>
+                    </HBox>
+
+                    <!-- ===================== RECOMMANDATIONS ===================== -->
+                    <VBox spacing="14.0" styleClass="recommend-card">
+                        <children>
+                            <Label text="💡 Recommandations stratégiques" styleClass="recommend-title"/>
+                            <FlowPane fx:id="recommandationsContainer" hgap="10.0" vgap="10.0"/>
+                        </children>
+                    </VBox>
+
+                </VBox>
+            </content>
+        </ScrollPane>
+    </center>
+</BorderPane>

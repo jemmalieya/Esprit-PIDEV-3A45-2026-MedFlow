@@ -1,0 +1,307 @@
+/* ═══════════════════════════════════════════════════
+   COMMANDE_DETAIL.CSS  –  Pharmacie · Détail Commande
+   Palette: #0097b2 (sidebar) / #0d9488 / #f0fdf9
+   ═══════════════════════════════════════════════════ */
+
+.detail-root   { -fx-background-color: #f0fdf9; }
+.detail-scroll { -fx-background-color: transparent; -fx-background: transparent; }
+.detail-scroll > .viewport { -fx-background-color: transparent; }
+.detail-scroll .scroll-bar:vertical { -fx-background-color: transparent; }
+.detail-scroll .scroll-bar:vertical .thumb { -fx-background-color: #0097b2; -fx-background-radius: 10; }
+.detail-scroll .scroll-bar:vertical .track { -fx-background-color: #e0f7fa; -fx-background-radius: 10; }
+.detail-main   { -fx-background-color: #f0fdf9; }
+
+/* ══════════════════════════════════════════
+   HEADER CARD — gradient sidebar
+   ══════════════════════════════════════════ */
+.detail-header-card {
+    -fx-background-color: linear-gradient(to right, #0097b2, #0d9488);
+    -fx-background-radius: 20;
+    -fx-padding: 24 28 24 28;
+    -fx-effect: dropshadow(gaussian, rgba(0,151,178,0.38), 24, 0, 0, 7);
+}
+
+.detail-order-icon {
+    -fx-background-color: rgba(255,255,255,0.18);
+    -fx-background-radius: 14;
+    -fx-padding: 12;
+    -fx-font-size: 22px;
+}
+
+.detail-order-num {
+    -fx-font-size: 21px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+
+.detail-order-date {
+    -fx-font-size: 12px;
+    -fx-text-fill: rgba(255,255,255,0.75);
+}
+
+/* ══════════════════════════════════════════
+   PROGRESS STEPPER
+   ══════════════════════════════════════════ */
+.stepper-wrap {
+    -fx-background-color: rgba(255,255,255,0.12);
+    -fx-background-radius: 14;
+    -fx-padding: 12 20;
+    -fx-border-color: rgba(255,255,255,0.2);
+    -fx-border-radius: 14;
+    -fx-border-width: 1;
+}
+
+.step-dot-active {
+    -fx-background-color: white;
+    -fx-background-radius: 20;
+    -fx-pref-width: 28;
+    -fx-pref-height: 28;
+    -fx-alignment: center;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #0097b2;
+}
+
+.step-dot-done {
+    -fx-background-color: rgba(255,255,255,0.55);
+    -fx-background-radius: 20;
+    -fx-pref-width: 28;
+    -fx-pref-height: 28;
+    -fx-alignment: center;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+
+.step-dot-pending {
+    -fx-background-color: rgba(255,255,255,0.15);
+    -fx-background-radius: 20;
+    -fx-pref-width: 28;
+    -fx-pref-height: 28;
+    -fx-alignment: center;
+    -fx-font-size: 11px;
+    -fx-text-fill: rgba(255,255,255,0.55);
+}
+
+.step-label-active  { -fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: white; }
+.step-label-done    { -fx-font-size: 11px; -fx-text-fill: rgba(255,255,255,0.8); }
+.step-label-pending { -fx-font-size: 11px; -fx-text-fill: rgba(255,255,255,0.45); }
+
+.step-line-done    { -fx-stroke: rgba(255,255,255,0.5); -fx-stroke-width: 1.5; }
+.step-line-pending { -fx-stroke: rgba(255,255,255,0.2); -fx-stroke-width: 1; -fx-stroke-dash-array: 4 4; }
+
+/* status pill on header */
+.detail-status-pill {
+    -fx-padding: 5 18;
+    -fx-background-radius: 20;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-background-color: rgba(255,255,255,0.22);
+    -fx-text-fill: white;
+    -fx-border-color: rgba(255,255,255,0.4);
+    -fx-border-radius: 20;
+    -fx-border-width: 1;
+}
+
+/* ══════════════════════════════════════════
+   SECTION CARDS
+   ══════════════════════════════════════════ */
+.section-card {
+    -fx-background-color: white;
+    -fx-background-radius: 18;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.06), 16, 0, 0, 3);
+    -fx-border-color: rgba(0,0,0,0.06);
+    -fx-border-radius: 18;
+    -fx-border-width: 0.5;
+    -fx-padding: 20 24 20 24;
+}
+
+.section-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #111827;
+}
+
+.section-icon {
+    -fx-background-color: #e0f7fa;
+    -fx-background-radius: 8;
+    -fx-padding: 6;
+    -fx-font-size: 14px;
+}
+
+.section-sep { -fx-opacity: 0.3; -fx-padding: 2 0; }
+
+/* ── Table header row ── */
+.table-header-row {
+    -fx-background-color: #f0fdf9;
+    -fx-background-radius: 10;
+    -fx-padding: 9 14;
+}
+.table-header-lbl {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #0097b2;
+}
+
+/* ── Product row ── */
+.product-row {
+    -fx-padding: 10 14;
+    -fx-background-radius: 12;
+}
+.product-row:hover { -fx-background-color: #f0fdf9; }
+
+.product-icon-cell {
+    -fx-background-color: #f0fdf9;
+    -fx-background-radius: 10;
+    -fx-border-color: #e0f7fa;
+    -fx-border-radius: 10;
+    -fx-border-width: 1;
+    -fx-pref-width: 46;
+    -fx-pref-height: 46;
+    -fx-alignment: center;
+    -fx-font-size: 20px;
+}
+
+.product-name { -fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #111827; }
+.product-cat  { -fx-font-size: 11px; -fx-text-fill: #9ca3af; }
+
+.qty-badge {
+    -fx-background-color: #0097b2;
+    -fx-background-radius: 20;
+    -fx-text-fill: white;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 3 12;
+    -fx-min-width: 32;
+    -fx-alignment: center;
+}
+
+.price-lbl    { -fx-font-size: 13px; -fx-text-fill: #374151; }
+.subtotal-lbl { -fx-font-size: 13.5px; -fx-font-weight: bold; -fx-text-fill: #0097b2; }
+
+/* ── Total row ── */
+.total-row-wrap {
+    -fx-background-color: #e0f7fa;
+    -fx-background-radius: 14;
+    -fx-padding: 14 18;
+    -fx-border-color: #b2e8f4;
+    -fx-border-radius: 14;
+    -fx-border-width: 1;
+}
+.total-row-lbl { -fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #374151; }
+.total-row-val { -fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #0097b2; }
+
+/* ══════════════════════════════════════════
+   INFO LIVRAISON
+   ══════════════════════════════════════════ */
+.info-label {
+    -fx-font-size: 10.5px;
+    -fx-text-fill: #9ca3af;
+    -fx-font-weight: bold;
+}
+.info-value       { -fx-font-size: 13.5px; -fx-text-fill: #111827; }
+.info-value-empty { -fx-text-fill: #d1d5db; }
+
+/* ══════════════════════════════════════════
+   RÉSUMÉ SIDEBAR
+   ══════════════════════════════════════════ */
+.resume-card {
+    -fx-background-color: white;
+    -fx-background-radius: 18;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.06), 16, 0, 0, 3);
+    -fx-border-color: rgba(0,0,0,0.06);
+    -fx-border-radius: 18;
+    -fx-border-width: 0.5;
+    -fx-padding: 20 22;
+}
+
+.resume-key   { -fx-font-size: 12.5px; -fx-text-fill: #6b7280; }
+.resume-value { -fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #111827; }
+.resume-value-teal { -fx-text-fill: #0097b2; }
+
+.resume-total-box {
+    -fx-background-color: linear-gradient(to right, #0097b2, #0d9488);
+    -fx-background-radius: 12;
+    -fx-padding: 14 16;
+}
+.resume-total-lbl { -fx-font-size: 12px; -fx-text-fill: rgba(255,255,255,0.8); }
+.resume-total-val { -fx-font-size: 26px; -fx-font-weight: bold; -fx-text-fill: white; }
+
+.next-step-box {
+    -fx-background-color: #f0fdf9;
+    -fx-background-radius: 10;
+    -fx-padding: 10 14;
+    -fx-border-color: #b2e8f4;
+    -fx-border-radius: 10;
+    -fx-border-width: 1;
+}
+.next-step-key { -fx-font-size: 10.5px; -fx-text-fill: #6b7280; -fx-font-weight: bold; }
+.next-step-val { -fx-font-size: 13px; -fx-text-fill: #0097b2; -fx-font-weight: bold; }
+
+/* ══════════════════════════════════════════
+   BUTTONS
+   ══════════════════════════════════════════ */
+.btn-back {
+    -fx-background-color: white;
+    -fx-text-fill: #374151;
+    -fx-background-radius: 12;
+    -fx-border-color: #e5e7eb;
+    -fx-border-radius: 12;
+    -fx-border-width: 1;
+    -fx-padding: 11 20;
+    -fx-font-size: 13px;
+    -fx-cursor: hand;
+}
+.btn-back:hover {
+    -fx-background-color: #f0fdf9;
+    -fx-border-color: #0097b2;
+    -fx-text-fill: #0097b2;
+}
+
+.btn-primary-detail {
+    -fx-background-color: linear-gradient(to right, #0097b2, #0d9488);
+    -fx-text-fill: white;
+    -fx-background-radius: 12;
+    -fx-padding: 11 22;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-effect: dropshadow(gaussian, rgba(0,151,178,0.3), 10, 0, 0, 3);
+    -fx-cursor: hand;
+}
+.btn-primary-detail:hover {
+    -fx-background-color: linear-gradient(to right, #007a96, #0f766e);
+    -fx-effect: dropshadow(gaussian, rgba(0,151,178,0.45), 14, 0, 0, 4);
+}
+
+.btn-download {
+    -fx-background-color: white;
+    -fx-text-fill: #0097b2;
+    -fx-background-radius: 10;
+    -fx-border-color: #0097b2;
+    -fx-border-radius: 10;
+    -fx-border-width: 1.5;
+    -fx-padding: 9 18;
+    -fx-font-size: 12.5px;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+}
+.btn-download:hover {
+    -fx-background-color: #e0f7fa;
+}
+
+/* ── badges in detail ── */
+.badge-detail    { -fx-padding: 5 16; -fx-background-radius: 20; -fx-font-size: 11.5px; -fx-font-weight: bold; }
+.badge-attente   { -fx-background-color: rgba(255,255,255,0.22); -fx-text-fill: white; -fx-border-color: rgba(255,255,255,0.4); -fx-border-radius: 20; -fx-border-width: 1; }
+.badge-livraison { -fx-background-color: rgba(255,255,255,0.22); -fx-text-fill: white; -fx-border-color: rgba(255,255,255,0.4); -fx-border-radius: 20; -fx-border-width: 1; }
+.badge-cours     { -fx-background-color: rgba(255,255,255,0.22); -fx-text-fill: white; -fx-border-color: rgba(255,255,255,0.4); -fx-border-radius: 20; -fx-border-width: 1; }
+.badge-finalise  { -fx-background-color: rgba(255,255,255,0.22); -fx-text-fill: white; -fx-border-color: rgba(255,255,255,0.4); -fx-border-radius: 20; -fx-border-width: 1; }
+.toast {
+    -fx-background-color: linear-gradient(to right, #4facfe, #00f2fe);
+    -fx-text-fill: white;
+    -fx-padding: 12 25;
+    -fx-background-radius: 25;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 10, 0, 0, 4);
+}

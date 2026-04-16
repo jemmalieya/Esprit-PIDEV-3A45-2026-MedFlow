@@ -1,0 +1,217 @@
+.root-pane {
+    -fx-background-color: #f4f7fb;
+    -fx-font-family: "Segoe UI", Arial, sans-serif;
+}
+
+.sidebar {
+    -fx-background-color: linear-gradient(to bottom, #0f95b5, #10a9c7);
+    -fx-padding: 20;
+}
+
+.logo-box {
+    -fx-padding: 10 8 18 8;
+}
+
+.logo-icon {
+    -fx-font-size: 24px;
+    -fx-text-fill: white;
+}
+
+.logo-text {
+    -fx-font-size: 26px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+
+.sidebar-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: white;
+    -fx-font-size: 18px;
+    -fx-alignment: CENTER_LEFT;
+    -fx-pref-height: 48px;
+    -fx-pref-width: 210px;
+    -fx-cursor: hand;
+    -fx-background-radius: 14px;
+    -fx-padding: 0 0 0 14;
+}
+
+.sidebar-button:hover {
+    -fx-background-color: rgba(255,255,255,0.14);
+}
+
+.active-sidebar-button {
+    -fx-background-color: rgba(255,255,255,0.22);
+    -fx-font-weight: bold;
+}
+
+.main-scroll {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.main-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+.main-container {
+    -fx-background-color: #f4f7fb;
+}
+
+.top-search-bar {
+    -fx-background-color: white;
+    -fx-background-radius: 20px;
+    -fx-padding: 14px 18px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 10, 0.1, 0, 3);
+}
+
+.search-field {
+    -fx-background-color: #f8fbfd;
+    -fx-background-radius: 16px;
+    -fx-border-radius: 16px;
+    -fx-border-color: #d9edf4;
+    -fx-pref-height: 44px;
+    -fx-font-size: 15px;
+}
+
+.search-button {
+    -fx-background-color: #10b7bf;
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-background-radius: 14px;
+    -fx-cursor: hand;
+    -fx-pref-height: 44px;
+    -fx-pref-width: 54px;
+}
+
+.notif-label {
+    -fx-font-size: 22px;
+}
+
+.page-title {
+    -fx-font-size: 44px;
+    -fx-text-fill: #2d3854;
+}
+
+.page-subtitle {
+    -fx-font-size: 18px;
+    -fx-text-fill: #7a86a5;
+}
+
+.back-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #2d3854;
+    -fx-font-size: 20px;
+    -fx-cursor: hand;
+}
+
+.hero-card {
+    -fx-background-color: linear-gradient(to right, #1f4cb8, #12b0c7);
+    -fx-background-radius: 24px;
+    -fx-effect: dropshadow(gaussian, rgba(15, 67, 143, 0.18), 16, 0.15, 0, 5);
+}
+
+.hero-icon-box {
+    -fx-background-color: rgba(255,255,255,0.14);
+    -fx-background-radius: 20px;
+}
+
+.hero-icon {
+    -fx-font-size: 30px;
+    -fx-text-fill: white;
+}
+
+.hero-title {
+    -fx-font-size: 30px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+
+.hero-subtitle {
+    -fx-font-size: 18px;
+    -fx-text-fill: #eaf7ff;
+}
+
+.hero-pill {
+    -fx-background-color: rgba(255,255,255,0.20);
+    -fx-text-fill: white;
+    -fx-padding: 10 18;
+    -fx-background-radius: 20px;
+    -fx-font-size: 16px;
+}
+
+.form-card {
+    -fx-background-color: white;
+    -fx-background-radius: 24px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.06), 14, 0.15, 0, 3);
+}
+
+.section-title {
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #149fbe;
+}
+
+.section-subtitle {
+    -fx-font-size: 16px;
+    -fx-text-fill: #8a96b5;
+}
+
+.field-label {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1f2744;
+}
+
+.input-field {
+    -fx-pref-height: 48px;
+    -fx-background-color: #fbfcfe;
+    -fx-background-radius: 14px;
+    -fx-border-radius: 14px;
+    -fx-border-color: #d8dfeb;
+    -fx-font-size: 16px;
+}
+
+.text-area-field {
+    -fx-background-color: #fbfcfe;
+    -fx-background-radius: 14px;
+    -fx-border-radius: 14px;
+    -fx-border-color: #d8dfeb;
+    -fx-font-size: 16px;
+}
+
+.checkbox-style {
+    -fx-font-size: 16px;
+    -fx-text-fill: #2d3854;
+}
+
+.cancel-button {
+    -fx-background-color: #f5f6fa;
+    -fx-text-fill: #2d3854;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 16px;
+    -fx-padding: 14 26;
+    -fx-cursor: hand;
+}
+
+.save-button {
+    -fx-background-color: linear-gradient(to right, #11a9b5, #11c2c4);
+    -fx-text-fill: white;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 16px;
+    -fx-padding: 14 26;
+    -fx-cursor: hand;
+}
+
+.mini-button {
+    -fx-background-color: #e9f8fc;
+    -fx-text-fill: #0ea8be;
+    -fx-background-radius: 12px;
+    -fx-font-size: 13px;
+    -fx-cursor: hand;
+}
+
+
+
+

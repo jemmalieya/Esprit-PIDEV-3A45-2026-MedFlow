@@ -1,0 +1,94 @@
+/* Smart analytics page styles */
+
+.stats-kpi-row {
+    -fx-padding: 2 0 2 0;
+}
+
+.kpi-chip {
+    -fx-background-color: white;
+    -fx-background-radius: 16px;
+    -fx-border-color: #dfe7f2;
+    -fx-border-radius: 16px;
+    -fx-padding: 10 12;
+}
+
+.kpi-title {
+    -fx-text-fill: #5b6f93;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+.kpi-value {
+    -fx-text-fill: #1f4fc5;
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+}
+
+.kpi-risk {
+    -fx-text-fill: #d14949;
+}
+
+.chart-card {
+    -fx-background-color: white;
+    -fx-background-radius: 18px;
+    -fx-border-color: #dfe7f2;
+    -fx-border-radius: 18px;
+    -fx-padding: 12 14;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 10, 0.12, 0, 2);
+}
+
+.chart-title {
+    -fx-text-fill: #244b99;
+    -fx-font-size: 17px;
+    -fx-font-weight: bold;
+    -fx-padding: 0 0 8 0;
+}
+
+.donut-chart {
+    -fx-pie-label-visible: false;
+}
+
+.donut-hole {
+    -fx-fill: #f7faff;
+    -fx-stroke: #d8e2f1;
+    -fx-stroke-width: 1.2;
+}
+
+.donut-center-text {
+    -fx-text-fill: #2f4b86;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-alignment: center;
+}
+
+.insight-card {
+    -fx-background-color: linear-gradient(to bottom right, #ffffff, #f6f9ff);
+    -fx-background-radius: 18px;
+    -fx-border-color: #dfe7f2;
+    -fx-border-radius: 18px;
+    -fx-padding: 14 16;
+}
+
+.insight-title {
+    -fx-text-fill: #1e4fbe;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-padding: 6 0 6 0;
+}
+
+.insight-body {
+    -fx-text-fill: #445c87;
+    -fx-font-size: 14px;
+    -fx-line-spacing: 3px;
+}
+
+/* Donut palette */
+.donut-chart.default-color0.chart-pie { -fx-pie-color: #2f7cf6; }
+.donut-chart.default-color1.chart-pie { -fx-pie-color: #35c28f; }
+.donut-chart.default-color2.chart-pie { -fx-pie-color: #f2b321; }
+.donut-chart.default-color3.chart-pie { -fx-pie-color: #f35d5d; }
+.donut-chart.default-color4.chart-pie { -fx-pie-color: #8c6af7; }
+
+.chart-bar {
+    -fx-bar-fill: linear-gradient(to top, #4c83f2, #25aeca);
+}

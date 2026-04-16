@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="tn.esprit.controllers.CommandeController"
+            stylesheets="@../CSS/commande_detail.css,@../CSS/booking.css"
+            styleClass="detail-root"
+            prefWidth="1400.0" prefHeight="820.0">
+
+    <left>
+        <fx:include source="Sidebar.fxml"/>
+    </left>
+
+    <center>
+        <ScrollPane fitToWidth="true" styleClass="detail-scroll">
+            <content>
+                <VBox spacing="20" styleClass="detail-main">
+                    <padding>
+                        <Insets top="24" right="28" bottom="28" left="28"/>
+                    </padding>
+
+                    <!-- HEADER -->
+                    <VBox styleClass="detail-header-card" spacing="16">
+
+                        <HBox alignment="CENTER_LEFT" spacing="16">
+                            <Label text="📋" styleClass="detail-order-icon"/>
+
+                            <VBox spacing="4" HBox.hgrow="ALWAYS">
+                                <Label fx:id="lblNumCommande"
+                                       text="Commande #----"
+                                       styleClass="detail-order-num"/>
+                                <Label fx:id="lblDateCommande"
+                                       text="Date : --/--/----"
+                                       styleClass="detail-order-date"/>
+                            </VBox>
+
+                            <Button fx:id="btnPanierDetail"
+                                    text="🛒 Panier (0)"
+                                    onAction="#ouvrirPanierPopup"
+                                    styleClass="btn-panier"/>
+
+                            <Label fx:id="lblStatutPill"
+                                   text="Statut"
+                                   styleClass="detail-status-pill badge-detail badge-cours"/>
+                        </HBox>
+
+                    </VBox>
+
+                    <!-- CONTENU -->
+                    <HBox spacing="18" alignment="TOP_LEFT">
+
+                        <!-- COLONNE GAUCHE -->
+                        <VBox spacing="18" HBox.hgrow="ALWAYS">
+
+                            <!-- PRODUITS -->
+                            <VBox styleClass="section-card" spacing="14">
+                                <HBox alignment="CENTER_LEFT" spacing="10">
+                                    <Label text="🛍️" styleClass="section-icon"/>
+                                    <Label text="Produits commandés"
+                                           styleClass="section-title"
+                                           HBox.hgrow="ALWAYS"/>
+                                    <Label fx:id="lblNbProduits"
+                                           text="0 article(s)"
+                                           style="-fx-font-size: 11px; -fx-text-fill: #9ca3af;"/>
+                                </HBox>
+
+                                <Separator styleClass="section-sep"/>
+
+                                <HBox styleClass="table-header-row" spacing="0">
+                                    <Label text="PRODUIT"
+                                           styleClass="table-header-lbl"
+                                           HBox.hgrow="ALWAYS"/>
+                                    <Label text="QTÉ"
+                                           styleClass="table-header-lbl"
+                                           prefWidth="70"/>
+                                    <Label text="PRIX U."
+                                           styleClass="table-header-lbl"
+                                           prefWidth="100"/>
+                                    <Label text="SOUS-TOTAL"
+                                           styleClass="table-header-lbl"
+                                           prefWidth="110"/>
+                                </HBox>
+
+                                <VBox fx:id="produitsContainer" spacing="4"/>
+
+                                <HBox styleClass="total-row-wrap" alignment="CENTER_LEFT">
+                                    <Label text="Total de la commande"
+                                           styleClass="total-row-lbl"
+                                           HBox.hgrow="ALWAYS"/>
+                                    <Label fx:id="lblTotal"
+                                           text="0,00 DT"
+                                           styleClass="total-row-val"/>
+                                </HBox>
+                            </VBox>
+
+                            <!-- LIVRAISON -->
+                            <VBox styleClass="section-card" spacing="14">
+                                <HBox alignment="CENTER_LEFT" spacing="10">
+                                    <Label text="🚚" styleClass="section-icon"/>
+                                    <Label text="Informations de livraison"
+                                           styleClass="section-title"/>
+                                </HBox>
+
+                                <Separator styleClass="section-sep"/>
+
+                                <HBox spacing="24">
+                                    <VBox spacing="4" HBox.hgrow="ALWAYS">
+                                        <Label text="ADRESSE" styleClass="info-label"/>
+                                        <Label fx:id="lblAdresse"
+                                               text="—"
+                                               styleClass="info-value"
+                                               wrapText="true"/>
+                                    </VBox>
+
+                                    <VBox spacing="4" HBox.hgrow="ALWAYS">
+                                        <Label text="VILLE" styleClass="info-label"/>
+                                        <Label fx:id="lblVille"
+                                               text="—"
+                                               styleClass="info-value"/>
+                                    </VBox>
+
+                                    <VBox spacing="4" HBox.hgrow="ALWAYS">
+                                        <Label text="TÉLÉPHONE" styleClass="info-label"/>
+                                        <Label fx:id="lblTelephone"
+                                               text="—"
+                                               styleClass="info-value"/>
+                                    </VBox>
+                                </HBox>
+
+                                <VBox spacing="4">
+                                    <Label text="NOTE / INSTRUCTIONS" styleClass="info-label"/>
+                                    <Label fx:id="lblNote"
+                                           text="Aucune instruction particulière."
+                                           styleClass="info-value"
+                                           wrapText="true"/>
+                                </VBox>
+                            </VBox>
+
+                        </VBox>
+
+                        <!-- COLONNE DROITE -->
+                        <VBox spacing="14" prefWidth="280" minWidth="260">
+
+                            <!-- RESUME -->
+                            <VBox styleClass="resume-card" spacing="12">
+                                <HBox alignment="CENTER_LEFT" spacing="10">
+                                    <Label text="📊" styleClass="section-icon"/>
+                                    <Label text="Résumé" styleClass="section-title"/>
+                                </HBox>
+
+                                <Separator styleClass="section-sep"/>
+
+                                <HBox>
+                                    <Label text="Numéro" styleClass="resume-key" HBox.hgrow="ALWAYS"/>
+                                    <Label fx:id="resumeNum"
+                                           text="#----"
+                                           styleClass="resume-value resume-value-teal"/>
+                                </HBox>
+
+                                <HBox>
+                                    <Label text="Date" styleClass="resume-key" HBox.hgrow="ALWAYS"/>
+                                    <Label fx:id="resumeDate"
+                                           text="--/--/----"
+                                           styleClass="resume-value"/>
+                                </HBox>
+
+                                <HBox>
+                                    <Label text="Articles" styleClass="resume-key" HBox.hgrow="ALWAYS"/>
+                                    <Label fx:id="resumeArticles"
+                                           text="0"
+                                           styleClass="resume-value"/>
+                                </HBox>
+
+                                <HBox>
+                                    <Label text="Livraison" styleClass="resume-key" HBox.hgrow="ALWAYS"/>
+                                    <Label text="Gratuite" styleClass="resume-value resume-value-teal"/>
+                                </HBox>
+
+                                <Separator styleClass="section-sep"/>
+
+                                <VBox styleClass="resume-total-box" spacing="4" alignment="CENTER">
+                                    <Label text="MONTANT TOTAL" styleClass="resume-total-lbl"/>
+                                    <Label fx:id="resumeTotal"
+                                           text="0,00 DT"
+                                           styleClass="resume-total-val"/>
+                                </VBox>
+                            </VBox>
+
+                            <!-- ACTIONS -->
+                            <VBox spacing="8">
+                                <Button text="⬇  Télécharger la facture"
+                                        onAction="#telechargerFactureFront"
+                                        styleClass="btn-download"
+                                        maxWidth="Infinity"/>
+                                <Button text="🏪 Continuer mes achats"
+                                        onAction="#handleContinuer"
+                                        styleClass="btn-primary-detail"
+                                        maxWidth="Infinity"/>
+                            </VBox>
+
+                        </VBox>
+                    </HBox>
+
+                    <!-- RETOUR -->
+                    <HBox alignment="CENTER_LEFT">
+                        <Button text="← Retour aux commandes"
+                                onAction="#retourCommandesFront"
+                                styleClass="btn-back"/>
+                    </HBox>
+
+                </VBox>
+            </content>
+        </ScrollPane>
+    </center>
+</BorderPane>

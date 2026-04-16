@@ -1,0 +1,344 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.chart.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<AnchorPane xmlns:fx="http://javafx.com/fxml" fx:controller="tn.esprit.controllers.ConsultationDocteur" prefWidth="1400" prefHeight="800" styleClass="back-root">
+    <VBox prefWidth="220" styleClass="sidebar" AnchorPane.leftAnchor="0.0" AnchorPane.topAnchor="0.0" AnchorPane.bottomAnchor="0.0">
+        <HBox alignment="CENTER_LEFT" spacing="10" styleClass="logo-row">
+            <Label text="❤" styleClass="logo-icon"/>
+            <Label text="MEDFLOW" styleClass="logo-text"/>
+        </HBox>
+
+        <Separator styleClass="side-separator"/>
+
+        <Button text="Dashboard" styleClass="sidebar-link"/>
+
+        <Label text="GESTIONS" styleClass="side-section-label"/>
+        <Button text="Consultation" styleClass="sidebar-link-active"/>
+
+        <Region VBox.vgrow="ALWAYS"/>
+        <Button text="Déconnexion" styleClass="sidebar-link"/>
+    </VBox>
+
+    <VBox spacing="12" styleClass="main-content" AnchorPane.leftAnchor="220.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" AnchorPane.bottomAnchor="0.0">
+        <HBox alignment="CENTER_LEFT" styleClass="page-switcher-bar" spacing="10">
+            <Button fx:id="pageOneBtn" onAction="#handleShowPageOne" text="Mes Rendez Vous" styleClass="page-nav-button,page-nav-button-active"/>
+            <Button fx:id="consultationPageBtn" onAction="#handleShowConsultationPage" text="Consultation" styleClass="page-nav-button"/>
+            <Button fx:id="statsPageBtn" onAction="#handleShowStatsPage" text="Statistiques" styleClass="page-nav-button"/>
+        </HBox>
+
+        <StackPane VBox.vgrow="ALWAYS">
+            <VBox fx:id="pageOneContainer" spacing="16" visible="true" managed="true">
+
+
+                <HBox alignment="CENTER_LEFT" spacing="16" styleClass="hero-card">
+                    <HBox alignment="CENTER" styleClass="hero-icon-box">
+                        <Label text="📅" styleClass="hero-icon"/>
+                    </HBox>
+                    <VBox spacing="6" HBox.hgrow="ALWAYS">
+                        <Label text="Gestion des Consultations" styleClass="hero-title"/>
+                        <HBox spacing="14" alignment="CENTER_LEFT">
+                            <Label text="0 Consultation(s) dans votre espace" styleClass="hero-subtitle"/>
+                       
+                        </HBox>
+                    </VBox>
+                    
+                </HBox>
+
+                <VBox spacing="12" styleClass="list-header-card">
+                    <HBox alignment="CENTER_LEFT">
+                        <Label text="☰ Liste des Consultations" styleClass="list-title"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Button text="⌂ Alerte Consultations 0" styleClass="alert-soft-button"/>
+                        <ComboBox fx:id="sortComboBox" promptText="Trier..." styleClass="sort-combo"/>
+                    </HBox>
+                    <TextField fx:id="searchField" promptText="Rechercher..." styleClass="search-field"/>
+                </VBox>
+
+                
+
+                <HBox spacing="16" VBox.vgrow="ALWAYS">
+                    <TableView fx:id="eventTable" styleClass="event-table" maxWidth="1.7976931348623157E308" HBox.hgrow="ALWAYS">
+                        <columns>
+                            <TableColumn text="TITRE" />
+                            <TableColumn text="TYPE" />
+                            <TableColumn text="VILLE" />
+                            <TableColumn text="STATUT" />
+                            <TableColumn text="ORGANISATEUR" />
+                            <TableColumn text="DESCRIPTION" />
+                            <TableColumn text="URGENCE" />
+                            <TableColumn text="ACTIONS" />
+                        </columns>
+                    </TableView>
+
+                    <ScrollPane fitToWidth="true" minWidth="430" prefWidth="430" maxWidth="430" style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 0;">
+                        <VBox spacing="14" style="-fx-background-color: white; -fx-border-color: #e0e7ff; -fx-border-width: 1; -fx-border-radius: 14; -fx-background-radius: 14; -fx-padding: 18; -fx-font-family: 'Segoe UI', 'Arial';padding-right: 10px;">
+                            <Label text="📋 Détails Rendez-vous" style="-fx-text-fill: #1f2937; -fx-font-size: 16; -fx-font-weight: bold; -fx-padding: 0 0 8 0;"/>
+                            
+                            <VBox spacing="10" style="-fx-border-color: #e5e7eb; -fx-border-width: 0 0 1 0; -fx-padding: 0 0 14 0;">
+                                <HBox spacing="8" alignment="TOP_LEFT">
+                                    <Label text="📅" style="-fx-text-fill: #0f766e; -fx-font-size: 12;"/>
+                                    <VBox spacing="3" HBox.hgrow="ALWAYS">
+                                        <Label text="DateTime" style="-fx-text-fill: #6b7280; -fx-font-size: 11; -fx-font-weight: bold; -fx-text-fill: #666;"/>
+                                        <Label fx:id="detailDateTimeLabel" text="-" style="-fx-text-fill: #1f2937; -fx-font-size: 13; -fx-font-weight: 500;"/>
+                                        <TextField fx:id="detailDateTimeEditField" promptText="yyyy-MM-dd HH:mm:ss" visible="false" managed="false" styleClass="fiche-input"/>
+                                    </VBox>
+                                </HBox>
+
+                                <HBox spacing="8" alignment="TOP_LEFT">
+                                    <Label text="🔄" style="-fx-text-fill: #0f766e; -fx-font-size: 12;"/>
+                                    <VBox spacing="3" HBox.hgrow="ALWAYS">
+                                        <Label text="Mode" style="-fx-text-fill: #6b7280; -fx-font-size: 11; -fx-font-weight: bold;"/>
+                                        <Label fx:id="detailModeLabel" text="-" style="-fx-text-fill: #1f2937; -fx-font-size: 13; -fx-font-weight: 500;"/>
+                                        <TextField fx:id="detailModeEditField" visible="false" managed="false" styleClass="fiche-input"/>
+                                    </VBox>
+                                </HBox>
+
+                                <HBox spacing="8" alignment="TOP_LEFT">
+                                    <Label text="📝" style="-fx-text-fill: #0f766e; -fx-font-size: 12;"/>
+                                    <VBox spacing="3" HBox.hgrow="ALWAYS">
+                                        <Label text="Motif" style="-fx-text-fill: #6b7280; -fx-font-size: 11; -fx-font-weight: bold;"/>
+                                        <Label fx:id="detailMotifLabel" text="-" style="-fx-text-fill: #1f2937; -fx-font-size: 13; -fx-font-weight: 500;"/>
+                                        <TextField fx:id="detailMotifEditField" visible="false" managed="false" styleClass="fiche-input"/>
+                                    </VBox>
+                                </HBox>
+
+                                <HBox spacing="8" alignment="TOP_LEFT">
+                                    <Label text="👤" style="-fx-text-fill: #0f766e; -fx-font-size: 12;"/>
+                                    <VBox spacing="3" HBox.hgrow="ALWAYS">
+                                        <Label text="Patient ID" style="-fx-text-fill: #6b7280; -fx-font-size: 11; -fx-font-weight: bold;"/>
+                                        <Label fx:id="detailPatientLabel" text="-" style="-fx-text-fill: #1f2937; -fx-font-size: 13; -fx-font-weight: 500;"/>
+                                        <TextField fx:id="detailPatientEditField" visible="false" managed="false" styleClass="fiche-input"/>
+                                    </VBox>
+                                </HBox>
+
+                                <HBox spacing="8" alignment="TOP_LEFT">
+                                    <Label text="✓" style="-fx-text-fill: #10b981; -fx-font-size: 12;"/>
+                                    <VBox spacing="3" HBox.hgrow="ALWAYS">
+                                        <Label text="Statut" style="-fx-text-fill: #6b7280; -fx-font-size: 11; -fx-font-weight: bold;"/>
+                                        <Label fx:id="detailStatutLabel" text="-" style="-fx-text-fill: #1f2937; -fx-font-size: 13; -fx-font-weight: 500;"/>
+                                        <TextField fx:id="detailStatutEditField" visible="false" managed="false" styleClass="fiche-input"/>
+                                    </VBox>
+                                </HBox>
+
+                                <HBox spacing="8" alignment="TOP_LEFT">
+                                    <Label text="⚠" style="-fx-text-fill: #ef4444; -fx-font-size: 12;"/>
+                                    <VBox spacing="3" HBox.hgrow="ALWAYS">
+                                        <Label text="Urgence" style="-fx-text-fill: #6b7280; -fx-font-size: 11; -fx-font-weight: bold;"/>
+                                        <Label fx:id="detailUrgenceLabel" text="-" style="-fx-text-fill: #1f2937; -fx-font-size: 13; -fx-font-weight: 500;"/>
+                                        <TextField fx:id="detailUrgenceEditField" visible="false" managed="false" styleClass="fiche-input"/>
+                                    </VBox>
+                                </HBox>
+                            </VBox>
+
+                            <Label text="🏥 Fiche Médicale" style="-fx-text-fill: #1f2937; -fx-font-size: 16; -fx-font-weight: bold; -fx-padding: 8 0 8 0;"/>
+
+                            <VBox fx:id="detailFicheMedicaleBox" spacing="10" style="-fx-border-color: #e5e7eb; -fx-border-width: 0 0 1 0; -fx-padding: 0 0 14 0;">
+                                <Label fx:id="detailFicheMedicaleMessage" text="😔 Aucune fiche médicale" style="-fx-text-fill: #9ca3af; -fx-font-size: 12; -fx-font-style: italic;"/>
+
+                                <HBox spacing="8" alignment="TOP_LEFT" visible="false" managed="false" fx:id="detailDiagnosticBox">
+                                    <Label text="🔍" style="-fx-text-fill: #0f766e; -fx-font-size: 12;"/>
+                                    <VBox spacing="3" HBox.hgrow="ALWAYS">
+                                        <Label text="Diagnostic" fx:id="detailDiagnosticTitleLabel" style="-fx-text-fill: #6b7280; -fx-font-size: 11; -fx-font-weight: bold;"/>
+                                        <Label fx:id="detailDiagnosticLabel" text="-" style="-fx-text-fill: #1f2937; -fx-font-size: 13; -fx-font-weight: 500; -fx-wrap-text: true;"/>
+                                        <TextArea fx:id="detailDiagnosticEditArea" visible="false" managed="false" wrapText="true" prefRowCount="2" styleClass="fiche-textarea"/>
+                                    </VBox>
+                                </HBox>
+
+                                <HBox spacing="8" alignment="TOP_LEFT" visible="false" managed="false" fx:id="detailObservationsBox">
+                                    <Label text="📋" style="-fx-text-fill: #0f766e; -fx-font-size: 12;"/>
+                                    <VBox spacing="3" HBox.hgrow="ALWAYS">
+                                        <Label text="Observations" fx:id="detailObservationsTitleLabel" style="-fx-text-fill: #6b7280; -fx-font-size: 11; -fx-font-weight: bold;"/>
+                                        <Label fx:id="detailObservationsLabel" text="-" style="-fx-text-fill: #1f2937; -fx-font-size: 13; -fx-font-weight: 500; -fx-wrap-text: true;"/>
+                                        <TextArea fx:id="detailObservationsEditArea" visible="false" managed="false" wrapText="true" prefRowCount="2" styleClass="fiche-textarea"/>
+                                    </VBox>
+                                </HBox>
+
+                                <HBox spacing="8" alignment="TOP_LEFT" visible="false" managed="false" fx:id="detailResultatsBox">
+                                    <Label text="🧬" style="-fx-text-fill: #0f766e; -fx-font-size: 12;"/>
+                                    <VBox spacing="3" HBox.hgrow="ALWAYS">
+                                        <Label text="Résultats d'Examens" fx:id="detailResultatsTitleLabel" style="-fx-text-fill: #6b7280; -fx-font-size: 11; -fx-font-weight: bold;"/>
+                                        <Label fx:id="detailResultatsLabel" text="-" style="-fx-text-fill: #1f2937; -fx-font-size: 13; -fx-font-weight: 500; -fx-wrap-text: true;"/>
+                                        <TextArea fx:id="detailResultatsEditArea" visible="false" managed="false" wrapText="true" prefRowCount="2" styleClass="fiche-textarea"/>
+                                    </VBox>
+                                </HBox>
+
+                                <HBox spacing="8" alignment="TOP_LEFT" visible="false" managed="false" fx:id="detailDureeBox">
+                                    <Label text="⏱" style="-fx-text-fill: #0f766e; -fx-font-size: 12;"/>
+                                    <VBox spacing="3" HBox.hgrow="ALWAYS">
+                                        <Label text="Durée" fx:id="detailDureeTitleLabel" style="-fx-text-fill: #6b7280; -fx-font-size: 11; -fx-font-weight: bold;"/>
+                                        <Label fx:id="detailDureeLabel" text="-" style="-fx-text-fill: #1f2937; -fx-font-size: 13; -fx-font-weight: 500;"/>
+                                        <TextField fx:id="detailDureeEditField" visible="false" managed="false" styleClass="fiche-input"/>
+                                    </VBox>
+                                </HBox>
+                            </VBox>
+
+                            <HBox spacing="8" alignment="CENTER_RIGHT">
+                                <Button fx:id="ficheModifyButton" text="Modifier" onAction="#handleEditFicheSection" styleClass="fiche-secondary-button"/>
+                                <Button fx:id="ficheCancelButton" text="Annuler" onAction="#handleCancelEditFicheSection" styleClass="fiche-secondary-button" visible="false" managed="false"/>
+                                <Button fx:id="ficheConfirmButton" text="Confirmer" onAction="#handleConfirmEditFicheSection" styleClass="fiche-primary-button" visible="false" managed="false"/>
+                                <Button fx:id="ficheDeleteButton" text="Supprimer" onAction="#handleDeleteFicheSection" style="-fx-background-color: #ef4444; -fx-text-fill: white; -fx-font-weight: 700; -fx-background-radius: 8;"/>
+                            </HBox>
+
+                            <Label text="💊 Prescriptions" style="-fx-text-fill: #1f2937; -fx-font-size: 16; -fx-font-weight: bold; -fx-padding: 8 0 8 0;"/>
+
+                            <TableView fx:id="detailPrescriptionsTable" styleClass="event-table" prefHeight="180" maxHeight="250" style="-fx-font-size: 12;">
+                                <columns>
+                                    <TableColumn fx:id="detailPrescriptionNameColumn" text="Médicament" prefWidth="100" />
+                                    <TableColumn fx:id="detailPrescriptionDoseColumn" text="Dose" prefWidth="70" />
+                                    <TableColumn fx:id="detailPrescriptionFrequenceColumn" text="Fréquence" prefWidth="90" />
+                                    <TableColumn fx:id="detailPrescriptionInstructionsColumn" text="Instructions" prefWidth="120" />
+                                </columns>
+                            </TableView>
+
+                            <Label fx:id="detailNoPrescriptionsLabel" text="😔 Aucune prescription enregistrée" style="-fx-text-fill: #9ca3af; -fx-font-size: 12; -fx-font-style: italic;" visible="false" managed="false"/>
+
+                            <HBox spacing="8" alignment="CENTER_RIGHT">
+                                <Button fx:id="prescriptionModifyButton" text="Modifier" onAction="#handleEditPrescriptionsSection" styleClass="fiche-secondary-button"/>
+                                <Button fx:id="prescriptionCancelButton" text="Annuler" onAction="#handleCancelEditPrescriptionsSection" styleClass="fiche-secondary-button" visible="false" managed="false"/>
+                                <Button fx:id="prescriptionConfirmButton" text="Confirmer" onAction="#handleConfirmEditPrescriptionsSection" styleClass="fiche-primary-button" visible="false" managed="false"/>
+                                <Button fx:id="prescriptionDeleteButton" text="Supprimer" onAction="#handleDeletePrescriptionsSection" style="-fx-background-color: #ef4444; -fx-text-fill: white; -fx-font-weight: 700; -fx-background-radius: 8;"/>
+                            </HBox>
+                        </VBox>
+                    </ScrollPane>
+                </HBox>
+            </VBox>
+
+            <VBox fx:id="consultationPageContainer" spacing="16" visible="false" managed="false">
+                <HBox alignment="CENTER_LEFT" styleClass="top-search-bar">
+                    <Label text="Consultation" styleClass="consultation-page-title"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Label fx:id="consultationTimerLabel"
+                           text="00:00:00"
+                           styleClass="consultation-page-subtitle"
+                           style="-fx-font-size: 28px; -fx-font-weight: 800; -fx-text-fill: #0f766e; -fx-background-color: #ecfeff; -fx-padding: 8 18; -fx-background-radius: 999;"/>
+                </HBox>
+
+                <VBox spacing="12" styleClass="consultation-book-card" VBox.vgrow="ALWAYS">
+                    <Label text="Ajouter Fiche Medicale" styleClass="consultation-book-heading"/>
+                    <Label text="Selectionnez d'abord un rendez-vous dans la page Mes Rendez Vous, puis remplissez ce formulaire." styleClass="consultation-book-text" wrapText="true"/>
+                    <Label fx:id="selectedRendezVousIdLabel" text="Rendez vous id: -" styleClass="rendezvous-id-label"/>
+
+                    <HBox spacing="20" alignment="TOP_LEFT" VBox.vgrow="ALWAYS">
+                        <VBox spacing="14"
+                              HBox.hgrow="ALWAYS"
+                              prefWidth="0"
+                              style="-fx-background-color: white; -fx-border-color: #dbe3f0; -fx-border-width: 1.4; -fx-border-radius: 18; -fx-background-radius: 18; -fx-padding: 18;">
+                            <Label text="Fiche Medicale" styleClass="consultation-book-heading"/>
+                            <Label text="Remplissez les informations cliniques de la consultation en cours." styleClass="consultation-book-text" wrapText="true"/>
+
+                            <GridPane hgap="12" vgap="10" styleClass="fiche-form-grid">
+                                <Label text="Diagnostic" styleClass="fiche-field-label" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                                <TextField fx:id="diagnosticField" promptText="Ex: Angine virale" styleClass="fiche-input" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+
+                                <Label text="Observations" styleClass="fiche-field-label" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                                <TextArea fx:id="observationsField" promptText="Observations cliniques..." prefRowCount="3" wrapText="true" styleClass="fiche-textarea" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+
+                                <Label text="Resultats Examens" styleClass="fiche-field-label" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                                <TextArea fx:id="resultatsExamensField" promptText="Resultats biologiques / imagerie..." prefRowCount="3" wrapText="true" styleClass="fiche-textarea" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                            </GridPane>
+                        </VBox>
+
+                        <VBox spacing="14"
+                              HBox.hgrow="ALWAYS"
+                              prefWidth="0"
+                              style="-fx-background-color: white; -fx-border-color: #dbe3f0; -fx-border-width: 1.4; -fx-border-radius: 18; -fx-background-radius: 18; -fx-padding: 18;">
+                            <HBox alignment="CENTER_LEFT" spacing="10">
+                                <Label text="Ajouter Prescription" styleClass="consultation-book-heading"/>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Button text="+ Ajouter" onAction="#handleAddPrescriptionRow" styleClass="fiche-secondary-button"/>
+                            </HBox>
+                            <Label text="Préparez la prescription pendant la consultation. Le formulaire est visuel seulement pour l’instant." styleClass="consultation-book-text" wrapText="true"/>
+
+                            <HBox spacing="8" style="-fx-padding: 0 4 0 4;">
+                                <Label text="Nom" styleClass="fiche-field-label" prefWidth="170"/>
+                                <Label text="Dose" styleClass="fiche-field-label" prefWidth="120"/>
+                                <Label text="Fréquence" styleClass="fiche-field-label" prefWidth="135"/>
+                                <Label text="Durée" styleClass="fiche-field-label" prefWidth="130"/>
+                                <Label text="Instructions" styleClass="fiche-field-label" prefWidth="180"/>
+                                <Label text="" prefWidth="30"/>
+                            </HBox>
+
+                            <ScrollPane fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" style="-fx-background-color: transparent; -fx-padding: 0;" VBox.vgrow="ALWAYS">
+                                <content>
+                                    <VBox fx:id="prescriptionRowsContainer" spacing="8" style="-fx-padding: 2 0 2 0;"/>
+                                </content>
+                            </ScrollPane>
+                        </VBox>
+                    </HBox>
+
+                    <HBox alignment="CENTER_RIGHT" spacing="10">
+                        <Button text="Annuler" onAction="#handleClearFicheForm" styleClass="fiche-secondary-button"/>
+                        <Button fx:id="saveFicheButton" text="Enregistrer la fiche et la prescription" onAction="#handleSaveFicheMedicale" styleClass="fiche-primary-button"/>
+                    </HBox>
+                </VBox>
+            </VBox>
+
+            <VBox fx:id="statsPageContainer" spacing="16" visible="false" managed="false">
+                <HBox alignment="CENTER_LEFT" styleClass="top-search-bar">
+                    <Label text="Statistiques Consultation" styleClass="consultation-page-title"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Label text="Analyse basée sur les rendez-vous affichés    " styleClass="consultation-page-subtitle"/>
+                    <Button text="Export PNG" onAction="#handleExportStatsPng" styleClass="fiche-secondary-button"/>
+                    <Button text="Export PDF" onAction="#handleExportStatsPdf" styleClass="fiche-primary-button"/>
+                    
+                </HBox>
+
+                <HBox spacing="12" styleClass="stats-row">
+                    <VBox styleClass="stat-card" HBox.hgrow="ALWAYS">
+                        <Label text="Rendez-vous" styleClass="stat-label"/>
+                        <Label fx:id="statsTotalRendezVousLabel" text="0" styleClass="stat-number"/>
+                    </VBox>
+                    <VBox styleClass="stat-card" HBox.hgrow="ALWAYS">
+                        <Label text="Confirmés" styleClass="stat-label"/>
+                        <Label fx:id="statsConfirmedRendezVousLabel" text="0" styleClass="stat-number"/>
+                    </VBox>
+                    <VBox styleClass="stat-card" HBox.hgrow="ALWAYS">
+                        <Label text="Terminés" styleClass="stat-label"/>
+                        <Label fx:id="statsFinishedRendezVousLabel" text="0" styleClass="stat-number"/>
+                    </VBox>
+                    <VBox styleClass="stat-card" HBox.hgrow="ALWAYS">
+                        <Label text="Fiches Médicales" styleClass="stat-label"/>
+                        <Label fx:id="statsFichesCountLabel" text="0" styleClass="stat-number"/>
+                    </VBox>
+                    <VBox styleClass="stat-card" HBox.hgrow="ALWAYS">
+                        <Label text="Prescriptions" styleClass="stat-label"/>
+                        <Label fx:id="statsPrescriptionsCountLabel" text="0" styleClass="stat-number"/>
+                    </VBox>
+                </HBox>
+
+                <HBox spacing="14" VBox.vgrow="ALWAYS">
+                    <VBox spacing="8" styleClass="stat-card" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS">
+                        <Label text="Répartition des Statuts" styleClass="stat-label"/>
+                        <PieChart fx:id="rdvStatusPieChart" legendVisible="true" labelsVisible="true" VBox.vgrow="ALWAYS"/>
+                    </VBox>
+
+                    <VBox spacing="8" styleClass="stat-card" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS">
+                        <Label text="Répartition des Modes" styleClass="stat-label"/>
+                        <PieChart fx:id="rdvModePieChart" legendVisible="true" labelsVisible="true" VBox.vgrow="ALWAYS"/>
+                    </VBox>
+                </HBox>
+
+                <HBox spacing="14" VBox.vgrow="ALWAYS">
+                    <VBox spacing="8" styleClass="stat-card" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS">
+                        <Label text="Niveau d'Urgence" styleClass="stat-label"/>
+                        <BarChart fx:id="urgencyBarChart" legendVisible="false" animated="false" VBox.vgrow="ALWAYS">
+                            <xAxis>
+                                <CategoryAxis/>
+                            </xAxis>
+                            <yAxis>
+                                <NumberAxis lowerBound="0.0" tickUnit="1.0" autoRanging="true"/>
+                            </yAxis>
+                        </BarChart>
+                    </VBox>
+
+                    <VBox spacing="8" styleClass="stat-card" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS">
+                        <Label text="Médicaments les Plus Prescrits" styleClass="stat-label"/>
+                        <PieChart fx:id="topMedicamentsPieChart" legendVisible="true" labelsVisible="true" VBox.vgrow="ALWAYS"/>
+                    </VBox>
+                </HBox>
+            </VBox>
+        </StackPane>
+    </VBox>
+</AnchorPane>

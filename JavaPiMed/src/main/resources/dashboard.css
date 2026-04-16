@@ -1,0 +1,302 @@
+.root-pane {
+    -fx-background-color: #F5F5F5;
+    -fx-font-family: "Arial";
+}
+
+.sidebar {
+    -fx-background-color: #F1F1F1;
+    -fx-border-color: transparent #E6E6E6 transparent transparent;
+    -fx-border-width: 0 1 0 0;
+}
+
+.logo-text {
+    -fx-text-fill: #2EC4C7;
+    -fx-font-size: 30px;
+    -fx-font-weight: bold;
+}
+
+.menu-box {
+    -fx-padding: 10 0 0 0;
+}
+
+.menu-button {
+    -fx-pref-width: 210;
+    -fx-alignment: CENTER_LEFT;
+    -fx-background-color: transparent;
+    -fx-text-fill: #6D6D6D;
+    -fx-font-size: 18px;
+    -fx-font-weight: 600;
+    -fx-background-radius: 18;
+    -fx-padding: 16 20 16 20;
+    -fx-cursor: hand;
+}
+
+.menu-button-active {
+    -fx-pref-width: 210;
+    -fx-alignment: CENTER_LEFT;
+    -fx-background-color: linear-gradient(to right, #2EC4C7, #2B9FA4);
+    -fx-text-fill: white;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 18;
+    -fx-padding: 16 20 16 20;
+    -fx-cursor: hand;
+}
+
+.menu-button-help {
+    -fx-pref-width: 210;
+    -fx-alignment: CENTER_LEFT;
+    -fx-background-color: transparent;
+    -fx-text-fill: #7A7A7A;
+    -fx-font-size: 16px;
+    -fx-font-weight: 600;
+    -fx-background-radius: 18;
+    -fx-padding: 14 18 14 18;
+}
+
+.center-area {
+    -fx-background-color: #FAFAFA;
+}
+
+.search-field {
+    -fx-background-color: white;
+    -fx-background-radius: 16;
+    -fx-border-radius: 16;
+    -fx-border-color: transparent;
+    -fx-font-size: 18px;
+    -fx-padding: 16 18 16 18;
+    -fx-pref-height: 58;
+}
+
+.icon-button {
+    -fx-background-color: white;
+    -fx-text-fill: #555;
+    -fx-font-size: 20px;
+    -fx-background-radius: 14;
+    -fx-pref-width: 54;
+    -fx-pref-height: 54;
+    -fx-cursor: hand;
+}
+
+.icon-button-bell {
+    -fx-background-color: #63C6C7;
+    -fx-text-fill: white;
+    -fx-font-size: 20px;
+    -fx-background-radius: 14;
+    -fx-pref-width: 54;
+    -fx-pref-height: 54;
+    -fx-cursor: hand;
+}
+
+.hero-banner {
+    -fx-background-color: linear-gradient(to right, #33C8CC, #2C9496);
+    -fx-background-radius: 36;
+}
+
+.hero-title {
+    -fx-text-fill: white;
+    -fx-font-size: 30px;
+    -fx-font-weight: 700;
+}
+
+.hero-btn-white {
+    -fx-background-color: white;
+    -fx-text-fill: #38AEB1;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 30;
+    -fx-padding: 10 22 10 22;
+}
+
+.hero-btn-outline {
+    -fx-background-color: transparent;
+    -fx-text-fill: white;
+    -fx-border-color: #CFF8F8;
+    -fx-border-radius: 30;
+    -fx-background-radius: 30;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-padding: 10 22 10 22;
+}
+
+.section-title {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #222;
+}
+
+.small-pill-button {
+    -fx-background-color: #38BFC2;
+    -fx-text-fill: white;
+    -fx-background-radius: 30;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-padding: 8 20 8 20;
+}
+
+.feature-card-active {
+    -fx-background-color: linear-gradient(to bottom, #35C6C9, #2B9FA3);
+    -fx-background-radius: 28;
+}
+
+.feature-card {
+    -fx-background-color: white;
+    -fx-background-radius: 28;
+}
+
+.feature-text-active {
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+.feature-text {
+    -fx-text-fill: #333;
+    -fx-font-size: 16px;
+    -fx-font-weight: 600;
+}
+
+.map-card {
+    -fx-background-color: #EDE5DB;
+    -fx-background-radius: 28;
+    -fx-border-radius: 28;
+}
+
+.rightbar {
+    -fx-background-color: #F6F6F6;
+    -fx-border-color: transparent transparent transparent #E6E6E6;
+    -fx-border-width: 0 0 0 1;
+}
+
+.profile-name {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2C2C2C;
+}
+
+.profile-handle {
+    -fx-font-size: 14px;
+    -fx-text-fill: #9B9B9B;
+}
+
+.right-title {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #303030;
+}
+
+.dots {
+    -fx-font-size: 20px;
+    -fx-text-fill: #8C8C8C;
+}
+
+.date-card-active {
+    -fx-background-color: linear-gradient(to bottom, #35C7CA, #2B9FA3);
+    -fx-background-radius: 24;
+}
+
+.date-card {
+    -fx-background-color: #FFFFFF;
+    -fx-background-radius: 24;
+}
+
+.date-year-white {
+    -fx-text-fill: #DFFBFB;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-alignment: center;
+}
+
+.date-big-white {
+    -fx-text-fill: white;
+    -fx-font-size: 50px;
+    -fx-font-weight: bold;
+}
+
+.date-type-white {
+    -fx-text-fill: white;
+    -fx-font-size: 18px;
+    -fx-font-weight: 600;
+}
+
+.date-year {
+    -fx-text-fill: #B7B7B7;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+}
+
+.date-big {
+    -fx-text-fill: #1F1F1F;
+    -fx-font-size: 50px;
+    -fx-font-weight: bold;
+}
+
+.date-type {
+    -fx-text-fill: #38BFC2;
+    -fx-font-size: 18px;
+    -fx-font-weight: 700;
+}
+
+.event-card-active {
+    -fx-background-color: linear-gradient(to right, #35C7CA, #2EA8AC);
+    -fx-background-radius: 18;
+    -fx-padding: 14;
+}
+
+.event-card {
+    -fx-background-color: white;
+    -fx-background-radius: 18;
+    -fx-padding: 14;
+}
+
+.emoji-icon {
+    -fx-font-size: 24px;
+}
+
+.event-main-white {
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+.event-sub-white {
+    -fx-text-fill: #DFFBFB;
+    -fx-font-size: 14px;
+}
+
+.event-main {
+    -fx-text-fill: #2B2B2B;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+.event-sub {
+    -fx-text-fill: #44BFC2;
+    -fx-font-size: 14px;
+}
+
+.claim-card {
+    -fx-background-color: linear-gradient(to bottom, #35C7CA, #2EA8AC);
+    -fx-background-radius: 20;
+    -fx-padding: 16;
+}
+
+.doctor-emoji {
+    -fx-font-size: 24px;
+}
+
+.claim-doctor {
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+.claim-time {
+    -fx-text-fill: #D9FCFC;
+    -fx-font-size: 13px;
+}
+
+.claim-message {
+    -fx-text-fill: white;
+    -fx-font-size: 15px;
+}

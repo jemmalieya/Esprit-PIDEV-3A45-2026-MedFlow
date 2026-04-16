@@ -115,6 +115,13 @@
     -fx-effect: dropshadow(gaussian, rgba(15,163,191,0.25), 20, 0.2, 0, 6);
 }
 
+.field-error {
+    -fx-text-fill: #f87171;
+    -fx-font-size: 11px;
+    -fx-font-weight: 600;
+    -fx-padding: 0 2 2 2;
+}
+
 .page-title {
     -fx-text-fill: white;
     -fx-font-size: 30px;
@@ -151,6 +158,8 @@
     -fx-border-radius: 22;
     -fx-padding: 18;
     -fx-min-height: 180;
+    -fx-padding: 30;
+    -fx-min-height: 250;
 }
 
 .calendar-title {
@@ -555,4 +564,124 @@
 .calendar-slot-button-reserved:hover {
     -fx-background-color: #fecaca;
     -fx-border-color: #ef4444;
+}
+/* COMPTE PAGE - MODERN PROFILE */
+.modern-profile-card {
+    -fx-background-color: linear-gradient(to bottom right, rgba(255,255,255,0.96), rgba(245,252,255,0.95));
+    -fx-background-radius: 24;
+    -fx-border-color: #cfe7f3;
+    -fx-border-width: 1.2;
+    -fx-border-radius: 24;
+    -fx-effect: dropshadow(gaussian, rgba(0,151,178,0.14), 22, 0.22, 0, 8);
+}
+
+.profile-head-block {
+    -fx-padding: 2 0 4 0;
+}
+
+.profile-card-title {
+    -fx-font-size: 24px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #0f2e3a;
+}
+
+.profile-card-subtitle {
+    -fx-font-size: 12px;
+    -fx-text-fill: #62828d;
+}
+
+.profile-avatar-row {
+    -fx-padding: 2 0 6 0;
+}
+
+.profile-avatar-shell {
+    -fx-background-color: linear-gradient(to bottom right, #d8eeff, #d7f8ff);
+    -fx-background-radius: 999;
+    -fx-border-color: #9ecfdf;
+    -fx-border-width: 1.4;
+    -fx-border-radius: 999;
+}
+
+.profile-initials {
+    -fx-font-size: 28px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #0d3c4d;
+}
+
+.avatar-mini-btn {
+    -fx-background-color: white;
+    -fx-background-radius: 999;
+    -fx-border-color: #9bc9d8;
+    -fx-border-width: 1;
+    -fx-border-radius: 999;
+    -fx-padding: 4 7;
+    -fx-cursor: hand;
+}
+
+.avatar-mini-btn:hover {
+    -fx-background-color: #f0fbff;
+}
+
+.profile-help-text {
+    -fx-font-size: 11px;
+    -fx-text-fill: #678997;
+}
+
+.profile-primary-btn,
+.profile-secondary-btn {
+    -fx-font-size: 13px;
+    -fx-font-weight: 700;
+    -fx-background-radius: 14;
+    -fx-padding: 10 20;
+    -fx-cursor: hand;
+}
+
+.profile-primary-btn {
+    -fx-background-color: linear-gradient(to right, #0fa3bf, #0a88a7);
+    -fx-text-fill: white;
+    -fx-effect: dropshadow(gaussian, rgba(15,163,191,0.30), 16, 0.18, 0, 5);
+}
+
+.profile-primary-btn:hover {
+    -fx-background-color: linear-gradient(to right, #12afcd, #0b95b6);
+}
+
+.profile-secondary-btn {
+    -fx-background-color: white;
+    -fx-text-fill: #36505a;
+    -fx-border-color: #b7d8e3;
+    -fx-border-radius: 14;
+}
+
+.profile-secondary-btn:hover {
+    -fx-background-color: #f4fbff;
+}
+
+.profile-feedback-label {
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+}
+
+.profile-footer-row {
+    -fx-padding: 8 0 0 0;
+}
+
+.readonly-field {
+    -fx-background-color: #eef3f7;
+    -fx-text-fill: #60717f;
+    -fx-border-color: #cfdae4;
+    -fx-opacity: 0.92;
+}
+
+.readonly-field:hover {
+    -fx-background-color: #e8eef3;
+    -fx-border-color: #bac9d5;
+}
+
+.tooltip {
+    -fx-background-color: #0f2e3a;
+    -fx-text-fill: white;
+    -fx-font-size: 12px;
+    -fx-background-radius: 10;
+    -fx-padding: 8 12;
 }

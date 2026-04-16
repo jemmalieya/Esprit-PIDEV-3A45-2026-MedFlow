@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.Hyperlink?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<StackPane xmlns="http://javafx.com/javafx/21"
+           xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="tn.esprit.controllers.LoginController"
+           prefHeight="820.0"
+           prefWidth="1400.0"
+           stylesheets="@../CSS/login.css"
+           styleClass="login-root">
+
+    <AnchorPane fx:id="shapeOne" styleClass="login-background-shape shape-one" StackPane.alignment="TOP_LEFT"/>
+    <AnchorPane fx:id="shapeTwo" styleClass="login-background-shape shape-two" StackPane.alignment="BOTTOM_RIGHT"/>
+
+    <HBox fx:id="shellRoot" maxWidth="1200.0" prefHeight="720.0" prefWidth="1200.0" styleClass="login-shell">
+        <!-- Left visual / brand side -->
+        <VBox spacing="24.0" styleClass="login-brand-panel" HBox.hgrow="ALWAYS">
+            <padding>
+                <Insets top="40.0" right="40.0" bottom="40.0" left="40.0"/>
+            </padding>
+
+            <HBox alignment="TOP_LEFT" spacing="14.0">
+                <ImageView fitHeight="46.0" fitWidth="46.0" pickOnBounds="true" preserveRatio="true">
+                    <image>
+                        <Image url="@../images/logo.png"/>
+                    </image>
+                </ImageView>
+                <VBox spacing="2.0">
+                    <Label text="MEDFLOW" styleClass="brand-title"/>
+                    <Label text="Plateforme de santé connectée" styleClass="brand-subtitle"/>
+                </VBox>
+            </HBox>
+
+            <VBox spacing="10.0" maxWidth="360.0">
+                <Label text="Une santé connectée, simple et sécurisée." styleClass="hero-title" wrapText="true"/>
+                <Label text="Un espace serein pour suivre vos rendez-vous, vos dossiers et vos soins sans stress." styleClass="hero-text" wrapText="true"/>
+            </VBox>
+        </VBox>
+
+        <!-- Right login card side -->
+        <VBox alignment="CENTER" prefWidth="460.0" styleClass="login-right-pane">
+            <VBox fx:id="loginDrawer" maxWidth="420.0" minWidth="380.0" spacing="18.0" styleClass="login-form-panel">
+        <padding>
+            <Insets top="44.0" right="40.0" bottom="44.0" left="40.0"/>
+        </padding>
+
+        <VBox spacing="8.0">
+            <Label text="Bon retour 👋" styleClass="form-title"/>
+            <Label text="Connectez-vous à votre tableau de bord médical" styleClass="form-subtitle" wrapText="true"/>
+        </VBox>
+
+        <VBox spacing="4.0">
+            <Label text="Adresse e-mail" styleClass="field-label-login"/>
+            <TextField fx:id="emailField" promptText="vous@example.com" styleClass="login-field"/>
+            <Label fx:id="emailErrorLabel" text="" styleClass="field-error" visible="false" managed="false" wrapText="true"/>
+        </VBox>
+
+        <VBox spacing="4.0">
+            <Label text="Mot de passe" styleClass="field-label-login"/>
+            <PasswordField fx:id="passwordField" promptText="Entrez votre mot de passe" styleClass="login-field"/>
+            <Label fx:id="passwordErrorLabel" text="" styleClass="field-error" visible="false" managed="false" wrapText="true"/>
+        </VBox>
+
+        <HBox alignment="CENTER_LEFT" spacing="12.0">
+            <CheckBox fx:id="rememberMeCheckBox" text="Se souvenir de moi" styleClass="remember-check"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Hyperlink onAction="#handleForgotPassword" styleClass="login-link" text="Mot de passe oublié ?"/>
+        </HBox>
+
+        <Label fx:id="statusLabel" managed="false" text="" visible="false" wrapText="true" styleClass="status-message"/>
+
+        <HBox spacing="12.0">
+            <Button maxWidth="1.7976931348623157E308" onAction="#handleClear" styleClass="secondary-action" text="Effacer" HBox.hgrow="ALWAYS"/>
+            <Button maxWidth="1.7976931348623157E308" onAction="#handleLogin" styleClass="primary-action" text="Se connecter" HBox.hgrow="ALWAYS"/>
+        </HBox>
+
+        <VBox spacing="10.0" styleClass="login-help-box">
+            <Label text="Accès sécurisé" styleClass="feature-box-title"/>
+            <Label text="Vos informations médicales sont chiffrées et protégées." styleClass="help-text" wrapText="true"/>
+            <Label text="Seuls les comptes vérifiés peuvent accéder au tableau de bord." styleClass="help-text" wrapText="true"/>
+        </VBox>
+
+        <HBox alignment="CENTER" spacing="6.0">
+            <Label text="Pas encore de compte ?" styleClass="register-label"/>
+            <Hyperlink onAction="#handleOpenRegister" text="Créer un compte" styleClass="login-link-secondary"/>
+        </HBox>
+            </VBox>
+        </VBox>
+    </HBox>
+</StackPane>

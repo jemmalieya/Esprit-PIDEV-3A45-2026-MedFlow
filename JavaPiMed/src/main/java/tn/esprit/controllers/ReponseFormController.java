@@ -27,6 +27,11 @@ public class ReponseFormController {
 
     private Reclamation reclamation;
     private final ReponseService reponseService = new ReponseService();
+    private Runnable afterSave;
+
+    public void setAfterSave(Runnable afterSave) {
+        this.afterSave = afterSave;
+    }
 
     public void setReclamation(Reclamation reclamation) {
         this.reclamation = reclamation;
@@ -79,6 +84,10 @@ public class ReponseFormController {
 
         try {
             reponseService.ajouter(reponse);
+
+            if (afterSave != null) {
+                afterSave.run(); // 🔥 refresh table parent
+            }
             showAlert(Alert.AlertType.INFORMATION, "Succès", "Réponse envoyée avec succès.");
             // Fermer la fenêtre
             Stage stage = (Stage) messageArea.getScene().getWindow();

@@ -42,12 +42,14 @@ public class ReponseService {
             if (rs.next()) {
                 r.setId_reponse(rs.getInt(1));
             }
+            recalculerStatutReclamation(r.getReclamation().getId_reclamation());
 
             System.out.println("Ajout effectué : " + r.getId_reponse());
 
         } catch (SQLException e) {
             e.printStackTrace();
         }
+
     }
 
     // =========================
@@ -144,6 +146,7 @@ public class ReponseService {
             ps.setInt(5, r.getId_reponse());
 
             ps.executeUpdate();
+            recalculerStatutReclamation(r.getReclamation().getId_reclamation());
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -161,6 +164,7 @@ public class ReponseService {
             PreparedStatement ps = cn.prepareStatement(sql);
             ps.setInt(1, r.getId_reponse());
             ps.executeUpdate();
+            recalculerStatutReclamation(r.getReclamation().getId_reclamation());
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -178,5 +182,36 @@ public class ReponseService {
             }
         }
         return null;
+    }
+
+
+
+    private void recalculerStatutReclamation(int idReclamation) {
+
+        String sqlCount = "SELECT COUNT(*) FROM reponse_reclamation WHERE id_reclamation = ?";
+
+        try {
+            PreparedStatement ps = cn.prepareStatement(sqlCount);
+            ps.setInt(1, idReclamation);
+
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                int count = rs.getInt(1);
+
+                String newStatut = (count > 0) ? "traite" : "en_attente";
+
+                String sqlUpdate = "UPDATE reclamation SET statut_reclamation = ? WHERE id_reclamation = ?";
+                PreparedStatement ps2 = cn.prepareStatement(sqlUpdate);
+                ps2.setString(1, newStatut);
+                ps2.setInt(2, idReclamation);
+                ps2.executeUpdate();
+
+                System.out.println("🔄 Statut mis à jour : " + newStatut);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 }

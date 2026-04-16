@@ -1,0 +1,58 @@
+/* GLOBAL */
+.popup-container {
+    -fx-background-color: #f4f7fb;
+}
+
+/* HEADER */
+.popup-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+}
+
+.popup-subtitle {
+    -fx-text-fill: #888;
+}
+
+/* CARD */
+.card {
+    -fx-background-color: white;
+    -fx-background-radius: 15;
+    -fx-padding: 15;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 10, 0, 0, 4);
+}
+
+/* TABLE */
+.modern-table {
+    -fx-background-radius: 10;
+}
+
+/* INPUT */
+.input-field, .input-area {
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-border-color: #ddd;
+}
+
+/* BUTTONS */
+.btn-primary {
+    -fx-background-color: linear-gradient(to right, #4facfe, #00f2fe);
+    -fx-text-fill: white;
+    -fx-background-radius: 10;
+}
+
+.btn-secondary {
+    -fx-background-color: #e0e0e0;
+    -fx-background-radius: 10;
+}
+
+.btn-edit {
+    -fx-background-color: #3498db;
+    -fx-text-fill: white;
+    -fx-background-radius: 8;
+}
+
+.btn-delete {
+    -fx-background-color: #e74c3c;
+    -fx-text-fill: white;
+    -fx-background-radius: 8;
+}

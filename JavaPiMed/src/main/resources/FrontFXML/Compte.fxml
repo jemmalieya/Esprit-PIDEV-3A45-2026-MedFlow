@@ -7,6 +7,7 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.Tooltip?>
 <?import javafx.scene.image.Image?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.BorderPane?>
@@ -52,87 +53,96 @@
                     </VBox>
                     
                     <!-- Carte profil -->
-                    <VBox spacing="16.0"
-                          style="-fx-background-color: white; -fx-background-radius: 18; -fx-border-color: #dbeafe; -fx-border-radius: 18;">
-                        <padding>
-                            <Insets top="24" right="24" bottom="24" left="24"/>
-                        </padding>
+                    <StackPane alignment="TOP_CENTER">
+                        <children>
+                            <VBox spacing="18.0" maxWidth="980.0" styleClass="profile-card,modern-profile-card">
+                                <padding>
+                                    <Insets top="26" right="28" bottom="24" left="28"/>
+                                </padding>
 
-                        <VBox spacing="4">
-                            <Label text="Modifier mon profil" style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #0f172a;"/>
-                            <Label text="Mettez à jour vos informations et votre photo."
-                                   style="-fx-font-size: 12px; -fx-text-fill: #64748b;"/>
-                        </VBox>
+                                <VBox spacing="5" styleClass="profile-head-block">
+                                    <Label text="Modifier Mon Profil" styleClass="profile-card-title"/>
+                                    <Label text="Mettez a jour vos informations personnelles. Les champs proteges sont visibles mais non modifiables."
+                                           styleClass="profile-card-subtitle"
+                                           wrapText="true"/>
+                                </VBox>
 
-                        <HBox spacing="18.0">
-                            <VBox spacing="6.0" HBox.hgrow="ALWAYS">
-                                <Label text="Prénom"/>
-                                <TextField fx:id="profileFirstNameField" prefHeight="40"/>
-                                <Label fx:id="profileFirstNameErrorLabel" text="" styleClass="field-error" visible="false" managed="false" wrapText="true"/>
+                                <HBox spacing="16.0" alignment="CENTER_LEFT" styleClass="profile-avatar-row">
+                                    <children>
+                                        <StackPane prefWidth="108" prefHeight="108" styleClass="profile-avatar-shell">
+                                            <children>
+                                                <ImageView fx:id="profileImageView" fitWidth="94" fitHeight="94" preserveRatio="true"/>
+                                                <Label fx:id="profileInitialsLabel" text="MF" styleClass="profile-initials"/>
+                                                <Button text="📷"
+                                                        onAction="#handleChooseProfilePhoto"
+                                                        styleClass="avatar-mini-btn"
+                                                        StackPane.alignment="BOTTOM_RIGHT"/>
+                                            </children>
+                                        </StackPane>
 
-                                <Label text="Téléphone"/>
-                                <TextField fx:id="profilePhoneField" prefHeight="40"/>
-                                <Label fx:id="profilePhoneErrorLabel" text="" styleClass="field-error" visible="false" managed="false" wrapText="true"/>
+                                        <VBox spacing="6.0" alignment="CENTER_LEFT">
+                                            <Button text="Changer la photo" onAction="#handleChooseProfilePhoto" styleClass="profile-secondary-btn"/>
+                                            <Label text="Formats conseilles : JPG/PNG. Une photo carree est ideale."
+                                                   wrapText="true" styleClass="profile-help-text"/>
+                                        </VBox>
+                                    </children>
+                                </HBox>
 
-                                <Label text="Cin"/>
-                                <TextField fx:id="profileCinField" prefHeight="40" editable="false"/>
-                            </VBox>
+                                <HBox spacing="18.0" alignment="TOP_CENTER">
+                                    <children>
+                                        <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                                            <Label text="Prenom" styleClass="field-label"/>
+                                            <TextField fx:id="profileFirstNameField" prefHeight="40" styleClass="modern-text-field"/>
+                                            <Label fx:id="profileFirstNameErrorLabel" text="" styleClass="field-error" visible="false" managed="false" wrapText="true"/>
 
-                            <VBox spacing="6.0" HBox.hgrow="ALWAYS">
-                                <Label text="Nom"/>
-                                <TextField fx:id="profileLastNameField" prefHeight="40"/>
-                                <Label fx:id="profileLastNameErrorLabel" text="" styleClass="field-error" visible="false" managed="false" wrapText="true"/>
+                                            <Label text="Telephone" styleClass="field-label"/>
+                                            <TextField fx:id="profilePhoneField" prefHeight="40" styleClass="modern-text-field"/>
+                                            <Label fx:id="profilePhoneErrorLabel" text="" styleClass="field-error" visible="false" managed="false" wrapText="true"/>
 
-                                <Label text="Adresse"/>
-                                <TextField fx:id="profileAddressField" prefHeight="40"/>
-                                <Label fx:id="profileAddressErrorLabel" text="" styleClass="field-error" visible="false" managed="false" wrapText="true"/>
+                                            <Label text="CIN" styleClass="field-label"/>
+                                            <TextField fx:id="profileCinField" prefHeight="40" editable="false" styleClass="modern-text-field,readonly-field">
+                                                <tooltip>
+                                                    <Tooltip text="Vous ne pouvez pas modifier ce champ."/>
+                                                </tooltip>
+                                            </TextField>
+                                        </VBox>
 
-                                <Label text="Date naissance"/>
-                                <DatePicker fx:id="profileBirthDatePicker" prefHeight="40"/>
-                                <Label fx:id="profileBirthDateErrorLabel" text="" styleClass="field-error" visible="false" managed="false" wrapText="true"/>
-                            </VBox>
-                        </HBox>
+                                        <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                                            <Label text="Nom" styleClass="field-label"/>
+                                            <TextField fx:id="profileLastNameField" prefHeight="40" styleClass="modern-text-field"/>
+                                            <Label fx:id="profileLastNameErrorLabel" text="" styleClass="field-error" visible="false" managed="false" wrapText="true"/>
 
-                        <HBox spacing="18.0">
-                            <VBox spacing="8.0">
-                                <Label text="Photo de profil"/>
-                                <HBox spacing="10.0" alignment="CENTER_LEFT">
-                                    <StackPane prefWidth="96" prefHeight="96"
-                                               style="-fx-background-radius: 48; -fx-background-color: #e5f0ff;">
-                                        <children>
-                                            <ImageView fx:id="profileImageView" fitWidth="88" fitHeight="88" preserveRatio="true"/>
-                                            <Label fx:id="profileInitialsLabel"
-                                                   text="MF"
-                                                   style="-fx-font-size: 26px; -fx-font-weight: bold; -fx-text-fill: #0f172a;"/>
-                                            <Button text="📷"
-                                                    onAction="#handleChooseProfilePhoto"
-                                                    style="-fx-background-radius: 14; -fx-background-color: white; -fx-padding: 4 6 4 6; -fx-border-color: #94a3b8; -fx-border-radius: 14;"
-                                                    StackPane.alignment="BOTTOM_RIGHT"/>
-                                        </children>
-                                    </StackPane>
-                                    <VBox spacing="6.0">
-                                        <Button text="Changer la photo" onAction="#handleChooseProfilePhoto"/>
-                                        <Label text="Formats conseillés : JPG/PNG. Une photo carrée est idéale."
-                                               wrapText="true" style="-fx-font-size: 11px; -fx-text-fill: #64748b;"/>
-                                    </VBox>
+                                            <Label text="Adresse" styleClass="field-label"/>
+                                            <TextField fx:id="profileAddressField" prefHeight="40" styleClass="modern-text-field"/>
+                                            <Label fx:id="profileAddressErrorLabel" text="" styleClass="field-error" visible="false" managed="false" wrapText="true"/>
+
+                                            <Label text="Date naissance" styleClass="field-label"/>
+                                            <DatePicker fx:id="profileBirthDatePicker" prefHeight="40" styleClass="modern-date-picker"/>
+                                            <Label fx:id="profileBirthDateErrorLabel" text="" styleClass="field-error" visible="false" managed="false" wrapText="true"/>
+                                        </VBox>
+                                    </children>
+                                </HBox>
+
+                                <VBox spacing="8.0" HBox.hgrow="ALWAYS">
+                                    <Label text="Email utilisateur" styleClass="field-label"/>
+                                    <TextField fx:id="profileEmailField" prefHeight="40" editable="false" styleClass="modern-text-field,readonly-field">
+                                        <tooltip>
+                                            <Tooltip text="Vous ne pouvez pas modifier ce champ."/>
+                                        </tooltip>
+                                    </TextField>
+                                </VBox>
+
+                                <HBox spacing="10.0" alignment="CENTER_LEFT" styleClass="profile-footer-row">
+                                    <children>
+                                        <Label fx:id="profileMessageLabel" text="" styleClass="profile-feedback-label"/>
+                                        <HBox HBox.hgrow="ALWAYS"/>
+                                        <Button text="Annuler" onAction="#handleProfileCancel" styleClass="profile-secondary-btn"/>
+                                        <Button text="Enregistrer" onAction="#handleProfileSave" styleClass="profile-primary-btn"/>
+                                    </children>
                                 </HBox>
                             </VBox>
-                        </HBox>
-
-                        <HBox spacing="18.0">
-                            <VBox spacing="10.0" HBox.hgrow="ALWAYS">
-                                <Label text="Email user"/>
-                                <TextField fx:id="profileEmailField" prefHeight="40" editable="false"/>
-                            </VBox>
-                        </HBox>
-
-                        <HBox spacing="10.0">
-                            <Label fx:id="profileMessageLabel" text=""/>
-                            <HBox HBox.hgrow="ALWAYS"/>
-                            <Button text="Annuler" onAction="#handleProfileCancel"/>
-                            <Button text="Enregistrer" onAction="#handleProfileSave"/>
-                        </HBox>
-                    </VBox>
+                        </children>
+                    </StackPane>
 
                 </VBox>
             </content>

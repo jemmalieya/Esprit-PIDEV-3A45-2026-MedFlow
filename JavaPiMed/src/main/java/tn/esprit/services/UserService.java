@@ -28,7 +28,40 @@ public class UserService implements IGeneralService<User> {
         }
     }
 
+    public boolean existsByEmail(String email) {
+        String sql = "SELECT COUNT(*) FROM user WHERE email_user = ?";
+        try (PreparedStatement ps = cnx.prepareStatement(sql)) {
+            ps.setString(1, email);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt(1) > 0;
+            }
+        } catch (SQLException e) {
+            System.out.println("Erreur vérification unicité email : " + e.getMessage());
+        }
+        return false;
+    }
+
+    public boolean existsByCin(String cin) {
+        String sql = "SELECT COUNT(*) FROM user WHERE cin = ?";
+        try (PreparedStatement ps = cnx.prepareStatement(sql)) {
+            ps.setString(1, cin);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt(1) > 0;
+            }
+        } catch (SQLException e) {
+            System.out.println("Erreur vérification unicité CIN : " + e.getMessage());
+        }
+        return false;
+    }
+
     public String ajouterAvecRetour(User user) {
+        if (existsByEmail(user.getEmailUser())) {
+            return "Un compte avec l'adresse e-mail '" + user.getEmailUser() + "' existe déjà.";
+        }
+        if (existsByCin(user.getCin())) {
+            return "Un compte avec le CIN '" + user.getCin() + "' existe déjà.";
+        }
+
         String sql = "INSERT INTO user(cin, profile_picture, nom, prenom, date_naissance, telephone_user, email_user, adresse_user, password, is_verified, statut_compte, role_systeme) " +
                 "VALUES(?,?,?,?,?,?,?,?,?,?,?,?)";
         try (PreparedStatement ps = cnx.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {

@@ -63,6 +63,12 @@ public class RegisterController {
     private Label signupStatusLabel;
 
     @FXML
+    private javafx.scene.layout.HBox registerButtonBox;
+
+    @FXML
+    private javafx.scene.layout.HBox successButtonBox;
+
+    @FXML
     private Label cinErrorLabel;
 
     @FXML
@@ -193,8 +199,9 @@ public class RegisterController {
             String dbError = userService.ajouterAvecRetour(user);
             if (dbError == null && user.getId() != 0) {
                 clearValidationStyles();
-                setSignupStatus("Votre compte MedFlow a été créé. Vous pouvez maintenant vous connecter.", true);
-                handleGoToLogin(event);
+                setSignupStatus("Votre compte MedFlow a été créé avec succès ! Cliquez sur le bouton ci-dessous pour vous connecter.", true);
+                if (registerButtonBox != null) { registerButtonBox.setVisible(false); registerButtonBox.setManaged(false); }
+                if (successButtonBox != null) { successButtonBox.setVisible(true); successButtonBox.setManaged(true); }
             } else {
                 String message = "Le compte n'a pas pu être enregistré en base. Vérifiez les champs et réessayez.";
                 if (dbError != null && !dbError.isEmpty()) {

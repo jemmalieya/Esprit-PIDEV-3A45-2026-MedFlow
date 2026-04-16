@@ -128,4 +128,55 @@ public class RessourceService {
 
         return list;
     }
+    public boolean ressourceExisteDeja(int evenementId, String nom, String type) {
+        String sql = """
+            SELECT COUNT(*)
+            FROM ressource
+            WHERE evenement_id = ?
+              AND LOWER(TRIM(nom_ressource)) = LOWER(TRIM(?))
+              AND LOWER(TRIM(type_ressource)) = LOWER(TRIM(?))
+        """;
+
+        try (PreparedStatement pst = cn.prepareStatement(sql)) {
+            pst.setInt(1, evenementId);
+            pst.setString(2, nom);
+            pst.setString(3, type);
+
+            ResultSet rs = pst.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+        } catch (SQLException e) {
+            System.out.println("Erreur unicité ressource : " + e.getMessage());
+        }
+
+        return false;
+    }
+
+    public boolean ressourceExisteDejaPourModification(int id, int evenementId, String nom, String type) {
+        String sql = """
+            SELECT COUNT(*)
+            FROM ressource
+            WHERE evenement_id = ?
+              AND LOWER(TRIM(nom_ressource)) = LOWER(TRIM(?))
+              AND LOWER(TRIM(type_ressource)) = LOWER(TRIM(?))
+              AND id <> ?
+        """;
+
+        try (PreparedStatement pst = cn.prepareStatement(sql)) {
+            pst.setInt(1, evenementId);
+            pst.setString(2, nom);
+            pst.setString(3, type);
+            pst.setInt(4, id);
+
+            ResultSet rs = pst.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+        } catch (SQLException e) {
+            System.out.println("Erreur unicité ressource modif : " + e.getMessage());
+        }
+
+        return false;
+    }
 }

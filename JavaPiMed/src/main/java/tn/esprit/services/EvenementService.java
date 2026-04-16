@@ -147,13 +147,30 @@ public class EvenementService implements IGeneralService<Evenement> {
                 e.setSlug_event(rs.getString("slug_event"));
                 e.setType_event(rs.getString("type_event"));
                 e.setDescription_event(rs.getString("description_event"));
-                e.setVille_event(rs.getString("ville_event"));
-                e.setNb_participants_max_event(rs.getInt("nb_participants_max_event"));
-                e.setEmail_contact_event(rs.getString("email_contact_event"));
-                e.setNom_organisateur_event(rs.getString("nom_organisateur_event"));
+                e.setObjectif_event(rs.getString("objectif_event"));
                 e.setStatut_event(rs.getString("statut_event"));
+
+                e.setDate_debut_event(rs.getDate("date_debut_event")); // ✅ FIX
+                e.setDate_fin_event(rs.getDate("date_fin_event"));     // ✅ FIX
+
+                e.setNom_lieu_event(rs.getString("nom_lieu_event"));
+                e.setAdresse_event(rs.getString("adresse_event"));
+                e.setVille_event(rs.getString("ville_event"));
+
+                e.setNb_participants_max_event(rs.getInt("nb_participants_max_event"));
+                e.setInscription_obligatoire_event(rs.getBoolean("inscription_obligatoire_event"));
+
+                e.setDate_limite_inscription_event(rs.getDate("date_limite_inscription_event")); // ✅
+
+                e.setEmail_contact_event(rs.getString("email_contact_event"));
+                e.setTel_contact_event(rs.getString("tel_contact_event"));
+                e.setNom_organisateur_event(rs.getString("nom_organisateur_event"));
+
                 e.setImage_couverture_event(rs.getString("image_couverture_event"));
                 e.setVisibilite_event(rs.getString("visibilite_event"));
+
+                e.setDate_creation_event(rs.getDate("date_creation_event")); // optional
+                e.setDate_mise_a_jour_event(rs.getDate("date_mise_a_jour_event")); // optional
 
                 list.add(e);
             }

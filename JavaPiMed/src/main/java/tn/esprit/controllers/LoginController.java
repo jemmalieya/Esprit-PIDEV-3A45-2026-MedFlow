@@ -307,17 +307,17 @@ public class LoginController {
                 navigateTo(event, "/EvenementDashboard.fxml", "MedFlow - Gestion des événements");
             } else if ("RESP_PRODUCTS".equals(typeStaff)) {
                 // Responsable produits : back-office produits (existe déjà)
-                navigateTo(event, "/AjouterProduit.fxml", "MedFlow - Gestion des produits");
+                navigateTo(event, "/ProduitDashboard.fxml", "MedFlow - Gestion des produits");
             } else if ("RESP_BLOG".equals(typeStaff) || "RESP_RECLAMATION".equals(typeStaff)) {
                 // Responsable blog / réclamations : back-office réclamations.
                 // TODO: remplace la chaîne vide par le chemin FXML réel
                 //       (ex: "/ReclamationDashboard.fxml").
-                navigateTo(event, "", "MedFlow - Gestion des réclamations (back-office)");
+                navigateTo(event, "/reponse.fxml", "MedFlow - Gestion des réclamations (back-office)");
             } else if ("RESP_PATIENTS".equals(typeStaff)) {
                 // Responsable patients : back-office fiches/patients.
                 // TODO: remplace la chaîne vide par le chemin FXML réel
                 //       (ex: "/PatientsDashboard.fxml").
-                navigateTo(event, "", "MedFlow - Espace Patients (back-office)");
+                navigateTo(event, "/ConsultationDocteur.fxml", "MedFlow - Espace Patients (back-office)");
             } else if ("RESP_USERS".equals(typeStaff)) {
                 // Responsable utilisateurs : back-office gestion utilisateurs.
                 // TODO: remplace la chaîne vide par le chemin FXML réel

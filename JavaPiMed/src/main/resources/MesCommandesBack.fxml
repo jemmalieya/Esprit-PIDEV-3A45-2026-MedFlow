@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Priority?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx/25"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="tn.esprit.controllers.CommandeController"
+            prefWidth="1400.0" prefHeight="850.0"
+            stylesheets="@CSS/commande_back.css"
+            styleClass="root-pane">
+
+    <left>
+        <VBox prefWidth="250.0" minWidth="250.0" maxWidth="250.0" styleClass="sidebar">
+            <padding>
+                <Insets top="24.0" right="18.0" bottom="24.0" left="18.0"/>
+            </padding>
+
+            <children>
+                <HBox alignment="CENTER_LEFT" spacing="14.0" styleClass="logo-box">
+                    <children>
+                        <StackPane prefWidth="40.0" prefHeight="40.0">
+                            <children>
+                                <Label text="❤" styleClass="logo-heart"/>
+                                <Label text="✚" styleClass="logo-plus"/>
+                            </children>
+                        </StackPane>
+                        <Label text="MEDFLOW" styleClass="logo-text"/>
+                    </children>
+                </HBox>
+
+                <Region prefHeight="1.0" maxHeight="1.0" styleClass="sidebar-separator"/>
+
+                <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="sidebar-item">
+                    <children>
+                        <Label text="🩺" styleClass="sidebar-item-icon"/>
+                        <Label text="Dashboard" styleClass="sidebar-item-text"/>
+                    </children>
+                </HBox>
+
+                <Label text="GESTIONS" styleClass="sidebar-section-title"/>
+
+                <Button text=""
+                        alignment="CENTER_LEFT"
+                        maxWidth="Infinity"
+                        prefWidth="220.0"
+                        contentDisplay="GRAPHIC_ONLY"
+                        styleClass="sidebar-item, sidebar-btn, active-product-btn">
+                    <graphic>
+                        <HBox alignment="CENTER_LEFT" spacing="10.0" maxWidth="Infinity">
+                            <children>
+                                <Label text="📦" styleClass="sidebar-item-icon"/>
+                                <Label text="Produits" styleClass="sidebar-item-text"/>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Label text="⌃" styleClass="sidebar-arrow"/>
+                            </children>
+                        </HBox>
+                    </graphic>
+                </Button>
+
+                <VBox spacing="18.0"
+                      styleClass="submenu-card"
+                      managed="true"
+                      visible="true"
+                      maxWidth="220.0">
+                    <children>
+                        <Label text="GESTION DES PRODUITS :" styleClass="submenu-title"/>
+
+                        <Button text="Voir tous les produits"
+                                onAction="#retourProduitDashboard"
+                                maxWidth="Infinity"
+                                alignment="CENTER_LEFT"
+                                styleClass="submenu-link"/>
+
+                        <Button text="↗ Dashboard Admin BI"
+                                onAction="#retourProduitDashboard"
+                                maxWidth="Infinity"
+                                alignment="CENTER_LEFT"
+                                styleClass="submenu-link"/>
+
+                        <Button text="Autres actions"
+                                onAction="#retourProduitDashboard"
+                                maxWidth="Infinity"
+                                alignment="CENTER_LEFT"
+                                styleClass="submenu-link"/>
+                    </children>
+                </VBox>
+
+                <Region VBox.vgrow="ALWAYS"/>
+
+                <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="sidebar-item">
+                    <children>
+                        <Label text="↪" styleClass="sidebar-item-icon"/>
+                        <Label text="Déconnexion" styleClass="sidebar-item-text"/>
+                    </children>
+                </HBox>
+            </children>
+        </VBox>
+    </left>
+    <center>
+        <VBox spacing="22.0" styleClass="main-area">
+            <padding>
+                <Insets top="18.0" right="22.0" bottom="18.0" left="22.0"/>
+            </padding>
+
+            <HBox alignment="CENTER_LEFT" spacing="14.0" styleClass="top-search-box">
+                <children>
+                    <TextField fx:id="searchCommandeField"
+                               promptText="Rechercher commande..."
+                               HBox.hgrow="ALWAYS"
+                               styleClass="top-search-input"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Label text="🔔" styleClass="notif-icon"/>
+                </children>
+            </HBox>
+
+            <VBox spacing="6.0" styleClass="hero-card">
+                <padding>
+                    <Insets top="30.0" right="30.0" bottom="30.0" left="30.0"/>
+                </padding>
+
+                <children>
+                    <HBox alignment="CENTER_LEFT" spacing="10.0">
+                        <children>
+                            <Label text="🧾" styleClass="hero-icon-inline"/>
+                            <Label text="Gestion des commandes" styleClass="hero-title"/>
+                        </children>
+                    </HBox>
+
+                    <Label fx:id="totalCommandesLabel"
+                           text="0 commande(s) au total"
+                           styleClass="hero-subtitle"/>
+                </children>
+            </VBox>
+
+            <HBox spacing="18.0">
+                <children>
+                    <VBox spacing="8.0" styleClass="mini-stat-card" HBox.hgrow="ALWAYS">
+                        <children>
+                            <Label text="Total" styleClass="mini-stat-title"/>
+                            <Label fx:id="statTotal" text="0" styleClass="mini-stat-number"/>
+                        </children>
+                    </VBox>
+
+                    <VBox spacing="8.0" styleClass="mini-stat-card" HBox.hgrow="ALWAYS">
+                        <children>
+                            <Label text="En cours" styleClass="mini-stat-title"/>
+                            <Label fx:id="statEnCours" text="0" styleClass="mini-stat-number"/>
+                        </children>
+                    </VBox>
+
+                    <VBox spacing="8.0" styleClass="mini-stat-card" HBox.hgrow="ALWAYS">
+                        <children>
+                            <Label text="Livraison" styleClass="mini-stat-title"/>
+                            <Label fx:id="statLivraison" text="0" styleClass="mini-stat-number"/>
+                        </children>
+                    </VBox>
+
+                    <VBox spacing="8.0" styleClass="mini-stat-card" HBox.hgrow="ALWAYS">
+                        <children>
+                            <Label text="Finalisées" styleClass="mini-stat-title"/>
+                            <Label fx:id="statFinalise" text="0" styleClass="mini-stat-number"/>
+                        </children>
+                    </VBox>
+                </children>
+            </HBox>
+
+            <HBox spacing="10.0" alignment="CENTER_LEFT">
+                <children>
+                    <Button text="Toutes"
+                            onAction="#filtrerToutes"
+                            styleClass="filter-btn"/>
+
+                    <Button text="En cours"
+                            onAction="#filtrerEnCours"
+                            styleClass="filter-btn"/>
+
+                    <Button text="Livraison"
+                            onAction="#filtrerLivraison"
+                            styleClass="filter-btn"/>
+
+                    <Button text="Finalisée"
+                            onAction="#filtrerFinalise"
+                            styleClass="filter-btn"/>
+
+                    <Button text="En attente"
+                            onAction="#filtrerAttente"
+                            styleClass="filter-btn"/>
+
+                    <Button text="Actualiser"
+                            onAction="#actualiserCommandes"
+                            styleClass="filter-btn-white"/>
+
+                    <ComboBox fx:id="filtreStatutCombo"
+                              prefWidth="170.0"
+                              styleClass="filter-combo"/>
+                </children>
+            </HBox>
+
+            <VBox spacing="0.0" styleClass="table-card" VBox.vgrow="ALWAYS">
+                <padding>
+                    <Insets top="18.0" right="18.0" bottom="18.0" left="18.0"/>
+                </padding>
+
+                <children>
+                    <HBox spacing="0.0" styleClass="table-header">
+                        <children>
+                            <Label text="#" styleClass="th-id"/>
+                            <Label text="DATE" styleClass="th-date"/>
+                            <Label text="CLIENT" styleClass="th-client"/>
+                            <Label text="MONTANT" styleClass="th-montant"/>
+                            <Label text="STATUT" styleClass="th-statut"/>
+                            <Label text="PRODUITS" styleClass="th-produits"/>
+                            <Label text="ACTIONS" styleClass="th-actions"/>
+                        </children>
+                    </HBox>
+
+                    <ScrollPane fitToWidth="true"
+                                VBox.vgrow="ALWAYS"
+                                vbarPolicy="AS_NEEDED"
+                                hbarPolicy="NEVER"
+                                styleClass="cmd-scroll">
+                        <content>
+                            <VBox fx:id="commandesRowsContainer"
+                                  spacing="0.0"
+                                  fillWidth="true"
+                                  styleClass="commande-list"/>
+                        </content>
+                    </ScrollPane>
+
+                    <VBox fx:id="emptyState"
+                          spacing="10.0"
+                          alignment="CENTER"
+                          visible="false"
+                          managed="false"
+                          styleClass="empty-box">
+                        <children>
+                            <Label text="Aucune commande trouvée"
+                                   styleClass="empty-title"/>
+                            <Label text="Aucune commande ne correspond au filtre choisi."
+                                   styleClass="empty-text"/>
+                        </children>
+                    </VBox>
+                </children>
+            </VBox>
+        </VBox>
+    </center>
+</BorderPane>

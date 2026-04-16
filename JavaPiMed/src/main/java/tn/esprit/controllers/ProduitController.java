@@ -930,7 +930,8 @@ public class ProduitController {
             Parent root = loader.load();
 
             Stage stage = (Stage) btnPanier.getScene().getWindow();
-            stage.setScene(new Scene(root));
+            //stage.setScene(new Scene(root));
+            stage.setScene(new Scene(root, 1400, 850));
             stage.setTitle("Mon Panier");
             stage.show();
 
@@ -1060,7 +1061,7 @@ public class ProduitController {
 
             if (stage == null) return;
 
-            Scene scene = new Scene(root, 1600, 950);
+            Scene scene = new Scene(root, 1400, 850);
 
             URL css = getClass().getResource("/CSS/dashboard_admin_bi.css");
             if (css != null) {
@@ -1099,18 +1100,37 @@ public class ProduitController {
     @FXML
     void ajouterProduit(ActionEvent event) {
         if (!isNomValid || !isDescValid || !isPrixValid || !isQuantiteValid || !isCategorieValid || !isImageValid) {
-            StringBuilder errors = new StringBuilder("Veuillez corriger les champs suivants :\n");
-            if (!isNomValid) errors.append("- Nom du produit\n");
-            if (!isDescValid) errors.append("- Description\n");
-            if (!isPrixValid) errors.append("- Prix\n");
-            if (!isQuantiteValid) errors.append("- Quantité\n");
-            if (!isCategorieValid) errors.append("- Catégorie\n");
-            if (!isImageValid) errors.append("- Image\n");
+            boolean allEmpty =
+                    safe(tfNomProduit.getText()).trim().isEmpty() &&
+                            safe(taDescriptionProduit.getText()).trim().isEmpty() &&
+                            safe(tfPrixProduit.getText()).trim().isEmpty() &&
+                            safe(tfQuantiteProduit.getText()).trim().isEmpty() &&
+                            (cbCategorieProduit == null || cbCategorieProduit.getValue() == null || cbCategorieProduit.getValue().trim().isEmpty()) &&
+                            (lblImageProduit == null || safe(lblImageProduit.getText()).trim().isEmpty() || "Aucun fichier choisi".equals(lblImageProduit.getText()));
 
-            showAlert(Alert.AlertType.ERROR, "Champs invalides", errors.toString());
+            if (allEmpty) {
+                showAlert(
+                        Alert.AlertType.WARNING,
+                        "Formulaire incomplet",
+                        "Tous les champs obligatoires doivent être remplis avant d’ajouter un produit."
+                );
+            } else {
+                StringBuilder errors = new StringBuilder("Veuillez corriger les champs suivants avant de continuer :\n\n");
+                if (!isNomValid) errors.append("• Nom du produit\n");
+                if (!isDescValid) errors.append("• Description\n");
+                if (!isPrixValid) errors.append("• Prix\n");
+                if (!isQuantiteValid) errors.append("• Quantité\n");
+                if (!isCategorieValid) errors.append("• Catégorie\n");
+                if (!isImageValid) errors.append("• Image\n");
+
+                showAlert(
+                        Alert.AlertType.ERROR,
+                        "Champs à corriger",
+                        errors.toString()
+                );
+            }
             return;
         }
-
         try {
             String nom = tfNomProduit.getText().trim();
             String description = taDescriptionProduit.getText().trim();
@@ -1129,8 +1149,9 @@ public class ProduitController {
             if (existeDeja) {
                 showAlert(
                         Alert.AlertType.WARNING,
-                        "Produit déjà existant",
-                        "Un produit avec le même nom, la même catégorie, le même prix et la même description existe déjà."
+                        "Doublon détecté",
+                        "Ce produit semble déjà exister dans votre inventaire.\n\n" +
+                                "Vérifiez le nom, la catégorie, le prix et la description avant d’ajouter un nouveau produit."
                 );
                 return;
             }
@@ -1153,17 +1174,37 @@ public class ProduitController {
 
         // Check validation
         if (!isNomValid || !isDescValid || !isPrixValid || !isQuantiteValid || !isCategorieValid || !isImageValid) {
-            StringBuilder errors = new StringBuilder("Veuillez corriger les champs suivants :\n");
-            if (!isNomValid) errors.append("- Nom du produit\n");
-            if (!isDescValid) errors.append("- Description\n");
-            if (!isPrixValid) errors.append("- Prix\n");
-            if (!isQuantiteValid) errors.append("- Quantité\n");
-            if (!isCategorieValid) errors.append("- Catégorie\n");
-            if (!isImageValid) errors.append("- Image\n");
-            showAlert(Alert.AlertType.ERROR, "Champs invalides", errors.toString());
+            boolean allEmpty =
+                    safe(tfNomProduit.getText()).trim().isEmpty() &&
+                            safe(taDescriptionProduit.getText()).trim().isEmpty() &&
+                            safe(tfPrixProduit.getText()).trim().isEmpty() &&
+                            safe(tfQuantiteProduit.getText()).trim().isEmpty() &&
+                            (cbCategorieProduit == null || cbCategorieProduit.getValue() == null || cbCategorieProduit.getValue().trim().isEmpty()) &&
+                            (lblImageProduit == null || safe(lblImageProduit.getText()).trim().isEmpty() || "Aucun fichier choisi".equals(lblImageProduit.getText()));
+
+            if (allEmpty) {
+                showAlert(
+                        Alert.AlertType.WARNING,
+                        "Formulaire incomplet",
+                        "Tous les champs obligatoires doivent être remplis avant de modifier le produit."
+                );
+            } else {
+                StringBuilder errors = new StringBuilder("Veuillez corriger les champs suivants avant de continuer :\n\n");
+                if (!isNomValid) errors.append("• Nom du produit\n");
+                if (!isDescValid) errors.append("• Description\n");
+                if (!isPrixValid) errors.append("• Prix\n");
+                if (!isQuantiteValid) errors.append("• Quantité\n");
+                if (!isCategorieValid) errors.append("• Catégorie\n");
+                if (!isImageValid) errors.append("• Image\n");
+
+                showAlert(
+                        Alert.AlertType.ERROR,
+                        "Champs à corriger",
+                        errors.toString()
+                );
+            }
             return;
         }
-
         try {
             String nom = tfNomProduit.getText().trim();
             String description = taDescriptionProduit.getText().trim();
@@ -1556,11 +1597,68 @@ public class ProduitController {
     }
 
     private void showAlert(Alert.AlertType type, String title, String content) {
-        Alert alert = new Alert(type);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(content);
-        alert.showAndWait();
+        String variant = "info";
+
+        if (type == Alert.AlertType.ERROR) {
+            variant = "danger";
+        } else if (type == Alert.AlertType.WARNING) {
+            variant = "warning";
+        } else if (type == Alert.AlertType.INFORMATION) {
+            variant = "success";
+        }
+
+        showStyledMessageDialog(title, content, variant);
+    }
+
+    private void showStyledMessageDialog(String title, String message, String variant) {
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("");
+        dialog.setHeaderText(null);
+
+        DialogPane pane = dialog.getDialogPane();
+        pane.getButtonTypes().add(ButtonType.OK);
+
+        URL cssUrl = getClass().getResource("/CSS/produit-dashboard.css");
+        if (cssUrl != null) {
+            pane.getStylesheets().add(cssUrl.toExternalForm());
+        }
+        pane.getStyleClass().add("confirm-dialog");
+
+        VBox content = new VBox(18);
+        content.setAlignment(Pos.CENTER);
+        content.setPadding(new Insets(24));
+
+        String iconText = "ℹ";
+        if ("danger".equals(variant)) iconText = "⚠";
+        else if ("warning".equals(variant)) iconText = "⚠";
+        else if ("success".equals(variant)) iconText = "✅";
+
+        Label icon = new Label(iconText);
+        icon.getStyleClass().add("confirm-dialog-icon");
+
+        Label titleLabel = new Label(title);
+        titleLabel.getStyleClass().add("confirm-dialog-title");
+        titleLabel.setWrapText(true);
+
+        Label msgLabel = new Label(message);
+        msgLabel.getStyleClass().add("confirm-dialog-message");
+        msgLabel.setWrapText(true);
+
+        content.getChildren().addAll(icon, titleLabel, msgLabel);
+        pane.setContent(content);
+
+        Button okButton = (Button) pane.lookupButton(ButtonType.OK);
+        okButton.setText("Compris");
+
+        if ("danger".equals(variant)) {
+            okButton.getStyleClass().add("confirm-danger-btn");
+        } else if ("warning".equals(variant)) {
+            okButton.getStyleClass().add("confirm-warning-btn");
+        } else {
+            okButton.getStyleClass().add("confirm-success-btn");
+        }
+
+        dialog.showAndWait();
     }
     @FXML
     private void ouvrirMesCommandes() {
@@ -1570,7 +1668,8 @@ public class ProduitController {
             Parent root = loader.load();
 
             Stage stage = (Stage) productGrid.getScene().getWindow();
-            stage.setScene(new Scene(root));
+            //stage.setScene(new Scene(root));
+            stage.setScene(new Scene(root, 1400, 850));
             stage.setTitle("Mes commandes");
             stage.show();
 

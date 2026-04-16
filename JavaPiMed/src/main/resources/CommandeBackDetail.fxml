@@ -16,8 +16,7 @@
 <BorderPane xmlns="http://javafx.com/javafx/25"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="tn.esprit.controllers.CommandeController"
-            prefWidth="1400.0"
-            prefHeight="820.0"
+            prefWidth="1400.0" prefHeight="850.0"
             stylesheets="@CSS/commande_back.css"
             styleClass="root-pane">
 

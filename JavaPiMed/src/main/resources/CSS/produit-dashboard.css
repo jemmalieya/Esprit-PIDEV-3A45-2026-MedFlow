@@ -633,3 +633,61 @@
     -fx-padding: 10 22 10 22;
     -fx-cursor: hand;
 }
+
+.confirm-dialog {
+    -fx-background-color: linear-gradient(to bottom, #f8fcff, #eef7fb);
+    -fx-background-radius: 24px;
+    -fx-border-radius: 24px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.18), 20, 0.18, 0, 4);
+}
+
+.confirm-dialog .header-panel {
+    -fx-background-color: transparent;
+}
+
+.confirm-dialog .button-bar {
+    -fx-padding: 0 18 18 18;
+}
+
+.confirm-dialog-icon {
+    -fx-font-size: 38px;
+}
+
+.confirm-dialog-title {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #16345c;
+}
+
+.confirm-dialog-message {
+    -fx-font-size: 14px;
+    -fx-text-fill: #627793;
+    -fx-text-alignment: center;
+}
+
+.confirm-success-btn {
+    -fx-background-color: linear-gradient(to right, #0fa2bf, #118fc2);
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 14px;
+    -fx-padding: 10 22 10 22;
+    -fx-cursor: hand;
+}
+
+.confirm-danger-btn {
+    -fx-background-color: linear-gradient(to right, #ef5b5b, #dc3f3f);
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 14px;
+    -fx-padding: 10 22 10 22;
+    -fx-cursor: hand;
+}
+
+.confirm-warning-btn {
+    -fx-background-color: linear-gradient(to right, #f6bd52, #e59b22);
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 14px;
+    -fx-padding: 10 22 10 22;
+    -fx-cursor: hand;
+}

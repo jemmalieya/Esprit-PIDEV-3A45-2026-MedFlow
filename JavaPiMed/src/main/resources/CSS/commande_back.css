@@ -800,3 +800,77 @@
     -fx-padding: 10 22 10 22;
     -fx-cursor: hand;
 }
+
+/* ===================== TOP SEARCH ===================== */
+.top-search-box {
+    -fx-background-color: white;
+    -fx-background-radius: 28px;
+    -fx-padding: 22 24;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 12, 0.14, 0, 3);
+}
+
+.top-search-input {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-font-size: 15px;
+    -fx-text-fill: #46526b;
+    -fx-prompt-text-fill: #a3acbc;
+}
+
+.notif-icon {
+    -fx-font-size: 22px;
+}
+
+/* ===================== HERO HEADER LIKE COMMANDES ===================== */
+.hero-card {
+    -fx-background-color: linear-gradient(to right, #10a5c5, #4d7ee8);
+    -fx-background-radius: 30px;
+    -fx-effect: dropshadow(gaussian, rgba(52, 120, 246, 0.18), 18, 0.16, 0, 6);
+}
+
+.hero-icon-box {
+    -fx-background-color: rgba(255,255,255,0.16);
+    -fx-background-radius: 26px;
+}
+
+.hero-icon {
+    -fx-font-size: 34px;
+}
+
+.hero-title {
+    -fx-font-size: 30px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+
+.hero-subtitle {
+    -fx-font-size: 15px;
+    -fx-text-fill: rgba(255,255,255,0.92);
+    -fx-font-weight: 600;
+}
+
+.admin-badge {
+    -fx-background-color: rgba(255,255,255,0.18);
+    -fx-text-fill: white;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 18px;
+    -fx-padding: 7 14 7 14;
+    -fx-border-color: rgba(255,255,255,0.35);
+    -fx-border-radius: 18px;
+    -fx-border-width: 1;
+}
+
+.white-btn {
+    -fx-background-color: white;
+    -fx-text-fill: #2f5fd0;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 14px;
+    -fx-padding: 12 22 12 22;
+    -fx-cursor: hand;
+}
+
+.white-btn:hover {
+    -fx-background-color: #f8fbff;
+}

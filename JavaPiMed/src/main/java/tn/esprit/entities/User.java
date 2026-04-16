@@ -1,7 +1,6 @@
 package tn.esprit.entities;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 public class User {
     private int id;
@@ -14,24 +13,24 @@ public class User {
     private String emailUser;
     private String adresseUser;
     private String password;
-    private LocalDateTime derniereConnexion;
+    private Timestamp derniereConnexion;
     private boolean isVerified;
     private String statutCompte;
     private String roleSysteme;
     private String typeStaff;
     private String verificationToken;
-    private LocalDateTime tokenExpiresAt;
+    private Timestamp tokenExpiresAt;
     private String staffRequestStatus;
     private String staffRequestType;
     private String staffRequestMessage;
-    private LocalDateTime staffRequestedAt;
-    private LocalDateTime staffReviewedAt;
+    private Timestamp staffRequestedAt;
+    private Timestamp staffReviewedAt;
     private Integer staffReviewedBy;
     private String googleId;
     private String resetToken;
-    private LocalDateTime resetTokenExpiresAt;
+    private Timestamp resetTokenExpiresAt;
     private String banReason;
-    private LocalDateTime bannedAt;
+    private Timestamp bannedAt;
     private String staffRequestProofPath;
     private String staffDocuments;
     private String staffRequestReason;
@@ -39,12 +38,12 @@ public class User {
     private boolean totpEnabled;
     private String lastLoginIp;
     private String lastLoginCountry;
-    private LocalDateTime lastLoginAt;
+    private Timestamp lastLoginAt;
     private boolean faceLoginEnabled;
-    private LocalDateTime faceEnrolledAt;
-    private LocalDateTime faceLastVerifiedAt;
+    private Timestamp faceEnrolledAt;
+    private Timestamp faceLastVerifiedAt;
     private int faceFailedAttempts;
-    private LocalDateTime faceLockedUntil;
+    private Timestamp faceLockedUntil;
     private String faceReferenceEmbedding;
 
     @Override
@@ -98,7 +97,18 @@ public class User {
     public User() {
     }
 
-    public User(int id, String cin, String profilePicture, String nom, String prenom, LocalDate dateNaissance, String telephoneUser, String emailUser, String adresseUser, LocalDateTime derniereConnexion, String password, boolean isVerified, String statutCompte, String roleSysteme, String typeStaff, String verificationToken, LocalDateTime tokenExpiresAt, String staffRequestStatus, String staffRequestType, String staffRequestMessage, LocalDateTime staffRequestedAt, LocalDateTime staffReviewedAt, Integer staffReviewedBy, String googleId, String resetToken, LocalDateTime resetTokenExpiresAt, String banReason, LocalDateTime bannedAt, String staffRequestProofPath, String staffDocuments, String staffRequestReason, String totpSecret, boolean totpEnabled, String lastLoginIp, String lastLoginCountry, LocalDateTime lastLoginAt, boolean faceLoginEnabled, LocalDateTime faceEnrolledAt, LocalDateTime faceLastVerifiedAt, int faceFailedAttempts, LocalDateTime faceLockedUntil, String faceReferenceEmbedding) {
+    public User(int id, String cin, String profilePicture, String nom, String prenom, LocalDate dateNaissance,
+                String telephoneUser, String emailUser, String adresseUser, Timestamp derniereConnexion,
+                String password, boolean isVerified, String statutCompte, String roleSysteme, String typeStaff,
+                String verificationToken, Timestamp tokenExpiresAt, String staffRequestStatus,
+                String staffRequestType, String staffRequestMessage, Timestamp staffRequestedAt,
+                Timestamp staffReviewedAt, Integer staffReviewedBy, String googleId, String resetToken,
+                Timestamp resetTokenExpiresAt, String banReason, Timestamp bannedAt,
+                String staffRequestProofPath, String staffDocuments, String staffRequestReason,
+                String totpSecret, boolean totpEnabled, String lastLoginIp, String lastLoginCountry,
+                Timestamp lastLoginAt, boolean faceLoginEnabled, Timestamp faceEnrolledAt,
+                Timestamp faceLastVerifiedAt, int faceFailedAttempts, Timestamp faceLockedUntil,
+                String faceReferenceEmbedding) {
         this.id = id;
         this.cin = cin;
         this.profilePicture = profilePicture;
@@ -143,6 +153,54 @@ public class User {
         this.faceReferenceEmbedding = faceReferenceEmbedding;
     }
 
+    public User(int userId) {
+    }
+
+    public User(String cin, int id, String profilePicture, String nom, LocalDate dateNaissance, String prenom, String telephoneUser, String adresseUser, String emailUser, String password, Timestamp derniereConnexion, boolean isVerified, String statutCompte, String roleSysteme, String typeStaff, String verificationToken, String staffRequestStatus, Timestamp tokenExpiresAt, String staffRequestType, String staffRequestMessage, Timestamp staffRequestedAt, Timestamp staffReviewedAt, Integer staffReviewedBy, String googleId, String resetToken, Timestamp resetTokenExpiresAt, String banReason, Timestamp bannedAt, String staffRequestProofPath, String staffDocuments, String staffRequestReason, String totpSecret, boolean totpEnabled, String lastLoginIp, String lastLoginCountry, Timestamp lastLoginAt, boolean faceLoginEnabled, Timestamp faceLastVerifiedAt, Timestamp faceEnrolledAt, int faceFailedAttempts, Timestamp faceLockedUntil, String faceReferenceEmbedding) {
+        this.cin = cin;
+        this.id = id;
+        this.profilePicture = profilePicture;
+        this.nom = nom;
+        this.dateNaissance = dateNaissance;
+        this.prenom = prenom;
+        this.telephoneUser = telephoneUser;
+        this.adresseUser = adresseUser;
+        this.emailUser = emailUser;
+        this.password = password;
+        this.derniereConnexion = derniereConnexion;
+        this.isVerified = isVerified;
+        this.statutCompte = statutCompte;
+        this.roleSysteme = roleSysteme;
+        this.typeStaff = typeStaff;
+        this.verificationToken = verificationToken;
+        this.staffRequestStatus = staffRequestStatus;
+        this.tokenExpiresAt = tokenExpiresAt;
+        this.staffRequestType = staffRequestType;
+        this.staffRequestMessage = staffRequestMessage;
+        this.staffRequestedAt = staffRequestedAt;
+        this.staffReviewedAt = staffReviewedAt;
+        this.staffReviewedBy = staffReviewedBy;
+        this.googleId = googleId;
+        this.resetToken = resetToken;
+        this.resetTokenExpiresAt = resetTokenExpiresAt;
+        this.banReason = banReason;
+        this.bannedAt = bannedAt;
+        this.staffRequestProofPath = staffRequestProofPath;
+        this.staffDocuments = staffDocuments;
+        this.staffRequestReason = staffRequestReason;
+        this.totpSecret = totpSecret;
+        this.totpEnabled = totpEnabled;
+        this.lastLoginIp = lastLoginIp;
+        this.lastLoginCountry = lastLoginCountry;
+        this.lastLoginAt = lastLoginAt;
+        this.faceLoginEnabled = faceLoginEnabled;
+        this.faceLastVerifiedAt = faceLastVerifiedAt;
+        this.faceEnrolledAt = faceEnrolledAt;
+        this.faceFailedAttempts = faceFailedAttempts;
+        this.faceLockedUntil = faceLockedUntil;
+        this.faceReferenceEmbedding = faceReferenceEmbedding;
+    }
+
     public int getId() {
         return id;
     }
@@ -150,6 +208,7 @@ public class User {
     public void setId(int id) {
         this.id = id;
     }
+
 
     public String getCin() {
         return cin;
@@ -227,7 +286,7 @@ public class User {
         return derniereConnexion;
     }
 
-    public void setDerniereConnexion(LocalDateTime derniereConnexion) {
+    public void setDerniereConnexion(Timestamp derniereConnexion) {
         this.derniereConnexion = derniereConnexion;
     }
 
@@ -275,7 +334,7 @@ public class User {
         return tokenExpiresAt;
     }
 
-    public void setTokenExpiresAt(LocalDateTime tokenExpiresAt) {
+    public void setTokenExpiresAt(Timestamp tokenExpiresAt) {
         this.tokenExpiresAt = tokenExpiresAt;
     }
 
@@ -307,7 +366,7 @@ public class User {
         return staffRequestedAt;
     }
 
-    public void setStaffRequestedAt(LocalDateTime staffRequestedAt) {
+    public void setStaffRequestedAt(Timestamp staffRequestedAt) {
         this.staffRequestedAt = staffRequestedAt;
     }
 
@@ -315,7 +374,7 @@ public class User {
         return staffReviewedAt;
     }
 
-    public void setStaffReviewedAt(LocalDateTime staffReviewedAt) {
+    public void setStaffReviewedAt(Timestamp staffReviewedAt) {
         this.staffReviewedAt = staffReviewedAt;
     }
 
@@ -347,7 +406,7 @@ public class User {
         return resetTokenExpiresAt;
     }
 
-    public void setResetTokenExpiresAt(LocalDateTime resetTokenExpiresAt) {
+    public void setResetTokenExpiresAt(Timestamp resetTokenExpiresAt) {
         this.resetTokenExpiresAt = resetTokenExpiresAt;
     }
 
@@ -363,7 +422,7 @@ public class User {
         return bannedAt;
     }
 
-    public void setBannedAt(LocalDateTime bannedAt) {
+    public void setBannedAt(Timestamp bannedAt) {
         this.bannedAt = bannedAt;
     }
 
@@ -427,7 +486,7 @@ public class User {
         return lastLoginAt;
     }
 
-    public void setLastLoginAt(LocalDateTime lastLoginAt) {
+    public void setLastLoginAt(Timestamp lastLoginAt) {
         this.lastLoginAt = lastLoginAt;
     }
 
@@ -443,7 +502,7 @@ public class User {
         return faceEnrolledAt;
     }
 
-    public void setFaceEnrolledAt(LocalDateTime faceEnrolledAt) {
+    public void setFaceEnrolledAt(Timestamp faceEnrolledAt) {
         this.faceEnrolledAt = faceEnrolledAt;
     }
 
@@ -451,7 +510,7 @@ public class User {
         return faceLastVerifiedAt;
     }
 
-    public void setFaceLastVerifiedAt(LocalDateTime faceLastVerifiedAt) {
+    public void setFaceLastVerifiedAt(Timestamp faceLastVerifiedAt) {
         this.faceLastVerifiedAt = faceLastVerifiedAt;
     }
 
@@ -467,7 +526,7 @@ public class User {
         return faceLockedUntil;
     }
 
-    public void setFaceLockedUntil(LocalDateTime faceLockedUntil) {
+    public void setFaceLockedUntil(Timestamp faceLockedUntil) {
         this.faceLockedUntil = faceLockedUntil;
     }
 
@@ -479,4 +538,51 @@ public class User {
         this.faceReferenceEmbedding = faceReferenceEmbedding;
     }
 
+    @Override
+    public String toString() {
+        return "User{" +
+                "id=" + id +
+                ", cin='" + cin + '\'' +
+                ", profilePicture='" + profilePicture + '\'' +
+                ", nom='" + nom + '\'' +
+                ", prenom='" + prenom + '\'' +
+                ", dateNaissance=" + dateNaissance +
+                ", telephoneUser='" + telephoneUser + '\'' +
+                ", emailUser='" + emailUser + '\'' +
+                ", adresseUser='" + adresseUser + '\'' +
+                ", password='" + password + '\'' +
+                ", derniereConnexion=" + derniereConnexion +
+                ", isVerified=" + isVerified +
+                ", statutCompte='" + statutCompte + '\'' +
+                ", roleSysteme='" + roleSysteme + '\'' +
+                ", typeStaff='" + typeStaff + '\'' +
+                ", verificationToken='" + verificationToken + '\'' +
+                ", tokenExpiresAt=" + tokenExpiresAt +
+                ", staffRequestStatus='" + staffRequestStatus + '\'' +
+                ", staffRequestType='" + staffRequestType + '\'' +
+                ", staffRequestMessage='" + staffRequestMessage + '\'' +
+                ", staffRequestedAt=" + staffRequestedAt +
+                ", staffReviewedAt=" + staffReviewedAt +
+                ", staffReviewedBy=" + staffReviewedBy +
+                ", googleId='" + googleId + '\'' +
+                ", resetToken='" + resetToken + '\'' +
+                ", resetTokenExpiresAt=" + resetTokenExpiresAt +
+                ", banReason='" + banReason + '\'' +
+                ", bannedAt=" + bannedAt +
+                ", staffRequestProofPath='" + staffRequestProofPath + '\'' +
+                ", staffDocuments='" + staffDocuments + '\'' +
+                ", staffRequestReason='" + staffRequestReason + '\'' +
+                ", totpSecret='" + totpSecret + '\'' +
+                ", totpEnabled=" + totpEnabled +
+                ", lastLoginIp='" + lastLoginIp + '\'' +
+                ", lastLoginCountry='" + lastLoginCountry + '\'' +
+                ", lastLoginAt=" + lastLoginAt +
+                ", faceLoginEnabled=" + faceLoginEnabled +
+                ", faceEnrolledAt=" + faceEnrolledAt +
+                ", faceLastVerifiedAt=" + faceLastVerifiedAt +
+                ", faceFailedAttempts=" + faceFailedAttempts +
+                ", faceLockedUntil=" + faceLockedUntil +
+                ", faceReferenceEmbedding='" + faceReferenceEmbedding + '\'' +
+                '}';
+    }
 }

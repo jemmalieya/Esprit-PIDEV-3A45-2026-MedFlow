@@ -42,6 +42,9 @@ public class Produit {
         this.status_produit = status_produit;
     }
 
+    public Produit(int produitId) {
+    }
+
     public int getId_produit() {
         return id_produit;
     }

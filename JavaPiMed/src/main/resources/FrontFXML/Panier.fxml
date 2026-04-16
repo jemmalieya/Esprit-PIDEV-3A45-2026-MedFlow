@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Priority?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="tn.esprit.controllers.PanierController"
+            stylesheets="@../CSS/panier.css,@../CSS/booking.css"
+            styleClass="panier-root"
+            prefWidth="1400.0" prefHeight="820.0">
+    <left>
+        <fx:include source="Sidebar.fxml"/>
+    </left>
+    <center>
+        <ScrollPane fitToWidth="true"
+                    hbarPolicy="NEVER"
+                    vbarPolicy="AS_NEEDED"
+                    styleClass="panier-scroll">
+            <content>
+                <VBox spacing="22" styleClass="panier-main">
+                    <padding>
+                        <Insets top="24" right="28" bottom="24" left="28"/>
+                    </padding>
+
+                    <!-- HEADER -->
+                    <VBox spacing="10" alignment="CENTER" styleClass="panier-header">
+                        <children>
+                            <Label text="🛒" styleClass="panier-header-icon"/>
+                            <Label fx:id="panierTitleLabel" text="Mon Panier" styleClass="panier-title"/>
+                            <Label fx:id="panierSubtitleLabel" text="Votre panier est vide" styleClass="panier-subtitle"/>
+                        </children>
+                    </VBox>
+
+                    <!-- PANIER VIDE -->
+                    <VBox fx:id="emptyCartBox" alignment="CENTER" spacing="16" styleClass="empty-cart-box">
+                        <children>
+                            <Label text="🛒" styleClass="empty-cart-icon"/>
+                            <Label text="Votre panier est vide" styleClass="empty-cart-title"/>
+                            <Label text="Découvrez nos produits et commencez vos achats !" styleClass="empty-cart-subtitle"/>
+                            <Button text="🏪 Découvrir nos produits"
+                                    onAction="#retourPharmacie"
+                                    styleClass="discover-btn"/>
+                        </children>
+                    </VBox>
+
+                    <!-- PANIER REMPLI -->
+                    <HBox fx:id="cartContentBox" spacing="24" visible="false" managed="false">
+                        <children>
+                            <!-- LISTE -->
+                            <VBox spacing="14" HBox.hgrow="ALWAYS" styleClass="cart-list-box">
+                                <children>
+                                    <HBox alignment="CENTER_LEFT" styleClass="cart-list-header">
+                                        <children>
+                                            <Label fx:id="articleCountLabel" text="Articles (0)" styleClass="section-title"/>
+                                            <Region HBox.hgrow="ALWAYS"/>
+                                            <Button fx:id="btnViderPanier"
+                                                    text="🗑 Vider le panier"
+                                                    onAction="#viderPanier"
+                                                    styleClass="clear-btn"/>
+                                        </children>
+                                    </HBox>
+
+                                    <VBox fx:id="panierContainer" spacing="14"/>
+                                </children>
+                            </VBox>
+
+                            <!-- RESUME -->
+                            <VBox spacing="18" prefWidth="320" styleClass="resume-box">
+                                <children>
+                                    <Label text="🧾 Résumé" styleClass="resume-title"/>
+
+                                    <HBox alignment="CENTER_LEFT">
+                                        <children>
+                                            <Label text="Sous-total" styleClass="resume-label"/>
+                                            <Region HBox.hgrow="ALWAYS"/>
+                                            <Label fx:id="sousTotalLabel" text="0.00 DT" styleClass="resume-price-small"/>
+                                        </children>
+                                    </HBox>
+
+                                    <HBox alignment="CENTER_LEFT" styleClass="resume-total-box">
+                                        <children>
+                                            <Label text="Total" styleClass="resume-total-label"/>
+                                            <Region HBox.hgrow="ALWAYS"/>
+                                            <Label fx:id="totalLabel" text="0.00 DT" styleClass="resume-total-price"/>
+                                        </children>
+                                    </HBox>
+
+                                    <Button fx:id="btnValiderCommande"
+                                            text="✅ Valider la commande"
+                                            onAction="#validerCommande"
+                                            styleClass="validate-btn"/>
+
+                                    <Button text="← Retour produits"
+                                            onAction="#retourPharmacie"
+                                            styleClass="back-btn"/>
+                                </children>
+                            </VBox>
+                        </children>
+                    </HBox>
+
+                </VBox>
+            </content>
+        </ScrollPane>
+    </center>
+</BorderPane>

@@ -1,5 +1,7 @@
 package tn.esprit.services;
 
+import tn.esprit.entities.Commande;
+
 import java.sql.SQLException;
 import java.util.List;
 
@@ -8,6 +10,5 @@ public interface IGeneralService <T>{
     void supprimer(T t);
     void modifier(T t);
     List<T> recuperer() throws SQLException;
-    T recupererParId(int id);
-
+    public T recupererParId(int id);
 }

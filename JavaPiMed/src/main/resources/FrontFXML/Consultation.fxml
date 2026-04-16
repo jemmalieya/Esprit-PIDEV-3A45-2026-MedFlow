@@ -33,10 +33,10 @@
     <!-- MAIN BODY -->
     <center>
         <ScrollPane
-                pannable="true"
-                hbarPolicy="NEVER"
-                vbarPolicy="AS_NEEDED"
-                styleClass="main-scroll">
+                    pannable="true"
+                    hbarPolicy="NEVER"
+                    vbarPolicy="AS_NEEDED"
+                    styleClass="main-scroll">
 
             <content>
                 <VBox spacing="24" styleClass="main-area">

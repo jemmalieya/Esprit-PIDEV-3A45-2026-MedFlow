@@ -22,7 +22,6 @@
             styleClass="root-layout"
             stylesheets="@CSS/style-ajout-produit.css">
 
-    <!-- SIDEBAR IDENTIQUE AU DASHBOARD PRODUIT -->
     <left>
         <VBox prefWidth="250.0" minWidth="250.0" maxWidth="250.0" styleClass="sidebar">
             <padding>
@@ -114,7 +113,6 @@
         </VBox>
     </left>
 
-    <!-- CONTENU -->
     <center>
         <ScrollPane fitToHeight="true"
                     fitToWidth="true"
@@ -127,8 +125,6 @@
                     </padding>
 
                     <children>
-
-                        <!-- BARRE TOP -->
                         <HBox alignment="CENTER_LEFT" spacing="0" styleClass="top-search-bar">
                             <children>
                                 <TextField promptText="Search for..." styleClass="search-input" HBox.hgrow="ALWAYS"/>
@@ -138,13 +134,12 @@
                             </children>
                         </HBox>
 
-                        <!-- TITRE -->
                         <HBox alignment="CENTER_LEFT">
                             <children>
                                 <VBox spacing="6">
                                     <children>
-                                        <Label styleClass="page-title" text="Ajouter un produit"/>
-                                        <Label styleClass="page-subtitle" text="Remplissez les informations du nouveau produit"/>
+                                        <Label styleClass="page-title" text="Modifier un produit"/>
+                                        <Label styleClass="page-subtitle" text="Modifiez les informations du produit sélectionné"/>
                                     </children>
                                 </VBox>
 
@@ -157,11 +152,9 @@
                             </children>
                         </HBox>
 
-                        <!-- FORMULAIRE -->
                         <HBox alignment="TOP_LEFT" spacing="24">
                             <children>
 
-                                <!-- COLONNE GAUCHE -->
                                 <VBox spacing="18" HBox.hgrow="ALWAYS">
                                     <children>
 
@@ -249,7 +242,6 @@
                                             </children>
                                         </VBox>
 
-                                        <!-- BAS -->
                                         <HBox alignment="CENTER_LEFT" styleClass="bottom-bar">
                                             <children>
                                                 <Label styleClass="bottom-note"
@@ -261,16 +253,15 @@
                                                         styleClass="btn-cancel"
                                                         text="Annuler"/>
 
-                                                <Button fx:id="btnAjouterProduit"
-                                                        onAction="#ajouterProduit"
+                                                <Button fx:id="btnModifierProduit"
+                                                        onAction="#modifierProduit"
                                                         styleClass="btn-add"
-                                                        text="Ajouter le produit"/>
+                                                        text="Mettre à jour"/>
                                             </children>
                                         </HBox>
                                     </children>
                                 </VBox>
 
-                                <!-- COLONNE DROITE -->
                                 <VBox prefWidth="300" spacing="14" styleClass="status-card-box">
                                     <children>
                                         <Label styleClass="status-title" text="Statut du produit"/>

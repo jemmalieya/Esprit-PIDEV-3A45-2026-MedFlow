@@ -62,52 +62,81 @@
                                 <columnConstraints>
                                 </columnConstraints>
 
+                                <!-- TITRE -->
                                 <Label text="Titre" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
                                 <TextField fx:id="titreField"
                                            promptText="Entrez un titre"
                                            GridPane.columnIndex="0"
                                            GridPane.rowIndex="1"/>
+                                <Label fx:id="titreError"
+                                       style="-fx-text-fill: red;"
+                                       GridPane.columnIndex="0"
+                                       GridPane.rowIndex="2"/>
 
+                                <!-- CATEGORIE -->
                                 <Label text="Catégorie" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
                                 <ComboBox fx:id="categorieBox"
                                           GridPane.columnIndex="1"
                                           GridPane.rowIndex="1"/>
 
-                                <Label text="Localisation" GridPane.columnIndex="0" GridPane.rowIndex="2"/>
+                                <!-- LOCALISATION -->
+                                <Label text="Localisation" GridPane.columnIndex="0" GridPane.rowIndex="3"/>
                                 <TextField fx:id="localisationField"
                                            promptText="Ex: Tunis"
                                            GridPane.columnIndex="0"
-                                           GridPane.rowIndex="3"/>
+                                           GridPane.rowIndex="4"/>
+                                <Label fx:id="localisationError"
+                                       style="-fx-text-fill: red;"
+                                       GridPane.columnIndex="0"
+                                       GridPane.rowIndex="5"/>
 
-                                <Label text="Humeur" GridPane.columnIndex="1" GridPane.rowIndex="2"/>
+                                <!-- HUMEUR -->
+                                <Label text="Humeur" GridPane.columnIndex="1" GridPane.rowIndex="3"/>
                                 <ComboBox fx:id="humeurBox"
                                           GridPane.columnIndex="1"
-                                          GridPane.rowIndex="3"/>
+                                          GridPane.rowIndex="4"/>
 
-                                <Label text="Image (URL)" GridPane.columnIndex="0" GridPane.rowIndex="4"/>
+                                <!-- IMAGE -->
+                                <Label text="Image (URL)" GridPane.columnIndex="0" GridPane.rowIndex="6"/>
                                 <TextField fx:id="imageField"
                                            promptText="https://..."
                                            GridPane.columnIndex="0"
-                                           GridPane.rowIndex="5"/>
+                                           GridPane.rowIndex="7"/>
+                                <Label fx:id="imageError"
+                                       style="-fx-text-fill: red;"
+                                       GridPane.columnIndex="0"
+                                       GridPane.rowIndex="8"/>
 
-                                <Label text="Hashtags" GridPane.columnIndex="1" GridPane.rowIndex="4"/>
+                                <!-- HASHTAGS -->
+                                <Label text="Hashtags" GridPane.columnIndex="1" GridPane.rowIndex="6"/>
                                 <TextField fx:id="hashtagsField"
-                                           promptText="#urgence #hopital #secours"
+                                           promptText="#urgence #hopital"
                                            GridPane.columnIndex="1"
-                                           GridPane.rowIndex="5"/>
+                                           GridPane.rowIndex="7"/>
+                                <Label fx:id="hashtagsError"
+                                       style="-fx-text-fill: red;"
+                                       GridPane.columnIndex="1"
+                                       GridPane.rowIndex="8"/>
 
-                                <Label text="Contenu" GridPane.columnIndex="0" GridPane.rowIndex="6"/>
+                                <!-- CONTENU -->
+                                <Label text="Contenu" GridPane.columnIndex="0" GridPane.rowIndex="9"/>
                                 <TextArea fx:id="contenuArea"
                                           prefRowCount="8"
                                           promptText="Écrivez le contenu du post..."
                                           GridPane.columnIndex="0"
-                                          GridPane.rowIndex="7"
+                                          GridPane.rowIndex="10"
                                           GridPane.columnSpan="2"/>
+                                <Label fx:id="contenuError"
+                                       style="-fx-text-fill: red;"
+                                       GridPane.columnIndex="0"
+                                       GridPane.rowIndex="11"
+                                       GridPane.columnSpan="2"/>
 
                                 <CheckBox fx:id="anonymeCheck"
                                           text="Publier en anonyme"
                                           GridPane.columnIndex="0"
-                                          GridPane.rowIndex="8"/>
+                                          GridPane.rowIndex="12"
+                                          GridPane.columnSpan="2"/>
                             </GridPane>
 
                             <HBox alignment="CENTER_RIGHT" spacing="12">

@@ -101,12 +101,39 @@
 
                 <Region VBox.vgrow="ALWAYS"/>
 
-                <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="sidebar-item">
-                    <children>
-                        <Label text="↪" styleClass="sidebar-item-icon"/>
-                        <Label text="Déconnexion" styleClass="sidebar-item-text"/>
-                    </children>
-                </HBox>
+                <Button text=""
+                        onAction="#onGoToFront"
+                        alignment="CENTER_LEFT"
+                        maxWidth="Infinity"
+                        prefWidth="220.0"
+                        contentDisplay="GRAPHIC_ONLY"
+                        styleClass="sidebar-item, sidebar-btn">
+                    <graphic>
+                        <HBox alignment="CENTER_LEFT" spacing="10.0" maxWidth="Infinity">
+                            <children>
+                                <Label text="⇢" styleClass="sidebar-item-icon"/>
+                                <Label text="Espace front" styleClass="sidebar-item-text"/>
+                            </children>
+                        </HBox>
+                    </graphic>
+                </Button>
+
+                <Button text=""
+                        onAction="#onLogout"
+                        alignment="CENTER_LEFT"
+                        maxWidth="Infinity"
+                        prefWidth="220.0"
+                        contentDisplay="GRAPHIC_ONLY"
+                        styleClass="sidebar-item, sidebar-btn">
+                    <graphic>
+                        <HBox alignment="CENTER_LEFT" spacing="10.0" maxWidth="Infinity">
+                            <children>
+                                <Label text="↪" styleClass="sidebar-item-icon"/>
+                                <Label text="Déconnexion" styleClass="sidebar-item-text"/>
+                            </children>
+                        </HBox>
+                    </graphic>
+                </Button>
             </children>
         </VBox>
     </left>
@@ -269,6 +296,7 @@
                     </VBox>
                 </content>
             </ScrollPane>
+
         </VBox>
     </center>
 </BorderPane>

@@ -265,6 +265,37 @@
     -fx-background-color: white;
 }
 
+.validation-success.modern-text-field,
+.validation-success.modern-text-area,
+.validation-success.modern-combo-box,
+.validation-success.modern-date-picker {
+    -fx-border-color: #22c55e;
+    -fx-background-color: #f2fff6;
+}
+
+.validation-error.modern-text-field,
+.validation-error.modern-text-area,
+.validation-error.modern-combo-box,
+.validation-error.modern-date-picker {
+    -fx-border-color: #ef4444;
+    -fx-background-color: #fff5f5;
+}
+
+.validation-message {
+    -fx-font-size: 11px;
+    -fx-font-weight: 600;
+    -fx-padding: 2 2 0 2;
+    -fx-wrap-text: true;
+}
+
+.validation-message-success {
+    -fx-text-fill: #16a34a;
+}
+
+.validation-message-error {
+    -fx-text-fill: #dc2626;
+}
+
 /* BUTTONS */
 .cancel-button,
 .confirm-button {

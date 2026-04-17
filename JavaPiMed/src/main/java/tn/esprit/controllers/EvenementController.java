@@ -33,14 +33,18 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import javafx.stage.FileChooser;
-
-
+import javafx.scene.chart.BarChart;
+import javafx.scene.chart.LineChart;
+import javafx.scene.chart.PieChart;
+import javafx.scene.chart.XYChart;
+import tn.esprit.services.EvenementPDFService;
 
 
 public class EvenementController {
 
     private static final double DEFAULT_SCENE_WIDTH = 1650;
     private static final double DEFAULT_SCENE_HEIGHT = 960;
+
 
     /* ===================== DASHBOARD ===================== */
     @FXML private Label totalEventsLabel;
@@ -99,11 +103,44 @@ public class EvenementController {
     @FXML private TextField tfOrganisateurEvent;
     @FXML private TextField tfImageEvent;
     @FXML private Label frontPageMarker;
+    @FXML private Label biPeriodeLabel;
+
+    @FXML private DatePicker biDateDebutPicker;
+    @FXML private DatePicker biDateFinPicker;
+    @FXML private ComboBox<String> biVilleCombo;
+
+    @FXML private Label biPublicationLabel;
+    @FXML private Label biCapaciteLabel;
+
+    @FXML private Label biTotalEventsLabel;
+    @FXML private Label biPubliesLabel;
+    @FXML private Label biCapaciteTotaleLabel;
+    @FXML private Label biTauxPublicationLabel;
+
+    @FXML private Label biBrouillonsLabel;
+    @FXML private Label biAnnulesLabel;
+    @FXML private Label biAVenirLabel;
+    @FXML private Label biPeriodeAnalyseeLabel;
+
+    @FXML private LineChart<String, Number> eventsLineChart;
+    @FXML private PieChart statutPieChart;
+    @FXML private BarChart<String, Number> typeBarChart;
+    @FXML private BarChart<String, Number> villeBarChart;
+
+    @FXML private TableView<Evenement> topEvenementsTable;
+    @FXML private TableColumn<Evenement, String> topTitreCol;
+    @FXML private TableColumn<Evenement, String> topTypeCol;
+    @FXML private TableColumn<Evenement, String> topVilleCol;
+    @FXML private TableColumn<Evenement, Number> topCapaciteCol;
+    @FXML private TableColumn<Evenement, String> topStatutCol;
+
+    @FXML private FlowPane recommandationsContainer;
 
     /* ===================== DATA ===================== */
     private final EvenementService evenementService = new EvenementService();
     private final ObservableList<Evenement> masterList = FXCollections.observableArrayList();
     private final DashboardBIServiceEvenement dashboardService = new DashboardBIServiceEvenement();
+    private final EvenementPDFService pdfService = new EvenementPDFService();
 
     private static Evenement evenementAModifier;
 
@@ -169,10 +206,11 @@ public class EvenementController {
         chargerEvenementAModifier();
         initFiltres();
         chargerDetailFrontIfExists();
+        initDashboardBIIfExists();
 
         try {
             DashboardBIServiceEvenement.DashboardData data =
-                    dashboardService.chargerDonnees(null, null);
+                    dashboardService.chargerDonnees(null, null, "Toutes les villes");
 
             if (totalEventsLabel != null)
                 totalEventsLabel.setText(String.valueOf(data.totalEvenements));
@@ -184,7 +222,7 @@ public class EvenementController {
                 brouillonsLabel.setText(String.valueOf(data.brouillons));
 
             if (archivesLabel != null)
-                archivesLabel.setText(String.valueOf(data.archives));
+                archivesLabel.setText(String.valueOf(data.autres + data.annules));
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -795,6 +833,22 @@ public class EvenementController {
         setFieldSuccess(getVisibiliteCombo(), visibiliteMsg,
                 "Visibilité valide.");
         isVisibiliteValid = true;
+    }
+    @FXML
+    private void choisirImageDepuisPC() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Choisir une image");
+
+        fileChooser.getExtensionFilters().addAll(
+                new FileChooser.ExtensionFilter("Images", "*.png", "*.jpg", "*.jpeg", "*.webp")
+        );
+
+        Stage stage = resolveCurrentStage();
+        File file = fileChooser.showOpenDialog(stage);
+
+        if (file != null) {
+            tfImageEvent.setText(file.getAbsolutePath());
+        }
     }
 
 
@@ -1445,7 +1499,7 @@ public class EvenementController {
 
     @FXML
     private void onTableauBordAdmin() {
-        showAlert(Alert.AlertType.INFORMATION, "Dashboard Admin BI", "Tu peux relier ici le dashboard Admin BI.");
+        loadScene("/DashboardEvenementBI.fxml", "Dashboard Admin BI - Événements");
     }
 
     @FXML
@@ -1506,24 +1560,35 @@ public class EvenementController {
     }
 
     private Stage resolveCurrentStage() {
-        if (evenementTable != null && evenementTable.getScene() != null) {
-            return (Stage) evenementTable.getScene().getWindow();
+        Control[] controls = {
+                evenementTable,
+                topEvenementsTable,
+                biDateDebutPicker,
+                biDateFinPicker,
+                biVilleCombo,
+                searchField,
+                sortCombo,
+                btnAjouterEvent,
+                btnModifierEvent,
+                btnResetEvent
+        };
+
+        for (Control c : controls) {
+            if (c != null && c.getScene() != null) {
+                return (Stage) c.getScene().getWindow();
+            }
         }
-        if (getTitreField() != null && getTitreField().getScene() != null) {
-            return (Stage) getTitreField().getScene().getWindow();
+
+        if (biPeriodeLabel != null && biPeriodeLabel.getScene() != null) {
+            return (Stage) biPeriodeLabel.getScene().getWindow();
+        }
+        if (eventsLineChart != null && eventsLineChart.getScene() != null) {
+            return (Stage) eventsLineChart.getScene().getWindow();
         }
         if (cardsContainer != null && cardsContainer.getScene() != null) {
             return (Stage) cardsContainer.getScene().getWindow();
         }
-        if (btnAjouterEvent != null && btnAjouterEvent.getScene() != null) {
-            return (Stage) btnAjouterEvent.getScene().getWindow();
-        }
-        if (btnModifierEvent != null && btnModifierEvent.getScene() != null) {
-            return (Stage) btnModifierEvent.getScene().getWindow();
-        }
-        if (btnResetEvent != null && btnResetEvent.getScene() != null) {
-            return (Stage) btnResetEvent.getScene().getWindow();
-        }
+
         return null;
     }
 
@@ -1645,7 +1710,7 @@ public class EvenementController {
     @FXML
     private void retourVersListeFront() {
         try {
-            Parent root = FXMLLoader.load(getClass().getResource("/FrontFXML/Evenement.fxml"));
+            Parent root = FXMLLoader.load(getClass().getResource("/FrontFXML/Événement.fxml"));
             Stage stage = resolveCurrentStage();
 
             if (stage != null) {
@@ -1722,48 +1787,7 @@ public class EvenementController {
 
         return card;
     }
-    @FXML
-    private void handleExportPDF() {
-        try {
-            DashboardBIServiceEvenement service = new DashboardBIServiceEvenement();
 
-            DashboardBIServiceEvenement.DashboardData data =
-                    service.chargerDonnees(null, null);
-
-            // 🔥 simple PDF (version basique)
-            FileWriter writer = new FileWriter("evenements.pdf");
-
-            writer.write("===== RAPPORT EVENEMENTS =====\n\n");
-            writer.write("Total: " + data.totalEvenements + "\n");
-            writer.write("Publies: " + data.publies + "\n");
-            writer.write("Brouillons: " + data.brouillons + "\n");
-            writer.write("Archives: " + data.archives + "\n");
-
-            writer.close();
-
-            showAlert(Alert.AlertType.INFORMATION, "Succès", "PDF généré avec succès !");
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            showAlert(Alert.AlertType.ERROR, "Erreur", "Erreur génération PDF");
-        }
-    }
-    @FXML
-    private void choisirImageDepuisPC() {
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Choisir une image");
-
-        fileChooser.getExtensionFilters().addAll(
-                new FileChooser.ExtensionFilter("Images", "*.png", "*.jpg", "*.jpeg", "*.webp")
-        );
-
-        Stage stage = resolveCurrentStage();
-        File file = fileChooser.showOpenDialog(stage);
-
-        if (file != null) {
-            tfImageEvent.setText(file.getAbsolutePath());
-        }
-    }
     private void initCardsFrontIfExists() {
         if (cardsContainer == null) return;
 
@@ -1779,7 +1803,214 @@ public class EvenementController {
             showAlert(Alert.AlertType.ERROR, "Erreur", e.getMessage());
         }
     }
+    private void initDashboardBIIfExists() {
+        if (biPeriodeLabel == null) return;
 
+        if (biDateFinPicker != null && biDateFinPicker.getValue() == null) {
+            biDateFinPicker.setValue(LocalDate.now());
+        }
+
+        if (biDateDebutPicker != null && biDateDebutPicker.getValue() == null) {
+            biDateDebutPicker.setValue(LocalDate.now().minusDays(6));
+        }
+
+        if (biVilleCombo != null && biVilleCombo.getItems().isEmpty()) {
+            biVilleCombo.getItems().addAll(
+                    "Toutes les villes", "Tunis", "Sfax", "Sousse", "Ariana"
+            );
+            biVilleCombo.setValue("Toutes les villes");
+        }
+
+        initTopEvenementsTable();
+        chargerDashboardBI();
+    }
+
+    @FXML
+    private void filtrerDashboardBI() {
+        chargerDashboardBI();
+    }
+
+    @FXML
+    private void chargerPeriode7j() {
+        if (biDateFinPicker != null) biDateFinPicker.setValue(LocalDate.now());
+        if (biDateDebutPicker != null) biDateDebutPicker.setValue(LocalDate.now().minusDays(6));
+        chargerDashboardBI();
+    }
+
+    @FXML
+    private void chargerPeriode30j() {
+        if (biDateFinPicker != null) biDateFinPicker.setValue(LocalDate.now());
+        if (biDateDebutPicker != null) biDateDebutPicker.setValue(LocalDate.now().minusDays(29));
+        chargerDashboardBI();
+    }
+
+    @FXML
+    private void chargerPeriode90j() {
+        if (biDateFinPicker != null) biDateFinPicker.setValue(LocalDate.now());
+        if (biDateDebutPicker != null) biDateDebutPicker.setValue(LocalDate.now().minusDays(89));
+        chargerDashboardBI();
+    }
+
+    private void chargerDashboardBI() {
+        try {
+            LocalDate debut = biDateDebutPicker != null ? biDateDebutPicker.getValue() : LocalDate.now().minusDays(6);
+            LocalDate fin = biDateFinPicker != null ? biDateFinPicker.getValue() : LocalDate.now();
+            String ville = biVilleCombo != null ? biVilleCombo.getValue() : "Toutes les villes";
+
+            DashboardBIServiceEvenement.DashboardData data =
+                    dashboardService.chargerDonnees(debut, fin, ville);
+
+            if (biPeriodeLabel != null) biPeriodeLabel.setText("Période : " + data.dateDebut + " → " + data.dateFin);
+
+            if (biPublicationLabel != null) biPublicationLabel.setText(data.publicationMessage);
+            if (biCapaciteLabel != null) biCapaciteLabel.setText(data.capaciteMessage);
+
+            if (biTotalEventsLabel != null) biTotalEventsLabel.setText(String.valueOf(data.totalEvenements));
+            if (biPubliesLabel != null) biPubliesLabel.setText(String.valueOf(data.publies));
+            if (biCapaciteTotaleLabel != null) biCapaciteTotaleLabel.setText(String.valueOf(data.capaciteTotale));
+            if (biTauxPublicationLabel != null) biTauxPublicationLabel.setText(String.format(Locale.US, "%.1f%%", data.tauxPublication));
+
+            if (biBrouillonsLabel != null) biBrouillonsLabel.setText(String.valueOf(data.brouillons));
+            if (biAnnulesLabel != null) biAnnulesLabel.setText(String.valueOf(data.annules));
+            if (biAVenirLabel != null) biAVenirLabel.setText(String.valueOf(data.evenementsAVenir));
+            if (biPeriodeAnalyseeLabel != null) biPeriodeAnalyseeLabel.setText(String.valueOf(data.periodeAnalysee));
+
+            remplirLineChartBI(data);
+            remplirPieChartBI(data);
+            remplirTypeChartBI(data);
+            remplirVilleChartBI(data);
+
+            if (topEvenementsTable != null) {
+                topEvenementsTable.setItems(FXCollections.observableArrayList(data.topEvenements));
+            }
+
+            remplirRecommandationsBI(data);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void initTopEvenementsTable() {
+        if (topEvenementsTable == null) return;
+
+        if (topTitreCol != null) {
+            topTitreCol.setCellValueFactory(cell -> new SimpleStringProperty(safeValue(cell.getValue().getTitre_event())));
+        }
+        if (topTypeCol != null) {
+            topTypeCol.setCellValueFactory(cell -> new SimpleStringProperty(safeValue(cell.getValue().getType_event())));
+        }
+        if (topVilleCol != null) {
+            topVilleCol.setCellValueFactory(cell -> new SimpleStringProperty(safeValue(cell.getValue().getVille_event())));
+        }
+        if (topCapaciteCol != null) {
+            topCapaciteCol.setCellValueFactory(cell -> Bindings.createIntegerBinding(
+                    () -> cell.getValue().getNb_participants_max_event()
+            ));
+        }
+        if (topStatutCol != null) {
+            topStatutCol.setCellValueFactory(cell -> new SimpleStringProperty(safeValue(cell.getValue().getStatut_event())));
+        }
+    }
+
+    private void remplirLineChartBI(DashboardBIServiceEvenement.DashboardData data) {
+        if (eventsLineChart == null) return;
+
+        eventsLineChart.getData().clear();
+
+        XYChart.Series<String, Number> serieEvents = new XYChart.Series<>();
+        serieEvents.setName("Événements");
+
+        XYChart.Series<String, Number> serieCapacite = new XYChart.Series<>();
+        serieCapacite.setName("Capacité");
+
+        for (var entry : data.eventsParJour.entrySet()) {
+            serieEvents.getData().add(new XYChart.Data<>(entry.getKey().toString(), entry.getValue()));
+        }
+
+        for (var entry : data.capaciteParJour.entrySet()) {
+            serieCapacite.getData().add(new XYChart.Data<>(entry.getKey().toString(), entry.getValue()));
+        }
+
+        eventsLineChart.getData().addAll(serieEvents, serieCapacite);
+    }
+
+    private void remplirPieChartBI(DashboardBIServiceEvenement.DashboardData data) {
+        if (statutPieChart == null) return;
+
+        statutPieChart.getData().clear();
+
+        for (var entry : data.repartitionStatuts.entrySet()) {
+            statutPieChart.getData().add(new PieChart.Data(entry.getKey(), entry.getValue()));
+        }
+    }
+
+    private void remplirTypeChartBI(DashboardBIServiceEvenement.DashboardData data) {
+        if (typeBarChart == null) return;
+
+        typeBarChart.getData().clear();
+
+        XYChart.Series<String, Number> serie = new XYChart.Series<>();
+        serie.setName("Types");
+
+        for (var entry : data.parType.entrySet()) {
+            serie.getData().add(new XYChart.Data<>(entry.getKey(), entry.getValue()));
+        }
+
+        typeBarChart.getData().add(serie);
+    }
+
+    private void remplirVilleChartBI(DashboardBIServiceEvenement.DashboardData data) {
+        if (villeBarChart == null) return;
+
+        villeBarChart.getData().clear();
+
+        XYChart.Series<String, Number> serie = new XYChart.Series<>();
+        serie.setName("Villes");
+
+        for (var entry : data.parVille.entrySet()) {
+            serie.getData().add(new XYChart.Data<>(entry.getKey(), entry.getValue()));
+        }
+
+        villeBarChart.getData().add(serie);
+    }
+
+    private void remplirRecommandationsBI(DashboardBIServiceEvenement.DashboardData data) {
+        if (recommandationsContainer == null) return;
+
+        recommandationsContainer.getChildren().clear();
+
+        for (String rec : data.recommandations) {
+            Label lbl = new Label("💡 " + rec);
+            lbl.getStyleClass().add("recommendation-chip");
+            recommandationsContainer.getChildren().add(lbl);
+        }
+    }
+
+    @FXML
+    private void handleExportPDF() {
+        try {
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setTitle("Enregistrer le rapport PDF");
+            fileChooser.getExtensionFilters().add(
+                    new FileChooser.ExtensionFilter("Fichier PDF", "*.pdf")
+            );
+            fileChooser.setInitialFileName("rapport_evenements.pdf");
+
+            Stage stage = resolveCurrentStage();
+            File file = fileChooser.showSaveDialog(stage);
+
+            if (file == null) return;
+
+            List<Evenement> evenements = evenementService.recuperer();
+            pdfService.genererRapportEvenements(evenements, file.getAbsolutePath());
+
+            showAlert(Alert.AlertType.INFORMATION, "Succès", "Rapport PDF généré avec succès !");
+        } catch (Exception e) {
+            e.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Erreur", "Impossible de générer le PDF : " + e.getMessage());
+        }
+    }
 
     private String safeValue(String value) {
         return value == null ? "" : value;

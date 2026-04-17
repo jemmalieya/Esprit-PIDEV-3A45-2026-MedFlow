@@ -65,7 +65,7 @@ import java.util.Set;
 
 public class ConsultationDocteur {
 
-    private static final int SESSION_DOCTOR_ID = 18;
+    private static final int SESSION_DOCTOR_ID = 143;
     private final RendezVousService rendezVousService = new RendezVousService();
     private final FicheMedicaleService ficheMedicaleService = new FicheMedicaleService();
     private final PrescriptionService prescriptionService = new PrescriptionService();
@@ -120,6 +120,18 @@ public class ConsultationDocteur {
     private TextArea resultatsExamensField;
 
     @FXML
+    private Label diagnosticValidationLabel;
+
+    @FXML
+    private Label observationsValidationLabel;
+
+    @FXML
+    private Label resultatsExamensValidationLabel;
+
+    @FXML
+    private Label prescriptionValidationLabel;
+
+    @FXML
     private VBox prescriptionRowsContainer;
 
     @FXML
@@ -171,6 +183,8 @@ public class ConsultationDocteur {
     @FXML
     private TextArea detailDiagnosticEditArea;
     @FXML
+    private Label detailDiagnosticValidationLabel;
+    @FXML
     private HBox detailDiagnosticBox;
     @FXML
     private Label detailObservationsTitleLabel;
@@ -178,6 +192,8 @@ public class ConsultationDocteur {
     private Label detailObservationsLabel;
     @FXML
     private TextArea detailObservationsEditArea;
+    @FXML
+    private Label detailObservationsValidationLabel;
     @FXML
     private HBox detailObservationsBox;
     @FXML
@@ -187,6 +203,8 @@ public class ConsultationDocteur {
     @FXML
     private TextArea detailResultatsEditArea;
     @FXML
+    private Label detailResultatsValidationLabel;
+    @FXML
     private HBox detailResultatsBox;
     @FXML
     private Label detailDureeTitleLabel;
@@ -194,6 +212,8 @@ public class ConsultationDocteur {
     private Label detailDureeLabel;
     @FXML
     private TextField detailDureeEditField;
+    @FXML
+    private Label detailDureeValidationLabel;
     @FXML
     private HBox detailDureeBox;
     @FXML
@@ -301,6 +321,52 @@ public class ConsultationDocteur {
             doctorField1.setText("12345");
         }
 
+        // Fiche Medicale form listeners
+        if (diagnosticField != null) {
+            diagnosticField.textProperty().addListener((obs, oldValue, newValue) -> validateDiagnosticField());
+        }
+
+        if (observationsField != null) {
+            observationsField.textProperty().addListener((obs, oldValue, newValue) -> validateObservationsField());
+        }
+
+        if (resultatsExamensField != null) {
+            resultatsExamensField.textProperty().addListener((obs, oldValue, newValue) -> validateResultatsExamensField());
+        }
+
+        // Detail panel fiche edit listeners
+        if (detailDiagnosticEditArea != null) {
+            detailDiagnosticEditArea.textProperty().addListener((obs, oldValue, newValue) -> {
+                if (ficheEditMode) {
+                    validateDetailDiagnosticField();
+                }
+            });
+        }
+
+        if (detailObservationsEditArea != null) {
+            detailObservationsEditArea.textProperty().addListener((obs, oldValue, newValue) -> {
+                if (ficheEditMode) {
+                    validateDetailObservationsField();
+                }
+            });
+        }
+
+        if (detailResultatsEditArea != null) {
+            detailResultatsEditArea.textProperty().addListener((obs, oldValue, newValue) -> {
+                if (ficheEditMode) {
+                    validateDetailResultatsField();
+                }
+            });
+        }
+
+        if (detailDureeEditField != null) {
+            detailDureeEditField.textProperty().addListener((obs, oldValue, newValue) -> {
+                if (ficheEditMode) {
+                    validateDetailDureeField();
+                }
+            });
+        }
+
         updateConsultationTimingLabels(null, null, null, "00:00:00");
 
         showPage(1);
@@ -341,6 +407,209 @@ public class ConsultationDocteur {
     @FXML
     private void handleSortSelection(ActionEvent event) {
         applySearchAndSort();
+    }
+
+    // Fiche Medicale validation methods
+    private boolean validateFicheMedicaleForm() {
+        // Validate all fields to display all errors at once.
+        boolean diagnosticValid = validateDiagnosticField();
+        boolean observationsValid = validateObservationsField();
+        boolean resultatsValid = validateResultatsExamensField();
+        return diagnosticValid && observationsValid && resultatsValid;
+    }
+
+    private String getDiagnosticErrorMessage() {
+        if (diagnosticField == null) {
+            return null;
+        }
+
+        String diagnostic = diagnosticField.getText().trim();
+        if (diagnostic.isEmpty()) {
+            return "Diagnostic is required.";
+        }
+        if (diagnostic.length() < 3) {
+            return "Diagnostic must be at least 3 characters.";
+        }
+        if (diagnostic.length() > 200) {
+            return "Diagnostic must not exceed 200 characters.";
+        }
+        return null;
+    }
+
+    private String getObservationsErrorMessage() {
+        if (observationsField == null) {
+            return null;
+        }
+
+        String observations = observationsField.getText().trim();
+        if (observations.isEmpty()) {
+            return "Observations are required.";
+        }
+        if (observations.length() < 5) {
+            return "Observations must be at least 5 characters.";
+        }
+        if (observations.length() > 1000) {
+            return "Observations must not exceed 1000 characters.";
+        }
+        return null;
+    }
+
+    private String getResultatsExamensErrorMessage() {
+        if (resultatsExamensField == null) {
+            return null;
+        }
+
+        String resultats = resultatsExamensField.getText().trim();
+        if (resultats.isEmpty()) {
+            return "Exam results are required.";
+        }
+        if (resultats.length() < 5) {
+            return "Exam results must be at least 5 characters.";
+        }
+        if (resultats.length() > 1000) {
+            return "Exam results must not exceed 1000 characters.";
+        }
+        return null;
+    }
+
+    private String buildFicheValidationSummary() {
+        List<String> errors = new ArrayList<>();
+
+        String diagnosticError = getDiagnosticErrorMessage();
+        if (diagnosticError != null) {
+            errors.add("- Diagnostic: " + diagnosticError);
+        }
+
+        String observationsError = getObservationsErrorMessage();
+        if (observationsError != null) {
+            errors.add("- Observations: " + observationsError);
+        }
+
+        String resultatsError = getResultatsExamensErrorMessage();
+        if (resultatsError != null) {
+            errors.add("- Exam results: " + resultatsError);
+        }
+
+        if (errors.isEmpty()) {
+            return "";
+        }
+        return "Please fix the following fields:\n" + String.join("\n", errors);
+    }
+
+    private boolean validateDiagnosticField() {
+        String errorMessage = getDiagnosticErrorMessage();
+        if (errorMessage != null) {
+            applyValidationState(diagnosticField, diagnosticValidationLabel, false, errorMessage);
+            return false;
+        }
+        applyValidationState(diagnosticField, diagnosticValidationLabel, true, "Diagnostic is valid.");
+        return true;
+    }
+
+    private boolean validateObservationsField() {
+        String errorMessage = getObservationsErrorMessage();
+        if (errorMessage != null) {
+            applyValidationState(observationsField, observationsValidationLabel, false, errorMessage);
+            return false;
+        }
+        applyValidationState(observationsField, observationsValidationLabel, true, "Observations are valid.");
+        return true;
+    }
+
+    private boolean validateResultatsExamensField() {
+        String errorMessage = getResultatsExamensErrorMessage();
+        if (errorMessage != null) {
+            applyValidationState(resultatsExamensField, resultatsExamensValidationLabel, false, errorMessage);
+            return false;
+        }
+        applyValidationState(resultatsExamensField, resultatsExamensValidationLabel, true, "Exam results are valid.");
+        return true;
+    }
+
+    private void applyValidationState(javafx.scene.control.Control field, Label messageLabel, boolean valid, String message) {
+        if (field != null) {
+            field.getStyleClass().removeAll("validation-success", "validation-error");
+            field.getStyleClass().add(valid ? "validation-success" : "validation-error");
+        }
+
+        if (messageLabel != null) {
+            messageLabel.setText(message);
+            messageLabel.getStyleClass().removeAll("validation-message-error", "validation-message-success");
+            messageLabel.getStyleClass().add(valid ? "validation-message-success" : "validation-message-error");
+        }
+    }
+
+    private void validatePrescriptions() {
+        if (prescriptionValidationLabel == null) {
+            return;
+        }
+
+        if (prescriptionRows == null || prescriptionRows.isEmpty()) {
+            prescriptionValidationLabel.setText("No prescriptions added (optional).");
+            prescriptionValidationLabel.getStyleClass().removeAll("validation-message-error", "validation-message-success");
+            prescriptionValidationLabel.getStyleClass().add("validation-message-success");
+            return;
+        }
+
+        String firstRowError = findFirstPrescriptionRowError();
+        if (firstRowError == null) {
+            prescriptionValidationLabel.setText("All " + prescriptionRows.size() + " prescription(s) are valid.");
+            prescriptionValidationLabel.getStyleClass().removeAll("validation-message-error", "validation-message-success");
+            prescriptionValidationLabel.getStyleClass().add("validation-message-success");
+        } else {
+            prescriptionValidationLabel.setText(firstRowError);
+            prescriptionValidationLabel.getStyleClass().removeAll("validation-message-error", "validation-message-success");
+            prescriptionValidationLabel.getStyleClass().add("validation-message-error");
+        }
+    }
+
+    private String findFirstPrescriptionRowError() {
+        if (prescriptionRows == null) {
+            return null;
+        }
+
+        for (int i = 0; i < prescriptionRows.size(); i++) {
+            PrescriptionRowControls controls = prescriptionRows.get(i);
+            int rowNumber = i + 1;
+
+            String nom = controls.nomField.getText().trim();
+            String dose = controls.doseField.getText().trim();
+            String frequence = controls.frequenceField.getText().trim();
+            String duree = controls.dureeField.getText().trim();
+            String instructions = controls.instructionsField.getText().trim();
+
+            boolean allEmpty = nom.isEmpty() && dose.isEmpty() && frequence.isEmpty() && duree.isEmpty() && instructions.isEmpty();
+            if (allEmpty) {
+                continue;
+            }
+
+            if (nom.isEmpty()) {
+                return "Prescription row #" + rowNumber + ": medication name is required.";
+            }
+            if (dose.isEmpty()) {
+                return "Prescription row #" + rowNumber + ": dose is required.";
+            }
+            if (frequence.isEmpty()) {
+                return "Prescription row #" + rowNumber + ": frequency is required.";
+            }
+            if (duree.isEmpty()) {
+                return "Prescription row #" + rowNumber + ": duration is required.";
+            }
+            if (instructions.isEmpty()) {
+                return "Prescription row #" + rowNumber + ": instructions are required.";
+            }
+
+            try {
+                int days = Integer.parseInt(duree);
+                if (days <= 0) {
+                    return "Prescription row #" + rowNumber + ": duration must be greater than 0.";
+                }
+            } catch (NumberFormatException ex) {
+                return "Prescription row #" + rowNumber + ": duration must be a number.";
+            }
+        }
+
+        return null;
     }
 
     // Display error alert
@@ -517,13 +786,27 @@ public class ConsultationDocteur {
 
         PrescriptionRowControls controls = new PrescriptionRowControls(row, nomField, doseField, frequenceField, dureeField, instructionsField);
 
+        // Add listeners to validate prescriptions when user types
+        javafx.util.Callback<javafx.beans.value.ObservableValue<String>, Void> updateValidator = obs -> {
+            validatePrescriptions();
+            return null;
+        };
+
+        nomField.textProperty().addListener((obs, old, newVal) -> validatePrescriptions());
+        doseField.textProperty().addListener((obs, old, newVal) -> validatePrescriptions());
+        frequenceField.textProperty().addListener((obs, old, newVal) -> validatePrescriptions());
+        dureeField.textProperty().addListener((obs, old, newVal) -> validatePrescriptions());
+        instructionsField.textProperty().addListener((obs, old, newVal) -> validatePrescriptions());
+
         deleteButton.setOnAction(e -> {
             prescriptionRows.remove(controls);
             prescriptionRowsContainer.getChildren().remove(row);
+            validatePrescriptions();
         });
 
         prescriptionRows.add(controls);
         prescriptionRowsContainer.getChildren().add(row);
+        validatePrescriptions();
     }
 
     @SuppressWarnings("unchecked")
@@ -1026,14 +1309,15 @@ public class ConsultationDocteur {
             return;
         }
 
+        // Run live validation
+        if (!validateFicheMedicaleForm()) {
+            showError("Validation error", buildFicheValidationSummary());
+            return;
+        }
+
         String diagnostic = diagnosticField == null ? "" : diagnosticField.getText().trim();
         String observations = observationsField == null ? "" : observationsField.getText().trim();
         String resultatsExamens = resultatsExamensField == null ? "" : resultatsExamensField.getText().trim();
-
-        if (diagnostic.isEmpty() || observations.isEmpty() || resultatsExamens.isEmpty()) {
-            showError("Champs obligatoires", "Diagnostic, observations et resultats examens sont obligatoires.");
-            return;
-        }
 
         Timestamp endTime = new Timestamp(System.currentTimeMillis());
         int durationMinutes = calculateDurationMinutes(consultationStartTime, endTime);
@@ -1507,6 +1791,7 @@ public class ConsultationDocteur {
         if (detailDureeEditField != null) detailDureeEditField.setText(currentDetailFiche.getDuree_minutes() == null ? "" : String.valueOf(currentDetailFiche.getDuree_minutes()));
 
         setFicheEditMode(true);
+        validateDetailFicheEditForm();
     }
 
     @FXML
@@ -1524,25 +1809,14 @@ public class ConsultationDocteur {
         }
 
         try {
-            String diagnostic = requiredText(detailDiagnosticEditArea, "Le diagnostic est obligatoire.");
-            String observations = requiredText(detailObservationsEditArea, "Les observations sont obligatoires.");
-            String resultats = requiredText(detailResultatsEditArea, "Les resultats d'examens sont obligatoires.");
-
-            String dureeRaw = detailDureeEditField == null ? "" : detailDureeEditField.getText().trim();
-            if (dureeRaw.isEmpty()) {
-                throw new IllegalArgumentException("La duree de consultation est obligatoire.");
+            if (!validateDetailFicheEditForm()) {
+                throw new IllegalArgumentException(buildDetailFicheValidationSummary());
             }
 
-            int duree;
-            try {
-                duree = Integer.parseInt(dureeRaw);
-            } catch (NumberFormatException ex) {
-                throw new IllegalArgumentException("La duree doit etre un nombre entier.");
-            }
-
-            if (duree <= 0) {
-                throw new IllegalArgumentException("La duree doit etre superieure a 0.");
-            }
+            String diagnostic = detailDiagnosticEditArea == null ? "" : detailDiagnosticEditArea.getText().trim();
+            String observations = detailObservationsEditArea == null ? "" : detailObservationsEditArea.getText().trim();
+            String resultats = detailResultatsEditArea == null ? "" : detailResultatsEditArea.getText().trim();
+            int duree = Integer.parseInt(detailDureeEditField.getText().trim());
 
             currentDetailFiche.setDiagnostic(diagnostic);
             currentDetailFiche.setObservations(observations);
@@ -1684,6 +1958,14 @@ public class ConsultationDocteur {
         toggleEditableArea(detailObservationsLabel, detailObservationsEditArea, enabled);
         toggleEditableArea(detailResultatsLabel, detailResultatsEditArea, enabled);
         toggleEditableField(detailDureeLabel, detailDureeEditField, enabled);
+        toggleValidationLabel(detailDiagnosticValidationLabel, enabled);
+        toggleValidationLabel(detailObservationsValidationLabel, enabled);
+        toggleValidationLabel(detailResultatsValidationLabel, enabled);
+        toggleValidationLabel(detailDureeValidationLabel, enabled);
+
+        if (!enabled) {
+            clearDetailFicheValidationState();
+        }
 
         if (ficheModifyButton != null) {
             ficheModifyButton.setVisible(!enabled);
@@ -1747,6 +2029,182 @@ public class ConsultationDocteur {
             area.setVisible(enabled);
             area.setManaged(enabled);
         }
+    }
+
+    private void toggleValidationLabel(Label label, boolean enabled) {
+        if (label != null) {
+            label.setVisible(enabled);
+            label.setManaged(enabled);
+        }
+    }
+
+    private void clearDetailFicheValidationState() {
+        clearValidationState(detailDiagnosticEditArea, detailDiagnosticValidationLabel);
+        clearValidationState(detailObservationsEditArea, detailObservationsValidationLabel);
+        clearValidationState(detailResultatsEditArea, detailResultatsValidationLabel);
+        clearValidationState(detailDureeEditField, detailDureeValidationLabel);
+    }
+
+    private void clearValidationState(javafx.scene.control.Control field, Label messageLabel) {
+        if (field != null) {
+            field.getStyleClass().removeAll("validation-success", "validation-error");
+        }
+        if (messageLabel != null) {
+            messageLabel.setText("");
+            messageLabel.getStyleClass().removeAll("validation-message-error", "validation-message-success");
+        }
+    }
+
+    private boolean validateDetailFicheEditForm() {
+        boolean diagnosticValid = validateDetailDiagnosticField();
+        boolean observationsValid = validateDetailObservationsField();
+        boolean resultatsValid = validateDetailResultatsField();
+        boolean dureeValid = validateDetailDureeField();
+        return diagnosticValid && observationsValid && resultatsValid && dureeValid;
+    }
+
+    private String buildDetailFicheValidationSummary() {
+        List<String> errors = new ArrayList<>();
+
+        String diagnosticError = getDetailDiagnosticErrorMessage();
+        if (diagnosticError != null) {
+            errors.add("- Diagnostic: " + diagnosticError);
+        }
+
+        String observationsError = getDetailObservationsErrorMessage();
+        if (observationsError != null) {
+            errors.add("- Observations: " + observationsError);
+        }
+
+        String resultatsError = getDetailResultatsErrorMessage();
+        if (resultatsError != null) {
+            errors.add("- Resultats d'examens: " + resultatsError);
+        }
+
+        String dureeError = getDetailDureeErrorMessage();
+        if (dureeError != null) {
+            errors.add("- Duree: " + dureeError);
+        }
+
+        if (errors.isEmpty()) {
+            return "";
+        }
+        return "Veuillez corriger les champs suivants:\n" + String.join("\n", errors);
+    }
+
+    private boolean validateDetailDiagnosticField() {
+        String errorMessage = getDetailDiagnosticErrorMessage();
+        if (errorMessage != null) {
+            applyValidationState(detailDiagnosticEditArea, detailDiagnosticValidationLabel, false, errorMessage);
+            return false;
+        }
+        applyValidationState(detailDiagnosticEditArea, detailDiagnosticValidationLabel, true, "Diagnostic valide.");
+        return true;
+    }
+
+    private boolean validateDetailObservationsField() {
+        String errorMessage = getDetailObservationsErrorMessage();
+        if (errorMessage != null) {
+            applyValidationState(detailObservationsEditArea, detailObservationsValidationLabel, false, errorMessage);
+            return false;
+        }
+        applyValidationState(detailObservationsEditArea, detailObservationsValidationLabel, true, "Observations valides.");
+        return true;
+    }
+
+    private boolean validateDetailResultatsField() {
+        String errorMessage = getDetailResultatsErrorMessage();
+        if (errorMessage != null) {
+            applyValidationState(detailResultatsEditArea, detailResultatsValidationLabel, false, errorMessage);
+            return false;
+        }
+        applyValidationState(detailResultatsEditArea, detailResultatsValidationLabel, true, "Resultats valides.");
+        return true;
+    }
+
+    private boolean validateDetailDureeField() {
+        String errorMessage = getDetailDureeErrorMessage();
+        if (errorMessage != null) {
+            applyValidationState(detailDureeEditField, detailDureeValidationLabel, false, errorMessage);
+            return false;
+        }
+        applyValidationState(detailDureeEditField, detailDureeValidationLabel, true, "Duree valide.");
+        return true;
+    }
+
+    private String getDetailDiagnosticErrorMessage() {
+        if (detailDiagnosticEditArea == null) {
+            return null;
+        }
+        String diagnostic = detailDiagnosticEditArea.getText().trim();
+        if (diagnostic.isEmpty()) {
+            return "Le diagnostic est obligatoire.";
+        }
+        if (diagnostic.length() < 3) {
+            return "Le diagnostic doit contenir au moins 3 caracteres.";
+        }
+        if (diagnostic.length() > 200) {
+            return "Le diagnostic ne doit pas depasser 200 caracteres.";
+        }
+        return null;
+    }
+
+    private String getDetailObservationsErrorMessage() {
+        if (detailObservationsEditArea == null) {
+            return null;
+        }
+        String observations = detailObservationsEditArea.getText().trim();
+        if (observations.isEmpty()) {
+            return "Les observations sont obligatoires.";
+        }
+        if (observations.length() < 5) {
+            return "Les observations doivent contenir au moins 5 caracteres.";
+        }
+        if (observations.length() > 1000) {
+            return "Les observations ne doivent pas depasser 1000 caracteres.";
+        }
+        return null;
+    }
+
+    private String getDetailResultatsErrorMessage() {
+        if (detailResultatsEditArea == null) {
+            return null;
+        }
+        String resultats = detailResultatsEditArea.getText().trim();
+        if (resultats.isEmpty()) {
+            return "Les resultats d'examens sont obligatoires.";
+        }
+        if (resultats.length() < 5) {
+            return "Les resultats d'examens doivent contenir au moins 5 caracteres.";
+        }
+        if (resultats.length() > 1000) {
+            return "Les resultats d'examens ne doivent pas depasser 1000 caracteres.";
+        }
+        return null;
+    }
+
+    private String getDetailDureeErrorMessage() {
+        if (detailDureeEditField == null) {
+            return null;
+        }
+
+        String dureeRaw = detailDureeEditField.getText().trim();
+        if (dureeRaw.isEmpty()) {
+            return "La duree de consultation est obligatoire.";
+        }
+
+        int duree;
+        try {
+            duree = Integer.parseInt(dureeRaw);
+        } catch (NumberFormatException ex) {
+            return "La duree doit etre un nombre entier.";
+        }
+
+        if (duree <= 0) {
+            return "La duree doit etre superieure a 0.";
+        }
+
+        return null;
     }
 
     private String textOrNull(TextField field) {

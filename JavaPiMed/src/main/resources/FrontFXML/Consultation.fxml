@@ -76,6 +76,7 @@
                                     </ScrollPane>
                                 </VBox>
                             </StackPane>
+                            <Label fx:id="appointmentDateValidationLabel" text="Select a date and time slot from the calendar." wrapText="true" styleClass="validation-message validation-message-error"/>
                         </VBox>
 
                         <!-- RIGHT MINI SUMMARY CARD -->
@@ -87,18 +88,21 @@
                                     <Label text="Patient" styleClass="summary-label"/>
                                  
                                     <TextField fx:id="patientIdField" promptText="Session patient id" editable="false" styleClass="modern-text-field"/>
+                                    <Label fx:id="patientIdValidationLabel" text="" wrapText="true" styleClass="validation-message"/>
 
                                 </VBox>
 
                                 <VBox spacing="4">
                                     <Label text="Doctor" styleClass="summary-label"/>
                                     <TextField fx:id="doctorField1" promptText="Enter doctor/staff id" styleClass="modern-text-field"/>
+                                    <Label fx:id="doctorIdValidationLabel" text="" wrapText="true" styleClass="validation-message"/>
                                    
                                 </VBox>
 
                                 <VBox spacing="4">
                                     <Label text="Mode" styleClass="summary-label"/>
                                     <Label fx:id="selectedModeLabel" text="No mode selected" styleClass="summary-value"/>
+                                    <Label fx:id="modeValidationLabel" text="" wrapText="true" styleClass="validation-message"/>
                                 </VBox>
 
                                 <VBox spacing="4">
@@ -140,7 +144,7 @@
                                 <Label text="Mode" styleClass="field-label"/>
                                 <ComboBox fx:id="modeComboBox" promptText="Select booking mode" styleClass="modern-combo-box" onAction="#handleModeSelection">
                                 </ComboBox>
-                                
+                                <Label fx:id="modeFieldValidationLabel" text="" wrapText="true" styleClass="validation-message"/>
                             </VBox>
 
                             <VBox spacing="8" HBox.hgrow="ALWAYS">
@@ -156,6 +160,7 @@
                                       prefRowCount="5"
                                       wrapText="true"
                                       styleClass="modern-text-area"/>
+                            <Label fx:id="motifValidationLabel" text="" wrapText="true" styleClass="validation-message"/>
                         </VBox>
 
                         <HBox spacing="14" alignment="CENTER_RIGHT">
@@ -200,21 +205,25 @@
                                         <VBox spacing="6">
                                             <Label text="Doctor/Staff ID" styleClass="field-label"/>
                                             <TextField fx:id="modifyStaffIdField" promptText="Enter doctor/staff id" styleClass="modern-text-field"/>
+                                            <Label fx:id="modifyStaffIdValidationLabel" text="" wrapText="true" styleClass="validation-message"/>
                                         </VBox>
 
                                         <VBox spacing="6">
                                             <Label text="Mode" styleClass="field-label"/>
                                             <ComboBox fx:id="modifyModeComboBox" promptText="Select booking mode" styleClass="modern-combo-box"/>
+                                            <Label fx:id="modifyModeValidationLabel" text="" wrapText="true" styleClass="validation-message"/>
                                         </VBox>
 
                                         <VBox spacing="6">
                                             <Label text="Date Time" styleClass="field-label"/>
                                             <TextField fx:id="modifyDateTimeField" promptText="yyyy-MM-dd HH:mm" styleClass="modern-text-field"/>
+                                            <Label fx:id="modifyDateTimeValidationLabel" text="" wrapText="true" styleClass="validation-message"/>
                                         </VBox>
 
                                         <VBox spacing="6">
                                             <Label text="Motif" styleClass="field-label"/>
                                             <TextArea fx:id="modifyMotifArea" promptText="Edit motif..." prefRowCount="4" wrapText="true" styleClass="modern-text-area"/>
+                                            <Label fx:id="modifyMotifValidationLabel" text="" wrapText="true" styleClass="validation-message"/>
                                         </VBox>
 
                                         <HBox spacing="10" alignment="CENTER_RIGHT">

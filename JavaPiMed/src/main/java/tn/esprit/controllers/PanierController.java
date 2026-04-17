@@ -25,6 +25,7 @@ import tn.esprit.entities.Produit;
 import tn.esprit.entities.User;
 import tn.esprit.services.CommandeService;
 import tn.esprit.session.CartSession;
+import tn.esprit.tools.SessionManager;
 
 import java.io.File;
 import java.io.IOException;
@@ -347,8 +348,11 @@ public class PanierController {
             lignes.add(cp);
         }
 
-        User user = new User();
-        user.setId(1);
+        User user = SessionManager.getCurrentUser();
+        if (user == null || user.getId() <= 0) {
+            showFloatingToast("Veuillez vous connecter avant de valider une commande.", "toast-warning", "⚠");
+            return;
+        }
 
         boolean succes = commandeService.validerCommandeDepuisPanier(user, lignes);
 

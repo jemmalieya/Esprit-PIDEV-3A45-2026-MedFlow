@@ -20,6 +20,10 @@ public class PostService {
     // AJOUT
     // =========================
     public boolean ajouter(Post p) {
+        if (existeDeja(p)) {
+            System.out.println("Ajout bloqué : post en double.");
+            return false;
+        }
         String sql = "INSERT INTO post(user_id, titre, contenu, localisation, img_post, hashtags, visibilite, date_creation, est_anonyme, categorie, humeur, nbr_reactions, nbr_commentaires, is_approved, moderation_status, moderation_message, moderation_seen) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
         try {
@@ -106,7 +110,12 @@ public class PostService {
     // =========================
     // MODIFIER
     // =========================
-    public void modifier(Post p) {
+    public boolean modifier(Post p) {
+        if (existeDejaPourModification(p)) {
+            System.out.println("Modification bloquée : post en double.");
+            return false;
+        }
+
         String sql = "UPDATE post SET titre=?, contenu=?, localisation=?, img_post=?, hashtags=?, visibilite=?, date_modification=?, est_anonyme=?, categorie=?, humeur=?, nbr_reactions=?, nbr_commentaires=?, is_approved=?, moderation_status=?, moderation_message=?, moderation_seen=? WHERE id=?";
         try {
             PreparedStatement ps = cn.prepareStatement(sql);
@@ -129,10 +138,16 @@ public class PostService {
             ps.setInt(17, p.getId());
 
             int rows = ps.executeUpdate();
-            if (rows > 0) System.out.println("Modification effectuée pour id=" + p.getId());
-            else System.out.println("Aucune modification (id introuvable)");
+            if (rows > 0) {
+                System.out.println("Modification effectuée pour id=" + p.getId());
+                return true;
+            } else {
+                System.out.println("Aucune modification (id introuvable)");
+                return false;
+            }
         } catch (SQLException e) {
             e.printStackTrace();
+            return false;
         }
     }
 
@@ -202,5 +217,70 @@ public class PostService {
             e.printStackTrace();
         }
         return posts;
+    }
+
+    public boolean existeDeja(Post post) {
+        String sql = "SELECT COUNT(*) FROM post " +
+                "WHERE titre = ? " +
+                "AND contenu = ? " +
+                "AND categorie = ? " +
+                "AND localisation = ? " +
+                "AND img_post = ? " +
+                "AND hashtags = ? " +
+                "AND humeur = ? " +
+                "AND est_anonyme = ?";
+
+        try (PreparedStatement ps = cn.prepareStatement(sql)) {
+            ps.setString(1, post.getTitre());
+            ps.setString(2, post.getContenu());
+            ps.setString(3, post.getCategorie());
+            ps.setString(4, post.getLocalisation());
+            ps.setString(5, post.getImg_post());
+            ps.setString(6, post.getHashtags());
+            ps.setString(7, post.getHumeur());
+            ps.setBoolean(8, post.isEst_anonyme());
+
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+    public boolean existeDejaPourModification(Post post) {
+        String sql = "SELECT COUNT(*) FROM post " +
+                "WHERE titre = ? " +
+                "AND contenu = ? " +
+                "AND categorie = ? " +
+                "AND localisation = ? " +
+                "AND img_post = ? " +
+                "AND hashtags = ? " +
+                "AND humeur = ? " +
+                "AND est_anonyme = ? " +
+                "AND id <> ?";
+
+        try (PreparedStatement ps = cn.prepareStatement(sql)) {
+            ps.setString(1, post.getTitre());
+            ps.setString(2, post.getContenu());
+            ps.setString(3, post.getCategorie());
+            ps.setString(4, post.getLocalisation());
+            ps.setString(5, post.getImg_post());
+            ps.setString(6, post.getHashtags());
+            ps.setString(7, post.getHumeur());
+            ps.setBoolean(8, post.isEst_anonyme());
+            ps.setInt(9, post.getId());
+
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return false;
     }
 }

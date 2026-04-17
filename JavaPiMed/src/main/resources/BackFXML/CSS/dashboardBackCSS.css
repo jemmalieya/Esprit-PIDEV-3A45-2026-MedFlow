@@ -367,3 +367,31 @@
     -fx-background-color: #e9f0ff;
     -fx-text-fill: #2a5ed6;
 }
+
+/* Validation styles */
+.validation-success.fiche-input,
+.validation-success.fiche-textarea {
+    -fx-border-color: #22c55e;
+    -fx-background-color: #f2fff6;
+}
+
+.validation-error.fiche-input,
+.validation-error.fiche-textarea {
+    -fx-border-color: #ef4444;
+    -fx-background-color: #fff5f5;
+}
+
+.validation-message {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 2;
+    -fx-wrap-text: true;
+}
+
+.validation-message-success {
+    -fx-text-fill: #16a34a;
+}
+
+.validation-message-error {
+    -fx-text-fill: #dc2626;
+}

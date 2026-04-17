@@ -15,6 +15,11 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.Node;
 import javafx.stage.Stage;
+import java.time.LocalDateTime;
+
+import tn.esprit.tools.SessionManager;
+import tn.esprit.entities.User;
+import java.time.LocalDateTime;
 
 public class ReclamationController {
 
@@ -110,16 +115,27 @@ public class ReclamationController {
 
                 } else {
                     // 🔥 AJOUT
+                    User currentUser = SessionManager.getCurrentUser();
+
+                    if (currentUser == null) {
+                        Platform.runLater(() ->
+                                showMessage("❌ Aucun utilisateur connecté. Veuillez vous reconnecter.", "red")
+                        );
+                        return;
+                    }
+
                     Reclamation r = new Reclamation();
+                    r.setUser(currentUser);
                     r.setReference_reclamation(generateRef());
                     r.setContenu(tfContenu.getText());
                     r.setDescription(taDescription.getText());
                     r.setType(cbType.getValue());
                     r.setPriorite(cbPriorite.getValue());
                     r.setStatut_reclamation("En attente");
+                    r.setDate_creation_r(LocalDateTime.now());
+                    r.setNotification_envoyee(false);
 
                     reclamationService.ajouter(r);
-
                     Platform.runLater(() -> {
                         showMessage("✅ Réclamation ajoutée", "green");
                         clearFields();

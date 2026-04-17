@@ -19,7 +19,7 @@
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="tn.esprit.controllers.EvenementController"
             prefWidth="1650.0" prefHeight="960.0"
-            stylesheets="@evenement-dashboard.css"
+            stylesheets="@CSS/evenement-dashboard.css"
             styleClass="root-pane">
 
     <left>
@@ -155,10 +155,12 @@
                         <children>
                             <Button text="⊕ Nouveau Événement" onAction="#onNewEvent" styleClass="yellow-btn"/>
                             <Button text="📄 Voir les Formulaires" styleClass="white-btn"/>
-
                             <Button text="📄 Export PDF"
                                     onAction="#handleExportPDF"
-                                    styleClass="primary-button"/>
+                                    styleClass="yellow-btn"/>
+                            <Button text="⇢ Espace front"
+                                    onAction="#onGoToFront"
+                                    styleClass="white-btn"/>
                         </children>
                     </HBox>
                 </children>
@@ -272,12 +274,8 @@
                     </TableView>
                 </children>
             </VBox>
-            
-            <HBox alignment="BOTTOM_RIGHT">
-                <children>
-                    <Button text="⇢ Espace front" onAction="#onGoToFront" styleClass="white-btn"/>
-                </children>
-            </HBox>
+
+
         </VBox>
     </center>
 </BorderPane>

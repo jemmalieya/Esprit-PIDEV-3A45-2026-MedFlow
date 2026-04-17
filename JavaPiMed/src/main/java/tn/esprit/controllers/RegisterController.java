@@ -346,39 +346,51 @@ public class RegisterController {
 
     private void validateNom() {
         String value = nomField.getText() == null ? "" : nomField.getText().trim();
-        if (!value.isEmpty()) {
+        if (value.isEmpty()) {
+            nomValid = false;
+            markError(nomField);
+            showFieldError(nomErrorLabel, "Le nom est obligatoire.");
+        } else if (value.matches("^[A-Za-zÀ-ÖØ-öø-ÿ]+(?:[\\s'-][A-Za-zÀ-ÖØ-öø-ÿ]+)*$")) {
             nomValid = true;
             markValid(nomField);
             showFieldError(nomErrorLabel, "");
         } else {
             nomValid = false;
             markError(nomField);
-            showFieldError(nomErrorLabel, "Le nom est obligatoire.");
+            showFieldError(nomErrorLabel, "Le nom doit contenir uniquement des lettres.");
         }
     }
 
     private void validatePrenom() {
         String value = prenomField.getText() == null ? "" : prenomField.getText().trim();
-        if (!value.isEmpty()) {
+        if (value.isEmpty()) {
+            prenomValid = false;
+            markError(prenomField);
+            showFieldError(prenomErrorLabel, "Le prénom est obligatoire.");
+        } else if (value.matches("^[A-Za-zÀ-ÖØ-öø-ÿ]+(?:[\\s'-][A-Za-zÀ-ÖØ-öø-ÿ]+)*$")) {
             prenomValid = true;
             markValid(prenomField);
             showFieldError(prenomErrorLabel, "");
         } else {
             prenomValid = false;
             markError(prenomField);
-            showFieldError(prenomErrorLabel, "Le prénom est obligatoire.");
+            showFieldError(prenomErrorLabel, "Le prénom doit contenir uniquement des lettres.");
         }
     }
 
     private void validateDateNaissance() {
-        if (dateNaissancePicker.getValue() != null) {
+        if (dateNaissancePicker.getValue() != null && !dateNaissancePicker.getValue().isAfter(java.time.LocalDate.now())) {
             dateNaissanceValid = true;
             markValid(dateNaissancePicker);
             showFieldError(dateNaissanceErrorLabel, "");
         } else {
             dateNaissanceValid = false;
             markError(dateNaissancePicker);
-            showFieldError(dateNaissanceErrorLabel, "La date de naissance est obligatoire.");
+            if (dateNaissancePicker.getValue() == null) {
+                showFieldError(dateNaissanceErrorLabel, "La date de naissance est obligatoire.");
+            } else {
+                showFieldError(dateNaissanceErrorLabel, "La date de naissance ne peut pas etre dans le futur.");
+            }
         }
     }
 

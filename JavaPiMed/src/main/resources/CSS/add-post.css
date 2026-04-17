@@ -139,3 +139,7 @@
     -fx-text-fill: #356376;
     -fx-font-size: 14px;
 }
+.error-field {
+    -fx-border-color: red;
+    -fx-border-width: 2;
+}

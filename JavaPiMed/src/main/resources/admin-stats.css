@@ -89,6 +89,8 @@
 .donut-chart.default-color3.chart-pie { -fx-pie-color: #f35d5d; }
 .donut-chart.default-color4.chart-pie { -fx-pie-color: #8c6af7; }
 
-.chart-bar {
-    -fx-bar-fill: linear-gradient(to top, #4c83f2, #25aeca);
-}
+.default-color0.chart-bar { -fx-bar-fill: #4c83f2; }
+.default-color1.chart-bar { -fx-bar-fill: #25aeca; }
+.default-color2.chart-bar { -fx-bar-fill: #35c28f; }
+.default-color3.chart-bar { -fx-bar-fill: #f2b321; }
+.default-color4.chart-bar { -fx-bar-fill: #8c6af7; }

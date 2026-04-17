@@ -42,6 +42,7 @@ import javafx.util.Duration;
 import tn.esprit.entities.Produit;
 import tn.esprit.services.ProduitService;
 import tn.esprit.session.CartSession;
+import tn.esprit.tools.SessionManager;
 
 import java.io.File;
 import java.io.IOException;
@@ -1033,6 +1034,66 @@ public class ProduitController {
                     "Impossible d'ouvrir la page des commandes : " + e.getMessage());
         }
     }
+
+    @FXML
+    private void onLogout(ActionEvent event) {
+        try {
+            SessionManager.clear();
+
+            URL url = getClass().getResource("/FrontFXML/Login.fxml");
+            if (url == null) {
+                throw new IOException("Fichier introuvable : /FrontFXML/Login.fxml");
+            }
+
+            Parent root = FXMLLoader.load(url);
+            Stage stage = resolveCurrentStage(event);
+            if (stage == null) return;
+
+            stage.setScene(new Scene(root, 1400, 820));
+            stage.setTitle("Connexion");
+            stage.setMaximized(true);
+            stage.show();
+        } catch (Exception e) {
+            showAlert(Alert.AlertType.ERROR, "Erreur Déconnexion",
+                    "Impossible de se déconnecter : " + e.getMessage());
+        }
+    }
+
+    @FXML
+    private void onGoToFront(ActionEvent event) {
+        try {
+            URL url = getClass().getResource("/FrontFXML/Accueil.fxml");
+            if (url == null) {
+                throw new IOException("Fichier introuvable : /FrontFXML/Accueil.fxml");
+            }
+
+            Parent root = FXMLLoader.load(url);
+            Stage stage = resolveCurrentStage(event);
+            if (stage == null) return;
+
+            stage.setScene(new Scene(root, 1400, 820));
+            stage.setTitle("Accueil");
+            stage.setMaximized(true);
+            stage.show();
+        } catch (Exception e) {
+            showAlert(Alert.AlertType.ERROR, "Erreur Navigation",
+                    "Impossible d'ouvrir l'espace front : " + e.getMessage());
+        }
+    }
+
+    private Stage resolveCurrentStage(ActionEvent event) {
+        if (event != null && event.getSource() instanceof Node source && source.getScene() != null) {
+            return (Stage) source.getScene().getWindow();
+        }
+        if (produitsListContainer != null && produitsListContainer.getScene() != null) {
+            return (Stage) produitsListContainer.getScene().getWindow();
+        }
+        if (productGrid != null && productGrid.getScene() != null) {
+            return (Stage) productGrid.getScene().getWindow();
+        }
+        return null;
+    }
+
     @FXML
     private void onVoirTousProduits() {
         retourProduitSimple();
@@ -1243,7 +1304,7 @@ public class ProduitController {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Choisir une image");
         fileChooser.getExtensionFilters().addAll(
-                new FileChooser.ExtensionFilter("Images", "*.jpg", "*.png", "*.jpeg", "*.webp")
+                new FileChooser.ExtensionFilter("Images (*.jpg, *.png, *.jpeg, *.webp)", "*.jpg", "*.png", "*.jpeg", "*.webp")
         );
 
         File fichier = fileChooser.showOpenDialog(btnUploadProduit.getScene().getWindow());

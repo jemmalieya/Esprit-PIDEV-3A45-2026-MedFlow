@@ -31,6 +31,7 @@ import tn.esprit.entities.User;
 import tn.esprit.services.CommandePDFService;
 import tn.esprit.services.CommandeService;
 import tn.esprit.session.CartSession;
+import tn.esprit.tools.SessionManager;
 
 import java.io.File;
 import java.io.IOException;
@@ -143,7 +144,7 @@ public class CommandeController {
     private void loadCommandesFront() {
         if (commandeContainer == null) return;
 
-        List<Commande> commandes = service.recuperer();
+        List<Commande> commandes = getCommandesUtilisateurConnecte();
         commandeContainer.getChildren().clear();
 
         if (lblNbCommandes != null) lblNbCommandes.setText(commandes.size() + " commande(s)");
@@ -388,7 +389,7 @@ public class CommandeController {
         if (commandeContainer == null) return;
 
         commandeContainer.getChildren().clear();
-        List<Commande> commandes = service.recuperer();
+        List<Commande> commandes = getCommandesUtilisateurConnecte();
         List<Commande> filtered = new ArrayList<>();
 
         for (Commande c : commandes) {
@@ -411,6 +412,14 @@ public class CommandeController {
         for (Commande c : filtered) {
             commandeContainer.getChildren().add(createCommandeCard(c));
         }
+    }
+
+    private List<Commande> getCommandesUtilisateurConnecte() {
+        User user = SessionManager.getCurrentUser();
+        if (user == null || user.getId() <= 0) {
+            return new ArrayList<>();
+        }
+        return service.recupererParUserId(user.getId());
     }
 
     private void filterByStatusBack(String statusKeyword) {

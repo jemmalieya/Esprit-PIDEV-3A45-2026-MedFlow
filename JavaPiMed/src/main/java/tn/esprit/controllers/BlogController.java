@@ -1,5 +1,11 @@
 package tn.esprit.controllers;
 
+import com.itextpdf.text.Document;
+import com.itextpdf.text.Font;
+import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.Phrase;
+import com.itextpdf.text.pdf.PdfPTable;
+import com.itextpdf.text.pdf.PdfWriter;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
@@ -25,19 +31,57 @@ import javafx.stage.Stage;
 import tn.esprit.entities.Post;
 import tn.esprit.services.PostService;
 
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.scene.chart.BarChart;
+import javafx.scene.chart.LineChart;
+import javafx.scene.chart.PieChart;
+import javafx.scene.chart.XYChart;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import java.io.FileOutputStream;
 import java.net.URL;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 
+import java.awt.Desktop;
+import java.io.File;
+
+import com.itextpdf.text.*;
+import com.itextpdf.text.pdf.*;
+
+import javafx.scene.control.TextArea;
+import tn.esprit.entities.Commentaire;
+import tn.esprit.entities.User;
+import tn.esprit.services.CommentaireService;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.TextArea;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+
+
+import tn.esprit.tools.SessionManager;
 public class BlogController {
 
     @FXML
     private VBox postsContainer;
+    @FXML private Label reclamationArrow;
+    @FXML private VBox submenuVBox;
 
+    @FXML private Label totalPostsLabel;
+    @FXML private Label totalCommentairesLabel;
+    @FXML private Label postsAnonymesLabel;
+    @FXML private Label categoriesLabel;
     @FXML
     private VBox rightSidebar;
-
+    @FXML private BarChart<String, Number> categoryBarChart;
+    @FXML private PieChart anonymousPieChart;
+    @FXML private LineChart<String, Number> postsLineChart;
     @FXML private ComboBox<String> sortBox;
     @FXML private TextField searchField;
 
@@ -45,18 +89,30 @@ public class BlogController {
 
     private final PostService postService = new PostService();
 
+    private final CommentaireService commentaireService = new CommentaireService();
+
+
     @FXML
     public void initialize() {
-        // Initialisation du tri
-        if (sortBox != null) {
-            sortBox.getItems().addAll("Date (plus récent)", "Date (plus ancien)", "Titre (A-Z)", "Titre (Z-A)", "Catégorie");
-            sortBox.setValue("Date (plus récent)");
-            sortBox.valueProperty().addListener((obs, oldVal, newVal) -> loadPosts());
+        // Page Blog.fxml
+        if (postsContainer != null) {
+            if (sortBox != null) {
+                sortBox.getItems().addAll("Date (plus récent)", "Date (plus ancien)", "Titre (A-Z)", "Titre (Z-A)", "Catégorie");
+                sortBox.setValue("Date (plus récent)");
+                sortBox.valueProperty().addListener((obs, oldVal, newVal) -> loadPosts());
+            }
+
+            if (searchField != null) {
+                searchField.textProperty().addListener((obs, oldVal, newVal) -> loadPosts());
+            }
+
+            loadPosts();
         }
-        if (searchField != null) {
-            searchField.textProperty().addListener((obs, oldVal, newVal) -> loadPosts());
+
+        // Page BlogStats.fxml
+        if (totalPostsLabel != null) {
+            loadBlogStatsPage();
         }
-        loadPosts();
     }
 
     private void loadPosts() {
@@ -178,7 +234,7 @@ public class BlogController {
         title.getStyleClass().add("post-row-title");
         title.setWrapText(true);
 
-        Label summary = new Label(getShortContent(post.getContenu(), 90));
+        Label summary = new Label(getShortContent(post.getContenu(), 140));
         summary.getStyleClass().add("post-row-summary");
         summary.setWrapText(true);
 
@@ -196,9 +252,7 @@ public class BlogController {
         deleteBtn.getStyleClass().add("small-delete-btn");
 
         actions.getChildren().addAll(editBtn, deleteBtn);
-
         contentBox.getChildren().addAll(category, title, summary, meta, actions);
-
         topSection.getChildren().addAll(imageView, contentBox);
 
         Region separator = new Region();
@@ -216,10 +270,12 @@ public class BlogController {
         Label commentLabel = new Label("💬 " + post.getNbr_commentaires() + " commentaire(s)");
         commentLabel.getStyleClass().add("footer-meta");
 
-
         footer.getChildren().addAll(reactionLabel, commentLabel);
 
-        card.getChildren().addAll(topSection, separator, footer);
+        VBox commentsSection = createCommentsSection(post, commentLabel);
+        commentsSection.addEventFilter(MouseEvent.MOUSE_CLICKED, MouseEvent::consume);
+
+        card.getChildren().addAll(topSection, separator, footer, commentsSection);
 
         card.setOnMouseClicked(e -> openPostDetail(post, e));
 
@@ -238,6 +294,262 @@ public class BlogController {
 
         return card;
     }
+
+    private VBox createCommentsSection(Post post, Label commentLabel) {
+        VBox commentsWrapper = new VBox(10);
+        commentsWrapper.getStyleClass().add("comments-wrapper");
+        commentsWrapper.setFillWidth(true);
+
+        Label commentsTitle = new Label("Commentaires");
+        commentsTitle.getStyleClass().add("comments-title");
+
+        VBox commentsListBox = new VBox(10);
+        commentsListBox.getStyleClass().add("comments-list");
+
+        refreshCommentsList(post, commentsListBox, commentLabel);
+
+        HBox addCommentBox = new HBox(10);
+        addCommentBox.setAlignment(Pos.CENTER_LEFT);
+
+        TextArea commentInput = new TextArea();
+        commentInput.setPromptText("Écrire un commentaire...");
+        commentInput.setWrapText(true);
+        commentInput.setPrefRowCount(2);
+        commentInput.getStyleClass().add("comment-input");
+        HBox.setHgrow(commentInput, javafx.scene.layout.Priority.ALWAYS);
+
+        Button sendBtn = new Button("Publier");
+        sendBtn.getStyleClass().add("comment-send-btn");
+
+        sendBtn.setOnAction(e -> {
+            e.consume();
+
+            String contenu = commentInput.getText() == null ? "" : commentInput.getText().trim();
+            if (contenu.isEmpty()) {
+                Alert alert = new Alert(Alert.AlertType.WARNING);
+                alert.setTitle("Commentaire");
+                alert.setHeaderText(null);
+                alert.setContentText("Le commentaire ne peut pas être vide.");
+                alert.showAndWait();
+                return;
+            }
+
+            try {
+                User currentUser = SessionManager.getCurrentUser();
+
+                if (currentUser == null) {
+                    Alert alert = new Alert(Alert.AlertType.WARNING);
+                    alert.setTitle("Session expirée");
+                    alert.setHeaderText(null);
+                    alert.setContentText("Veuillez vous reconnecter pour ajouter un commentaire.");
+                    alert.showAndWait();
+                    return;
+                }
+
+                Commentaire commentaire = new Commentaire();
+
+                Post p = new Post();
+                p.setId(post.getId());
+                commentaire.setPost(p);
+
+                commentaire.setUser(currentUser);
+                commentaire.setContenu(contenu);
+                commentaire.setDate_creation(LocalDateTime.now());
+                commentaire.setEst_anonyme(false);
+                commentaire.setParametres_confidentialite("public");
+                commentaire.setStatus("visible");
+                commentaire.setModeration_score(null);
+                commentaire.setModeration_label(null);
+                commentaire.setModerated_at(null);
+
+                commentaireService.ajouter(commentaire);
+                commentInput.clear();
+
+                refreshCommentsList(post, commentsListBox, commentLabel);
+
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Erreur");
+                alert.setHeaderText("Ajout impossible");
+                alert.setContentText("Le commentaire n'a pas pu être ajouté.");
+                alert.showAndWait();
+            }
+        });
+
+        addCommentBox.getChildren().addAll(commentInput, sendBtn);
+        commentsWrapper.getChildren().addAll(commentsTitle, commentsListBox, addCommentBox);
+
+        return commentsWrapper;
+    }
+
+    private void refreshCommentsList(Post post, VBox commentsListBox, Label commentLabel) {
+        commentsListBox.getChildren().clear();
+
+        List<Commentaire> commentaires = commentaireService.recupererParPost(post.getId());
+
+        if (commentLabel != null) {
+            commentLabel.setText("💬 " + commentaires.size() + " commentaire(s)");
+        }
+
+        if (commentaires.isEmpty()) {
+            Label empty = new Label("Aucun commentaire pour le moment.");
+            empty.getStyleClass().add("comment-empty-label");
+            commentsListBox.getChildren().add(empty);
+            return;
+        }
+
+        for (Commentaire commentaire : commentaires) {
+            commentsListBox.getChildren().add(createSingleCommentNode(post, commentaire, commentsListBox, commentLabel));
+        }
+    }
+
+    private Node createSingleCommentNode(Post post, Commentaire commentaire, VBox commentsListBox, Label commentLabel) {
+        VBox commentCard = new VBox(6);
+        commentCard.getStyleClass().add("comment-card");
+
+        HBox header = new HBox(10);
+        header.setAlignment(Pos.CENTER_LEFT);
+
+        Label author = new Label(getCommentAuthorName(commentaire));
+        author.getStyleClass().add("comment-author");
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
+
+        Button editBtn = new Button("Modifier");
+        editBtn.getStyleClass().add("comment-action-btn");
+
+        Button deleteBtn = new Button("Supprimer");
+        deleteBtn.getStyleClass().add("comment-delete-btn");
+
+        boolean isOwner = isCommentOwner(commentaire);
+
+        editBtn.setVisible(isOwner);
+        editBtn.setManaged(isOwner);
+
+        deleteBtn.setVisible(isOwner);
+        deleteBtn.setManaged(isOwner);
+
+        header.getChildren().addAll(author, spacer, editBtn, deleteBtn);
+
+        Label content = new Label(safeText(commentaire.getContenu()));
+        content.setWrapText(true);
+        content.getStyleClass().add("comment-content");
+
+        Label date = new Label(commentaire.getDate_creation() != null ? commentaire.getDate_creation().toString() : "");
+        date.getStyleClass().add("comment-date");
+
+        commentCard.getChildren().addAll(header, content, date);
+
+        editBtn.setOnAction(e -> {
+            e.consume();
+
+            if (!isCommentOwner(commentaire)) {
+                Alert alert = new Alert(Alert.AlertType.WARNING);
+                alert.setTitle("Accès refusé");
+                alert.setHeaderText(null);
+                alert.setContentText("Vous ne pouvez modifier que vos propres commentaires.");
+                alert.showAndWait();
+                return;
+            }
+
+            showEditCommentDialog(commentaire, post, commentsListBox, commentLabel);
+        });
+
+        deleteBtn.setOnAction(e -> {
+            e.consume();
+
+            if (!isCommentOwner(commentaire)) {
+                Alert alert = new Alert(Alert.AlertType.WARNING);
+                alert.setTitle("Accès refusé");
+                alert.setHeaderText(null);
+                alert.setContentText("Vous ne pouvez supprimer que vos propres commentaires.");
+                alert.showAndWait();
+                return;
+            }
+
+            Alert confirmation = new Alert(Alert.AlertType.CONFIRMATION);
+            confirmation.setTitle("Suppression");
+            confirmation.setHeaderText("Supprimer ce commentaire");
+            confirmation.setContentText("Voulez-vous vraiment supprimer ce commentaire ?");
+
+            Optional<ButtonType> result = confirmation.showAndWait();
+            if (result.isPresent() && result.get() == ButtonType.OK) {
+                commentaireService.supprimer(commentaire);
+                refreshCommentsList(post, commentsListBox, commentLabel);
+            }
+        });
+
+        return commentCard;
+    }
+
+    private void showEditCommentDialog(Commentaire commentaire, Post post, VBox commentsListBox, Label commentLabel) {
+        Dialog<String> dialog = new Dialog<>();
+        dialog.setTitle("Modifier le commentaire");
+        dialog.setHeaderText("Modifier votre commentaire");
+
+        ButtonType saveButtonType = new ButtonType("Enregistrer", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(saveButtonType, ButtonType.CANCEL);
+
+        TextArea textArea = new TextArea();
+        textArea.setWrapText(true);
+        textArea.setPrefRowCount(4);
+        textArea.setText(commentaire.getContenu());
+
+        VBox box = new VBox(10, textArea);
+        box.setPadding(new Insets(10));
+        dialog.getDialogPane().setContent(box);
+
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == saveButtonType) {
+                return textArea.getText();
+            }
+            return null;
+        });
+
+        Optional<String> result = dialog.showAndWait();
+        result.ifPresent(newText -> {
+            String value = newText == null ? "" : newText.trim();
+            if (!value.isEmpty()) {
+                commentaire.setContenu(value);
+                commentaireService.modifier(commentaire);
+                refreshCommentsList(post, commentsListBox, commentLabel);
+            }
+        });
+    }
+
+    private String getCommentAuthorName(Commentaire commentaire) {
+        if (commentaire.isEst_anonyme()) {
+            return "Anonyme";
+        }
+
+        try {
+            if (commentaire.getUser() != null) {
+                String nom = commentaire.getUser().getNom() != null ? commentaire.getUser().getNom().trim() : "";
+                String prenom = commentaire.getUser().getPrenom() != null ? commentaire.getUser().getPrenom().trim() : "";
+
+                String fullName = (prenom + " " + nom).trim();
+
+                if (!fullName.isEmpty()) {
+                    return fullName;
+                }
+
+                if (!nom.isEmpty()) {
+                    return nom;
+                }
+
+                if (!prenom.isEmpty()) {
+                    return prenom;
+                }
+            }
+        } catch (Exception ignored) {
+        }
+
+        return "Utilisateur";
+    }
+
+
     private Node createRecentPostCard(Post post) {
         VBox card = new VBox(12);
         card.getStyleClass().add("sidebar-card");
@@ -458,5 +770,312 @@ public class BlogController {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    @FXML
+    private void handleExportPdf() {
+        try {
+            List<Post> posts = postService.recuperer();
+
+            if (posts == null || posts.isEmpty()) {
+                Alert alert = new Alert(Alert.AlertType.WARNING);
+                alert.setTitle("Export PDF");
+                alert.setHeaderText("Aucun post");
+                alert.setContentText("Il n'y a aucun post à exporter.");
+                alert.showAndWait();
+                return;
+            }
+
+            Document document = new Document(PageSize.A4, 36, 36, 40, 40);
+            PdfWriter.getInstance(document, new FileOutputStream("posts_medflow.pdf"));
+            document.open();
+
+            Font titleFont = new Font(Font.FontFamily.HELVETICA, 22, Font.BOLD, new BaseColor(41, 128, 185));
+            Font subTitleFont = new Font(Font.FontFamily.HELVETICA, 11, Font.NORMAL, BaseColor.DARK_GRAY);
+            Font postTitleFont = new Font(Font.FontFamily.HELVETICA, 16, Font.BOLD, new BaseColor(33, 37, 41));
+            Font sectionFont = new Font(Font.FontFamily.HELVETICA, 11, Font.BOLD, new BaseColor(52, 73, 94));
+            Font textFont = new Font(Font.FontFamily.HELVETICA, 10, Font.NORMAL, BaseColor.BLACK);
+            Font metaFont = new Font(Font.FontFamily.HELVETICA, 9, Font.ITALIC, BaseColor.GRAY);
+            Font badgeFont = new Font(Font.FontFamily.HELVETICA, 10, Font.BOLD, BaseColor.WHITE);
+
+            Paragraph title = new Paragraph("Liste des posts MedFlow", titleFont);
+            title.setAlignment(Element.ALIGN_CENTER);
+            title.setSpacingAfter(6f);
+            document.add(title);
+
+            Paragraph subtitle = new Paragraph("Export généré automatiquement", subTitleFont);
+            subtitle.setAlignment(Element.ALIGN_CENTER);
+            subtitle.setSpacingAfter(20f);
+            document.add(subtitle);
+
+            for (Post p : posts) {
+                PdfPTable card = new PdfPTable(1);
+                card.setWidthPercentage(100);
+                card.setSpacingAfter(12f);
+
+                PdfPCell cardCell = new PdfPCell();
+                cardCell.setPadding(14f);
+                cardCell.setBorderColor(new BaseColor(220, 220, 220));
+                cardCell.setBorderWidth(1f);
+                cardCell.setBackgroundColor(new BaseColor(250, 250, 250));
+
+                PdfPTable badgeTable = new PdfPTable(1);
+                badgeTable.setWidthPercentage(28);
+
+                PdfPCell badgeCell = new PdfPCell(new Phrase(
+                        p.getCategorie() != null ? p.getCategorie() : "Sans catégorie",
+                        badgeFont
+                ));
+                badgeCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                badgeCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                badgeCell.setPadding(6f);
+                badgeCell.setBorder(Rectangle.NO_BORDER);
+                badgeCell.setBackgroundColor(new BaseColor(52, 152, 219));
+                badgeTable.addCell(badgeCell);
+
+                cardCell.addElement(badgeTable);
+                cardCell.addElement(new Paragraph(" "));
+
+                Paragraph postTitle = new Paragraph(
+                        p.getTitre() != null ? p.getTitre() : "Sans titre",
+                        postTitleFont
+                );
+                postTitle.setSpacingAfter(8f);
+                cardCell.addElement(postTitle);
+
+                if (p.getImg_post() != null && !p.getImg_post().trim().isEmpty()) {
+                    try {
+                        com.itextpdf.text.Image postImage;
+
+                        if (p.getImg_post().startsWith("http://") || p.getImg_post().startsWith("https://")) {
+                            postImage = com.itextpdf.text.Image.getInstance(new URL(p.getImg_post()));
+                        } else {
+                            postImage = com.itextpdf.text.Image.getInstance(p.getImg_post());
+                        }
+
+                        postImage.scaleToFit(460, 220);
+                        postImage.setAlignment(Element.ALIGN_CENTER);
+                        cardCell.addElement(postImage);
+                        cardCell.addElement(new Paragraph(" "));
+                    } catch (Exception imgEx) {
+                        Paragraph noImg = new Paragraph("Image non disponible", metaFont);
+                        noImg.setSpacingAfter(8f);
+                        cardCell.addElement(noImg);
+                    }
+                }
+
+                cardCell.addElement(new Paragraph("Contenu", sectionFont));
+
+                Paragraph content = new Paragraph(
+                        p.getContenu() != null ? p.getContenu() : "",
+                        textFont
+                );
+                content.setSpacingAfter(10f);
+                cardCell.addElement(content);
+
+                String localisation = p.getLocalisation() != null ? p.getLocalisation() : "-";
+                String hashtags = p.getHashtags() != null ? p.getHashtags() : "-";
+                String humeur = p.getHumeur() != null ? p.getHumeur() : "-";
+
+                Paragraph meta1 = new Paragraph("Localisation : " + localisation, textFont);
+                Paragraph meta2 = new Paragraph("Hashtags : " + hashtags, textFont);
+                Paragraph meta3 = new Paragraph("Humeur : " + humeur, textFont);
+
+                meta1.setSpacingAfter(4f);
+                meta2.setSpacingAfter(4f);
+                meta3.setSpacingAfter(6f);
+
+                cardCell.addElement(meta1);
+                cardCell.addElement(meta2);
+                cardCell.addElement(meta3);
+
+                if (p.getDate_creation() != null) {
+                    Paragraph date = new Paragraph("Créé le : " + p.getDate_creation(), metaFont);
+                    cardCell.addElement(date);
+                }
+
+                card.addCell(cardCell);
+                document.add(card);
+            }
+
+            document.close();
+
+            File file = new File("posts_medflow.pdf");
+            if (file.exists()) {
+                Desktop.getDesktop().open(file);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Erreur PDF");
+            alert.setHeaderText("Export impossible");
+            alert.setContentText("Une erreur est survenue lors de la génération du PDF.");
+            alert.showAndWait();
+        }
+    }
+
+    private boolean isCommentOwner(Commentaire commentaire) {
+        try {
+            User currentUser = SessionManager.getCurrentUser();
+
+            return currentUser != null
+                    && commentaire != null
+                    && commentaire.getUser() != null
+                    && commentaire.getUser().getId() == currentUser.getId();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private void loadBlogStatsPage() {
+        try {
+            List<Post> posts = postService.recuperer();
+            List<Commentaire> commentaires = commentaireService.recuperer();
+
+            int totalPosts = posts.size();
+            int totalCommentaires = commentaires.size();
+            int postsAnonymes = 0;
+
+            java.util.Set<String> categoriesSet = new java.util.HashSet<>();
+            Map<String, Integer> categoryCounts = new LinkedHashMap<>();
+            Map<String, Integer> dateCounts = new LinkedHashMap<>();
+
+            for (Post p : posts) {
+                if (p.isEst_anonyme()) {
+                    postsAnonymes++;
+                }
+
+                String categorie = (p.getCategorie() == null || p.getCategorie().isBlank())
+                        ? "Sans catégorie"
+                        : p.getCategorie().trim();
+
+                categoriesSet.add(categorie.toLowerCase());
+                categoryCounts.put(categorie, categoryCounts.getOrDefault(categorie, 0) + 1);
+
+                String dateKey = "Sans date";
+                try {
+                    if (p.getDate_creation() != null) {
+                        dateKey = p.getDate_creation().toLocalDate().toString();
+                    }
+                } catch (Exception ignored) {
+                }
+
+                dateCounts.put(dateKey, dateCounts.getOrDefault(dateKey, 0) + 1);
+            }
+
+            if (totalPostsLabel != null) totalPostsLabel.setText(String.valueOf(totalPosts));
+            if (totalCommentairesLabel != null) totalCommentairesLabel.setText(String.valueOf(totalCommentaires));
+            if (postsAnonymesLabel != null) postsAnonymesLabel.setText(String.valueOf(postsAnonymes));
+            if (categoriesLabel != null) categoriesLabel.setText(String.valueOf(categoriesSet.size()));
+
+            if (categoryBarChart != null) {
+                categoryBarChart.getData().clear();
+
+                XYChart.Series<String, Number> barSeries = new XYChart.Series<>();
+                barSeries.setName("Posts");
+
+                for (Map.Entry<String, Integer> entry : categoryCounts.entrySet()) {
+                    barSeries.getData().add(new XYChart.Data<>(entry.getKey(), entry.getValue()));
+                }
+
+                categoryBarChart.getData().add(barSeries);
+                categoryBarChart.setLegendVisible(false);
+            }
+
+            if (anonymousPieChart != null) {
+                int nonAnonymes = totalPosts - postsAnonymes;
+
+                ObservableList<PieChart.Data> pieData = FXCollections.observableArrayList(
+                        new PieChart.Data("Anonymes", postsAnonymes),
+                        new PieChart.Data("Non anonymes", nonAnonymes)
+                );
+
+                anonymousPieChart.setData(pieData);
+                anonymousPieChart.setLegendVisible(true);
+                anonymousPieChart.setLabelsVisible(true);
+            }
+
+            if (postsLineChart != null) {
+                postsLineChart.getData().clear();
+
+                XYChart.Series<String, Number> lineSeries = new XYChart.Series<>();
+                lineSeries.setName("Évolution");
+
+                for (Map.Entry<String, Integer> entry : dateCounts.entrySet()) {
+                    lineSeries.getData().add(new XYChart.Data<>(entry.getKey(), entry.getValue()));
+                }
+
+                postsLineChart.getData().add(lineSeries);
+                postsLineChart.setLegendVisible(false);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Erreur");
+            alert.setHeaderText(null);
+            alert.setContentText("Impossible de charger les statistiques du blog.");
+            alert.showAndWait();
+        }
+    }
+
+    @FXML
+    private void toggleSubmenu() {
+        boolean show = !submenuVBox.isVisible();
+        submenuVBox.setVisible(show);
+        submenuVBox.setManaged(show);
+
+        if (reclamationArrow != null) {
+            reclamationArrow.setText(show ? "⌃" : "⌄");
+        }
+    }
+
+    @FXML
+    private void openReclamationStats() {
+        navigateTo("/ReclamationStats.fxml", "MedFlow - Statistiques Réclamations");
+    }
+
+    @FXML
+    private void openBlogStats() {
+        navigateTo("/BlogStats.fxml", "MedFlow - Statistiques Blog");
+    }
+
+    @FXML
+    private void handleLogout() {
+        navigateTo("/FrontFXML/Login.fxml", "MedFlow - Connexion");
+    }
+
+    private void navigateTo(String fxmlPath, String title) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
+            Parent root = loader.load();
+
+            Stage stage;
+            if (postsContainer != null) {
+                stage = (Stage) postsContainer.getScene().getWindow();
+            } else {
+                stage = (Stage) totalPostsLabel.getScene().getWindow();
+            }
+
+            stage.setScene(new Scene(root, 1650, 960));
+            stage.setTitle(title);
+            stage.show();
+        } catch (Exception e) {
+            e.printStackTrace();
+
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Navigation");
+            alert.setHeaderText(null);
+            alert.setContentText("Impossible d'ouvrir la page demandée.");
+            alert.showAndWait();
+        }
+    }
+
+    @FXML
+    private void backToReponses() {
+        navigateTo("/reponse.fxml", "MedFlow - Gestion des réclamations");
     }
 }

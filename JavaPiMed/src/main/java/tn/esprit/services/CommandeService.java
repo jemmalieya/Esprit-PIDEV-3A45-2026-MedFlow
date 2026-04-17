@@ -292,45 +292,39 @@ public class CommandeService implements IGeneralService<Commande> {
 """);) {
 
             while (rs.next()) {
-
-                Commande c = new Commande();
-                c.setId_commande(rs.getInt("id_commande"));
-
-                User u = new User();
-                u.setId(rs.getInt("user_id"));
-                u.setNom(rs.getString("nom"));
-                u.setPrenom(rs.getString("prenom"));
-                u.setEmailUser(rs.getString("email_user"));
-
-                c.setUser(u);
-
-                c.setDate_creation_commande(rs.getTimestamp("date_creation_commande").toLocalDateTime());
-                c.setStatut_commande(rs.getString("statut_commande"));
-                c.setMontant_total_cents(rs.getInt("montant_total_cents"));
-
-                List<CommandeProduit> lignes = new ArrayList<>();
-                try (PreparedStatement psL = cn.prepareStatement("SELECT * FROM commande_produit WHERE commande_id=?")) {
-                    psL.setInt(1, c.getId_commande());
-                    ResultSet rsL = psL.executeQuery();
-                    while (rsL.next()) {
-                        CommandeProduit cp = new CommandeProduit();
-                        cp.setId_ligne_commande(rsL.getInt("id_ligne_commande"));
-                        cp.setQuantite_commandee(rsL.getInt("quantite_commandee"));
-
-                        int produitId = rsL.getInt("produit_id");
-                        Produit p = recupererProduitParId(produitId);
-                        cp.setProduit(p);
-
-                        lignes.add(cp);
-                    }
-                }
-                c.setCommande_produits(lignes);
-
-                liste.add(c);
+                liste.add(buildCommandeFromResultSet(rs));
             }
 
         } catch (SQLException ex) {
             System.out.println("Erreur récupération : " + ex.getMessage());
+        }
+
+        return liste;
+    }
+
+    public List<Commande> recupererParUserId(int userId) {
+        List<Commande> liste = new ArrayList<>();
+        if (userId <= 0) {
+            return liste;
+        }
+
+        String sql = """
+                SELECT c.*, u.nom, u.prenom, u.email_user
+                FROM commande c
+                LEFT JOIN user u ON c.user_id = u.id
+                WHERE c.user_id = ?
+                ORDER BY c.date_creation_commande DESC
+                """;
+
+        try (PreparedStatement ps = cn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    liste.add(buildCommandeFromResultSet(rs));
+                }
+            }
+        } catch (SQLException ex) {
+            System.out.println("Erreur récupération par utilisateur : " + ex.getMessage());
         }
 
         return liste;
@@ -390,6 +384,49 @@ public class CommandeService implements IGeneralService<Commande> {
         } catch (SQLException e) {
             return false;
         }
+    }
+
+    private Commande buildCommandeFromResultSet(ResultSet rs) throws SQLException {
+        Commande c = new Commande();
+        c.setId_commande(rs.getInt("id_commande"));
+
+        User u = new User();
+        u.setId(rs.getInt("user_id"));
+        u.setNom(rs.getString("nom"));
+        u.setPrenom(rs.getString("prenom"));
+        u.setEmailUser(rs.getString("email_user"));
+        c.setUser(u);
+
+        Timestamp date = rs.getTimestamp("date_creation_commande");
+        if (date != null) {
+            c.setDate_creation_commande(date.toLocalDateTime());
+        }
+
+        c.setStatut_commande(rs.getString("statut_commande"));
+        c.setMontant_total_cents(rs.getInt("montant_total_cents"));
+        c.setCommande_produits(chargerLignesCommande(c.getId_commande()));
+        return c;
+    }
+
+    private List<CommandeProduit> chargerLignesCommande(int commandeId) throws SQLException {
+        List<CommandeProduit> lignes = new ArrayList<>();
+
+        try (PreparedStatement psL = cn.prepareStatement("SELECT * FROM commande_produit WHERE commande_id=?")) {
+            psL.setInt(1, commandeId);
+            try (ResultSet rsL = psL.executeQuery()) {
+                while (rsL.next()) {
+                    CommandeProduit cp = new CommandeProduit();
+                    cp.setId_ligne_commande(rsL.getInt("id_ligne_commande"));
+                    cp.setQuantite_commandee(rsL.getInt("quantite_commandee"));
+
+                    int produitId = rsL.getInt("produit_id");
+                    cp.setProduit(recupererProduitParId(produitId));
+                    lignes.add(cp);
+                }
+            }
+        }
+
+        return lignes;
     }
 
     private boolean isProduitValid(int id) {

@@ -313,7 +313,7 @@ public class PanierController {
         }
     }
 
-    @FXML
+   /* @FXML
     private void validerCommande() {
         if (CartSession.getPanier().isEmpty()) {
             showAlert("Panier vide", "Ajoutez d'abord des produits.");
@@ -363,7 +363,31 @@ public class PanierController {
         } else {
             showFloatingToast("Échec lors de la validation de la commande.", "toast-danger", "✖");
         }
-    }
+    }*/
+   @FXML
+   private void validerCommande() {
+       if (CartSession.getPanier().isEmpty()) {
+           showAlert("Panier vide", "Ajoutez d'abord des produits.");
+           return;
+       }
+
+       try {
+           URL url = getClass().getResource("/FrontFXML/CheckoutCommande.fxml");
+           if (url == null) {
+               throw new IOException("Fichier introuvable : /FrontFXML/CheckoutCommande.fxml");
+           }
+
+           Parent root = FXMLLoader.load(url);
+
+           Stage stage = (Stage) panierContainer.getScene().getWindow();
+           stage.setScene(new Scene(root, 1400, 820));
+           stage.setTitle("Checkout commande");
+           stage.show();
+
+       } catch (Exception e) {
+           showAlert("Erreur", "Impossible d'ouvrir la page de paiement : " + e.getMessage());
+       }
+   }
 
     private String formatPrix(double prix) {
         return String.format(Locale.US, "%.2f DT", prix);

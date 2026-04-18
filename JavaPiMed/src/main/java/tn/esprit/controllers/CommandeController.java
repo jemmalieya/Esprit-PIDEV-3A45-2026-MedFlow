@@ -9,6 +9,16 @@ import javafx.animation.PauseTransition;
 import javafx.animation.SequentialTransition;
 import javafx.scene.control.TextField;
 import javafx.stage.FileChooser;
+import javafx.application.Platform;
+import tn.esprit.entities.Produit;
+import tn.esprit.services.StripeCheckoutService;
+import tn.esprit.services.StripeCallbackServer;
+import com.stripe.model.checkout.Session;
+
+import java.awt.Desktop;
+import java.net.URI;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import java.awt.Color;
 import java.io.FileOutputStream;
@@ -113,8 +123,20 @@ public class CommandeController {
     @FXML private Button btnTelechargerFacture;
     @FXML private Button btnSupprimerCommande;
 
+    @FXML private VBox checkoutProduitsContainer;
+    @FXML private Label checkoutTotalLabel;
+    @FXML private CheckBox termsCheckBox;
+    @FXML private Button btnPayerStripe;
+    private final StripeCheckoutService stripeCheckoutService = new StripeCheckoutService();
+    private final StripeCallbackServer stripeCallbackServer = new StripeCallbackServer();
+
     @FXML
     public void initialize() {
+
+        if (checkoutProduitsContainer != null) {
+            initCheckoutPage();
+        }
+
         // FRONT LISTE
         if (commandeContainer != null) {
             loadCommandesFront();
@@ -1398,6 +1420,7 @@ public class CommandeController {
         if (statut == null || statut.isBlank()) return "En attente";
 
         String s = statut.toLowerCase();
+        if (s.contains("pay")) return "Payée";
         if (s.contains("confirm")) return "Confirmée";
         if (s.contains("cours")) return "En cours";
         if (s.contains("attente")) return "En attente";
@@ -1421,6 +1444,7 @@ public class CommandeController {
 
     private String getStatusClass(String statut) {
         String s = statut == null ? "" : statut.toLowerCase();
+        if (s.contains("pay")) return "status-confirmed";
         if (s.contains("confirm")) return "status-confirmed";
         if (s.contains("cours")) return "status-progress";
         if (s.contains("attente")) return "status-pending";
@@ -1561,6 +1585,10 @@ public class CommandeController {
             anchor = btnTelechargerFacture;
         } else if (btnSupprimerCommande != null && btnSupprimerCommande.getScene() != null) {
             anchor = btnSupprimerCommande;
+        } else if (btnPayerStripe != null && btnPayerStripe.getScene() != null) {
+            anchor = btnPayerStripe;
+        } else if (checkoutProduitsContainer != null && checkoutProduitsContainer.getScene() != null) {
+            anchor = checkoutProduitsContainer;
         }
 
         if (anchor == null) return;
@@ -1647,8 +1675,326 @@ public class CommandeController {
         javafx.animation.ParallelTransition exit =
                 new javafx.animation.ParallelTransition(fadeOut, slideOut);
 
-        javafx.animation.SequentialTransition sequence =
-                new javafx.animation.SequentialTransition(enter, pause, exit);
+        SequentialTransition sequence =
+                new SequentialTransition(enter, pause, exit);
+
+        sequence.setOnFinished(e -> popup.hide());
+        sequence.play();
+    }
+    private void initCheckoutPage() {
+        chargerResumeCheckout();
+
+        if (btnPayerStripe != null && termsCheckBox != null) {
+            btnPayerStripe.disableProperty().bind(termsCheckBox.selectedProperty().not());
+        }
+
+        try {
+            stripeCallbackServer.start((type, params) -> {
+                if ("success".equals(type)) {
+                    gererRetourStripeSuccess(params);
+                } else if ("cancel".equals(type)) {
+                    showCommandeToast("Paiement annulé.", "commande-toast-danger", "✖");
+                }
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
+            showCommandeToast("Erreur démarrage callback Stripe.", "commande-toast-danger", "✖");
+        }
+    }
+
+    private void chargerResumeCheckout() {
+        if (checkoutProduitsContainer == null) return;
+
+        checkoutProduitsContainer.getChildren().clear();
+
+        Map<Integer, Produit> produitsUniques = new LinkedHashMap<>();
+        for (Produit p : CartSession.getPanier()) {
+            produitsUniques.putIfAbsent(p.getId_produit(), p);
+        }
+
+        double total = 0.0;
+
+        for (Produit produit : produitsUniques.values()) {
+            int qte = CartSession.getQuantiteProduit(produit);
+            double sousTotal = produit.getPrix_produit() * qte;
+            total += sousTotal;
+
+            HBox row = new HBox(20);
+            row.setAlignment(Pos.CENTER_LEFT);
+            row.setPadding(new Insets(10));
+            row.getStyleClass().add("product-row");
+
+            Label nom = new Label(produit.getNom_produit());
+            nom.setPrefWidth(250);
+            nom.getStyleClass().add("checkout-product-name");
+
+            Label quantite = new Label("Qté : " + qte);
+            quantite.setPrefWidth(100);
+            quantite.getStyleClass().add("checkout-product-qty");
+
+            Label prix = new Label(String.format("%.2f Dt", sousTotal));
+            prix.getStyleClass().add("checkout-product-price");
+
+            row.getChildren().addAll(nom, quantite, prix);
+            checkoutProduitsContainer.getChildren().add(row);
+        }
+
+        if (checkoutTotalLabel != null) {
+            checkoutTotalLabel.setText(String.format("%.2f Dt", total));
+        }
+    }
+    @FXML
+    private void afficherConditionsStripe() {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Termes et conditions");
+        alert.setHeaderText("📄 Conditions générales de paiement");
+
+        alert.setContentText(
+                "• Le paiement est sécurisé via Stripe.\n\n" +
+                        "• Une commande payée est considérée comme confirmée.\n\n" +
+                        "• Vérifiez bien les articles et les quantités avant de payer.\n\n" +
+                        "• En cas d’annulation ou d’échec du paiement, la commande ne sera pas finalisée.\n\n" +
+                        "• Les informations de paiement sont traitées de manière sécurisée.\n\n" +
+                        "• En validant, vous acceptez ces conditions."
+        );
+
+        DialogPane pane = alert.getDialogPane();
+
+        URL cssUrl = getClass().getResource("/CSS/checkout.css");
+        if (cssUrl != null) {
+            pane.getStylesheets().add(cssUrl.toExternalForm());
+        }
+
+        pane.getStyleClass().add("terms-dialog");
+
+        Button okButton = (Button) pane.lookupButton(ButtonType.OK);
+        okButton.setText("J'ai compris");
+
+        alert.showAndWait();
+    }
+    @FXML
+    private void retourPanierDepuisCheckout() {
+        try {
+            URL url = getClass().getResource("/FrontFXML/Panier.fxml");
+            Parent root = FXMLLoader.load(url);
+
+            Stage stage = (Stage) checkoutProduitsContainer.getScene().getWindow();
+            stage.setScene(new Scene(root, 1400, 820));
+            stage.setTitle("Mon Panier");
+            stage.show();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @FXML
+    private void payerAvecStripe() {
+        try {
+            User user = SessionManager.getCurrentUser();
+            if (user == null || user.getId() <= 0) {
+                showCommandeToast("Veuillez vous connecter.", "commande-toast-danger", "✖");
+                return;
+            }
+
+            if (CartSession.getPanier() == null || CartSession.getPanier().isEmpty()) {
+                showCommandeToast("Votre panier est vide.", "commande-toast-danger", "✖");
+                return;
+            }
+
+            Map<Integer, Produit> produitsUniques = new LinkedHashMap<>();
+            for (Produit p : CartSession.getPanier()) {
+                produitsUniques.putIfAbsent(p.getId_produit(), p);
+            }
+
+            List<CommandeProduit> lignes = new ArrayList<>();
+            for (Produit produit : produitsUniques.values()) {
+                int quantite = CartSession.getQuantiteProduit(produit);
+
+                CommandeProduit cp = new CommandeProduit();
+                cp.setProduit(produit);
+                cp.setQuantite_commandee(quantite);
+                lignes.add(cp);
+            }
+
+            Commande commande = service.creerCommandeEnAttentePaiement(user, lignes);
+
+            if (commande == null) {
+                showCommandeToast("Impossible de créer la commande.", "commande-toast-danger", "✖");
+                return;
+            }
+
+            Session session = stripeCheckoutService.creerSessionCheckout(
+                    user,
+                    lignes,
+                    commande.getId_commande()
+            );
+
+            if (session == null || session.getId() == null || session.getUrl() == null) {
+                showCommandeToast("Session Stripe invalide.", "commande-toast-danger", "✖");
+                return;
+            }
+
+            boolean saved = service.enregistrerStripeSessionId(commande.getId_commande(), session.getId());
+            if (!saved) {
+                showCommandeToast("Impossible d’enregistrer la session Stripe.", "commande-toast-danger", "✖");
+                return;
+            }
+
+            if (Desktop.isDesktopSupported()) {
+                Desktop.getDesktop().browse(new URI(session.getUrl()));
+                showCommandeToast("Redirection vers Stripe...", "commande-toast-warning", "💳");
+            } else {
+                showCommandeToast("Impossible d’ouvrir le navigateur.", "commande-toast-danger", "✖");
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            showCommandeToast("Erreur Stripe : " + e.getMessage(), "commande-toast-danger", "✖");
+        }
+    }
+    private void gererRetourStripeSuccess(Map<String, String> params) {
+        try {
+            String sessionId = params.get("session_id");
+            String commandeIdStr = params.get("commande_id");
+
+            if (sessionId == null || commandeIdStr == null) {
+                showCommandeToast("Retour Stripe invalide.", "commande-toast-danger", "✖");
+                return;
+            }
+
+            int commandeId = Integer.parseInt(commandeIdStr);
+
+            boolean paid = stripeCheckoutService.paiementConfirme(sessionId);
+            if (!paid) {
+                showCommandeToast("Paiement non confirmé.", "commande-toast-danger", "✖");
+                return;
+            }
+
+            boolean ok = service.marquerCommandeCommePayee(commandeId, sessionId);
+            if (!ok) {
+                showCommandeToast("Erreur mise à jour paiement.", "commande-toast-danger", "✖");
+                return;
+            }
+
+            Commande commande = service.recupererParId(commandeId);
+            if (commande == null) {
+                showCommandeToast("Commande introuvable après paiement.", "commande-toast-danger", "✖");
+                return;
+            }
+
+            commandeSelectionneeFront = commande;
+            CartSession.viderPanier();
+
+            URL url = getClass().getResource("/FrontFXML/CommandeDetail.fxml");
+            if (url == null) {
+                throw new IOException("Fichier introuvable : /FrontFXML/CommandeDetail.fxml");
+            }
+
+            Parent root = FXMLLoader.load(url);
+
+            Stage stage = (Stage) checkoutProduitsContainer.getScene().getWindow();
+            Scene scene = new Scene(root, 1400, 820);
+            stage.setScene(scene);
+            stage.setTitle("Détail commande");
+            stage.show();
+
+            Platform.runLater(() -> showToastOnStage(
+                    stage,
+                    "Paiement effectué avec succès. Patientez pour votre SMS de confirmation.",
+                    "commande-toast-success",
+                    "✅"
+            ));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            showCommandeToast("Erreur après paiement : " + e.getMessage(), "commande-toast-danger", "✖");
+        }
+    }
+    private void showToastOnStage(Stage stage, String message, String styleClass, String iconText) {
+        if (stage == null || stage.getScene() == null || stage.getScene().getWindow() == null) return;
+
+        Scene scene = stage.getScene();
+        javafx.stage.Window window = scene.getWindow();
+
+        HBox toast = new HBox(10);
+        toast.setAlignment(Pos.CENTER_LEFT);
+        toast.getStyleClass().addAll("floating-toast", styleClass);
+        toast.setMaxWidth(420);
+
+        Label icon = new Label(iconText);
+        icon.getStyleClass().add("toast-icon");
+
+        Label textLabel = new Label(message);
+        textLabel.getStyleClass().add("toast-text");
+        textLabel.setWrapText(true);
+        textLabel.setMaxWidth(340);
+
+        toast.getChildren().addAll(icon, textLabel);
+
+        javafx.stage.Popup popup = new javafx.stage.Popup();
+        popup.getContent().add(toast);
+        popup.setAutoHide(false);
+        popup.setHideOnEscape(false);
+        popup.setAutoFix(true);
+
+        popup.show(window);
+
+        URL cssUrl = getClass().getResource("/CSS/commande_back.css");
+        if (cssUrl != null && popup.getScene() != null) {
+            popup.getScene().getStylesheets().add(cssUrl.toExternalForm());
+        }
+
+        toast.applyCss();
+        toast.layout();
+
+        double popupWidth = Math.max(320, toast.prefWidth(-1));
+        double x = window.getX() + scene.getWidth() - popupWidth - 24;
+        double y = window.getY() + scene.getHeight() - 110;
+
+        popup.setX(x);
+        popup.setY(y);
+
+        toast.setOpacity(0);
+        toast.setTranslateY(16);
+        icon.setScaleX(0.7);
+        icon.setScaleY(0.7);
+
+        FadeTransition fadeIn = new FadeTransition(Duration.millis(220), toast);
+        fadeIn.setFromValue(0);
+        fadeIn.setToValue(1);
+
+        javafx.animation.TranslateTransition slideIn =
+                new javafx.animation.TranslateTransition(Duration.millis(220), toast);
+        slideIn.setFromY(16);
+        slideIn.setToY(0);
+
+        javafx.animation.ScaleTransition popIcon =
+                new javafx.animation.ScaleTransition(Duration.millis(260), icon);
+        popIcon.setFromX(0.7);
+        popIcon.setFromY(0.7);
+        popIcon.setToX(1.0);
+        popIcon.setToY(1.0);
+
+        javafx.animation.ParallelTransition enter =
+                new javafx.animation.ParallelTransition(fadeIn, slideIn, popIcon);
+
+        PauseTransition pause = new PauseTransition(Duration.seconds(2.0));
+
+        FadeTransition fadeOut = new FadeTransition(Duration.millis(220), toast);
+        fadeOut.setFromValue(1);
+        fadeOut.setToValue(0);
+
+        javafx.animation.TranslateTransition slideOut =
+                new javafx.animation.TranslateTransition(Duration.millis(220), toast);
+        slideOut.setFromY(0);
+        slideOut.setToY(10);
+
+        javafx.animation.ParallelTransition exit =
+                new javafx.animation.ParallelTransition(fadeOut, slideOut);
+
+        SequentialTransition sequence =
+                new SequentialTransition(enter, pause, exit);
 
         sequence.setOnFinished(e -> popup.hide());
         sequence.play();

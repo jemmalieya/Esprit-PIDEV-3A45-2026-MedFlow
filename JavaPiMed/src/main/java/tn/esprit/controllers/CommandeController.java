@@ -11,8 +11,7 @@ import javafx.scene.control.TextField;
 import javafx.stage.FileChooser;
 import javafx.application.Platform;
 import tn.esprit.entities.Produit;
-import tn.esprit.services.StripeCheckoutService;
-import tn.esprit.services.StripeCallbackServer;
+import tn.esprit.services.*;
 import com.stripe.model.checkout.Session;
 
 import java.awt.Desktop;
@@ -38,8 +37,6 @@ import javafx.util.Duration;
 import tn.esprit.entities.Commande;
 import tn.esprit.entities.CommandeProduit;
 import tn.esprit.entities.User;
-import tn.esprit.services.CommandePDFService;
-import tn.esprit.services.CommandeService;
 import tn.esprit.session.CartSession;
 import tn.esprit.tools.SessionManager;
 
@@ -129,6 +126,7 @@ public class CommandeController {
     @FXML private Button btnPayerStripe;
     private final StripeCheckoutService stripeCheckoutService = new StripeCheckoutService();
     private final StripeCallbackServer stripeCallbackServer = new StripeCallbackServer();
+    private final SmsService smsService = new SmsService();
 
     @FXML
     public void initialize() {
@@ -1882,6 +1880,15 @@ public class CommandeController {
                 showCommandeToast("Commande introuvable après paiement.", "commande-toast-danger", "✖");
                 return;
             }
+//NA7I
+          /*  User user = SessionManager.getCurrentUser();
+            boolean smsEnvoye = smsService.envoyerSmsConfirmationCommande(user, commande);
+
+            if (smsEnvoye) {
+                System.out.println("SMS de confirmation envoyé.");
+            } else {
+                System.out.println("Échec envoi SMS.");
+            }*/
 
             commandeSelectionneeFront = commande;
             CartSession.viderPanier();
@@ -1898,13 +1905,20 @@ public class CommandeController {
             stage.setScene(scene);
             stage.setTitle("Détail commande");
             stage.show();
-
             Platform.runLater(() -> showToastOnStage(
                     stage,
                     "Paiement effectué avec succès. Patientez pour votre SMS de confirmation.",
                     "commande-toast-success",
                     "✅"
             ));
+          /*  Platform.runLater(() -> showToastOnStage(
+                    stage,
+                    smsEnvoye
+                            ? "Paiement effectué avec succès. SMS de confirmation envoyé."
+                            : "Paiement effectué avec succès. Échec de l'envoi du SMS.",
+                    smsEnvoye ? "commande-toast-success" : "commande-toast-warning",
+                    smsEnvoye ? "✅" : "⚠"
+            ));*/
 
         } catch (Exception e) {
             e.printStackTrace();

@@ -8,12 +8,11 @@
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.Priority?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
-<BorderPane xmlns="http://javafx.com/javafx/25"
+<BorderPane xmlns="http://javafx.com/javafx/26"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="tn.esprit.controllers.ProduitController"
             prefWidth="1400.0" prefHeight="850.0"
@@ -125,6 +124,9 @@
                         prefWidth="220.0"
                         contentDisplay="GRAPHIC_ONLY"
                         styleClass="sidebar-item, sidebar-btn">
+                    <VBox.margin>
+                        <Insets top="12.0" right="0.0" bottom="0.0" left="0.0"/>
+                    </VBox.margin>
                     <graphic>
                         <HBox alignment="CENTER_LEFT" spacing="10.0" maxWidth="Infinity">
                             <children>

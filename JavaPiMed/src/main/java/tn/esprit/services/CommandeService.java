@@ -286,9 +286,9 @@ public class CommandeService implements IGeneralService<Commande> {
 
         try (Statement st = cn.createStatement();
              ResultSet rs = st.executeQuery("""
-    SELECT c.*, u.nom, u.prenom, u.email_user
-    FROM commande c
-    LEFT JOIN user u ON c.user_id = u.id
+SELECT c.*, u.nom, u.prenom, u.email_user, u.telephone_user, u.adresse_user, u.cin
+FROM commande c
+LEFT JOIN user u ON c.user_id = u.id
 """);) {
 
             while (rs.next()) {
@@ -309,12 +309,12 @@ public class CommandeService implements IGeneralService<Commande> {
         }
 
         String sql = """
-                SELECT c.*, u.nom, u.prenom, u.email_user
-                FROM commande c
-                LEFT JOIN user u ON c.user_id = u.id
-                WHERE c.user_id = ?
-                ORDER BY c.date_creation_commande DESC
-                """;
+        SELECT c.*, u.nom, u.prenom, u.email_user, u.telephone_user, u.adresse_user, u.cin
+        FROM commande c
+        LEFT JOIN user u ON c.user_id = u.id
+        WHERE c.user_id = ?
+        ORDER BY c.date_creation_commande DESC
+        """;
 
         try (PreparedStatement ps = cn.prepareStatement(sql)) {
             ps.setInt(1, userId);
@@ -332,17 +332,30 @@ public class CommandeService implements IGeneralService<Commande> {
 
     @Override
     public Commande recupererParId(int id) {
-        try (PreparedStatement ps = cn.prepareStatement("SELECT * FROM commande WHERE id_commande=?")) {
+        String sql = """
+            SELECT c.*, u.nom, u.prenom, u.email_user, u.telephone_user, u.adresse_user, u.cin
+            FROM commande c
+            LEFT JOIN user u ON c.user_id = u.id
+            WHERE c.id_commande = ?
+            """;
+
+        try (PreparedStatement ps = cn.prepareStatement(sql)) {
 
             ps.setInt(1, id);
             ResultSet rs = ps.executeQuery();
 
             if (rs.next()) {
                 Commande c = new Commande();
-                c.setId_commande(id);
+                c.setId_commande(rs.getInt("id_commande"));
 
                 User u = new User();
                 u.setId(rs.getInt("user_id"));
+                u.setNom(rs.getString("nom"));
+                u.setPrenom(rs.getString("prenom"));
+                u.setEmailUser(rs.getString("email_user"));
+                u.setTelephoneUser(rs.getString("telephone_user"));
+                u.setAdresseUser(rs.getString("adresse_user"));
+                u.setCin(rs.getString("cin"));
                 c.setUser(u);
 
                 Timestamp dateCreation = rs.getTimestamp("date_creation_commande");
@@ -359,26 +372,8 @@ public class CommandeService implements IGeneralService<Commande> {
                 }
 
                 c.setMontant_total_cents(rs.getInt("montant_total_cents"));
+                c.setCommande_produits(chargerLignesCommande(c.getId_commande()));
 
-                List<CommandeProduit> lignes = new ArrayList<>();
-                try (PreparedStatement psL = cn.prepareStatement("SELECT * FROM commande_produit WHERE commande_id=?")) {
-                    psL.setInt(1, id);
-                    ResultSet rsL = psL.executeQuery();
-
-                    while (rsL.next()) {
-                        CommandeProduit cp = new CommandeProduit();
-                        cp.setId_ligne_commande(rsL.getInt("id_ligne_commande"));
-                        cp.setQuantite_commandee(rsL.getInt("quantite_commandee"));
-
-                        int produitId = rsL.getInt("produit_id");
-                        Produit p = recupererProduitParId(produitId);
-                        cp.setProduit(p);
-
-                        lignes.add(cp);
-                    }
-                }
-
-                c.setCommande_produits(lignes);
                 return c;
             }
 
@@ -407,6 +402,9 @@ public class CommandeService implements IGeneralService<Commande> {
         u.setNom(rs.getString("nom"));
         u.setPrenom(rs.getString("prenom"));
         u.setEmailUser(rs.getString("email_user"));
+        u.setTelephoneUser(rs.getString("telephone_user"));
+        u.setAdresseUser(rs.getString("adresse_user"));
+        u.setCin(rs.getString("cin"));
         c.setUser(u);
 
         Timestamp date = rs.getTimestamp("date_creation_commande");

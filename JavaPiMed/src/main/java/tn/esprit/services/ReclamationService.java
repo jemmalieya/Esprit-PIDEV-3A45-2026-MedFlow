@@ -174,4 +174,71 @@ public class ReclamationService implements IGeneralService<Reclamation> {
 
         return list;
     }
+
+    public List<Reclamation> getByUserId(int userId) {
+
+        List<Reclamation> list = new ArrayList<>();
+
+        String sql = "SELECT * FROM reclamation WHERE user_id = ?";
+
+        try {
+            PreparedStatement ps = cn.prepareStatement(sql);
+            ps.setInt(1, userId);
+
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                Reclamation r = new Reclamation();
+
+                r.setId_reclamation(rs.getInt("id_reclamation"));
+
+                User user = new User();
+                user.setId(rs.getInt("user_id"));
+                r.setUser(user);
+
+                r.setContenu(rs.getString("contenu"));
+                r.setDescription(rs.getString("description"));
+                r.setType(rs.getString("type"));
+                r.setStatut_reclamation(rs.getString("statut_reclamation"));
+                r.setPriorite(rs.getString("priorite"));
+                r.setReference_reclamation(rs.getString("reference_reclamation"));
+
+                Timestamp tsCreation = rs.getTimestamp("date_creation_r");
+                r.setDate_creation_r(tsCreation != null ? tsCreation.toLocalDateTime() : null);
+
+                list.add(r);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return list;
+    }
+
+    public void updateNotificationEnvoyee(int idReclamation, boolean notificationEnvoyee) {
+        String sql = "UPDATE reclamation SET notification_envoyee = ? WHERE id_reclamation = ?";
+
+        try {
+            PreparedStatement ps = cn.prepareStatement(sql);
+            ps.setBoolean(1, notificationEnvoyee);
+            ps.setInt(2, idReclamation);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void updateStatut(int idReclamation, String statut) {
+        String sql = "UPDATE reclamation SET statut_reclamation = ? WHERE id_reclamation = ?";
+
+        try {
+            PreparedStatement ps = cn.prepareStatement(sql);
+            ps.setString(1, statut);
+            ps.setInt(2, idReclamation);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
 }

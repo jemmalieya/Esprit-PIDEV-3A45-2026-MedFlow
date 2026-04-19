@@ -11,6 +11,10 @@ public class ReponseReclamation {
     private LocalDateTime date_creation_rep;
     private LocalDateTime date_modification_rep;
     private boolean is_read;
+    private String auteur;
+    private String role_emetteur;
+    private boolean lu_par_admin;
+    private boolean lu_par_patient;
 
     public ReponseReclamation() {
     }
@@ -96,6 +100,37 @@ public class ReponseReclamation {
         this.is_read = is_read;
     }
 
+    public String getAuteur() {
+        return auteur;
+    }
+
+    public void setAuteur(String auteur) {
+        this.auteur = auteur;
+    }
+
+    public String getRole_emetteur() {
+        return role_emetteur;
+    }
+
+    public void setRole_emetteur(String role_emetteur) {
+        this.role_emetteur = role_emetteur;
+    }
+
+    public boolean isLu_par_admin() {
+        return lu_par_admin;
+    }
+
+    public void setLu_par_admin(boolean lu_par_admin) {
+        this.lu_par_admin = lu_par_admin;
+    }
+
+    public boolean isLu_par_patient() {
+        return lu_par_patient;
+    }
+
+    public void setLu_par_patient(boolean lu_par_patient) {
+        this.lu_par_patient = lu_par_patient;
+    }
     @Override
     public String toString() {
         return "ReponseReclamation{" +
@@ -103,8 +138,12 @@ public class ReponseReclamation {
                 ", reclamation=" + (reclamation != null ? reclamation.getId_reclamation() : null) +
                 ", message='" + message + '\'' +
                 ", type_reponse='" + type_reponse + '\'' +
+                ", auteur='" + auteur + '\'' +
+                ", role_emetteur='" + role_emetteur + '\'' +
                 ", date_creation_rep=" + date_creation_rep +
                 ", date_modification_rep=" + date_modification_rep +
+                ", lu_par_admin=" + lu_par_admin +
+                ", lu_par_patient=" + lu_par_patient +
                 ", is_read=" + is_read +
                 '}';
     }

@@ -13,6 +13,15 @@ import javafx.stage.Stage;
 import tn.esprit.entities.Post;
 import tn.esprit.services.PostService;
 
+import java.io.FileOutputStream;
+import java.util.List;
+
+import com.itextpdf.text.Document;
+import com.itextpdf.text.Font;
+import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.Phrase;
+import com.itextpdf.text.pdf.PdfPTable;
+import com.itextpdf.text.pdf.PdfWriter;
 import java.time.LocalDateTime;
 
 public class AddPostController {
@@ -25,6 +34,12 @@ public class AddPostController {
     @FXML private TextField hashtagsField;
     @FXML private TextArea contenuArea;
     @FXML private CheckBox anonymeCheck;
+
+    @FXML private Label titreError;
+    @FXML private Label contenuError;
+    @FXML private Label hashtagsError;
+    @FXML private Label imageError;
+    @FXML private Label localisationError;
 
     @FXML private ImageView previewImage;
     @FXML private Label previewCategory;
@@ -62,7 +77,83 @@ public class AddPostController {
         }
 
         addPreviewListeners();
+        addValidationListeners();
         refreshPreview();
+    }
+    private boolean validateForm() {
+        boolean isValid = true;
+
+        // reset erreurs
+        clearError(titreField, titreError);
+        clearError(contenuArea, contenuError);
+        clearError(hashtagsField, hashtagsError);
+        clearError(imageField, imageError);
+        clearError(localisationField, localisationError);
+
+        // Titre
+        if (isBlank(titreField.getText())) {
+            setError(titreField, titreError, "Titre obligatoire");
+            isValid = false;
+        } else if (titreField.getText().length() < 5) {
+            setError(titreField, titreError, "Min 5 caractères");
+            isValid = false;
+        }
+
+        // Contenu
+        if (isBlank(contenuArea.getText())) {
+            setError(contenuArea, contenuError, "Contenu obligatoire");
+            isValid = false;
+        } else if (contenuArea.getText().length() < 10) {
+            setError(contenuArea, contenuError, "Min 10 caractères");
+            isValid = false;
+        }
+
+        // Hashtags obligatoires
+        if (isBlank(hashtagsField.getText())) {
+            setError(hashtagsField, hashtagsError, "Hashtags obligatoires");
+            isValid = false;
+        } else {
+            String regex = "^(#\\w+)([\\s,]+#\\w+)*$";
+
+            if (!hashtagsField.getText().matches(regex)) {
+                setError(hashtagsField, hashtagsError, "Format: #mot #mot");
+                isValid = false;
+            }
+        }
+
+        // Image URL
+        // Image obligatoire
+        if (isBlank(imageField.getText())) {
+            setError(imageField, imageError, "Image obligatoire");
+            isValid = false;
+        } else {
+            if (!imageField.getText().startsWith("http")) {
+                setError(imageField, imageError, "URL invalide (http/https)");
+                isValid = false;
+            }
+        }
+
+        // Localisation
+        if (!isBlank(localisationField.getText())) {
+            if (localisationField.getText().length() < 2) {
+                setError(localisationField, localisationError, "Localisation invalide");
+                isValid = false;
+            }
+        }
+
+        return isValid;
+    }
+
+    private void setError(Control field, Label errorLabel, String message) {
+        if (!field.getStyleClass().contains("error-field")) {
+            field.getStyleClass().add("error-field");
+        }
+        errorLabel.setText(message);
+    }
+
+    private void clearError(Control field, Label errorLabel) {
+        field.getStyleClass().remove("error-field");
+        errorLabel.setText("");
     }
 
     public void setPostToEdit(Post post) {
@@ -129,7 +220,7 @@ public class AddPostController {
         try {
             String url = imageField.getText();
             if (!isBlank(url)) {
-                previewImage.setImage(new Image(url, true));
+                previewImage.setImage(new Image(url));
             } else {
                 previewImage.setImage(null);
             }
@@ -153,15 +244,81 @@ public class AddPostController {
             }
         }
     }
+    private void addValidationListeners() {
 
+        // Titre
+        titreField.textProperty().addListener((obs, oldVal, newVal) -> {
+            if (isBlank(newVal) || newVal.length() < 5) {
+                titreField.setStyle("-fx-border-color: red;");
+            } else {
+                titreField.setStyle(null);
+                titreError.setText("");
+            }
+        });
+
+        // Contenu
+        contenuArea.textProperty().addListener((obs, oldVal, newVal) -> {
+            if (isBlank(newVal) || newVal.length() < 10) {
+                contenuArea.setStyle("-fx-border-color: red;");
+            } else {
+                contenuArea.setStyle(null);
+                contenuError.setText("");
+            }
+        });
+
+        // Hashtags
+        hashtagsField.textProperty().addListener((obs, oldVal, newVal) -> {
+            String regex = "^(#\\w+)([\\s,]+#\\w+)*$";
+
+            if (!isBlank(newVal) && !newVal.matches(regex)) {
+                hashtagsField.setStyle("-fx-border-color: red;");
+            } else {
+                hashtagsField.setStyle(null);
+                hashtagsError.setText("");
+            }
+        });
+
+        // Image
+        imageField.textProperty().addListener((obs, oldVal, newVal) -> {
+            if (!isBlank(newVal) && !newVal.startsWith("http")) {
+                imageField.setStyle("-fx-border-color: red;");
+            } else {
+                imageField.setStyle(null);
+                imageError.setText("");
+            }
+        });
+
+        // Localisation
+        localisationField.textProperty().addListener((obs, oldVal, newVal) -> {
+            if (!isBlank(newVal) && newVal.length() < 2) {
+                localisationField.setStyle("-fx-border-color: red;");
+            } else {
+                localisationField.setStyle(null);
+                localisationError.setText("");
+            }
+        });
+
+        // ComboBox Catégorie
+        categorieBox.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (isBlank(newVal)) {
+                categorieBox.setStyle("-fx-border-color: red;");
+            } else {
+                categorieBox.setStyle(null);
+            }
+        });
+
+        // ComboBox Humeur
+        humeurBox.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (isBlank(newVal)) {
+                humeurBox.setStyle("-fx-border-color: red;");
+            } else {
+                humeurBox.setStyle(null);
+            }
+        });
+    }
     @FXML
     private void handlePublish() {
-        if (isBlank(titreField.getText()) || isBlank(contenuArea.getText())) {
-            Alert alert = new Alert(Alert.AlertType.WARNING);
-            alert.setTitle("Champs requis");
-            alert.setHeaderText(null);
-            alert.setContentText("Le titre et le contenu sont obligatoires.");
-            alert.showAndWait();
+        if (!validateForm()) {
             return;
         }
 
@@ -182,7 +339,16 @@ public class AddPostController {
                     postToEdit.setVisibilite("Public");
                 }
 
-                postService.modifier(postToEdit);
+                boolean success = postService.modifier(postToEdit);
+
+                if (!success) {
+                    Alert alert = new Alert(Alert.AlertType.WARNING);
+                    alert.setTitle("Doublon détecté");
+                    alert.setHeaderText("Modification bloquée");
+                    alert.setContentText("Un autre post identique existe déjà. Impossible de modifier ce post.");
+                    alert.showAndWait();
+                    return;
+                }
 
                 Alert alert = new Alert(Alert.AlertType.INFORMATION);
                 alert.setTitle("Succès");
@@ -212,14 +378,13 @@ public class AddPostController {
                 post.setModeration_status("approved");
                 post.setModeration_message("");
                 post.setModeration_seen(true);
-
                 boolean success = postService.ajouter(post);
 
                 if (!success) {
-                    Alert alert = new Alert(Alert.AlertType.ERROR);
-                    alert.setTitle("Erreur");
-                    alert.setHeaderText("Ajout impossible");
-                    alert.setContentText("Le post n'a pas été ajouté.");
+                    Alert alert = new Alert(Alert.AlertType.WARNING);
+                    alert.setTitle("Doublon détecté");
+                    alert.setHeaderText("Ajout bloqué");
+                    alert.setContentText("Un post identique existe déjà. Impossible d'ajouter ce post.");
                     alert.showAndWait();
                     return;
                 }
@@ -259,6 +424,8 @@ public class AddPostController {
             e.printStackTrace();
         }
     }
+
+
 
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();

@@ -59,6 +59,12 @@
                                       prefWidth="190"
                                       minWidth="170"/>
 
+                            <Button text="Exporter PDF"
+                                    onAction="#handleExportPdf"
+                                    styleClass="new-post-btn"
+                                    prefWidth="140"
+                                    minWidth="140"/>
+
                             <Button text="+ Nouveau post"
                                     onAction="#openAddPostPage"
                                     styleClass="new-post-btn"

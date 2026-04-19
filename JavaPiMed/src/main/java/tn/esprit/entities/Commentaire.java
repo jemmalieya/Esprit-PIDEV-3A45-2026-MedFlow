@@ -5,8 +5,11 @@ import java.time.LocalDateTime;
 public class Commentaire {
 
     private int id;
-    private int post_id;
-    private int user_id;
+
+    // objets au lieu de juste stocker les ids
+    private Post post;
+    private User user;
+
     private String contenu;
     private LocalDateTime date_creation;
     private boolean est_anonyme;
@@ -19,10 +22,10 @@ public class Commentaire {
     public Commentaire() {
     }
 
-    public Commentaire(int post_id, int user_id, String contenu, LocalDateTime date_creation,
+    public Commentaire(Post post, User user, String contenu, LocalDateTime date_creation,
                        boolean est_anonyme, String parametres_confidentialite, String status) {
-        this.post_id = post_id;
-        this.user_id = user_id;
+        this.post = post;
+        this.user = user;
         this.contenu = contenu;
         this.date_creation = date_creation;
         this.est_anonyme = est_anonyme;
@@ -30,12 +33,12 @@ public class Commentaire {
         this.status = status;
     }
 
-    public Commentaire(int id, int post_id, int user_id, String contenu, LocalDateTime date_creation,
+    public Commentaire(int id, Post post, User user, String contenu, LocalDateTime date_creation,
                        boolean est_anonyme, String parametres_confidentialite, String status,
                        Double moderation_score, String moderation_label, LocalDateTime moderated_at) {
         this.id = id;
-        this.post_id = post_id;
-        this.user_id = user_id;
+        this.post = post;
+        this.user = user;
         this.contenu = contenu;
         this.date_creation = date_creation;
         this.est_anonyme = est_anonyme;
@@ -54,21 +57,29 @@ public class Commentaire {
         this.id = id;
     }
 
-
-    public int getPost_id() {
-        return post_id;
+    public Post getPost() {
+        return post;
     }
 
-    public void setPost_id(int post_id) {
-        this.post_id = post_id;
+    public void setPost(Post post) {
+        this.post = post;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    // compatibilité si tu veux encore accéder à l'id directement
+    public int getPost_id() {
+        return post != null ? post.getId() : 0;
     }
 
     public int getUser_id() {
-        return user_id;
-    }
-
-    public void setUser_id(int user_id) {
-        this.user_id = user_id;
+        return user != null ? user.getId() : 0;
     }
 
     public String getContenu() {
@@ -139,8 +150,8 @@ public class Commentaire {
     public String toString() {
         return "Commentaire{" +
                 "id=" + id +
-                ", post_id=" + post_id +
-                ", user_id=" + user_id +
+                ", post=" + (post != null ? post.getId() : null) +
+                ", user=" + (user != null ? user.getId() : null) +
                 ", contenu='" + contenu + '\'' +
                 ", date_creation=" + date_creation +
                 ", est_anonyme=" + est_anonyme +

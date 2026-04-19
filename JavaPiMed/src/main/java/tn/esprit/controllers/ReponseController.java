@@ -18,6 +18,15 @@ import tn.esprit.entities.ReponseReclamation;
 import tn.esprit.services.ReclamationService;
 import tn.esprit.services.ReponseService;
 
+import javafx.collections.ObservableList;
+import javafx.scene.chart.BarChart;
+import javafx.scene.chart.LineChart;
+import javafx.scene.chart.PieChart;
+import javafx.scene.chart.XYChart;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
@@ -43,21 +52,40 @@ public class ReponseController {
 
     @FXML private VBox submenuVBox;
 
+    @FXML private Label reclamationArrow;
+
+    @FXML private Label totalLabel;
+    @FXML private Label traiteesLabel;
+    @FXML private Label enAttenteStatsLabel;
+    @FXML private Label critiquesLabel;
+
+    @FXML private BarChart<String, Number> typeBarChart;
+    @FXML private PieChart statusPieChart;
+    @FXML private LineChart<String, Number> reclamationLineChart;
+
     private final ReclamationService reclamationService = new ReclamationService();
     private final ObservableList<Reclamation> masterList = FXCollections.observableArrayList();
     private FilteredList<Reclamation> filteredList;
 
-    @FXML private Label evenementArrow;
+
 
     @FXML
     public void initialize() {
-        configureTable();
-        configureSort();
-        loadData();
-        configureSearch();
-        updateStats();
-        System.out.println("sortCombo = " + sortCombo);
+        // Page reponse.fxml
+        if (reclamationTable != null) {
+            configureTable();
+            configureSort();
+            loadData();
+            configureSearch();
+            updateStats();
+        }
+
+        // Page ReclamationStats.fxml
+        if (totalLabel != null) {
+            loadReclamationStatsPage();
+        }
     }
+
 
     private void configureTable() {
         referenceCol.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("reference_reclamation"));
@@ -429,25 +457,10 @@ public class ReponseController {
         submenuVBox.setManaged(show);
 
         if (show) {
-            evenementArrow.setText("⌃");
+            reclamationArrow.setText("⌃");
         } else {
-            evenementArrow.setText("⌄");
+            reclamationArrow.setText("⌄");
         }
-    }
-
-    @FXML
-    private void onVoirTousEvenements() {
-        // Logique pour afficher toutes les réclamations
-    }
-
-    @FXML
-    private void onTableauBordAdmin() {
-        // Logique pour ouvrir le tableau de bord admin
-    }
-
-    @FXML
-    private void onAutresActions() {
-        // Logique pour autres actions
     }
 
     private boolean contains(String value, String keyword) {
@@ -481,4 +494,147 @@ public class ReponseController {
             e.printStackTrace();
         }
     }
+
+    private void loadReclamationStatsPage() {
+        try {
+            List<Reclamation> reclamations = reclamationService.recuperer();
+
+            int total = reclamations.size();
+            int traitees = 0;
+            int enAttente = 0;
+            int critiques = 0;
+
+            Map<String, Integer> typeCounts = new LinkedHashMap<>();
+            Map<String, Integer> statusCounts = new LinkedHashMap<>();
+            Map<String, Integer> dateCounts = new LinkedHashMap<>();
+
+            for (Reclamation r : reclamations) {
+                String statut = safe(r.getStatut_reclamation()).toLowerCase(Locale.ROOT);
+                String priorite = safe(r.getPriorite()).toLowerCase(Locale.ROOT);
+                String type = safe(r.getType()).isBlank() ? "Inconnu" : r.getType();
+
+                if (statut.contains("traite")) {
+                    traitees++;
+                } else {
+                    enAttente++;
+                }
+
+                if (priorite.contains("critique")) {
+                    critiques++;
+                }
+
+                typeCounts.put(type, typeCounts.getOrDefault(type, 0) + 1);
+
+                String statusLabel = safe(r.getStatut_reclamation()).isBlank() ? "Inconnu" : r.getStatut_reclamation();
+                statusCounts.put(statusLabel, statusCounts.getOrDefault(statusLabel, 0) + 1);
+
+                String dateKey = "Sans date";
+                try {
+                    if (r.getDate_creation_r() != null) {
+                        dateKey = r.getDate_creation_r().toLocalDate().toString();
+                    }
+                } catch (Exception ignored) {
+                }
+                dateCounts.put(dateKey, dateCounts.getOrDefault(dateKey, 0) + 1);
+            }
+
+            if (totalLabel != null) totalLabel.setText(String.valueOf(total));
+            if (traiteesLabel != null) traiteesLabel.setText(String.valueOf(traitees));
+            if (enAttenteStatsLabel != null) enAttenteStatsLabel.setText(String.valueOf(enAttente));
+            if (critiquesLabel != null) critiquesLabel.setText(String.valueOf(critiques));
+
+            if (typeBarChart != null) {
+                typeBarChart.getData().clear();
+
+                XYChart.Series<String, Number> series = new XYChart.Series<>();
+                series.setName("Réclamations");
+
+                for (Map.Entry<String, Integer> entry : typeCounts.entrySet()) {
+                    series.getData().add(new XYChart.Data<>(entry.getKey(), entry.getValue()));
+                }
+
+                typeBarChart.getData().add(series);
+                typeBarChart.setLegendVisible(false);
+            }
+
+            if (statusPieChart != null) {
+                ObservableList<PieChart.Data> pieData = FXCollections.observableArrayList();
+
+                for (Map.Entry<String, Integer> entry : statusCounts.entrySet()) {
+                    pieData.add(new PieChart.Data(entry.getKey(), entry.getValue()));
+                }
+
+                statusPieChart.setData(pieData);
+                statusPieChart.setLegendVisible(true);
+                statusPieChart.setLabelsVisible(true);
+            }
+
+            if (reclamationLineChart != null) {
+                reclamationLineChart.getData().clear();
+
+                XYChart.Series<String, Number> lineSeries = new XYChart.Series<>();
+                lineSeries.setName("Évolution");
+
+                for (Map.Entry<String, Integer> entry : dateCounts.entrySet()) {
+                    lineSeries.getData().add(new XYChart.Data<>(entry.getKey(), entry.getValue()));
+                }
+
+                reclamationLineChart.getData().add(lineSeries);
+                reclamationLineChart.setLegendVisible(false);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Erreur", "Impossible de charger les statistiques des réclamations.");
+        }
+    }
+
+    @FXML
+    private void openReclamationStats() {
+        navigateTo("/ReclamationStats.fxml", "MedFlow - Statistiques Réclamations");
+    }
+
+    @FXML
+    private void openBlogStats() {
+        navigateTo("/BlogStats.fxml", "MedFlow - Statistiques Blog");
+    }
+
+    @FXML
+    private void handleLogout() {
+        navigateTo("/FrontFXML/Login.fxml", "MedFlow - Connexion");
+    }
+
+    private void navigateTo(String fxmlPath, String title) {
+        try {
+            var resource = getClass().getResource(fxmlPath);
+
+            if (resource == null) {
+                showAlert(Alert.AlertType.ERROR, "Navigation", "FXML introuvable : " + fxmlPath);
+                return;
+            }
+
+            FXMLLoader loader = new FXMLLoader(resource);
+            Parent root = loader.load();
+
+            Stage stage;
+            if (reclamationTable != null) {
+                stage = (Stage) reclamationTable.getScene().getWindow();
+            } else {
+                stage = (Stage) totalLabel.getScene().getWindow();
+            }
+
+            stage.setScene(new Scene(root, 1650, 960));
+            stage.setTitle(title);
+            stage.show();
+        } catch (Exception e) {
+            e.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Navigation", "Impossible d'ouvrir la page demandée : " + e.getMessage());
+        }
+    }
+
+    @FXML
+    private void backToReponses() {
+        navigateTo("/reponse.fxml", "MedFlow - Gestion des réclamations");
+    }
+
 }

@@ -15,8 +15,8 @@ public class CommentaireMain {
         // AJOUT
         // =========================
         Commentaire c = new Commentaire();
-        c.setPost_id(1); // id d'un post existant
-        c.setUser_id(15); // id d'un user existant
+      //  c.setPost_id(1); // id d'un post existant
+       // c.setUser_id(15); // id d'un user existant
         c.setContenu("Ceci est un commentaire test");
         c.setDate_creation(LocalDateTime.now());
         c.setEst_anonyme(false);

@@ -54,6 +54,7 @@ public class ReclamationListController {
 
                 if (empty || statut == null) {
                     setText(null);
+                    setGraphic(null); // IMPORTANT
                 } else {
                     Label label = new Label(statut);
                     label.getStyleClass().add("badge");
@@ -64,6 +65,7 @@ public class ReclamationListController {
                         label.getStyleClass().add("badge-green");
                     }
 
+                    setText(null);
                     setGraphic(label);
                 }
             }
@@ -77,6 +79,7 @@ public class ReclamationListController {
 
                 if (empty || prio == null) {
                     setText(null);
+                    setGraphic(null); // IMPORTANT
                 } else {
                     Label label = new Label(prio);
                     label.getStyleClass().add("badge");
@@ -89,6 +92,7 @@ public class ReclamationListController {
                         label.getStyleClass().add("badge-green");
                     }
 
+                    setText(null);
                     setGraphic(label);
                 }
             }
@@ -144,7 +148,6 @@ public class ReclamationListController {
         loadTable();
     }
     private void showReclamationDetails(Reclamation r) {
-
         try {
             List<ReponseReclamation> reponses =
                     reponseService.getByReclamationId(r.getId_reclamation());
@@ -157,9 +160,7 @@ public class ReclamationListController {
                 empty.setStyle("-fx-text-fill: gray; -fx-font-size: 14;");
                 container.getChildren().add(empty);
             } else {
-
                 for (ReponseReclamation rep : reponses) {
-
                     VBox card = new VBox(5);
                     card.setStyle(
                             "-fx-background-color: white;" +
@@ -180,7 +181,6 @@ public class ReclamationListController {
                             : "-fx-text-fill: red;");
 
                     card.getChildren().addAll(msg, type, date, lu);
-
                     container.getChildren().add(card);
                 }
             }
@@ -192,21 +192,12 @@ public class ReclamationListController {
             Alert alert = new Alert(Alert.AlertType.INFORMATION);
             alert.setTitle("Réponses");
             alert.setHeaderText("Détails des réponses");
-
             alert.getDialogPane().setContent(scroll);
-
-
-// ✅ ICI TU AJOUTES
             alert.getDialogPane().setPrefWidth(500);
             alert.getDialogPane().setPrefHeight(350);
+            alert.getDialogPane().setStyle("-fx-background-color: #f8fafc;");
 
-            alert.showAndWait();
-
-            alert.getDialogPane().setStyle(
-                    "-fx-background-color: #f8fafc;"
-            );
-
-            alert.showAndWait();
+            alert.showAndWait(); // UNE SEULE FOIS
 
         } catch (Exception e) {
             e.printStackTrace();

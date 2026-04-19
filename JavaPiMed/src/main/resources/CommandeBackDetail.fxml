@@ -198,14 +198,20 @@
                                 </children>
                             </HBox>
 
-                            <VBox styleClass="section-card-body">
+                            <VBox styleClass="section-card-body" spacing="14.0">
                                 <padding>
                                     <Insets top="18.0" right="18.0" bottom="18.0" left="18.0"/>
                                 </padding>
                                 <children>
-                                    <Label text="Modifiez le statut de la commande selon son avancement."
+                                    <Label text="Le départ se fait depuis la pharmacie Esprit Ariana et la destination est l’adresse du client."
                                            wrapText="true"
                                            styleClass="info-line"/>
+
+                                    <HBox spacing="12" alignment="CENTER_LEFT">
+                                        <Button fx:id="btnCommencerLivraison" text="🚚 Commencer livraison"
+                                                onAction="#commencerLivraisonCommande"
+                                                styleClass="btn-update"/>
+                                    </HBox>
                                 </children>
                             </VBox>
                         </children>

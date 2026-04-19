@@ -5,8 +5,11 @@ import javafx.scene.Node;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.DialogPane;
 import javafx.animation.FadeTransition;
+import javafx.animation.KeyFrame;
 import javafx.animation.PauseTransition;
 import javafx.animation.SequentialTransition;
+import javafx.animation.Timeline;
+import javafx.event.ActionEvent;
 import javafx.scene.control.TextField;
 import javafx.stage.FileChooser;
 import javafx.application.Platform;
@@ -14,13 +17,18 @@ import tn.esprit.entities.Produit;
 import tn.esprit.services.*;
 import com.stripe.model.checkout.Session;
 
+
+
 import java.awt.Desktop;
+import java.io.*;
+import java.net.HttpURLConnection;
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 import java.awt.Color;
-import java.io.FileOutputStream;
 import java.time.format.DateTimeFormatter;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -32,6 +40,7 @@ import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
+import javafx.scene.shape.Circle;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import tn.esprit.entities.Commande;
@@ -40,12 +49,15 @@ import tn.esprit.entities.User;
 import tn.esprit.session.CartSession;
 import tn.esprit.tools.SessionManager;
 
-import java.io.File;
-import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 
 public class CommandeController {
 
@@ -59,7 +71,26 @@ public class CommandeController {
     private static Commande commandeSelectionneeBack;
 
     private final List<Commande> allCommandesBack = new ArrayList<>();
+    private static final String PHARMACY_ADDRESS = "Pharmacie Esprit Ariana";
+    private static final double PHARMACY_LAT = 36.8988;
+    private static final double PHARMACY_LNG = 10.1896;
+    private static final int FAST_MARKER_ANIMATION_SECONDS = 20;
+    private static final String TRUCK_MARKER_COLOR = "#f97316";
+    private static final String START_MARKER_COLOR = "#2563eb";
+    private static final String DEST_MARKER_COLOR = "#ef4444";
+    private final GeocodingService geocodingService = new GeocodingService();
 
+    @FXML private StackPane mapContainer;
+    @FXML private Label livraisonDepartLabel;
+    @FXML private Label livraisonDestinationLabel;
+    @FXML private Label livraisonStatutLabel;
+    @FXML private Label livraisonDistanceLabel;
+    @FXML private Label livraisonDureeLabel;
+    @FXML
+    private ImageView livraisonMapImageView;
+    private Pane markerOverlayPane;
+    private Node movingTruckMarker;
+    private Timeline markerTimeline;
     // =======================
     // FRONT - LISTE
     // =======================
@@ -117,6 +148,7 @@ public class CommandeController {
 
     @FXML private ComboBox<String> nouveauStatutCombo;
     @FXML private Button btnMettreAJourStatut;
+    @FXML private Button btnCommencerLivraison;
     @FXML private Button btnTelechargerFacture;
     @FXML private Button btnSupprimerCommande;
 
@@ -135,29 +167,28 @@ public class CommandeController {
             initCheckoutPage();
         }
 
-        // FRONT LISTE
+        if (mapContainer != null) {
+            Platform.runLater(this::initSuiviLivraisonPage);
+        }
+
         if (commandeContainer != null) {
             loadCommandesFront();
             updatePanierButtonFront();
         }
 
-        // FRONT DETAIL
         if (lblNumCommande != null) {
             initFrontDetail();
             updatePanierButtonDetail();
         }
 
-        // BACK LISTE
         if (commandesRowsContainer != null) {
             initBackList();
         }
 
-        // BACK DETAIL
         if (detailCommandeNumeroLabel != null) {
             initBackDetail();
         }
     }
-
     // =========================================================
     // FRONT LISTE
     // =========================================================
@@ -350,11 +381,36 @@ public class CommandeController {
     }
 
     private void handleSuiviLivraison(Commande c) {
-        Alert a = new Alert(Alert.AlertType.INFORMATION);
-        a.setTitle("Suivi livraison");
-        a.setHeaderText(null);
-        a.setContentText("Suivi livraison pour la commande #" + c.getId_commande());
-        a.showAndWait();
+        try {
+            if (c == null) {
+                showCommandeToast("Commande introuvable.", "commande-toast-danger", "✖");
+                return;
+            }
+
+            commandeSelectionneeFront = c;
+
+            URL url = getClass().getResource("/FrontFXML/SuiviLivraison.fxml");
+            if (url == null) {
+                throw new IOException("Fichier introuvable : /FrontFXML/SuiviLivraison.fxml");
+            }
+
+            Parent root = FXMLLoader.load(url);
+
+            Stage stage = (Stage) commandeContainer.getScene().getWindow();
+            Scene scene = new Scene(root, 1400, 820);
+
+            if (commandeContainer.getScene() != null) {
+                scene.getStylesheets().addAll(commandeContainer.getScene().getStylesheets());
+            }
+
+            stage.setScene(scene);
+            stage.setTitle("Suivi livraison");
+            stage.show();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            showCommandeToast("Impossible d'ouvrir le suivi livraison.", "commande-toast-danger", "✖");
+        }
     }
 
     @FXML
@@ -899,7 +955,50 @@ public class CommandeController {
         );
         detailStatutLabel.getStyleClass().addAll("status-badge", getStatusClass(commandeSelectionneeBack.getStatut_commande()));
 
+        if (btnCommencerLivraison != null) {
+            String statut = commandeSelectionneeBack.getStatut_commande();
+            btnCommencerLivraison.setDisable(isStatutLivraison(statut) || isStatutTerminee(statut));
+        }
+
         fillProduitsGridBack();
+    }
+
+    @FXML
+    private void commencerLivraisonCommande(ActionEvent event) {
+        if (commandeSelectionneeBack == null) return;
+
+        String statut = commandeSelectionneeBack.getStatut_commande();
+        if (isStatutLivraison(statut) || isStatutTerminee(statut)) {
+            if (btnCommencerLivraison != null) {
+                btnCommencerLivraison.setDisable(true);
+            }
+            if (event != null && event.getSource() instanceof Button btn) {
+                btn.setDisable(true);
+            }
+            showCommandeToast("Livraison deja demarree ou terminee.", "commande-toast-warning", "⚠");
+            return;
+        }
+
+        try {
+            commandeSelectionneeBack.setStatut_commande("Livraison");
+            service.modifier(commandeSelectionneeBack);
+
+            if (nouveauStatutCombo != null) {
+                nouveauStatutCombo.setValue("Livraison");
+            }
+            if (event != null && event.getSource() instanceof Button btn) {
+                btn.setDisable(true);
+            }
+            if (btnCommencerLivraison != null) {
+                btnCommencerLivraison.setDisable(true);
+            }
+
+            populateBackDetails();
+            showCommandeToast("Livraison demarree.", "commande-toast-success", "🚚");
+        } catch (Exception e) {
+            e.printStackTrace();
+            showCommandeToast("Erreur demarrage livraison.", "commande-toast-danger", "✖");
+        }
     }
 
     private void fillProduitsGridBack() {
@@ -1427,6 +1526,16 @@ public class CommandeController {
         if (s.contains("annul")) return "Annulée";
 
         return statut;
+    }
+
+    private boolean isStatutLivraison(String statut) {
+        return statut != null && statut.toLowerCase().contains("livraison");
+    }
+
+    private boolean isStatutTerminee(String statut) {
+        if (statut == null) return false;
+        String s = statut.toLowerCase();
+        return s.contains("termine") || s.contains("final");
     }
 
     private String getBadgeClass(String statut) {
@@ -2013,4 +2122,804 @@ public class CommandeController {
         sequence.setOnFinished(e -> popup.hide());
         sequence.play();
     }
+
+    private void initSuiviLivraisonPage() {
+        try {
+            System.out.println("=== initSuiviLivraisonPage ===");
+            stopMarkerAnimation();
+
+            if (livraisonDepartLabel != null) {
+                livraisonDepartLabel.setText("Départ : " + PHARMACY_ADDRESS);
+            }
+            if (livraisonDestinationLabel != null) {
+                livraisonDestinationLabel.setText("Destination : chargement...");
+            }
+            if (livraisonStatutLabel != null) {
+                applySuiviStatus("Statut : chargement...", "neutral");
+            }
+            if (livraisonDistanceLabel != null) {
+                livraisonDistanceLabel.setText("Distance : chargement...");
+            }
+            if (livraisonDureeLabel != null) {
+                livraisonDureeLabel.setText("Durée estimée : chargement...");
+            }
+
+            Commande commande = commandeSelectionneeFront;
+            if (commande == null) {
+                if (livraisonStatutLabel != null) {
+                    applySuiviStatus("Statut : commande introuvable", "error");
+                }
+                afficherBlocCarteIndisponible("Commande introuvable.");
+                return;
+            }
+
+            User user = commande.getUser();
+            if (user == null) {
+                if (livraisonStatutLabel != null) {
+                    applySuiviStatus("Statut : utilisateur introuvable", "error");
+                }
+                afficherBlocCarteIndisponible("Utilisateur introuvable.");
+                return;
+            }
+
+            String destinationAddress = user.getAdresseUser();
+            String statut = commande.getStatut_commande() == null ? "En attente" : commande.getStatut_commande();
+            boolean livraisonActive = isStatutLivraison(statut);
+            boolean livraisonTerminee = isStatutTerminee(statut);
+
+            if (livraisonStatutLabel != null) {
+                applySuiviStatus(resolveFrontLivraisonStatusText(livraisonActive, livraisonTerminee),
+                        resolveFrontLivraisonStatusClass(livraisonActive, livraisonTerminee));
+            }
+
+            if (destinationAddress == null || destinationAddress.isBlank()) {
+                if (livraisonDestinationLabel != null) {
+                    livraisonDestinationLabel.setText("Destination : adresse client introuvable");
+                }
+                if (livraisonDistanceLabel != null) {
+                    livraisonDistanceLabel.setText("Distance : indisponible");
+                }
+                if (livraisonDureeLabel != null) {
+                    livraisonDureeLabel.setText("Durée estimée : indisponible");
+                }
+                afficherBlocCarteIndisponible("Adresse client introuvable.");
+                return;
+            }
+
+            if (livraisonDestinationLabel != null) {
+                livraisonDestinationLabel.setText("Destination : " + destinationAddress);
+            }
+
+            double departLat = PHARMACY_LAT;
+            double departLng = PHARMACY_LNG;
+
+            GeocodingService.GeoPoint destination = geocodingService.geocoderAdresse(destinationAddress);
+
+            System.out.println("Départ lat/lng = " + departLat + " / " + departLng);
+            System.out.println("Destination lat/lng = " + destination.getLat() + " / " + destination.getLng());
+
+            chargerCarteAvecRoute(
+                    departLat, departLng,
+                    destination.getLat(), destination.getLng(),
+                    livraisonActive,
+                    livraisonTerminee
+            );
+
+        } catch (Exception e) {
+            e.printStackTrace();
+
+            if (livraisonStatutLabel != null) {
+                applySuiviStatus("Statut : erreur chargement carte", "error");
+            }
+            if (livraisonDistanceLabel != null) {
+                livraisonDistanceLabel.setText("Distance : erreur");
+            }
+            if (livraisonDureeLabel != null) {
+                livraisonDureeLabel.setText("Durée estimée : erreur");
+            }
+
+            afficherBlocCarteIndisponible("Erreur lors du chargement de la carte.");
+        }
+    }
+
+    private void afficherBlocCarteIndisponible(String message) {
+        if (mapContainer == null) return;
+        stopMarkerAnimation();
+
+        mapContainer.getChildren().clear();
+
+        VBox box = new VBox(16);
+        box.setAlignment(Pos.CENTER);
+        box.setPadding(new Insets(30));
+        box.setStyle("-fx-background-color: white; -fx-background-radius: 18;");
+
+        Label titre = new Label("Carte indisponible");
+        titre.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #17324d;");
+
+        Label details = new Label(message);
+        details.setWrapText(true);
+        details.setStyle("-fx-font-size: 15px; -fx-text-fill: #1f3b57;");
+
+        box.getChildren().addAll(titre, details);
+        mapContainer.getChildren().add(box);
+    }
+    private void afficherBlocOuvrirItineraire(double departLat, double departLng,
+                                              double destLat, double destLng) {
+        if (mapContainer == null) return;
+
+        mapContainer.getChildren().clear();
+
+        VBox box = new VBox(18);
+        box.setAlignment(Pos.CENTER);
+        box.setPadding(new Insets(30));
+        box.setStyle("-fx-background-color: white; -fx-background-radius: 18;");
+
+        Label titre = new Label("Itinéraire disponible");
+        titre.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #17324d;");
+
+        Label details = new Label(
+                "Le trajet de livraison a été préparé.\n" +
+                        "Cliquez sur le bouton ci-dessous pour afficher l’itinéraire."
+        );
+        details.setWrapText(true);
+        details.setAlignment(Pos.CENTER);
+        details.setStyle("-fx-font-size: 15px; -fx-text-fill: #1f3b57;");
+
+        Button btnOuvrir = new Button("🗺 Ouvrir l’itinéraire");
+        btnOuvrir.setStyle("""
+            -fx-background-color: #0f7fa3;
+            -fx-text-fill: white;
+            -fx-font-size: 15px;
+            -fx-font-weight: bold;
+            -fx-background-radius: 12;
+            -fx-padding: 10 18 10 18;
+            -fx-cursor: hand;
+            """);
+
+        btnOuvrir.setOnAction(e ->
+                ouvrirItineraireDansNavigateur(departLat, departLng, destLat, destLng)
+        );
+
+        box.getChildren().addAll(titre, details, btnOuvrir);
+        mapContainer.getChildren().add(box);
+    }
+
+    private void ouvrirItineraireDansNavigateur(double departLat, double departLng,
+                                                double destLat, double destLng) {
+        try {
+            String url = "https://www.openstreetmap.org/directions?engine=fossgis_osrm_car"
+                    + "&route=" + departLat + "%2C" + departLng
+                    + "%3B" + destLat + "%2C" + destLng;
+
+            if (Desktop.isDesktopSupported()) {
+                Desktop.getDesktop().browse(new URI(url));
+            } else {
+                showCommandeToast("Impossible d'ouvrir le navigateur.", "commande-toast-danger", "✖");
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            showCommandeToast("Erreur ouverture itinéraire.", "commande-toast-danger", "✖");
+        }
+    }
+
+    @FXML
+    private void retourCommandesDepuisSuivi() {
+        try {
+            stopMarkerAnimation();
+            URL url = getClass().getResource("/FrontFXML/MesCommandes.fxml");
+            if (url == null) {
+                throw new IOException("Fichier introuvable : /FrontFXML/MesCommandes.fxml");
+            }
+
+            Parent root = FXMLLoader.load(url);
+
+            Stage stage = (Stage) mapContainer.getScene().getWindow();
+            Scene scene = new Scene(root, 1400, 820);
+            stage.setScene(scene);
+            stage.setTitle("Mes commandes");
+            stage.show();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    private void chargerCarteStatiqueDansImageView(double departLat, double departLng,
+                                                   double destLat, double destLng) {
+        if (livraisonMapImageView == null) {
+            System.out.println("livraisonMapImageView = null");
+            afficherBlocCarteIndisponible("ImageView introuvable.");
+            return;
+        }
+
+        try {
+            String apiKey = getGeoapifyApiKey();
+            System.out.println("GEOAPIFY_API_KEY = " + (apiKey == null || apiKey.isBlank() ? "absente" : "présente"));
+
+            if (apiKey == null || apiKey.isBlank()) {
+                afficherBlocCarteIndisponible("Clé Geoapify manquante.");
+                if (livraisonDistanceLabel != null) {
+                    livraisonDistanceLabel.setText("Distance : clé manquante");
+                }
+                if (livraisonDureeLabel != null) {
+                    livraisonDureeLabel.setText("Durée estimée : clé manquante");
+                }
+                return;
+            }
+
+            // IMPORTANT : ne pas mettre %23 ici
+            String markerValue =
+                    "lonlat:" + departLng + "," + departLat + ";type:material;color:#1f77b4;size:large;text:D"
+                            + "|"
+                            + "lonlat:" + destLng + "," + destLat + ";type:material;color:#d62728;size:large;text:A";
+
+            String url =
+                    "https://maps.geoapify.com/v1/staticmap"
+                            + "?style=osm-bright"
+                            + "&width=900"
+                            + "&height=620"
+                            + "&format=png"
+                            + "&center=lonlat:" + ((departLng + destLng) / 2.0) + "," + ((departLat + destLat) / 2.0)
+                            + "&zoom=10"
+                            + "&marker=" + java.net.URLEncoder.encode(markerValue, java.nio.charset.StandardCharsets.UTF_8)
+                            + "&apiKey=" + java.net.URLEncoder.encode(apiKey, java.nio.charset.StandardCharsets.UTF_8);
+
+            System.out.println("URL carte = " + url);
+
+            Image image = new Image(url, false);
+
+            if (image.isError()) {
+                Throwable ex = image.getException();
+                if (ex != null) {
+                    ex.printStackTrace();
+                }
+                afficherBlocCarteIndisponible("Erreur chargement image carte.");
+                if (livraisonDistanceLabel != null) {
+                    livraisonDistanceLabel.setText("Distance : erreur carte");
+                }
+                if (livraisonDureeLabel != null) {
+                    livraisonDureeLabel.setText("Durée estimée : erreur carte");
+                }
+                return;
+            }
+
+            // si un ancien message a remplacé le contenu du StackPane
+            if (mapContainer != null && !mapContainer.getChildren().contains(livraisonMapImageView)) {
+                mapContainer.getChildren().clear();
+                mapContainer.getChildren().add(livraisonMapImageView);
+            }
+
+            livraisonMapImageView.setPreserveRatio(false);
+            livraisonMapImageView.setSmooth(true);
+            livraisonMapImageView.setImage(image);
+
+            if (livraisonDistanceLabel != null) {
+                livraisonDistanceLabel.setText("Distance : carte affichée");
+            }
+            if (livraisonDureeLabel != null) {
+                livraisonDureeLabel.setText("Durée estimée : carte affichée");
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            afficherBlocCarteIndisponible("Erreur lors du chargement de l'image carte.");
+            if (livraisonDistanceLabel != null) {
+                livraisonDistanceLabel.setText("Distance : erreur");
+            }
+            if (livraisonDureeLabel != null) {
+                livraisonDureeLabel.setText("Durée estimée : erreur");
+            }
+        }
+    }
+
+    private void chargerCarteAvecRoute(double departLat, double departLng,
+                                       double destLat, double destLng,
+                                       boolean livraisonActive,
+                                       boolean livraisonTerminee) {
+        if (livraisonMapImageView == null) {
+            afficherBlocCarteIndisponible("ImageView introuvable.");
+            return;
+        }
+
+        try {
+            String apiKey = getGeoapifyApiKey();
+            if (apiKey == null || apiKey.isBlank()) {
+                afficherBlocCarteIndisponible("Clé Geoapify manquante.");
+                return;
+            }
+
+            String waypoints = URLEncoder.encode(
+                    departLat + "," + departLng + "|" + destLat + "," + destLng,
+                    StandardCharsets.UTF_8
+            );
+
+            String routingUrl =
+                    "https://api.geoapify.com/v1/routing"
+                            + "?waypoints=" + waypoints
+                            + "&mode=drive"
+                            + "&format=json"
+                            + "&details=route_details"
+                            + "&apiKey=" + URLEncoder.encode(apiKey, StandardCharsets.UTF_8);
+
+            System.out.println("Routing URL = " + routingUrl);
+
+            HttpURLConnection conn = (HttpURLConnection) new URL(routingUrl).openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Accept", "application/json");
+
+            int code = conn.getResponseCode();
+            if (code != 200) {
+                throw new RuntimeException("Erreur routing HTTP : " + code);
+            }
+
+            StringBuilder sb = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    sb.append(line);
+                }
+            }
+
+            String json = sb.toString();
+            System.out.println("Routing JSON reçu.");
+
+            double[] metrics = extractDistanceAndDuration(json);
+            double distanceMeters = metrics[0];
+            double timeSeconds = metrics[1];
+            String polyline = extrairePolylineDepuisRouting(json);
+
+            if (polyline == null || polyline.isBlank()) {
+                afficherBlocCarteIndisponible("Route introuvable.");
+                return;
+            }
+
+
+            String forcedPolyline = forcePolylineEndpoints(polyline, departLat, departLng, destLat, destLng);
+
+            String geometryValue =
+                    "polyline:" + forcedPolyline + ";linecolor:#2563eb;linewidth:6;lineopacity:0.9";
+
+            String departMarkerValue = buildGeoapifyMarker(departLng, departLat, "#2563eb", "D");
+            String destinationMarkerValue = buildGeoapifyMarker(destLng, destLat, "#dc2626", "A");
+
+            String staticUrl =
+                    "https://maps.geoapify.com/v1/staticmap"
+                            + "?style=osm-bright"
+                            + "&width=700"
+                            + "&height=620"
+                            + "&format=png"
+                            + "&center=lonlat:" + ((departLng + destLng) / 2.0) + "," + ((departLat + destLat) / 2.0)
+                            + "&zoom=10"
+                            + "&geometry=" + URLEncoder.encode(geometryValue, StandardCharsets.UTF_8)
+                            + "&marker=" + URLEncoder.encode(departMarkerValue, StandardCharsets.UTF_8)
+                            + "&marker=" + URLEncoder.encode(destinationMarkerValue, StandardCharsets.UTF_8)
+                            + "&apiKey=" + URLEncoder.encode(apiKey, StandardCharsets.UTF_8);
+
+            System.out.println("Static URL = " + staticUrl);
+
+            Image image = new Image(staticUrl, false);
+
+            if (image.isError()) {
+                if (image.getException() != null) {
+                    image.getException().printStackTrace();
+                }
+                afficherBlocCarteIndisponible("Erreur chargement image carte.");
+                return;
+            }
+
+            if (mapContainer != null && !mapContainer.getChildren().contains(livraisonMapImageView)) {
+                mapContainer.getChildren().clear();
+                mapContainer.getChildren().add(livraisonMapImageView);
+            }
+
+            livraisonMapImageView.setPreserveRatio(false);
+            livraisonMapImageView.setSmooth(true);
+            livraisonMapImageView.setImage(image);
+
+            if (livraisonDistanceLabel != null) {
+                livraisonDistanceLabel.setText("Distance : " + String.format("%.2f km", distanceMeters / 1000.0));
+            }
+
+            if (livraisonDureeLabel != null) {
+                long minutes = Math.round(timeSeconds / 60.0);
+                livraisonDureeLabel.setText("Durée estimée : " + minutes + " min");
+            }
+
+            List<double[]> routePoints = parsePolylineLonLat(forcedPolyline);
+            if (routePoints.size() >= 2) {
+                if (livraisonActive) {
+                    startMarkerAnimation(routePoints, departLat, departLng, destLat, destLng, (departLat + destLat) / 2.0, (departLng + destLng) / 2.0, 10.0);
+                } else {
+                    stopMarkerAnimation();
+                    placeTruckAtPosition(routePoints, livraisonTerminee ? 1.0 : 0.0, destLat, destLng, (departLat + destLat) / 2.0, (departLng + destLng) / 2.0, 10.0);
+                    if (livraisonStatutLabel != null) {
+                        applySuiviStatus(
+                                livraisonTerminee ? "Statut : Livraison terminée" : "Statut : En attente du démarrage",
+                                livraisonTerminee ? "finished" : "waiting"
+                        );
+                    }
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            afficherBlocCarteIndisponible("Erreur lors du chargement de la route.");
+
+            if (livraisonDistanceLabel != null) {
+                livraisonDistanceLabel.setText("Distance : erreur");
+            }
+            if (livraisonDureeLabel != null) {
+                livraisonDureeLabel.setText("Durée estimée : erreur");
+            }
+        }
+    }
+
+    private List<double[]> parsePolylineLonLat(String polyline) {
+        List<double[]> points = new ArrayList<>();
+        if (polyline == null || polyline.isBlank()) {
+            return points;
+        }
+
+        String[] values = polyline.split(",");
+        for (int i = 0; i + 1 < values.length; i += 2) {
+            try {
+                double lon = Double.parseDouble(values[i].trim());
+                double lat = Double.parseDouble(values[i + 1].trim());
+                points.add(new double[]{lon, lat});
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return points;
+    }
+
+    private void startMarkerAnimation(List<double[]> routePoints, double departLat, double departLng, double destLat, double destLng, double centerLat, double centerLng, double zoom) {
+        if (mapContainer == null || livraisonMapImageView == null || routePoints == null || routePoints.size() < 2) {
+            return;
+        }
+
+        stopMarkerAnimation();
+
+        if (markerOverlayPane == null) {
+            markerOverlayPane = new Pane();
+            markerOverlayPane.setMouseTransparent(true);
+            markerOverlayPane.setPickOnBounds(false);
+        }
+
+        markerOverlayPane.getChildren().clear();
+        movingTruckMarker = createTruckMarker();
+        markerOverlayPane.getChildren().add(movingTruckMarker);
+
+        if (!mapContainer.getChildren().contains(markerOverlayPane)) {
+            mapContainer.getChildren().add(markerOverlayPane);
+        }
+
+        double viewWidth = livraisonMapImageView.getFitWidth() > 0 ? livraisonMapImageView.getFitWidth() : mapContainer.getWidth();
+        double viewHeight = livraisonMapImageView.getFitHeight() > 0 ? livraisonMapImageView.getFitHeight() : mapContainer.getHeight();
+
+        if (viewWidth <= 0 || viewHeight <= 0) {
+            viewWidth = 700;
+            viewHeight = 620;
+        }
+
+        final double mapWidth = viewWidth;
+        final double mapHeight = viewHeight;
+
+        markerOverlayPane.setPrefSize(mapWidth, mapHeight);
+
+        // Ancre explicitement les marqueurs aux coordonnées de départ/arrivée.
+        double[] forcedStart = new double[]{departLng, departLat};
+        double[] startPixel = lonLatToPixel(forcedStart[0], forcedStart[1], centerLng, centerLat, zoom, mapWidth, mapHeight);
+        movingTruckMarker.relocate(startPixel[0] - 11, startPixel[1] - 11);
+
+        double[] forcedDest = new double[]{destLng, destLat};
+        double[] destPixel = lonLatToPixel(forcedDest[0], forcedDest[1], centerLng, centerLat, zoom, mapWidth, mapHeight);
+
+        int durationSeconds = FAST_MARKER_ANIMATION_SECONDS;
+        final int[] second = {0};
+
+        markerTimeline = new Timeline(new KeyFrame(Duration.seconds(1), event -> {
+            second[0] = Math.min(second[0] + 1, durationSeconds);
+            double progress = (double) second[0] / durationSeconds;
+            int pointIndex = (int) Math.round(progress * (routePoints.size() - 1));
+            pointIndex = Math.max(0, Math.min(pointIndex, routePoints.size() - 1));
+
+            double[] point = routePoints.get(pointIndex);
+            double[] pixel = lonLatToPixel(point[0], point[1], centerLng, centerLat, zoom, mapWidth, mapHeight);
+            movingTruckMarker.relocate(pixel[0] - 11, pixel[1] - 11);
+
+            if (second[0] >= durationSeconds) {
+                markerTimeline.stop();
+                movingTruckMarker.relocate(destPixel[0] - 11, destPixel[1] - 11);
+                if (commandeSelectionneeFront != null && !isStatutTerminee(commandeSelectionneeFront.getStatut_commande())) {
+                    try {
+                        commandeSelectionneeFront.setStatut_commande("Terminée");
+                        service.modifier(commandeSelectionneeFront);
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
+                }
+                if (livraisonStatutLabel != null) {
+                    applySuiviStatus("Statut : Livraison terminée", "finished");
+                }
+                showCommandeToast("Livraison terminée", "commande-toast-success", "✅");
+                Platform.runLater(() -> showTimedInfoAlert("Livraison", "Livraison terminée.", 2.0));
+            }
+        }));
+
+        markerTimeline.setCycleCount(Timeline.INDEFINITE);
+        if (livraisonStatutLabel != null) {
+            applySuiviStatus("Statut : Livraison en cours", "active");
+        }
+        markerTimeline.play();
+    }
+
+    private void stopMarkerAnimation() {
+        if (markerTimeline != null) {
+            markerTimeline.stop();
+            markerTimeline = null;
+        }
+        if (markerOverlayPane != null) {
+            markerOverlayPane.getChildren().clear();
+        }
+        movingTruckMarker = null;
+    }
+
+    private Circle createRouteAnchor(String fillColor) {
+        Circle anchor = new Circle(4.5);
+        anchor.setStyle("-fx-fill: " + fillColor + "; -fx-stroke: white; -fx-stroke-width: 1.5;");
+        return anchor;
+    }
+
+    private Node createTruckMarker() {
+        Circle background = new Circle(11);
+        background.setStyle("-fx-fill: " + TRUCK_MARKER_COLOR + "; -fx-stroke: white; -fx-stroke-width: 2;");
+
+        Label icon = new Label("🚚");
+        icon.setStyle("-fx-font-size: 12px;");
+
+        StackPane marker = new StackPane(background, icon);
+        marker.setPrefSize(22, 22);
+        marker.setMinSize(22, 22);
+        marker.setMaxSize(22, 22);
+        marker.setManaged(false);
+        return marker;
+    }
+
+    private void placeTruckAtPosition(List<double[]> routePoints, double progress, double destLat, double destLng,
+                                      double centerLat, double centerLng, double zoom) {
+        if (mapContainer == null || livraisonMapImageView == null || routePoints == null || routePoints.isEmpty()) return;
+
+        if (markerOverlayPane == null) {
+            markerOverlayPane = new Pane();
+            markerOverlayPane.setMouseTransparent(true);
+            markerOverlayPane.setPickOnBounds(false);
+        }
+        markerOverlayPane.getChildren().clear();
+
+        movingTruckMarker = createTruckMarker();
+        markerOverlayPane.getChildren().add(movingTruckMarker);
+
+        if (!mapContainer.getChildren().contains(markerOverlayPane)) {
+            mapContainer.getChildren().add(markerOverlayPane);
+        }
+
+        double viewWidth = livraisonMapImageView.getFitWidth() > 0 ? livraisonMapImageView.getFitWidth() : 700;
+        double viewHeight = livraisonMapImageView.getFitHeight() > 0 ? livraisonMapImageView.getFitHeight() : 620;
+        markerOverlayPane.setPrefSize(viewWidth, viewHeight);
+
+        double[] forcedDest = new double[]{destLng, destLat};
+
+        int pointIndex = (int) Math.round(Math.max(0.0, Math.min(1.0, progress)) * (routePoints.size() - 1));
+        double[] point = routePoints.get(pointIndex);
+        if (progress >= 1.0) {
+            point = forcedDest;
+        }
+        double[] pixel = lonLatToPixel(point[0], point[1], centerLng, centerLat, zoom, viewWidth, viewHeight);
+        movingTruckMarker.relocate(pixel[0] - 11, pixel[1] - 11);
+    }
+
+    private double[] extractDistanceAndDuration(String json) {
+        double distance = extrairePremierDouble(json, "\\\"properties\\\"\\s*:\\s*\\{[\\s\\S]*?\\\"distance\\\"\\s*:\\s*([0-9.]+)");
+        double time = extrairePremierDouble(json, "\\\"properties\\\"\\s*:\\s*\\{[\\s\\S]*?\\\"time\\\"\\s*:\\s*([0-9.]+)");
+
+        if (distance <= 0) {
+            distance = extrairePremierDouble(json, "\\\"distance\\\"\\s*:\\s*([0-9.]+)");
+        }
+        if (time <= 0) {
+            time = extrairePremierDouble(json, "\\\"time\\\"\\s*:\\s*([0-9.]+)");
+        }
+        return new double[]{distance, time};
+    }
+
+    private String forcePolylineEndpoints(String polyline, double departLat, double departLng, double destLat, double destLng) {
+        List<double[]> points = parsePolylineLonLat(polyline);
+
+        if (points.isEmpty()) {
+            return departLng + "," + departLat + "," + destLng + "," + destLat;
+        }
+
+        // Force toujours la ligne a commencer/finir exactement sur les 2 marqueurs.
+        points.set(0, new double[]{departLng, departLat});
+        points.set(points.size() - 1, new double[]{destLng, destLat});
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < points.size(); i++) {
+            double[] p = points.get(i);
+            if (i > 0) {
+                sb.append(',');
+            }
+            sb.append(p[0]).append(',').append(p[1]);
+        }
+        return sb.toString();
+    }
+
+    private String resolveFrontLivraisonStatusText(boolean livraisonActive, boolean livraisonTerminee) {
+        if (livraisonTerminee) {
+            return "Statut : Livraison terminée";
+        }
+        if (livraisonActive) {
+            return "Statut : Livraison en cours";
+        }
+        return "Statut : En attente du démarrage";
+    }
+
+    private String resolveFrontLivraisonStatusClass(boolean livraisonActive, boolean livraisonTerminee) {
+        if (livraisonTerminee) {
+            return "finished";
+        }
+        if (livraisonActive) {
+            return "active";
+        }
+        return "waiting";
+    }
+
+    private void applySuiviStatus(String text, String stateClass) {
+        if (livraisonStatutLabel == null) {
+            return;
+        }
+
+        livraisonStatutLabel.setText(text);
+        livraisonStatutLabel.getStyleClass().removeAll(
+                "suivi-status-waiting",
+                "suivi-status-active",
+                "suivi-status-finished",
+                "suivi-status-error"
+        );
+
+        if (stateClass == null) {
+            return;
+        }
+
+        switch (stateClass) {
+            case "waiting" -> livraisonStatutLabel.getStyleClass().add("suivi-status-waiting");
+            case "active" -> livraisonStatutLabel.getStyleClass().add("suivi-status-active");
+            case "finished" -> livraisonStatutLabel.getStyleClass().add("suivi-status-finished");
+            case "error" -> livraisonStatutLabel.getStyleClass().add("suivi-status-error");
+            default -> {
+                // keep base badge style only
+            }
+        }
+    }
+
+    private void showTimedInfoAlert(String title, String message, double seconds) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.show();
+
+        PauseTransition autoClose = new PauseTransition(Duration.seconds(seconds));
+        autoClose.setOnFinished(e -> alert.hide());
+        autoClose.play();
+    }
+
+    private String buildGeoapifyMarker(double lon, double lat, String colorHex, String text) {
+        String normalizedColor = colorHex == null ? "#2563eb" : colorHex;
+        String normalizedText = (text == null || text.isBlank()) ? "" : text.trim();
+        return "lonlat:" + lon + "," + lat
+                + ";type:material"
+                + ";color:" + normalizedColor
+                + ";size:small"
+                + ";text:" + normalizedText;
+    }
+
+    private double[] lonLatToPixel(double lon, double lat, double centerLon, double centerLat, double zoom, double width, double height) {
+        double scale = 256.0 * Math.pow(2.0, zoom);
+
+        double x = (lon + 180.0) / 360.0 * scale;
+        double sinLat = Math.sin(Math.toRadians(lat));
+        double y = (0.5 - Math.log((1 + sinLat) / (1 - sinLat)) / (4 * Math.PI)) * scale;
+
+        double centerX = (centerLon + 180.0) / 360.0 * scale;
+        double sinCenterLat = Math.sin(Math.toRadians(centerLat));
+        double centerY = (0.5 - Math.log((1 + sinCenterLat) / (1 - sinCenterLat)) / (4 * Math.PI)) * scale;
+
+        double pixelX = (x - centerX) + width / 2.0;
+        double pixelY = (y - centerY) + height / 2.0;
+
+        return new double[]{pixelX, pixelY};
+    }
+
+
+    private double extrairePremierDouble(String json, String regex) {
+        Matcher matcher = Pattern.compile(regex).matcher(json);
+        if (matcher.find()) {
+            return Double.parseDouble(matcher.group(1));
+        }
+        return 0.0;
+    }
+
+    private String getGeoapifyApiKey() {
+        String apiKey = System.getenv("GEOAPIFY_API_KEY");
+        if (apiKey == null || apiKey.isBlank()) {
+            apiKey = System.getProperty("GEOAPIFY_API_KEY");
+        }
+
+        if (apiKey == null) {
+            return null;
+        }
+
+        apiKey = apiKey.trim();
+        if ((apiKey.startsWith("\"") && apiKey.endsWith("\"")) || (apiKey.startsWith("'") && apiKey.endsWith("'"))) {
+            apiKey = apiKey.substring(1, apiKey.length() - 1).trim();
+        }
+        return apiKey;
+    }
+
+    private String extrairePolylineDepuisRouting(String json) {
+        Matcher matcher = Pattern.compile(
+                "\"coordinates\"\\s*:\\s*\\[(\\[[^\\]]+\\](?:,\\[[^\\]]+\\])*)\\]"
+        ).matcher(json);
+
+        if (matcher.find()) {
+            String coordsBlock = matcher.group(1);
+
+            Matcher pairMatcher = Pattern.compile(
+                    "\\[\\s*([0-9\\-.]+)\\s*,\\s*([0-9\\-.]+)\\s*\\]"
+            ).matcher(coordsBlock);
+
+            StringBuilder polyline = new StringBuilder();
+            boolean first = true;
+
+            while (pairMatcher.find()) {
+                String lon = pairMatcher.group(1);
+                String lat = pairMatcher.group(2);
+
+                if (!first) {
+                    polyline.append(",");
+                }
+                polyline.append(lon).append(",").append(lat);
+                first = false;
+            }
+
+            if (!polyline.isEmpty()) {
+                return polyline.toString();
+            }
+        }
+
+        // Fallback Geoapify format=json: geometry -> [{"lon":...,"lat":...}, ...]
+        Matcher pointMatcher = Pattern.compile(
+                "\\{\\s*\"lon\"\\s*:\\s*([0-9\\-.]+)\\s*,\\s*\"lat\"\\s*:\\s*([0-9\\-.]+)\\s*\\}"
+        ).matcher(json);
+
+        StringBuilder polyline = new StringBuilder();
+        boolean first = true;
+
+        while (pointMatcher.find()) {
+            String lon = pointMatcher.group(1);
+            String lat = pointMatcher.group(2);
+
+            if (!first) {
+                polyline.append(",");
+            }
+            polyline.append(lon).append(",").append(lat);
+            first = false;
+        }
+
+        return polyline.isEmpty() ? null : polyline.toString();
+    }
+
+
+
+
 }

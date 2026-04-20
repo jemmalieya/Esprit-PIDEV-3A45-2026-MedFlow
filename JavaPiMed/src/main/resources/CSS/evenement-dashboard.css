@@ -231,8 +231,10 @@
     -fx-font-size: 17px;
     -fx-font-weight: bold;
     -fx-background-radius: 18px;
-    -fx-padding: 14 24;
+    -fx-padding: 16 28;
     -fx-cursor: hand;
+    -fx-border-color: rgba(0,0,0,0.06);
+    -fx-border-radius: 18px;
 }
 
 .yellow-btn:hover {
@@ -245,8 +247,10 @@
     -fx-font-size: 17px;
     -fx-font-weight: bold;
     -fx-background-radius: 18px;
-    -fx-padding: 14 24;
+    -fx-padding: 16 26;
     -fx-cursor: hand;
+    -fx-border-color: #dbe6f7;
+    -fx-border-radius: 18px;
 }
 
 .white-btn:hover {
@@ -388,7 +392,7 @@
 .events-table .filler {
     -fx-background-color: transparent;
     -fx-border-color: transparent;
-    -fx-size: 58px;
+    -fx-size: 66px;
 }
 
 .events-table .column-header .label {
@@ -399,7 +403,7 @@
 
 .events-table .table-row-cell {
     -fx-background-color: white;
-    -fx-cell-size: 58px;
+    -fx-cell-size: 68px;
     -fx-border-color: transparent transparent #edf2f8 transparent;
 }
 
@@ -409,9 +413,10 @@
 
 .events-table .table-cell {
     -fx-text-fill: #4b6185;
-    -fx-font-size: 14px;
-    -fx-padding: 10 8;
+    -fx-font-size: 15px;
+    -fx-padding: 12 10;
     -fx-border-color: transparent;
+    -fx-alignment: CENTER_LEFT;
 }
 
 /* ===================== ACTIONS ===================== */
@@ -422,10 +427,10 @@
 }
 
 .action-toolbar .button {
-    -fx-font-size: 12px;
+    -fx-font-size: 13px;
     -fx-font-weight: bold;
     -fx-background-radius: 14px;
-    -fx-padding: 8 12;
+    -fx-padding: 9 14;
     -fx-cursor: hand;
 }
 
@@ -437,6 +442,11 @@
 .edit-btn {
     -fx-background-color: #fff7e7;
     -fx-text-fill: #bf8b08;
+}
+
+.publish-btn {
+    -fx-background-color: #e9f9ff;
+    -fx-text-fill: #0e8ead;
 }
 
 .delete-btn {

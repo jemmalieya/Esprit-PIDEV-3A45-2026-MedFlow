@@ -143,6 +143,7 @@ public class EvenementController {
     private final EvenementPDFService pdfService = new EvenementPDFService();
 
     private static Evenement evenementAModifier;
+    private static boolean publicationMode;
 
     /* ===================== VALIDATION ===================== */
     private Label titreMsg, slugMsg, typeMsg, descriptionMsg, objectifMsg, statutMsg, dateDebutMsg,
@@ -275,6 +276,9 @@ public class EvenementController {
             cardsContainer.getChildren().clear();
 
             boolean isFront = (frontPageMarker != null);
+            if (isFront) {
+                events = events.stream().filter(this::isVisibleOnFront).toList();
+            }
 
             for (Evenement ev : events) {
                 cardsContainer.getChildren().add(
@@ -401,7 +405,14 @@ public class EvenementController {
         }
 
         if (getStatutCombo() != null) {
-            getStatutCombo().valueProperty().addListener((obs, oldVal, newVal) -> validateStatut());
+            getStatutCombo().valueProperty().addListener((obs, oldVal, newVal) -> {
+                syncDraftVisibility();
+                validateStatut();
+                validateDescription();
+                validateObjectif();
+                validateImage();
+                validateVisibilite();
+            });
         }
 
         if (getDateDebutPicker() != null) {
@@ -456,7 +467,12 @@ public class EvenementController {
         }
 
         if (getVisibiliteCombo() != null) {
-            getVisibiliteCombo().valueProperty().addListener((obs, oldVal, newVal) -> validateVisibilite());
+            getVisibiliteCombo().valueProperty().addListener((obs, oldVal, newVal) -> {
+                validateVisibilite();
+                validateDescription();
+                validateObjectif();
+                validateImage();
+            });
         }
     }
     private void validateAllFields() {
@@ -544,6 +560,12 @@ public class EvenementController {
         if (getDescriptionArea() == null) return;
         String v = safeValue(getDescriptionArea().getText()).trim();
 
+        if (isDraftWorkflow()) {
+            clearFieldState(getDescriptionArea(), descriptionMsg, "Description optionnelle pour un brouillon.");
+            isDescriptionValid = true;
+            return;
+        }
+
         if (v.isEmpty()) {
             setFieldError(getDescriptionArea(), descriptionMsg, "La description est obligatoire.");
             isDescriptionValid = false;
@@ -562,6 +584,12 @@ public class EvenementController {
     private void validateObjectif() {
         if (getObjectifArea() == null) return;
         String v = safeValue(getObjectifArea().getText()).trim();
+
+        if (isDraftWorkflow()) {
+            clearFieldState(getObjectifArea(), objectifMsg, "Objectif optionnel pour un brouillon.");
+            isObjectifValid = true;
+            return;
+        }
 
         if (v.isEmpty()) {
             setFieldError(getObjectifArea(), objectifMsg, "L'objectif est obligatoire.");
@@ -787,6 +815,12 @@ public class EvenementController {
 
         String v = safeValue(getImageField().getText()).trim();
 
+        if (isDraftWorkflow() && v.isEmpty()) {
+            clearFieldState(getImageField(), imageMsg, "Image optionnelle pour un brouillon.");
+            isImageValid = true;
+            return;
+        }
+
         if (v.isEmpty()) {
             setFieldError(getImageField(), imageMsg, "L'image de couverture est obligatoire.");
             isImageValid = false;
@@ -834,6 +868,32 @@ public class EvenementController {
                 "Visibilité valide.");
         isVisibiliteValid = true;
     }
+    private void clearFieldState(Control field, Label msgLabel, String message) {
+        if (field != null) field.setStyle("");
+        if (msgLabel != null) {
+            msgLabel.setText(message);
+            msgLabel.setStyle("-fx-text-fill: #5f6f86; -fx-font-size: 11px;");
+        }
+    }
+
+    private boolean isDraftStatusSelected() {
+        String statut = getStatutCombo() != null ? safeValue(getStatutCombo().getValue()) : "";
+        return statut.toLowerCase(Locale.ROOT).contains("brouillon");
+    }
+
+    private boolean isDraftWorkflow() {
+        String visibilite = getVisibiliteCombo() != null ? safeValue(getVisibiliteCombo().getValue()) : "";
+        return isDraftStatusSelected() || visibilite.toLowerCase(Locale.ROOT).contains("priv");
+    }
+
+    private void syncDraftVisibility() {
+        if (getVisibiliteCombo() == null) return;
+
+        if (isDraftStatusSelected()) {
+            getVisibiliteCombo().setValue("Privé");
+        }
+    }
+
     @FXML
     private void choisirImageDepuisPC() {
         FileChooser fileChooser = new FileChooser();
@@ -912,10 +972,13 @@ public class EvenementController {
         }
 
         try {
-            String titre = safeValue(getTitreField().getText()).trim();
-
-
-            boolean existe = evenementService.evenementExisteDeja(titre);
+            Date dateDebut = Date.valueOf(getDateDebutPicker().getValue());
+            boolean existe = evenementService.evenementExisteDeja(dateDebut);
+            if (existe) {
+                showAlert(Alert.AlertType.WARNING, "Evenement deja existant",
+                        "Un autre evenement existe deja avec la meme date de debut.");
+                return;
+            }
 
             if (existe) {
                 showAlert(Alert.AlertType.WARNING, "Événement déjà existant",
@@ -952,14 +1015,17 @@ public class EvenementController {
         }
 
         try {
-            String titre = safeValue(getTitreField().getText()).trim();
             Date dateDebut = Date.valueOf(getDateDebutPicker().getValue());
 
             boolean existe = evenementService.evenementExisteDejaPourModification(
                     evenementAModifier.getId(),
-                    titre,
                     dateDebut
             );
+            if (existe) {
+                showAlert(Alert.AlertType.WARNING, "Evenement deja existant",
+                        "Un autre evenement existe deja avec la meme date de debut.");
+                return;
+            }
 
             if (existe) {
                 showAlert(Alert.AlertType.WARNING, "Événement déjà existant",
@@ -1013,7 +1079,11 @@ public class EvenementController {
         }
 
         ev.setImage_couverture_event(getImageField() != null ? getImageField().getText().trim() : "");
-        ev.setVisibilite_event(getVisibiliteCombo() != null ? getVisibiliteCombo().getValue() : null);
+        String visibilite = getVisibiliteCombo() != null ? getVisibiliteCombo().getValue() : null;
+        if ((visibilite == null || visibilite.isBlank()) && isDraftStatusSelected()) {
+            visibilite = "Privé";
+        }
+        ev.setVisibilite_event(visibilite);
     }
 
     private void chargerEvenementAModifier() {
@@ -1058,6 +1128,12 @@ public class EvenementController {
 
         if (getImageField() != null) getImageField().setText(safeValue(evenementAModifier.getImage_couverture_event()));
         if (getVisibiliteCombo() != null) getVisibiliteCombo().setValue(safeValue(evenementAModifier.getVisibilite_event()));
+
+        if (publicationMode) {
+            if (getStatutCombo() != null) getStatutCombo().setValue("Publie");
+            if (getVisibiliteCombo() != null) getVisibiliteCombo().setValue("Public");
+            publicationMode = false;
+        }
 
         isLoading = false;
     }
@@ -1119,6 +1195,7 @@ public class EvenementController {
         });
 
         addActionsColumn();
+        evenementTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_ALL_COLUMNS);
         evenementTable.setPlaceholder(new Label("Aucun événement trouvé"));
     }
     private void configureSort() {
@@ -1215,14 +1292,16 @@ public class EvenementController {
         actionsCol.setCellFactory(col -> new TableCell<>() {
             private final Button viewBtn = new Button("Voir");
             private final Button editBtn = new Button("Modifier");
-            private final Button deleteBtn = new Button("Supprimer");
-            private final ToolBar toolBar = new ToolBar(viewBtn, editBtn, deleteBtn);
+            private final Button publishBtn = new Button("Publier");
+            private final Button archiveBtn = new Button("Historique");
+            private final ToolBar toolBar = new ToolBar(viewBtn, editBtn, publishBtn, archiveBtn);
 
             {
                 toolBar.getStyleClass().add("action-toolbar");
                 viewBtn.getStyleClass().add("view-btn");
                 editBtn.getStyleClass().add("edit-btn");
-                deleteBtn.getStyleClass().add("delete-btn");
+                publishBtn.getStyleClass().add("publish-btn");
+                archiveBtn.getStyleClass().add("delete-btn");
 
                 viewBtn.setOnAction(e -> ouvrirPageCardsBack());
 
@@ -1231,18 +1310,24 @@ public class EvenementController {
                     ouvrirPageModification(ev);
                 });
 
-                deleteBtn.setOnAction(e -> {
+                publishBtn.setOnAction(e -> {
+                    Evenement ev = getTableView().getItems().get(getIndex());
+                    publicationMode = true;
+                    ouvrirPageModification(ev);
+                });
+
+                archiveBtn.setOnAction(e -> {
                     Evenement ev = getTableView().getItems().get(getIndex());
 
                     Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
                     confirm.setTitle("Confirmation");
                     confirm.setHeaderText(null);
-                    confirm.setContentText("Supprimer l'événement : " + safeValue(ev.getTitre_event()) + " ?");
+                    confirm.setContentText("Envoyer l'evenement dans l'historique : " + safeValue(ev.getTitre_event()) + " ?");
 
                     Optional<ButtonType> result = confirm.showAndWait();
                     if (result.isPresent() && result.get() == ButtonType.OK) {
-                        evenementService.supprimer(ev);
-                        masterList.remove(ev);
+                        evenementService.archiver(ev);
+                        evenementTable.refresh();
                         updateStats();
                     }
                 });
@@ -1251,7 +1336,18 @@ public class EvenementController {
             @Override
             protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
-                setGraphic(empty ? null : toolBar);
+                if (empty) {
+                    setGraphic(null);
+                    return;
+                }
+
+                Evenement ev = getTableView().getItems().get(getIndex());
+                toolBar.getItems().setAll(viewBtn, editBtn);
+                if (!isVisibleOnFront(ev)) {
+                    toolBar.getItems().add(publishBtn);
+                }
+                toolBar.getItems().add(archiveBtn);
+                setGraphic(toolBar);
             }
         });
 
@@ -1515,6 +1611,22 @@ public class EvenementController {
     @FXML
     private void onNewEvent() {
         loadScene("/AjouterEvenement.fxml", "Nouvel événement");
+    }
+
+    @FXML
+    private void onShowDraftEvents() {
+        if (filterStatutCombo != null) {
+            filterStatutCombo.setValue("Brouillon");
+            appliquerRechercheFiltreTri();
+        }
+    }
+
+    @FXML
+    private void onShowAllEvents() {
+        if (filterTypeCombo != null) filterTypeCombo.setValue("Tous");
+        if (filterStatutCombo != null) filterStatutCombo.setValue("Tous");
+        if (filterVilleCombo != null) filterVilleCombo.setValue("Toutes");
+        appliquerRechercheFiltreTri();
     }
 
     @FXML
@@ -1797,7 +1909,9 @@ public class EvenementController {
             cardsContainer.getChildren().clear();
 
             for (Evenement ev : events) {
-                cardsContainer.getChildren().add(createEventCardFront(ev));
+                if (isVisibleOnFront(ev)) {
+                    cardsContainer.getChildren().add(createEventCardFront(ev));
+                }
             }
         } catch (Exception e) {
             showAlert(Alert.AlertType.ERROR, "Erreur", e.getMessage());
@@ -1990,26 +2104,38 @@ public class EvenementController {
     @FXML
     private void handleExportPDF() {
         try {
+            Evenement selectedEvent = evenementTable != null ? evenementTable.getSelectionModel().getSelectedItem() : null;
+            if (selectedEvent == null) {
+                showAlert(Alert.AlertType.WARNING, "Selection requise", "Choisissez d'abord un evenement dans le tableau.");
+                return;
+            }
+
             FileChooser fileChooser = new FileChooser();
-            fileChooser.setTitle("Enregistrer le rapport PDF");
+            fileChooser.setTitle("Enregistrer la fiche PDF");
             fileChooser.getExtensionFilters().add(
                     new FileChooser.ExtensionFilter("Fichier PDF", "*.pdf")
             );
-            fileChooser.setInitialFileName("rapport_evenements.pdf");
+            String baseName = safeValue(selectedEvent.getSlug_event()).isBlank() ? "evenement" : safeValue(selectedEvent.getSlug_event());
+            fileChooser.setInitialFileName("fiche_" + baseName.replaceAll("\\s+", "_") + ".pdf");
 
             Stage stage = resolveCurrentStage();
             File file = fileChooser.showSaveDialog(stage);
 
             if (file == null) return;
 
-            List<Evenement> evenements = evenementService.recuperer();
-            pdfService.genererRapportEvenements(evenements, file.getAbsolutePath());
+            pdfService.genererFicheEvenement(selectedEvent, file.getAbsolutePath());
 
             showAlert(Alert.AlertType.INFORMATION, "Succès", "Rapport PDF généré avec succès !");
         } catch (Exception e) {
             e.printStackTrace();
             showAlert(Alert.AlertType.ERROR, "Erreur", "Impossible de générer le PDF : " + e.getMessage());
         }
+    }
+
+    private boolean isVisibleOnFront(Evenement evenement) {
+        String statut = safeValue(evenement.getStatut_event()).toLowerCase(Locale.ROOT);
+        String visibilite = safeValue(evenement.getVisibilite_event()).toLowerCase(Locale.ROOT);
+        return statut.contains("publi") && visibilite.contains("public");
     }
 
     private String safeValue(String value) {

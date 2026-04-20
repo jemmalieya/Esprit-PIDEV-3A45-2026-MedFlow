@@ -229,15 +229,15 @@ public class EvenementService implements IGeneralService<Evenement> {
         return null;
     }
 
-    public boolean evenementExisteDeja(String titre) {
+    public boolean evenementExisteDeja(Date dateDebut) {
         String sql = """
         SELECT COUNT(*)
         FROM evenement
-        WHERE LOWER(TRIM(titre_event)) = LOWER(TRIM(?))
+        WHERE date_debut_event = ?
     """;
 
         try (PreparedStatement pst = cn.prepareStatement(sql)) {
-            pst.setString(1, titre);
+            pst.setDate(1, dateDebut);
 
             ResultSet rs = pst.executeQuery();
             if (rs.next()) {
@@ -249,19 +249,17 @@ public class EvenementService implements IGeneralService<Evenement> {
 
         return false;
     }
-    public boolean evenementExisteDejaPourModification(int id, String titre, java.sql.Date dateDebut) {
+    public boolean evenementExisteDejaPourModification(int id, java.sql.Date dateDebut) {
         String sql = """
         SELECT COUNT(*)
         FROM evenement
-        WHERE LOWER(TRIM(titre_event)) = LOWER(TRIM(?))
-          AND date_debut_event = ?
+        WHERE date_debut_event = ?
           AND id <> ?
     """;
 
         try (PreparedStatement pst = cn.prepareStatement(sql)) {
-            pst.setString(1, titre);
-            pst.setDate(2, dateDebut);
-            pst.setInt(3, id);
+            pst.setDate(1, dateDebut);
+            pst.setInt(2, id);
 
             ResultSet rs = pst.executeQuery();
             if (rs.next()) {
@@ -272,6 +270,28 @@ public class EvenementService implements IGeneralService<Evenement> {
         }
 
         return false;
+    }
+
+    public void archiver(Evenement e) {
+        String sql = """
+                UPDATE evenement
+                SET statut_event = ?, visibilite_event = ?, date_mise_a_jour_event = ?
+                WHERE id = ?
+                """;
+
+        try (PreparedStatement ps = cn.prepareStatement(sql)) {
+            ps.setString(1, "Archive");
+            ps.setString(2, "Prive");
+            ps.setDate(3, new java.sql.Date(new java.util.Date().getTime()));
+            ps.setInt(4, e.getId());
+            ps.executeUpdate();
+
+            e.setStatut_event("Archive");
+            e.setVisibilite_event("Prive");
+            e.setDate_mise_a_jour_event(new java.util.Date());
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
     }
 
     public List<Evenement> rechercherEvenements(List<Evenement> liste, String keyword) {

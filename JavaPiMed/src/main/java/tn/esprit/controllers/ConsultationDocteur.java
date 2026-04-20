@@ -1,10 +1,12 @@
 package tn.esprit.controllers;
 
 import javafx.event.ActionEvent;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
+import javafx.concurrent.Task;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.fxml.FXML;
 import javafx.scene.SnapshotParameters;
@@ -27,7 +29,10 @@ import javafx.scene.image.WritableImage;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.web.WebEngine;
+import javafx.scene.web.WebView;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.stage.FileChooser;
 import javafx.stage.Window;
@@ -40,19 +45,27 @@ import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import tn.esprit.entities.FicheMedicale;
 import tn.esprit.entities.Prescription;
 import tn.esprit.entities.RendezVous;
+import tn.esprit.entities.User;
+import tn.esprit.services.BrevoEmailService;
 import tn.esprit.services.FicheMedicaleService;
 import tn.esprit.services.PrescriptionService;
 import tn.esprit.services.RendezVousService;
+import tn.esprit.services.UserService;
 import tn.esprit.tools.MyDataBase;
+import tn.esprit.tools.SessionManager;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.nio.charset.StandardCharsets;
 import java.io.File;
 import java.io.IOException;
+import java.awt.Desktop;
 import java.awt.image.BufferedImage;
+import java.net.URI;
+import java.net.URLEncoder;
 import javax.imageio.ImageIO;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -65,10 +78,12 @@ import java.util.Set;
 
 public class ConsultationDocteur {
 
-    private static final int SESSION_DOCTOR_ID = 143;
+    private Integer sessionDoctorId;
     private final RendezVousService rendezVousService = new RendezVousService();
     private final FicheMedicaleService ficheMedicaleService = new FicheMedicaleService();
     private final PrescriptionService prescriptionService = new PrescriptionService();
+    private final UserService userService = new UserService();
+    private final BrevoEmailService brevoEmailService = new BrevoEmailService();
 
     // FXML fields mapped to UI components
     @FXML
@@ -146,6 +161,20 @@ public class ConsultationDocteur {
     private Label consultationDurationLabel;
     @FXML
     private Label consultationTimerLabel;
+    @FXML
+    private Label consultationModeBadgeLabel;
+    @FXML
+    private VBox distancielCallCard;
+    @FXML
+    private Label jitsiStatusLabel;
+    @FXML
+    private StackPane jitsiWebContainer;
+    @FXML
+    private Label jitsiRoomUrlLabel;
+    @FXML
+    private Button joinCallButton;
+    @FXML
+    private Button leaveCallButton;
 
     // Detail panel fields
     @FXML
@@ -276,10 +305,17 @@ public class ConsultationDocteur {
     private boolean ficheEditMode;
     private boolean prescriptionsEditMode;
     private List<Prescription> prescriptionsSnapshot = new ArrayList<>();
+    private boolean distancielConsultationActive;
+    private String activeJitsiRoomName;
+    private WebView jitsiWebView;
+    private boolean jitsiEmbedInitializationAttempted;
+    private boolean jitsiEmbedSupported;
 
     // Initialize method to set up the combo box options
     @FXML
     public void initialize() {
+        sessionDoctorId = resolveSessionDoctorId();
+
         if (sortComboBox != null) {
             sortComboBox.getItems().addAll(
                     "Date ASC",
@@ -315,10 +351,10 @@ public class ConsultationDocteur {
         setSaveButtonEnabled(false);
 
         if (doctorField != null) {
-            doctorField.setText("Dr. John Doe");
+            doctorField.setText(resolveSessionDoctorDisplayName());
         }
         if (doctorField1 != null) {
-            doctorField1.setText("12345");
+            doctorField1.setText(sessionDoctorId == null ? "" : String.valueOf(sessionDoctorId));
         }
 
         // Fiche Medicale form listeners
@@ -368,6 +404,7 @@ public class ConsultationDocteur {
         }
 
         updateConsultationTimingLabels(null, null, null, "00:00:00");
+        configureConsultationModeUi(false, null);
 
         showPage(1);
     }
@@ -1007,7 +1044,15 @@ public class ConsultationDocteur {
     }
 
     private void loadDoctorRendezVous() {
-        List<RendezVous> list = rendezVousService.recupererParStaffId(SESSION_DOCTOR_ID);
+        Integer doctorId = resolveSessionDoctorId();
+        if (doctorId == null || doctorId <= 0) {
+            allDoctorRendezVous.clear();
+            doctorRendezVous.clear();
+            refreshStatsData();
+            return;
+        }
+
+        List<RendezVous> list = rendezVousService.recupererParStaffId(doctorId);
         allDoctorRendezVous.setAll(list);
         applySearchAndSort();
         refreshStatsData();
@@ -1082,6 +1127,43 @@ public class ConsultationDocteur {
         return value == null ? "-" : value;
     }
 
+    private Integer resolveSessionDoctorId() {
+        User currentUser = SessionManager.getCurrentUser();
+        if (currentUser == null || currentUser.getId() <= 0) {
+            return null;
+        }
+        sessionDoctorId = currentUser.getId();
+        return sessionDoctorId;
+    }
+
+    private int requireSessionDoctorId() {
+        Integer doctorId = resolveSessionDoctorId();
+        if (doctorId == null || doctorId <= 0) {
+            throw new IllegalStateException("No logged-in doctor found. Please log in again.");
+        }
+        return doctorId;
+    }
+
+    private String resolveSessionDoctorDisplayName() {
+        User currentUser = SessionManager.getCurrentUser();
+        if (currentUser == null) {
+            return "No logged-in doctor";
+        }
+
+        String firstName = currentUser.getPrenom() == null ? "" : currentUser.getPrenom().trim();
+        String lastName = currentUser.getNom() == null ? "" : currentUser.getNom().trim();
+        String fullName = (firstName + " " + lastName).trim();
+        if (!fullName.isBlank()) {
+            return "Dr. " + fullName;
+        }
+
+        if (currentUser.getId() > 0) {
+            return "Dr. #" + currentUser.getId();
+        }
+
+        return "No logged-in doctor";
+    }
+
     private void confirmRendezVous(RendezVous rendezVous) {
         if (rendezVous == null) {
             return;
@@ -1091,6 +1173,50 @@ public class ConsultationDocteur {
         rendezVousService.modifier(rendezVous);
         eventTable.refresh();
         refreshStatsData();
+        sendConfirmationEmailAsync(rendezVous);
+    }
+
+    private void sendConfirmationEmailAsync(RendezVous rendezVous) {
+        User patient = userService.findById(rendezVous.getIdPatient());
+        if (patient == null) {
+            showWarning("Email non envoyé", "Le rendez-vous est confirmé, mais le patient associé est introuvable.");
+            return;
+        }
+
+        if (patient.getEmailUser() == null || patient.getEmailUser().isBlank()) {
+            showWarning("Email non envoyé", "Le rendez-vous est confirmé, mais le patient n'a pas d'adresse email.");
+            return;
+        }
+
+        if (!brevoEmailService.isConfigured()) {
+            showWarning(
+                    "Brevo non configuré",
+                    "Le rendez-vous est confirmé, mais l'email n'a pas été envoyé.\n\n" + brevoEmailService.getMissingConfigurationMessage()
+            );
+            return;
+        }
+
+        User doctor = SessionManager.getCurrentUser();
+        Task<Void> emailTask = new Task<>() {
+            @Override
+            protected Void call() throws Exception {
+                brevoEmailService.sendAppointmentConfirmedEmail(patient, rendezVous, doctor);
+                return null;
+            }
+        };
+
+        emailTask.setOnFailed(event -> {
+            Throwable error = emailTask.getException();
+            Platform.runLater(() -> showWarning(
+                    "Email non envoyé",
+                    "Le rendez-vous est confirmé, mais Brevo a échoué à envoyer l'email.\n\n"
+                            + (error == null ? "Erreur inconnue." : error.getMessage())
+            ));
+        });
+
+        Thread emailThread = new Thread(emailTask, "brevo-confirmation-email");
+        emailThread.setDaemon(true);
+        emailThread.start();
     }
 
     private void startConsultation(RendezVous rendezVous) {
@@ -1100,11 +1226,20 @@ public class ConsultationDocteur {
 
         selectedRendezVousId = rendezVous.getId();
         consultationStartTime = Timestamp.valueOf(LocalDateTime.now());
+        boolean isDistanciel = "Distanciel".equalsIgnoreCase(nullSafe(rendezVous.getMode()));
+        configureConsultationModeUi(isDistanciel, rendezVous);
         updateSelectedRendezVousLabel();
         updateConsultationTimingLabels(consultationStartTime, null, null, "00:00:00");
         setSaveButtonEnabled(true);
         startConsultationTimer();
         showPage(2);
+
+        if (isDistanciel) {
+            startJitsiCall(rendezVous);
+            sendDistancielCallLinkEmailAsync(rendezVous);
+        } else {
+            stopJitsiCall();
+        }
     }
 
     private void showPage(int page) {
@@ -1127,7 +1262,227 @@ public class ConsultationDocteur {
             statsPageContainer.setManaged(showStatsPage);
         }
 
+        if (!showConsultationPage) {
+            stopJitsiCall();
+            configureConsultationModeUi(false, null);
+        }
+
         updatePageButtons(page);
+    }
+
+    @FXML
+    private void handleJoinDistancielCall(ActionEvent event) {
+        if (!distancielConsultationActive) {
+            showError("Mode invalide", "L'appel vidéo est disponible uniquement pour les consultations en mode Distanciel.");
+            return;
+        }
+
+        RendezVous rendezVous = findSelectedRendezVous();
+        if (rendezVous == null) {
+            showError("Rendez-vous introuvable", "Impossible de retrouver le rendez-vous sélectionné pour démarrer l'appel vidéo.");
+            return;
+        }
+
+        startJitsiCall(rendezVous);
+    }
+
+    @FXML
+    private void handleLeaveDistancielCall(ActionEvent event) {
+        stopJitsiCall();
+    }
+
+    private void configureConsultationModeUi(boolean isDistanciel, RendezVous rendezVous) {
+        distancielConsultationActive = isDistanciel;
+
+        String modeText;
+        if (rendezVous == null) {
+            modeText = "Mode: -";
+        } else {
+            modeText = "Mode: " + nullSafe(rendezVous.getMode());
+        }
+
+        if (consultationModeBadgeLabel != null) {
+            consultationModeBadgeLabel.setText(modeText);
+        }
+
+        if (distancielCallCard != null) {
+            distancielCallCard.setVisible(isDistanciel);
+            distancielCallCard.setManaged(isDistanciel);
+        }
+
+        if (joinCallButton != null) {
+            joinCallButton.setDisable(!isDistanciel);
+        }
+        if (leaveCallButton != null) {
+            leaveCallButton.setDisable(true);
+        }
+
+        if (jitsiStatusLabel != null) {
+            if (isDistanciel) {
+                jitsiStatusLabel.setText("Video call ready. Click Join Call to connect.");
+            } else {
+                jitsiStatusLabel.setText("Video call is available only for Distanciel consultations.");
+            }
+        }
+        if (jitsiRoomUrlLabel != null) {
+            jitsiRoomUrlLabel.setText("Room URL: -");
+        }
+
+        if (jitsiWebContainer != null && !isDistanciel) {
+            jitsiWebContainer.getChildren().clear();
+        }
+    }
+
+    private void startJitsiCall(RendezVous rendezVous) {
+        if (rendezVous == null) {
+            return;
+        }
+
+        activeJitsiRoomName = buildJitsiRoomName(rendezVous);
+        String url = buildJitsiUrl(activeJitsiRoomName);
+
+        if (jitsiRoomUrlLabel != null) {
+            jitsiRoomUrlLabel.setText("Room URL: " + url);
+        }
+
+        if (ensureEmbeddedJitsiView()) {
+            WebEngine engine = jitsiWebView.getEngine();
+            engine.load(url);
+            if (jitsiStatusLabel != null) {
+                jitsiStatusLabel.setText("Embedded call started for room: " + activeJitsiRoomName);
+            }
+        } else {
+            openJitsiInBrowser(url);
+            if (jitsiStatusLabel != null) {
+                jitsiStatusLabel.setText("Embedded call unavailable on this runtime. Opened in browser for room: " + activeJitsiRoomName);
+            }
+        }
+
+        if (leaveCallButton != null) {
+            leaveCallButton.setDisable(false);
+        }
+    }
+
+    private void sendDistancielCallLinkEmailAsync(RendezVous rendezVous) {
+        User patient = userService.findById(rendezVous.getIdPatient());
+        if (patient == null) {
+            showWarning("Email non envoyé", "L'appel a démarré, mais le patient associé est introuvable.");
+            return;
+        }
+
+        if (patient.getEmailUser() == null || patient.getEmailUser().isBlank()) {
+            showWarning("Email non envoyé", "L'appel a démarré, mais le patient n'a pas d'adresse email.");
+            return;
+        }
+
+        if (!brevoEmailService.isConfigured()) {
+            showWarning(
+                    "Brevo non configuré",
+                    "L'appel a démarré, mais l'email contenant le lien Jitsi n'a pas été envoyé.\n\n"
+                            + brevoEmailService.getMissingConfigurationMessage()
+            );
+            return;
+        }
+
+        String jitsiUrl = buildJitsiUrl(activeJitsiRoomName);
+        User doctor = SessionManager.getCurrentUser();
+
+        Task<Void> emailTask = new Task<>() {
+            @Override
+            protected Void call() throws Exception {
+                brevoEmailService.sendDistancielCallLinkEmail(patient, rendezVous, doctor, jitsiUrl);
+                return null;
+            }
+        };
+
+        emailTask.setOnFailed(event -> {
+            Throwable error = emailTask.getException();
+            Platform.runLater(() -> showWarning(
+                    "Email non envoyé",
+                    "L'appel a démarré, mais Brevo a échoué à envoyer le lien Jitsi.\n\n"
+                            + (error == null ? "Erreur inconnue." : error.getMessage())
+            ));
+        });
+
+        Thread emailThread = new Thread(emailTask, "brevo-jitsi-link-email");
+        emailThread.setDaemon(true);
+        emailThread.start();
+    }
+
+    private void stopJitsiCall() {
+        if (jitsiWebView != null) {
+            jitsiWebView.getEngine().loadContent("<html><body style='font-family:Segoe UI,Arial;padding:16px;color:#334155;'>Video call is not active.</body></html>");
+        }
+
+        activeJitsiRoomName = null;
+
+        if (jitsiStatusLabel != null) {
+            jitsiStatusLabel.setText("Video call marked as ended.");
+        }
+        if (jitsiRoomUrlLabel != null) {
+            jitsiRoomUrlLabel.setText("Room URL: -");
+        }
+        if (leaveCallButton != null) {
+            leaveCallButton.setDisable(true);
+        }
+    }
+
+    private String buildJitsiRoomName(RendezVous rendezVous) {
+        int doctorId = resolveSessionDoctorId() == null ? 0 : resolveSessionDoctorId();
+        return "MedFlow-RDV-" + rendezVous.getId() + "-DOC-" + doctorId;
+    }
+
+    private String buildJitsiUrl(String roomName) {
+        String safeRoom = roomName == null ? "MedFlow-Consultation" : roomName;
+        String displayName = resolveSessionDoctorDisplayName();
+        String encodedName = encodeFragmentValue(displayName);
+        return "https://meet.jit.si/" + safeRoom + "#config.prejoinPageEnabled=false&userInfo.displayName=" + encodedName;
+    }
+
+    private String encodeFragmentValue(String value) {
+        if (value == null) {
+            return "";
+        }
+        // URLEncoder is form-style (+ for spaces); convert to %20 for URL fragment safety.
+        return URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20");
+    }
+
+    private boolean ensureEmbeddedJitsiView() {
+        if (jitsiEmbedInitializationAttempted) {
+            return jitsiEmbedSupported;
+        }
+
+        jitsiEmbedInitializationAttempted = true;
+        if (jitsiWebContainer == null) {
+            jitsiEmbedSupported = false;
+            return false;
+        }
+
+        try {
+            jitsiWebView = new WebView();
+            jitsiWebView.setContextMenuEnabled(true);
+            jitsiWebContainer.getChildren().setAll(jitsiWebView);
+            jitsiEmbedSupported = true;
+        } catch (Throwable ex) {
+            jitsiEmbedSupported = false;
+            if (jitsiStatusLabel != null) {
+                jitsiStatusLabel.setText("Embedded video failed to initialize. Browser fallback will be used.");
+            }
+        }
+
+        return jitsiEmbedSupported;
+    }
+
+    private void openJitsiInBrowser(String url) {
+        try {
+            if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                Desktop.getDesktop().browse(URI.create(url));
+            } else {
+                showError("Browser unavailable", "Cannot open browser automatically on this environment.\nOpen this URL manually:\n" + url);
+            }
+        } catch (IOException ex) {
+            showError("Jitsi launch failed", "Failed to open Jitsi call in browser: " + ex.getMessage());
+        }
     }
 
     private void updatePageButtons(int page) {
@@ -1294,6 +1649,14 @@ public class ConsultationDocteur {
 
     @FXML
     private void handleSaveFicheMedicale(ActionEvent event) {
+        int doctorId;
+        try {
+            doctorId = requireSessionDoctorId();
+        } catch (IllegalStateException ex) {
+            showError("Session expirée", ex.getMessage());
+            return;
+        }
+
         if (selectedRendezVousId == null) {
             showError("Selection requise", "Cliquez sur Start dans la colonne ACTIONS pour choisir le rendez-vous lie a cette fiche.");
             return;
@@ -1346,7 +1709,7 @@ public class ConsultationDocteur {
             fiche.setEnd_time(endTime);
             fiche.setDuree_minutes(durationMinutes);
             fiche.setCreated_at(endTime);
-            fiche.setSignature("Dr-" + SESSION_DOCTOR_ID);
+            fiche.setSignature("Dr-" + doctorId);
 
             int ficheMedicaleId = ficheMedicaleService.ajouter(fiche, connection);
             if (ficheMedicaleId <= 0) {
@@ -1588,6 +1951,14 @@ public class ConsultationDocteur {
 
     private void showInfo(String title, String message) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+
+    private void showWarning(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.WARNING);
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);

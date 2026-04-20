@@ -31,6 +31,7 @@ import tn.esprit.services.FicheMedicaleService;
 import tn.esprit.services.PrescriptionService;
 import tn.esprit.services.RendezVousService;
 import tn.esprit.services.UserService;
+import tn.esprit.tools.SessionManager;
 
 import java.net.URL;
 import java.sql.Timestamp;
@@ -50,8 +51,7 @@ import java.util.ResourceBundle;
 import javafx.util.Duration;
 
 public class ConsultationController implements Initializable {
-
-    private static final int SESSION_PATIENT_ID = 13;
+    private Integer sessionPatientId;
 
     @FXML
     private TextField doctorField;
@@ -210,6 +210,8 @@ public class ConsultationController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        sessionPatientId = resolveSessionPatientId();
+
         if (modeComboBox != null) {
             modeComboBox.setItems(FXCollections.observableArrayList("Distanciel", "Présentiel"));
         }
@@ -218,11 +220,11 @@ public class ConsultationController implements Initializable {
         }
 
         if (patientIdField != null) {
-            patientIdField.setText(String.valueOf(SESSION_PATIENT_ID));
+            patientIdField.setText(sessionPatientId == null ? "" : String.valueOf(sessionPatientId));
             patientIdField.setEditable(false);
         }
         if (modifyPatientIdField != null) {
-            modifyPatientIdField.setText(String.valueOf(SESSION_PATIENT_ID));
+            modifyPatientIdField.setText(sessionPatientId == null ? "" : String.valueOf(sessionPatientId));
             modifyPatientIdField.setEditable(false);
         }
 
@@ -340,6 +342,8 @@ public class ConsultationController implements Initializable {
     @FXML
     private void handleConfirmAppointment(ActionEvent event) {
         try {
+            int patientId = requireSessionPatientId();
+
             if (!validateAllBookingInputs()) {
                 throw new IllegalArgumentException("Please fix the highlighted fields before confirming the appointment.");
             }
@@ -365,7 +369,7 @@ public class ConsultationController implements Initializable {
                 throw new IllegalArgumentException("The appointment date/time must be in the future.");
             }
 
-            if (hasDuplicateRendezVous(null, Timestamp.valueOf(selectedDateTime), SESSION_PATIENT_ID, idStaff, mode, motif)) {
+            if (hasDuplicateRendezVous(null, Timestamp.valueOf(selectedDateTime), patientId, idStaff, mode, motif)) {
                 throw new IllegalArgumentException("A booking with the same date/time, doctor, mode and motif already exists.");
             }
 
@@ -375,7 +379,7 @@ public class ConsultationController implements Initializable {
                     mode,
                     motif,
                     new Timestamp(System.currentTimeMillis()),
-                    SESSION_PATIENT_ID,
+                        patientId,
                     idStaff,
                     null
             );
@@ -394,6 +398,8 @@ public class ConsultationController implements Initializable {
     @FXML
     private void handleConfirmModify(ActionEvent event) {
         try {
+            int patientId = requireSessionPatientId();
+
             if (editingRendezVousId == null) {
                 throw new IllegalArgumentException("No booking selected for modification.");
             }
@@ -431,7 +437,7 @@ public class ConsultationController implements Initializable {
                 throw new IllegalArgumentException("The appointment date/time must be in the future.");
             }
 
-            if (hasDuplicateRendezVous(editingRendezVousId, Timestamp.valueOf(dateTime), SESSION_PATIENT_ID, idStaff, mode, motif)) {
+            if (hasDuplicateRendezVous(editingRendezVousId, Timestamp.valueOf(dateTime), patientId, idStaff, mode, motif)) {
                 throw new IllegalArgumentException("Another booking with the same date/time, doctor, mode and motif already exists.");
             }
 
@@ -442,7 +448,7 @@ public class ConsultationController implements Initializable {
                     mode,
                     motif,
                     new Timestamp(System.currentTimeMillis()),
-                    SESSION_PATIENT_ID,
+                        patientId,
                     idStaff,
                     null
             );
@@ -827,7 +833,16 @@ public class ConsultationController implements Initializable {
             @Override
             protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
-                setGraphic(empty ? null : box);
+                if (empty) {
+                    setGraphic(null);
+                    return;
+                }
+
+                RendezVous rdv = getTableView().getItems().get(getIndex());
+                boolean canEditOrDelete = rdv != null && "Demande".equalsIgnoreCase(valueOrDash(rdv.getStatut()));
+                modifyBtn.setDisable(!canEditOrDelete);
+                deleteBtn.setDisable(!canEditOrDelete);
+                setGraphic(box);
             }
         });
 
@@ -839,8 +854,17 @@ public class ConsultationController implements Initializable {
         if (myBookingsTable == null) {
             return;
         }
+
+        Integer patientId = resolveSessionPatientId();
+        if (patientId == null || patientId <= 0) {
+            allMyBookingsData.clear();
+            myBookingsData.clear();
+            loadMyRecords();
+            return;
+        }
+
         List<RendezVous> all = rendezVousService.recuperer();
-        allMyBookingsData.setAll(all.stream().filter(r -> r.getIdPatient() == SESSION_PATIENT_ID).toList());
+        allMyBookingsData.setAll(all.stream().filter(r -> r.getIdPatient() == patientId).toList());
         applyMyBookingsFilterAndSort();
         loadMyRecords();
     }
@@ -1147,7 +1171,8 @@ public class ConsultationController implements Initializable {
         editingRendezVousId = rdv.getId();
 
         if (modifyPatientIdField != null) {
-            modifyPatientIdField.setText(String.valueOf(SESSION_PATIENT_ID));
+            Integer patientId = resolveSessionPatientId();
+            modifyPatientIdField.setText(patientId == null ? "" : String.valueOf(patientId));
         }
         if (modifyStaffIdField != null) {
             modifyStaffIdField.setText(String.valueOf(rdv.getIdStaff()));
@@ -1229,8 +1254,31 @@ public class ConsultationController implements Initializable {
             return true;
         }
 
-        applyValidationState(patientIdField, patientIdValidationLabel, true, "Patient ID loaded: " + SESSION_PATIENT_ID + ".");
+        Integer patientId = resolveSessionPatientId();
+        if (patientId == null || patientId <= 0) {
+            applyValidationState(patientIdField, patientIdValidationLabel, false, "No logged-in user found. Please log in again.");
+            return false;
+        }
+
+        applyValidationState(patientIdField, patientIdValidationLabel, true, "Patient ID loaded: " + patientId + ".");
         return true;
+    }
+
+    private Integer resolveSessionPatientId() {
+        User currentUser = SessionManager.getCurrentUser();
+        if (currentUser == null || currentUser.getId() <= 0) {
+            return null;
+        }
+        sessionPatientId = currentUser.getId();
+        return sessionPatientId;
+    }
+
+    private int requireSessionPatientId() {
+        Integer patientId = resolveSessionPatientId();
+        if (patientId == null || patientId <= 0) {
+            throw new IllegalArgumentException("No logged-in user found. Please log in again.");
+        }
+        return patientId;
     }
 
     private boolean validateDoctorStaffField() {

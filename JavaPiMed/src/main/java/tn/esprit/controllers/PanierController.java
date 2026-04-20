@@ -22,6 +22,7 @@ import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import tn.esprit.entities.Produit;
+import tn.esprit.services.OrdonnanceExtractorService;
 import tn.esprit.session.CartSession;
 
 import java.io.File;
@@ -46,6 +47,13 @@ public class PanierController {
     @FXML private VBox interactionAlertBox;
     @FXML private Label interactionAlertTitleLabel;
     @FXML private VBox interactionDetailsBox;
+    @FXML private HBox ordonnanceBox;
+    @FXML private Button btnScanOrdonnance;
+    @FXML private Label ordonnanceStatusLabel;
+
+    private final OrdonnanceExtractorService ordonnanceService = new OrdonnanceExtractorService();
+    private boolean ordonnanceValidee = false;
+    private List<String> medicamentsOrdonnance = new ArrayList<>();
 
     private List<DrugInteractionResult> dernieresInteractionsDangereuses = Collections.emptyList();
     private boolean interactionDangereusePresente = false;
@@ -478,14 +486,13 @@ public class PanierController {
            return;
        }
 
-       // Utiliser l'état déjà calculé par la vérification asynchrone — PAS de nouvel appel API
-       if (interactionDangereusePresente) {
+       // Bloquer UNIQUEMENT si interaction ET ordonnance non validée
+       if (interactionDangereusePresente && !ordonnanceValidee) {
            showAlert("Interactions dangereuses",
-                   "Impossible de valider la commande : des interactions médicamenteuses dangereuses ont été détectées.");
+                   "Uploadez une ordonnance valide pour débloquer la commande.");
            return;
        }
 
-       // Si l'analyse n'a pas encore terminé (bouton ne devrait pas être actif, mais sécurité)
        if (analyseOpenFdaIndisponible) {
            boolean continuer = showStyledConfirmationDialog(
                    "⚠ Analyse indisponible",
@@ -497,20 +504,17 @@ public class PanierController {
 
        try {
            URL url = getClass().getResource("/FrontFXML/CheckoutCommande.fxml");
-           if (url == null) {
-               throw new IOException("Fichier introuvable : /FrontFXML/CheckoutCommande.fxml");
-           }
-
+           if (url == null) throw new IOException("Fichier introuvable : /FrontFXML/CheckoutCommande.fxml");
            Parent root = FXMLLoader.load(url);
            Stage stage = (Stage) panierContainer.getScene().getWindow();
            stage.setScene(new Scene(root, 1400, 820));
            stage.setTitle("Checkout commande");
            stage.show();
-
        } catch (Exception e) {
            showAlert("Erreur", "Impossible d'ouvrir la page de paiement : " + e.getMessage());
        }
    }
+
 
     private String formatPrix(double prix) {
         return String.format(Locale.US, "%.2f DT", prix);
@@ -669,26 +673,23 @@ public class PanierController {
 
 
     private void appliquerEtatInteractions(InteractionCheckOutcome outcome) {
-        dernieresInteractionsDangereuses = outcome.interactions == null ? Collections.emptyList() : outcome.interactions;
+        dernieresInteractionsDangereuses = outcome.interactions == null
+                ? Collections.emptyList() : outcome.interactions;
         interactionDangereusePresente = !dernieresInteractionsDangereuses.isEmpty();
         analyseOpenFdaIndisponible = outcome.analyseIndisponible;
         messageAnalyseOpenFda = outcome.message;
 
         String nouvelEtat = interactionDangereusePresente ? "danger"
-                : analyseOpenFdaIndisponible ? "indisponible"
-                : "ok";
+                : analyseOpenFdaIndisponible ? "indisponible" : "ok";
 
         if (nouvelEtat.equals(dernierEtatAlerteInteractions)) {
             if (btnValiderCommande != null) {
-                btnValiderCommande.setDisable(interactionDangereusePresente);
+                // Débloquer si ordonnance déjà validée
+                btnValiderCommande.setDisable(interactionDangereusePresente && !ordonnanceValidee);
             }
             return;
         }
         dernierEtatAlerteInteractions = nouvelEtat;
-
-        debug("Application état openFDA: danger=" + interactionDangereusePresente
-                + ", indisponible=" + analyseOpenFdaIndisponible
-                + ", message=" + messageAnalyseOpenFda);
 
         if (!interactionDangereusePresente) {
             if (analyseOpenFdaIndisponible) {
@@ -696,11 +697,10 @@ public class PanierController {
             } else {
                 afficherAlerteAucuneInteraction();
             }
-
             if (btnValiderCommande != null) {
                 btnValiderCommande.setDisable(false);
                 btnValiderCommande.setTooltip(analyseOpenFdaIndisponible
-                        ? new Tooltip("Analyse openFDA indisponible: vérifiez manuellement les interactions.")
+                        ? new Tooltip("Analyse openFDA indisponible.")
                         : null);
             }
             return;
@@ -708,10 +708,11 @@ public class PanierController {
 
         afficherAlerteInteractions(dernieresInteractionsDangereuses);
         if (btnValiderCommande != null) {
-            btnValiderCommande.setDisable(true);
-            btnValiderCommande.setTooltip(
-                    new Tooltip("Commande bloquée : interactions médicamenteuses dangereuses détectées.")
-            );
+            // Bloquer seulement si ordonnance pas encore validée
+            btnValiderCommande.setDisable(!ordonnanceValidee);
+            btnValiderCommande.setTooltip(!ordonnanceValidee
+                    ? new Tooltip("Uploadez une ordonnance pour débloquer.")
+                    : new Tooltip("Ordonnance approuvée — commande autorisée."));
         }
     }
 
@@ -729,28 +730,6 @@ public class PanierController {
 
 
 
-    private void afficherAlerteInteractions(List<DrugInteractionResult> interactions) {
-        // Afficher l'alerte avec les détails des interactions
-        if (interactionAlertBox != null && interactionDetailsBox != null) {
-            interactionDetailsBox.getChildren().clear();
-
-            for (DrugInteractionResult interaction : interactions) {
-                VBox ligne = new VBox(4);
-                Label titre = new Label("• " + interaction.getMedicamentA() + " ↔ " + interaction.getMedicamentB());
-                titre.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #991b1b;");
-
-                Label detail = new Label(interaction.getDetailInteraction());
-                detail.setWrapText(true);
-                detail.setStyle("-fx-font-size: 13px; -fx-text-fill: #7f1d1d;");
-
-                ligne.getChildren().addAll(titre, detail);
-                interactionDetailsBox.getChildren().add(ligne);
-            }
-
-            interactionAlertBox.setVisible(true);
-            interactionAlertBox.setManaged(true);
-        }
-    }
 
     private void afficherAlerteAnalyseIndisponible(String message) {
         if (interactionAlertBox == null || interactionDetailsBox == null) return;
@@ -775,6 +754,13 @@ public class PanierController {
 
     private void afficherAlerteAucuneInteraction() {
         if (interactionAlertBox == null || interactionDetailsBox == null) return;
+        // Masquer le bloc ordonnance (pas nécessaire si pas d'interaction)
+        if (ordonnanceBox != null) {
+            ordonnanceBox.setVisible(false);
+            ordonnanceBox.setManaged(false);
+        }
+        ordonnanceValidee = false;
+
 
         configurerBlocAlerte(
                 "✅ Aucune interaction dangereuse détectée",
@@ -803,14 +789,217 @@ public class PanierController {
         }
     }
 
+
+    private void afficherAlerteInteractions(List<DrugInteractionResult> interactions) {
+        if (interactionAlertBox == null || interactionDetailsBox == null) return;
+
+        interactionDetailsBox.getChildren().clear();
+
+        for (DrugInteractionResult interaction : interactions) {
+            VBox ligne = new VBox(4);
+
+            Label titre = new Label("• " + interaction.getMedicamentA()
+                    + " ↔ " + interaction.getMedicamentB());
+            titre.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #991b1b;");
+
+            Label detail = new Label(interaction.getDetailInteraction());
+            detail.setWrapText(true);
+            detail.setStyle("-fx-font-size: 13px; -fx-text-fill: #7f1d1d;");
+
+            ligne.getChildren().addAll(titre, detail);
+            interactionDetailsBox.getChildren().add(ligne);
+        }
+
+        // Afficher le bloc ordonnance
+        if (ordonnanceBox != null) {
+            ordonnanceBox.setVisible(true);
+            ordonnanceBox.setManaged(true);
+        }
+
+        // Réinitialiser le statut ordonnance si les interactions ont changé
+        if (!ordonnanceValidee) {
+            if (ordonnanceStatusLabel != null) {
+                ordonnanceStatusLabel.setText(
+                        "⚠ Commande bloquée. Uploadez une ordonnance pour débloquer.");
+                ordonnanceStatusLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #b91c1c;");
+            }
+        }
+
+        configurerBlocAlerte(
+                "⚠ Interactions médicamenteuses dangereuses détectées",
+                "-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #b91c1c;",
+                "-fx-background-color: #fff1f2; -fx-border-color: #dc2626; "
+                        + "-fx-border-radius: 14; -fx-background-radius: 14; -fx-padding: 16;"
+        );
+
+        interactionAlertBox.setVisible(true);
+        interactionAlertBox.setManaged(true);
+    }
+
+    @FXML
+    private void scannerOrdonnance() {
+        javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
+        fileChooser.setTitle("Sélectionner une ordonnance");
+        fileChooser.getExtensionFilters().addAll(
+                new javafx.stage.FileChooser.ExtensionFilter(
+                        "Images / PDF", "*.png", "*.jpg", "*.jpeg", "*.bmp", "*.tiff", "*.pdf")
+        );
+
+        Stage stage = (Stage) panierContainer.getScene().getWindow();
+        File fichier = fileChooser.showOpenDialog(stage);
+        if (fichier == null) return;
+
+        if (ordonnanceStatusLabel != null) {
+            ordonnanceStatusLabel.setText("⏳ Analyse de l'ordonnance en cours...");
+            ordonnanceStatusLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #1d4ed8;");
+        }
+        if (btnScanOrdonnance != null) btnScanOrdonnance.setDisable(true);
+
+        // Construire la liste des médicaments attendus depuis les interactions détectées
+        final List<String> medicamentsCibles = new ArrayList<>();
+        for (DrugInteractionResult interaction : dernieresInteractionsDangereuses) {
+            String a = interaction.getMedicamentA();
+            String b = interaction.getMedicamentB();
+            if (!medicamentsCibles.contains(a)) medicamentsCibles.add(a);
+            if (!medicamentsCibles.contains(b)) medicamentsCibles.add(b);
+        }
+
+        final File fichierFinal = fichier;
+
+        // Task<String> : on récupère le texte brut OCR
+        Task<String> task = new Task<>() {
+            @Override
+            protected String call() throws Exception {
+                return ordonnanceService.extraireTexteOcr(fichierFinal);
+            }
+        };
+
+        task.setOnSucceeded(event -> {
+            if (btnScanOrdonnance != null) btnScanOrdonnance.setDisable(false);
+
+            String texteOcr = task.getValue();
+
+            if (texteOcr == null || texteOcr.isBlank()) {
+                ordonnanceValidee = false;
+                if (ordonnanceStatusLabel != null) {
+                    ordonnanceStatusLabel.setText(
+                            "✗ Impossible de lire l'ordonnance. Réessayez avec une image plus nette.");
+                    ordonnanceStatusLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #dc2626;");
+                }
+                return;
+            }
+
+            // Extraire uniquement les médicaments attendus trouvés dans le texte
+            medicamentsOrdonnance = ordonnanceService.extraireMedicamentsCibles(texteOcr, medicamentsCibles);
+            System.out.println("[Ordonnance] Médicaments cibles trouvés : " + medicamentsOrdonnance);
+
+            traiterResultatOrdonnance(medicamentsOrdonnance);
+        });
+
+        task.setOnFailed(event -> {
+            if (btnScanOrdonnance != null) btnScanOrdonnance.setDisable(false);
+            if (ordonnanceStatusLabel != null) {
+                ordonnanceStatusLabel.setText("✗ Erreur lors de l'analyse de l'ordonnance.");
+                ordonnanceStatusLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #dc2626;");
+            }
+        });
+
+        Thread t = new Thread(task, "ordonnance-ocr");
+        t.setDaemon(true);
+        t.start();
+    }
+
+    private void traiterResultatOrdonnance(List<String> medicamentsTrouves) {
+        System.out.println("[Ordonnance] Médicaments extraits : " + medicamentsTrouves);
+
+        if (medicamentsTrouves == null || medicamentsTrouves.isEmpty()) {
+            ordonnanceValidee = false;
+            if (ordonnanceStatusLabel != null) {
+                ordonnanceStatusLabel.setText(
+                        "✗ Aucun médicament reconnu dans l'ordonnance. Réessayez avec une image plus nette.");
+                ordonnanceStatusLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #dc2626;");
+            }
+            return;
+        }
+
+        // Vérifier si l'ordonnance couvre les interactions
+        boolean couvre = ordonnanceService.ordonnanceCouvreInteractions(
+                medicamentsTrouves, dernieresInteractionsDangereuses);
+
+        if (couvre) {
+            ordonnanceValidee = true;
+
+            // ── Alerte verte ordonnance approuvée ──
+            configurerBlocAlerte(
+                    "✅ Ordonnance approuvée",
+                    "-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #166534;",
+                    "-fx-background-color: #ecfdf5; -fx-border-color: #22c55e; "
+                            + "-fx-border-radius: 14; -fx-background-radius: 14; -fx-padding: 16;"
+            );
+
+            if (interactionDetailsBox != null) {
+                interactionDetailsBox.getChildren().clear();
+                Label approuve = new Label(
+                        "✅ Ordonnance vérifiée. Médicaments reconnus : "
+                                + String.join(", ", medicamentsTrouves));
+                approuve.setWrapText(true);
+                approuve.setStyle("-fx-font-size: 13px; -fx-text-fill: #166534;");
+                interactionDetailsBox.getChildren().add(approuve);
+            }
+
+            if (ordonnanceStatusLabel != null) {
+                ordonnanceStatusLabel.setText("✅ Ordonnance approuvée — commande débloquée.");
+                ordonnanceStatusLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #166534; "
+                        + "-fx-font-weight: bold;");
+            }
+
+            // Débloquer le bouton valider
+            if (btnValiderCommande != null) {
+                btnValiderCommande.setDisable(false);
+                btnValiderCommande.setTooltip(
+                        new Tooltip("Ordonnance approuvée — vous pouvez valider la commande."));
+            }
+
+            showSuccessAlert("✅ Ordonnance approuvée ! Vous pouvez valider votre commande.");
+
+        } else {
+            ordonnanceValidee = false;
+
+            String medsListe = medicamentsTrouves.isEmpty()
+                    ? "aucun médicament reconnu"
+                    : String.join(", ", medicamentsTrouves);
+
+            if (ordonnanceStatusLabel != null) {
+                ordonnanceStatusLabel.setText(
+                        "✗ Ordonnance insuffisante. Reconnus : " + medsListe
+                                + ". Les médicaments en interaction doivent tous y figurer.");
+                ordonnanceStatusLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #b91c1c;");
+            }
+
+            if (btnValiderCommande != null) {
+                btnValiderCommande.setDisable(true);
+            }
+
+            showFloatingToast(
+                    "✗ Ordonnance insuffisante : " + medsListe + " détectés.",
+                    "toast-warning", "⚠");
+        }
+    }
     private void masquerAlerteInteractions() {
         if (interactionAlertBox != null) {
             interactionAlertBox.setVisible(false);
             interactionAlertBox.setManaged(false);
         }
-
         if (interactionDetailsBox != null) {
             interactionDetailsBox.getChildren().clear();
         }
+        // Cacher aussi le bloc ordonnance
+        if (ordonnanceBox != null) {
+            ordonnanceBox.setVisible(false);
+            ordonnanceBox.setManaged(false);
+        }
+        ordonnanceValidee = false;
+        medicamentsOrdonnance = new ArrayList<>();
     }
+
 }

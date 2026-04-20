@@ -40,6 +40,7 @@ public class RessourceController {
     @FXML private Label fileResourcesLabel;
     @FXML private Label linkResourcesLabel;
     @FXML private Label stockResourcesLabel;
+    @FXML private Label historiqueResourcesLabel;
     @FXML private Label inventoryCountLabel;
     @FXML private TextField searchField;
     @FXML private ComboBox<String> sortCombo;
@@ -839,6 +840,7 @@ public class RessourceController {
 
         addActionsColumn();
         ressourceTable.setPlaceholder(new Label("Aucune ressource trouvee"));
+        ressourceTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_ALL_COLUMNS);
     }
 
     private void configureSort() {
@@ -930,20 +932,26 @@ public class RessourceController {
                     filteredList.stream().filter(r -> "stock_item".equalsIgnoreCase(text(r.getType_ressource()))).count()
             ));
         }
+
+        if (historiqueResourcesLabel != null) {
+            historiqueResourcesLabel.setText(String.valueOf(
+                    filteredList.stream().filter(r -> !r.isEst_publique_ressource()).count()
+            ));
+        }
     }
 
     private void addActionsColumn() {
         actionsCol.setCellFactory(col -> new TableCell<>() {
             private final Button viewBtn = new Button("Voir");
             private final Button editBtn = new Button("Modifier");
-            private final Button deleteBtn = new Button("Supprimer");
-            private final ToolBar toolBar = new ToolBar(viewBtn, editBtn, deleteBtn);
+            private final Button archiveBtn = new Button("Historique");
+            private final ToolBar toolBar = new ToolBar(viewBtn, editBtn, archiveBtn);
 
             {
                 toolBar.getStyleClass().add("action-toolbar");
                 viewBtn.getStyleClass().add("view-btn");
                 editBtn.getStyleClass().add("edit-btn");
-                deleteBtn.getStyleClass().add("delete-btn");
+                archiveBtn.getStyleClass().add("delete-btn");
 
                 viewBtn.setOnAction(e -> {
                     Ressource r = getTableView().getItems().get(getIndex());
@@ -955,18 +963,18 @@ public class RessourceController {
                     ouvrirPageModification(r);
                 });
 
-                deleteBtn.setOnAction(e -> {
+                archiveBtn.setOnAction(e -> {
                     Ressource r = getTableView().getItems().get(getIndex());
 
                     Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
                     confirm.setTitle("Confirmation");
                     confirm.setHeaderText(null);
-                    confirm.setContentText("Supprimer la ressource : " + text(r.getNom_ressource()) + " ?");
+                    confirm.setContentText("Envoyer la ressource dans l'historique : " + text(r.getNom_ressource()) + " ?");
 
                     Optional<ButtonType> result = confirm.showAndWait();
                     if (result.isPresent() && result.get() == ButtonType.OK) {
-                        ressourceService.supprimer(r);
-                        masterList.remove(r);
+                        ressourceService.archiver(r);
+                        ressourceTable.refresh();
                         updateStats();
 
                         if (inventoryCountLabel != null) {

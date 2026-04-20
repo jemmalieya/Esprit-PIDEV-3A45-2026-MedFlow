@@ -88,6 +88,26 @@ public class RessourceService {
         }
     }
 
+    public void archiver(Ressource r) {
+        String sql = """
+                UPDATE ressource
+                SET est_publique_ressource = ?, date_mise_a_jour_ressource = ?
+                WHERE id = ?
+                """;
+
+        try (PreparedStatement ps = cn.prepareStatement(sql)) {
+            ps.setBoolean(1, false);
+            ps.setDate(2, new java.sql.Date(new java.util.Date().getTime()));
+            ps.setInt(3, r.getId());
+            ps.executeUpdate();
+
+            r.setEst_publique_ressource(false);
+            r.setDate_mise_a_jour_ressource(new java.util.Date());
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+    }
+
     public List<Ressource> recuperer() {
         List<Ressource> list = new ArrayList<>();
         String sql = "SELECT * FROM ressource";

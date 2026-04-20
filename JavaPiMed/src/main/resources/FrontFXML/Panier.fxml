@@ -36,6 +36,7 @@
                             <Label fx:id="panierSubtitleLabel" text="Votre panier est vide" styleClass="panier-subtitle"/>
                         </children>
                     </VBox>
+
                     <VBox fx:id="interactionAlertBox"
                           visible="false"
                           managed="false"
@@ -46,8 +47,27 @@
                                    text="État des interactions médicamenteuses"
                                    style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #b91c1c;"/>
                             <VBox fx:id="interactionDetailsBox" spacing="8"/>
+
+                            <!-- BOUTON ORDONNANCE — visible uniquement si interaction dangereuse -->
+                            <HBox spacing="12" alignment="CENTER_LEFT" fx:id="ordonnanceBox"
+                                  visible="false" managed="false">
+                                <children>
+                                    <Button fx:id="btnScanOrdonnance"
+                                            text="📄 Scanner une ordonnance"
+                                            onAction="#scannerOrdonnance"
+                                            style="-fx-background-color: #1d4ed8; -fx-text-fill: white;
+                               -fx-font-size: 13px; -fx-font-weight: bold;
+                               -fx-background-radius: 8; -fx-padding: 10 18;
+                               -fx-cursor: hand;"/>
+                                    <Label fx:id="ordonnanceStatusLabel"
+                                           text=""
+                                           style="-fx-font-size: 13px; -fx-text-fill: #374151;"
+                                           wrapText="true"/>
+                                </children>
+                            </HBox>
                         </children>
                     </VBox>
+
                     <!-- PANIER VIDE -->
                     <VBox fx:id="emptyCartBox" alignment="CENTER" spacing="16" styleClass="empty-cart-box">
                         <children>

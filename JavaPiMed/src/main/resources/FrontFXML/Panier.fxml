@@ -36,7 +36,18 @@
                             <Label fx:id="panierSubtitleLabel" text="Votre panier est vide" styleClass="panier-subtitle"/>
                         </children>
                     </VBox>
-
+                    <VBox fx:id="interactionAlertBox"
+                          visible="false"
+                          managed="false"
+                          spacing="10"
+                          style="-fx-background-color: #fff1f2; -fx-border-color: #dc2626; -fx-border-radius: 14; -fx-background-radius: 14; -fx-padding: 16;">
+                        <children>
+                            <Label fx:id="interactionAlertTitleLabel"
+                                   text="État des interactions médicamenteuses"
+                                   style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #b91c1c;"/>
+                            <VBox fx:id="interactionDetailsBox" spacing="8"/>
+                        </children>
+                    </VBox>
                     <!-- PANIER VIDE -->
                     <VBox fx:id="emptyCartBox" alignment="CENTER" spacing="16" styleClass="empty-cart-box">
                         <children>

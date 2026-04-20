@@ -3,29 +3,26 @@ import javafx.scene.control.Dialog;
 import javafx.scene.control.DialogPane;
 import javafx.animation.FadeTransition;
 import javafx.animation.PauseTransition;
-import javafx.application.Platform;
+import javafx.concurrent.Task;
 import javafx.fxml.FXML;
+import javafx.scene.control.Tooltip;
+import tn.esprit.services.DrugInteractionResult;
+import tn.esprit.services.OpenFdaInteractionService;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import javafx.util.Duration;
-import tn.esprit.entities.CommandeProduit;
 import tn.esprit.entities.Produit;
-import tn.esprit.entities.User;
-import tn.esprit.services.CommandeService;
 import tn.esprit.session.CartSession;
-import tn.esprit.tools.SessionManager;
 
 import java.io.File;
 import java.io.IOException;
@@ -33,6 +30,8 @@ import java.net.URL;
 import java.util.*;
 
 public class PanierController {
+
+    private static final boolean DEBUG_OPENFDA = isDebugEnabled();
 
     @FXML private VBox panierContainer;
     @FXML private Label panierTitleLabel;
@@ -44,8 +43,34 @@ public class PanierController {
     @FXML private HBox cartContentBox;
     @FXML private Button btnValiderCommande;
     @FXML private Button btnViderPanier;
+    @FXML private VBox interactionAlertBox;
+    @FXML private Label interactionAlertTitleLabel;
+    @FXML private VBox interactionDetailsBox;
 
-    private final CommandeService commandeService = new CommandeService();
+    private List<DrugInteractionResult> dernieresInteractionsDangereuses = Collections.emptyList();
+    private boolean interactionDangereusePresente = false;
+    private boolean analyseOpenFdaIndisponible = false;
+    private String messageAnalyseOpenFda = "";
+    private long interactionCheckVersion = 0;
+    private String dernierEtatAlerteInteractions = "";
+
+    private final OpenFdaInteractionService openFdaInteractionService = new OpenFdaInteractionService();
+
+    private static boolean isDebugEnabled() {
+        String prop = System.getProperty("openfda.debug");
+        if (prop != null) {
+            return Boolean.parseBoolean(prop);
+        }
+
+        String env = System.getenv("OPENFDA_DEBUG");
+        return env != null && !env.isBlank() && !"false".equalsIgnoreCase(env);
+    }
+
+    private void debug(String message) {
+        if (DEBUG_OPENFDA) {
+            System.out.println("[Panier/openFDA] " + message);
+        }
+    }
 
     @FXML
     public void initialize() {
@@ -70,6 +95,10 @@ public class PanierController {
                 cartContentBox.setManaged(false);
             }
 
+            if (btnViderPanier != null) {
+                btnViderPanier.setDisable(true);
+            }
+
             if (panierSubtitleLabel != null) {
                 panierSubtitleLabel.setText("Votre panier est vide");
             }
@@ -90,6 +119,19 @@ public class PanierController {
                 panierContainer.getChildren().clear();
             }
 
+            dernieresInteractionsDangereuses = Collections.emptyList();
+            interactionDangereusePresente = false;
+            analyseOpenFdaIndisponible = false;
+            messageAnalyseOpenFda = "";
+            dernierEtatAlerteInteractions = "vide";
+            interactionCheckVersion++;
+            masquerAlerteInteractions();
+
+            if (btnValiderCommande != null) {
+                btnValiderCommande.setDisable(true);
+                btnValiderCommande.setTooltip(null);
+            }
+
             return;
         }
 
@@ -101,6 +143,10 @@ public class PanierController {
         if (cartContentBox != null) {
             cartContentBox.setVisible(true);
             cartContentBox.setManaged(true);
+        }
+
+        if (btnViderPanier != null) {
+            btnViderPanier.setDisable(false);
         }
 
         if (panierSubtitleLabel != null) {
@@ -140,6 +186,71 @@ public class PanierController {
         if (totalLabel != null) {
             totalLabel.setText(formatPrix(totalGeneral));
         }
+
+        lancerVerificationInteractionsAsynchrone(panier);
+    }
+
+    private void lancerVerificationInteractionsAsynchrone(List<Produit> panier) {
+        final long version = ++interactionCheckVersion;
+        final List<Produit> snapshot = new ArrayList<>(panier);
+
+        debug("Lancement vérification openFDA v" + version + " avec " + snapshot.size() + " produit(s)");
+
+        if (btnValiderCommande != null) {
+            btnValiderCommande.setDisable(true);
+            btnValiderCommande.setTooltip(new Tooltip("Analyse des interactions en cours..."));
+        }
+
+        Task<InteractionCheckOutcome> task = new Task<>() {
+            @Override
+            protected InteractionCheckOutcome call() {
+                OpenFdaInteractionService service = new OpenFdaInteractionService();
+                List<DrugInteractionResult> interactions = service.verifierInteractions(snapshot);
+                return new InteractionCheckOutcome(
+                        interactions,
+                        service.isDerniereAnalyseIndisponible(),
+                        service.getDernierMessageIndisponibilite()
+                );
+            }
+        };
+
+        task.setOnSucceeded(event -> {
+            if (version != interactionCheckVersion) {
+                debug("Résultat ignoré (version obsolète) v" + version);
+                return;
+            }
+
+            InteractionCheckOutcome outcome = task.getValue();
+            debug("Résultat openFDA v" + version + ": interactions="
+                    + (outcome == null || outcome.interactions == null ? 0 : outcome.interactions.size())
+                    + ", indisponible=" + (outcome != null && outcome.analyseIndisponible)
+                    + ", message=" + (outcome == null ? "" : outcome.message));
+            appliquerEtatInteractions(task.getValue());
+        });
+
+        task.setOnFailed(event -> {
+            if (version != interactionCheckVersion) {
+                debug("Échec ignoré (version obsolète) v" + version);
+                return;
+            }
+
+            debug("Échec openFDA v" + version + ": " + (event.getSource() instanceof Task ? ((Task<?>) event.getSource()).getException() : "inconnu"));
+
+            dernieresInteractionsDangereuses = Collections.emptyList();
+            interactionDangereusePresente = false;
+            analyseOpenFdaIndisponible = true;
+            messageAnalyseOpenFda = "Erreur lors de l'analyse openFDA.";
+            afficherAlerteAnalyseIndisponible(messageAnalyseOpenFda);
+
+            if (btnValiderCommande != null) {
+                btnValiderCommande.setDisable(false);
+                btnValiderCommande.setTooltip(new Tooltip("Analyse openFDA indisponible: vérifiez manuellement les interactions."));
+            }
+        });
+
+        Thread thread = new Thread(task, "openfda-panier-check");
+        thread.setDaemon(true);
+        thread.start();
     }
 
     private HBox createPanierRow(Produit produit, int quantite, double totalProduit) {
@@ -257,9 +368,7 @@ public class PanierController {
             boolean confirmed = showStyledConfirmationDialog(
                     "🗑 Supprimer l'article",
                     "Voulez-vous retirer \"" + produit.getNom_produit() + "\" du panier ?",
-                    "Supprimer",
-                    "Annuler",
-                    "danger"
+                    "Supprimer"
             );
 
             if (confirmed) {
@@ -280,9 +389,7 @@ public class PanierController {
         boolean confirmed = showStyledConfirmationDialog(
                 "🧹 Vider le panier",
                 "Voulez-vous vraiment vider le panier ? Tous les articles seront supprimés.",
-                "Vider",
-                "Annuler",
-                "danger"
+                "Vider"
         );
 
         if (confirmed) {
@@ -371,6 +478,23 @@ public class PanierController {
            return;
        }
 
+       // Utiliser l'état déjà calculé par la vérification asynchrone — PAS de nouvel appel API
+       if (interactionDangereusePresente) {
+           showAlert("Interactions dangereuses",
+                   "Impossible de valider la commande : des interactions médicamenteuses dangereuses ont été détectées.");
+           return;
+       }
+
+       // Si l'analyse n'a pas encore terminé (bouton ne devrait pas être actif, mais sécurité)
+       if (analyseOpenFdaIndisponible) {
+           boolean continuer = showStyledConfirmationDialog(
+                   "⚠ Analyse indisponible",
+                   "L'analyse openFDA est indisponible. Voulez-vous quand même continuer ?",
+                   "Continuer"
+           );
+           if (!continuer) return;
+       }
+
        try {
            URL url = getClass().getResource("/FrontFXML/CheckoutCommande.fxml");
            if (url == null) {
@@ -378,7 +502,6 @@ public class PanierController {
            }
 
            Parent root = FXMLLoader.load(url);
-
            Stage stage = (Stage) panierContainer.getScene().getWindow();
            stage.setScene(new Scene(root, 1400, 820));
            stage.setTitle("Checkout commande");
@@ -394,7 +517,7 @@ public class PanierController {
     }
 
     private void showAlert(String title, String content) {
-        showFloatingToast(content, "toast-info", "ℹ");
+        showFloatingToast((title == null || title.isBlank() ? content : title + " : " + content), "toast-info", "ℹ");
     }
 
     private void showStockInsufficiencyAlert(String productName, int availableQuantity) {
@@ -499,7 +622,7 @@ public class PanierController {
         sequence.play();
     }
 
-    private boolean showStyledConfirmationDialog(String title, String message, String confirmText, String cancelText, String variant) {
+    private boolean showStyledConfirmationDialog(String title, String message, String confirmText) {
         Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle("");
         dialog.setHeaderText(null);
@@ -517,10 +640,7 @@ public class PanierController {
         content.setAlignment(Pos.CENTER);
         content.setPadding(new Insets(24));
 
-        Label icon = new Label(
-                "danger".equals(variant) ? "⚠" :
-                        "success".equals(variant) ? "✅" : "ℹ"
-        );
+        Label icon = new Label("⚠");
         icon.getStyleClass().add("confirm-dialog-icon");
 
         Label titleLabel = new Label(title);
@@ -538,14 +658,159 @@ public class PanierController {
         Button cancelButton = (Button) pane.lookupButton(ButtonType.CANCEL);
 
         okButton.setText(confirmText);
-        cancelButton.setText(cancelText);
+        cancelButton.setText("Annuler");
 
-        okButton.getStyleClass().add(
-                "danger".equals(variant) ? "confirm-danger-btn" : "confirm-success-btn"
-        );
+        okButton.getStyleClass().add("confirm-danger-btn");
         cancelButton.getStyleClass().add("confirm-cancel-btn");
 
         Optional<ButtonType> result = dialog.showAndWait();
         return result.isPresent() && result.get() == ButtonType.OK;
+    }
+
+
+    private void appliquerEtatInteractions(InteractionCheckOutcome outcome) {
+        dernieresInteractionsDangereuses = outcome.interactions == null ? Collections.emptyList() : outcome.interactions;
+        interactionDangereusePresente = !dernieresInteractionsDangereuses.isEmpty();
+        analyseOpenFdaIndisponible = outcome.analyseIndisponible;
+        messageAnalyseOpenFda = outcome.message;
+
+        String nouvelEtat = interactionDangereusePresente ? "danger"
+                : analyseOpenFdaIndisponible ? "indisponible"
+                : "ok";
+
+        if (nouvelEtat.equals(dernierEtatAlerteInteractions)) {
+            if (btnValiderCommande != null) {
+                btnValiderCommande.setDisable(interactionDangereusePresente);
+            }
+            return;
+        }
+        dernierEtatAlerteInteractions = nouvelEtat;
+
+        debug("Application état openFDA: danger=" + interactionDangereusePresente
+                + ", indisponible=" + analyseOpenFdaIndisponible
+                + ", message=" + messageAnalyseOpenFda);
+
+        if (!interactionDangereusePresente) {
+            if (analyseOpenFdaIndisponible) {
+                afficherAlerteAnalyseIndisponible(messageAnalyseOpenFda);
+            } else {
+                afficherAlerteAucuneInteraction();
+            }
+
+            if (btnValiderCommande != null) {
+                btnValiderCommande.setDisable(false);
+                btnValiderCommande.setTooltip(analyseOpenFdaIndisponible
+                        ? new Tooltip("Analyse openFDA indisponible: vérifiez manuellement les interactions.")
+                        : null);
+            }
+            return;
+        }
+
+        afficherAlerteInteractions(dernieresInteractionsDangereuses);
+        if (btnValiderCommande != null) {
+            btnValiderCommande.setDisable(true);
+            btnValiderCommande.setTooltip(
+                    new Tooltip("Commande bloquée : interactions médicamenteuses dangereuses détectées.")
+            );
+        }
+    }
+
+    private static class InteractionCheckOutcome {
+        private final List<DrugInteractionResult> interactions;
+        private final boolean analyseIndisponible;
+        private final String message;
+
+        private InteractionCheckOutcome(List<DrugInteractionResult> interactions, boolean analyseIndisponible, String message) {
+            this.interactions = interactions;
+            this.analyseIndisponible = analyseIndisponible;
+            this.message = message;
+        }
+    }
+
+
+
+    private void afficherAlerteInteractions(List<DrugInteractionResult> interactions) {
+        // Afficher l'alerte avec les détails des interactions
+        if (interactionAlertBox != null && interactionDetailsBox != null) {
+            interactionDetailsBox.getChildren().clear();
+
+            for (DrugInteractionResult interaction : interactions) {
+                VBox ligne = new VBox(4);
+                Label titre = new Label("• " + interaction.getMedicamentA() + " ↔ " + interaction.getMedicamentB());
+                titre.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #991b1b;");
+
+                Label detail = new Label(interaction.getDetailInteraction());
+                detail.setWrapText(true);
+                detail.setStyle("-fx-font-size: 13px; -fx-text-fill: #7f1d1d;");
+
+                ligne.getChildren().addAll(titre, detail);
+                interactionDetailsBox.getChildren().add(ligne);
+            }
+
+            interactionAlertBox.setVisible(true);
+            interactionAlertBox.setManaged(true);
+        }
+    }
+
+    private void afficherAlerteAnalyseIndisponible(String message) {
+        if (interactionAlertBox == null || interactionDetailsBox == null) return;
+
+        configurerBlocAlerte(
+                "⚠ Analyse openFDA indisponible",
+                "-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #92400e;",
+                "-fx-background-color: #fffbeb; -fx-border-color: #f59e0b; -fx-border-radius: 14; -fx-background-radius: 14; -fx-padding: 16;"
+        );
+        interactionDetailsBox.getChildren().clear();
+
+        Label detail = new Label((message == null || message.isBlank())
+                ? "Impossible de vérifier automatiquement les interactions pour le moment."
+                : message + " Vérifiez manuellement les interactions avant validation.");
+        detail.setWrapText(true);
+        detail.setStyle("-fx-font-size: 13px; -fx-text-fill: #78350f;");
+
+        interactionDetailsBox.getChildren().add(detail);
+        interactionAlertBox.setVisible(true);
+        interactionAlertBox.setManaged(true);
+    }
+
+    private void afficherAlerteAucuneInteraction() {
+        if (interactionAlertBox == null || interactionDetailsBox == null) return;
+
+        configurerBlocAlerte(
+                "✅ Aucune interaction dangereuse détectée",
+                "-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #166534;",
+                "-fx-background-color: #ecfdf5; -fx-border-color: #22c55e; -fx-border-radius: 14; -fx-background-radius: 14; -fx-padding: 16;"
+        );
+
+        interactionDetailsBox.getChildren().clear();
+        Label detail = new Label("Vérification openFDA terminée: vous pouvez valider la commande.");
+        detail.setWrapText(true);
+        detail.setStyle("-fx-font-size: 13px; -fx-text-fill: #14532d;");
+        interactionDetailsBox.getChildren().add(detail);
+
+        interactionAlertBox.setVisible(true);
+        interactionAlertBox.setManaged(true);
+    }
+
+    private void configurerBlocAlerte(String titre, String styleTitre, String styleBloc) {
+        if (interactionAlertBox != null) {
+            interactionAlertBox.setStyle(styleBloc);
+        }
+
+        if (interactionAlertTitleLabel != null) {
+            interactionAlertTitleLabel.setText(titre);
+            interactionAlertTitleLabel.setStyle(styleTitre);
+        }
+    }
+
+    private void masquerAlerteInteractions() {
+        if (interactionAlertBox != null) {
+            interactionAlertBox.setVisible(false);
+            interactionAlertBox.setManaged(false);
+        }
+
+        if (interactionDetailsBox != null) {
+            interactionDetailsBox.getChildren().clear();
+        }
     }
 }

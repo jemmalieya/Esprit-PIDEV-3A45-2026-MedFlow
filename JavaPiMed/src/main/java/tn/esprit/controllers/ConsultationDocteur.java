@@ -49,6 +49,7 @@ import tn.esprit.entities.User;
 import tn.esprit.services.BrevoEmailService;
 import tn.esprit.services.FicheMedicaleService;
 import tn.esprit.services.PrescriptionService;
+import tn.esprit.services.PrescriptionSuggestionService;
 import tn.esprit.services.RendezVousService;
 import tn.esprit.services.UserService;
 import tn.esprit.tools.MyDataBase;
@@ -57,6 +58,7 @@ import tn.esprit.tools.SessionManager;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.nio.charset.StandardCharsets;
@@ -84,6 +86,8 @@ public class ConsultationDocteur {
     private final PrescriptionService prescriptionService = new PrescriptionService();
     private final UserService userService = new UserService();
     private final BrevoEmailService brevoEmailService = new BrevoEmailService();
+    private final PrescriptionSuggestionService prescriptionSuggestionService = new PrescriptionSuggestionService();
+    private List<PrescriptionSuggestionService.PrescriptionSuggestion> currentSuggestions = new ArrayList<>();
 
     // FXML fields mapped to UI components
     @FXML
@@ -115,6 +119,9 @@ public class ConsultationDocteur {
 
     @FXML
     private VBox pageOneContainer;
+
+    @FXML
+    private VBox homePageContainer;
 
     @FXML
     private VBox consultationPageContainer;
@@ -158,6 +165,8 @@ public class ConsultationDocteur {
     @FXML
     private Button saveFicheButton;
     @FXML
+    private Button suggestionsButton;
+    @FXML
     private Label consultationDurationLabel;
     @FXML
     private Label consultationTimerLabel;
@@ -175,6 +184,18 @@ public class ConsultationDocteur {
     private Button joinCallButton;
     @FXML
     private Button leaveCallButton;
+    @FXML
+    private Label homeWelcomeLabel;
+    @FXML
+    private Label homeTodayDateLabel;
+    @FXML
+    private Label homeTodayCountLabel;
+    @FXML
+    private VBox todayCalendarContainer;
+    @FXML
+    private VBox highUrgencyContainer;
+    @FXML
+    private VBox pendingDemandesContainer;
 
     // Detail panel fields
     @FXML
@@ -359,7 +380,10 @@ public class ConsultationDocteur {
 
         // Fiche Medicale form listeners
         if (diagnosticField != null) {
-            diagnosticField.textProperty().addListener((obs, oldValue, newValue) -> validateDiagnosticField());
+            diagnosticField.textProperty().addListener((obs, oldValue, newValue) -> {
+                validateDiagnosticField();
+                suggestPrescriptionsFromDiagnostic(newValue);
+            });
         }
 
         if (observationsField != null) {
@@ -406,7 +430,8 @@ public class ConsultationDocteur {
         updateConsultationTimingLabels(null, null, null, "00:00:00");
         configureConsultationModeUi(false, null);
 
-        showPage(1);
+        refreshHomeDashboard();
+        showPage(0);
     }
 
     // Handle doctor selection
@@ -661,8 +686,7 @@ public class ConsultationDocteur {
     // Handle booking page navigation
     @FXML
     private void handleShowBookingPage(ActionEvent event) {
-        // Logic to switch to booking page (if needed)
-        System.out.println("Navigating to booking page...");
+        showPage(0);
     }
 
     // Handle other actions like canceling, etc.
@@ -1049,6 +1073,7 @@ public class ConsultationDocteur {
             allDoctorRendezVous.clear();
             doctorRendezVous.clear();
             refreshStatsData();
+            refreshHomeDashboard();
             return;
         }
 
@@ -1056,6 +1081,7 @@ public class ConsultationDocteur {
         allDoctorRendezVous.setAll(list);
         applySearchAndSort();
         refreshStatsData();
+        refreshHomeDashboard();
     }
 
     private void applySearchAndSort() {
@@ -1173,6 +1199,7 @@ public class ConsultationDocteur {
         rendezVousService.modifier(rendezVous);
         eventTable.refresh();
         refreshStatsData();
+        refreshHomeDashboard();
         sendConfirmationEmailAsync(rendezVous);
     }
 
@@ -1243,9 +1270,15 @@ public class ConsultationDocteur {
     }
 
     private void showPage(int page) {
+        boolean showHomePage = page == 0;
         boolean showPageOne = page == 1;
         boolean showConsultationPage = page == 2;
         boolean showStatsPage = page == 3;
+
+        if (homePageContainer != null) {
+            homePageContainer.setVisible(showHomePage);
+            homePageContainer.setManaged(showHomePage);
+        }
 
         if (pageOneContainer != null) {
             pageOneContainer.setVisible(showPageOne);
@@ -1486,9 +1519,133 @@ public class ConsultationDocteur {
     }
 
     private void updatePageButtons(int page) {
+        setButtonActive(bookingPageBtn, page == 0);
         setButtonActive(pageOneBtn, page == 1);
         setButtonActive(consultationPageBtn, page == 2);
         setButtonActive(statsPageBtn, page == 3);
+    }
+
+    private void refreshHomeDashboard() {
+        if (homeWelcomeLabel != null) {
+            homeWelcomeLabel.setText("Bienvenue, " + resolveSessionDoctorDisplayName());
+        }
+        if (homeTodayDateLabel != null) {
+            homeTodayDateLabel.setText("Aujourd'hui: " + LocalDate.now());
+        }
+
+        List<RendezVous> todayRendezVous = new ArrayList<>();
+        List<RendezVous> highUrgencyRendezVous = new ArrayList<>();
+        List<RendezVous> pendingDemandes = new ArrayList<>();
+
+        LocalDate today = LocalDate.now();
+        for (RendezVous rendezVous : allDoctorRendezVous) {
+            if (rendezVous == null) {
+                continue;
+            }
+
+            if (rendezVous.getDatetime() != null && rendezVous.getDatetime().toLocalDateTime().toLocalDate().equals(today)) {
+                todayRendezVous.add(rendezVous);
+            }
+
+            if ("high".equalsIgnoreCase(nullSafe(rendezVous.getUrgency_level()))) {
+                highUrgencyRendezVous.add(rendezVous);
+            }
+
+            if ("Demande".equalsIgnoreCase(nullSafe(rendezVous.getStatut()))) {
+                pendingDemandes.add(rendezVous);
+            }
+        }
+
+        Comparator<RendezVous> byDateAsc = Comparator.comparing(
+                RendezVous::getDatetime,
+                Comparator.nullsLast(Comparator.naturalOrder())
+        );
+        todayRendezVous.sort(byDateAsc);
+        highUrgencyRendezVous.sort(byDateAsc);
+        pendingDemandes.sort(byDateAsc);
+
+        if (homeTodayCountLabel != null) {
+            homeTodayCountLabel.setText(todayRendezVous.size() + " rendez-vous aujourd'hui");
+        }
+
+        populateHomeList(todayCalendarContainer, todayRendezVous, true, true, "Aucun rendez-vous pour aujourd'hui.");
+        populateHomeList(highUrgencyContainer, highUrgencyRendezVous, true, true, "Aucun rendez-vous HIGH pour le moment.");
+        populateHomeList(pendingDemandesContainer, pendingDemandes, true, false, "Aucune demande en attente.");
+    }
+
+    private void populateHomeList(
+            VBox container,
+            List<RendezVous> rendezVousList,
+            boolean includeConfirm,
+            boolean includeStart,
+            String emptyMessage
+    ) {
+        if (container == null) {
+            return;
+        }
+
+        container.getChildren().clear();
+        if (rendezVousList == null || rendezVousList.isEmpty()) {
+            Label emptyLabel = new Label(emptyMessage);
+            emptyLabel.getStyleClass().add("home-empty-label");
+            container.getChildren().add(emptyLabel);
+            return;
+        }
+
+        for (RendezVous rendezVous : rendezVousList) {
+            container.getChildren().add(buildHomeRendezVousCard(rendezVous, includeConfirm, includeStart));
+        }
+    }
+
+    private VBox buildHomeRendezVousCard(RendezVous rendezVous, boolean includeConfirm, boolean includeStart) {
+        Label idLabel = new Label("#" + rendezVous.getId());
+        idLabel.getStyleClass().addAll("home-chip", "home-chip-id");
+
+        String dateText = rendezVous.getDatetime() == null ? "-" : rendezVous.getDatetime().toLocalDateTime().toLocalTime().toString();
+        if (dateText.length() > 5) {
+            dateText = dateText.substring(0, 5);
+        }
+        Label timeLabel = new Label(dateText);
+        timeLabel.getStyleClass().addAll("home-chip", "home-chip-time");
+
+        Label statusLabel = new Label(nullSafe(rendezVous.getStatut()));
+        statusLabel.getStyleClass().addAll("home-chip", "home-chip-status");
+
+        Label urgencyLabel = new Label("Urgence: " + nullSafe(rendezVous.getUrgency_level()));
+        urgencyLabel.getStyleClass().addAll("home-chip", "home-chip-urgency");
+
+        Label modeLabel = new Label("Mode: " + nullSafe(rendezVous.getMode()));
+        modeLabel.getStyleClass().add("home-meta");
+
+        Label patientLabel = new Label("Patient ID: " + rendezVous.getIdPatient());
+        patientLabel.getStyleClass().add("home-meta");
+
+        Label motifLabel = new Label("Motif: " + nullSafe(rendezVous.getMotif()));
+        motifLabel.getStyleClass().add("home-motif");
+        motifLabel.setWrapText(true);
+
+        HBox chipsRow = new HBox(8, idLabel, timeLabel, statusLabel, urgencyLabel);
+        HBox metaRow = new HBox(16, modeLabel, patientLabel);
+
+        HBox actionRow = new HBox(8);
+        if (includeConfirm) {
+            Button confirmButton = new Button("Confirm");
+            confirmButton.getStyleClass().add("action-confirm-button");
+            confirmButton.setDisable(!"Demande".equalsIgnoreCase(nullSafe(rendezVous.getStatut())));
+            confirmButton.setOnAction(event -> confirmRendezVous(rendezVous));
+            actionRow.getChildren().add(confirmButton);
+        }
+        if (includeStart) {
+            Button startButton = new Button("Start");
+            startButton.getStyleClass().add("action-start-button");
+            startButton.setDisable(!"Confirmé".equalsIgnoreCase(nullSafe(rendezVous.getStatut())));
+            startButton.setOnAction(event -> startConsultation(rendezVous));
+            actionRow.getChildren().add(startButton);
+        }
+
+        VBox card = new VBox(8, chipsRow, metaRow, motifLabel, actionRow);
+        card.getStyleClass().add("home-rdv-card");
+        return card;
     }
 
     private void refreshStatsData() {
@@ -1642,8 +1799,14 @@ public class ConsultationDocteur {
         }
 
         button.getStyleClass().remove("page-nav-button-active");
-        if (active && !button.getStyleClass().contains("page-nav-button-active")) {
-            button.getStyleClass().add("page-nav-button-active");
+        button.getStyleClass().remove("sidebar-link-active");
+
+        if (active) {
+            if (button.getStyleClass().contains("sidebar-link")) {
+                button.getStyleClass().add("sidebar-link-active");
+            } else if (!button.getStyleClass().contains("page-nav-button-active")) {
+                button.getStyleClass().add("page-nav-button-active");
+            }
         }
     }
 
@@ -2666,5 +2829,123 @@ public class ConsultationDocteur {
 
     private String normalizeKeyPart(String value) {
         return value == null ? "" : value.trim().toLowerCase();
+    }
+
+    private void suggestPrescriptionsFromDiagnostic(String diagnostic) {
+        if (diagnostic == null || diagnostic.isBlank()) {
+            currentSuggestions.clear();
+            return;
+        }
+
+        Task<List<PrescriptionSuggestionService.PrescriptionSuggestion>> task = new Task<List<PrescriptionSuggestionService.PrescriptionSuggestion>>() {
+            @Override
+            protected List<PrescriptionSuggestionService.PrescriptionSuggestion> call() {
+                return prescriptionSuggestionService.suggestPrescriptions(diagnostic);
+            }
+
+            @Override
+            protected void succeeded() {
+                List<PrescriptionSuggestionService.PrescriptionSuggestion> suggestions = getValue();
+                if (suggestions != null && !suggestions.isEmpty()) {
+                    currentSuggestions = suggestions;
+                    showSuggestionsButton();
+                }
+            }
+
+            @Override
+            protected void failed() {
+                currentSuggestions.clear();
+            }
+        };
+
+        new Thread(task).setDaemon(true);
+        new Thread(task).start();
+    }
+
+    private void showSuggestionsButton() {
+        Platform.runLater(() -> {
+            if (suggestionsButton != null && !currentSuggestions.isEmpty()) {
+                suggestionsButton.setVisible(true);
+                suggestionsButton.setManaged(true);
+                String suggestionText = String.join(" | ", 
+                    currentSuggestions.stream()
+                        .map(s -> s.nom_medicament)
+                        .limit(3)
+                        .toArray(String[]::new)
+                );
+                suggestionsButton.setText("💡 Apply Suggestions (" + currentSuggestions.size() + ")");
+                System.out.println("Suggested prescriptions: " + suggestionText);
+            } else if (suggestionsButton != null) {
+                suggestionsButton.setVisible(false);
+                suggestionsButton.setManaged(false);
+            }
+        });
+    }
+
+    public void handleApplySuggestions() {
+        if (currentSuggestions.isEmpty() || prescriptionRowsContainer == null) {
+            return;
+        }
+
+        for (PrescriptionSuggestionService.PrescriptionSuggestion suggestion : currentSuggestions) {
+            addSuggestedPrescription(suggestion);
+        }
+
+        currentSuggestions.clear();
+    }
+
+    private void addSuggestedPrescription(PrescriptionSuggestionService.PrescriptionSuggestion suggestion) {
+        if (prescriptionRowsContainer == null) {
+            return;
+        }
+
+        TextField nomField = new TextField();
+        nomField.setText(suggestion.nom_medicament);
+        nomField.getStyleClass().add("fiche-input");
+        nomField.setPrefWidth(170);
+
+        TextField doseField = new TextField();
+        doseField.setText(suggestion.dose);
+        doseField.getStyleClass().add("fiche-input");
+        doseField.setPrefWidth(120);
+
+        TextField frequenceField = new TextField();
+        frequenceField.setText(suggestion.frequence);
+        frequenceField.getStyleClass().add("fiche-input");
+        frequenceField.setPrefWidth(135);
+
+        TextField dureeField = new TextField();
+        dureeField.setText("7");
+        dureeField.getStyleClass().add("fiche-input");
+        dureeField.setPrefWidth(130);
+
+        TextField instructionsField = new TextField();
+        instructionsField.setText(suggestion.instructions);
+        instructionsField.getStyleClass().add("fiche-input");
+        instructionsField.setPrefWidth(180);
+
+        Button deleteButton = new Button("x");
+        deleteButton.setStyle("-fx-background-color: #ef4444; -fx-text-fill: white; -fx-font-weight: 700; -fx-background-radius: 6; -fx-min-width: 30; -fx-min-height: 30;");
+
+        HBox row = new HBox(8, nomField, doseField, frequenceField, dureeField, instructionsField, deleteButton);
+        row.setStyle("-fx-background-color: #f8fafc; -fx-border-color: #e2e8f0; -fx-border-radius: 10; -fx-background-radius: 10; -fx-padding: 8;");
+
+        PrescriptionRowControls controls = new PrescriptionRowControls(row, nomField, doseField, frequenceField, dureeField, instructionsField);
+
+        nomField.textProperty().addListener((obs, old, newVal) -> validatePrescriptions());
+        doseField.textProperty().addListener((obs, old, newVal) -> validatePrescriptions());
+        frequenceField.textProperty().addListener((obs, old, newVal) -> validatePrescriptions());
+        dureeField.textProperty().addListener((obs, old, newVal) -> validatePrescriptions());
+        instructionsField.textProperty().addListener((obs, old, newVal) -> validatePrescriptions());
+
+        deleteButton.setOnAction(e -> {
+            prescriptionRows.remove(controls);
+            prescriptionRowsContainer.getChildren().remove(row);
+            validatePrescriptions();
+        });
+
+        prescriptionRows.add(controls);
+        prescriptionRowsContainer.getChildren().add(row);
+        validatePrescriptions();
     }
 }

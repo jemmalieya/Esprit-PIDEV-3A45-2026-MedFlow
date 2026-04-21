@@ -1,5 +1,6 @@
 package tn.esprit.services;
 
+import javafx.scene.control.Alert;
 import tn.esprit.entities.ReponseReclamation;
 import tn.esprit.entities.Reclamation;
 import tn.esprit.tools.MyDataBase;
@@ -20,6 +21,14 @@ public class ReponseService {
     // AJOUT
     // =========================
     public void ajouter(ReponseReclamation r) {
+        if (r == null || r.getReclamation() == null) {
+            throw new IllegalArgumentException("Réclamation introuvable.");
+        }
+
+        if ("PATIENT".equalsIgnoreCase(r.getRole_emetteur())
+                && hasFinalResponseForReclamation(r.getReclamation().getId_reclamation())) {
+            throw new IllegalStateException("Impossible d'ajouter une réponse patient : une réponse finale admin existe déjà.");
+        }
 
         String sql = "INSERT INTO reponse_reclamation " +
                 "(id_reclamation, message, type_reponse, date_creation_rep, date_modification_rep, auteur, role_emetteur, lu_par_admin, lu_par_patient) " +
@@ -49,8 +58,14 @@ public class ReponseService {
 
             System.out.println("Ajout effectué : " + r.getId_reponse());
 
-        } catch (SQLException e) {
-            e.printStackTrace();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+
+            Alert a = new Alert(Alert.AlertType.ERROR);
+            a.setTitle("Erreur");
+            a.setHeaderText(null);
+            a.setContentText(ex.getMessage() != null ? ex.getMessage() : "Erreur lors de l'envoi.");
+            a.showAndWait();
         }
     }
 
@@ -439,6 +454,30 @@ public class ReponseService {
             ps.setInt(1, reclamationId);
             ps.setString(2, "Réponse finale");
 
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
+    public boolean hasPatientResponseReadByAdmin(int reclamationId) {
+        String sql = """
+        SELECT COUNT(*)
+        FROM reponse_reclamation
+        WHERE id_reclamation = ?
+          AND role_emetteur = 'PATIENT'
+          AND lu_par_admin = true
+    """;
+
+        try {
+            PreparedStatement ps = cn.prepareStatement(sql);
+            ps.setInt(1, reclamationId);
             ResultSet rs = ps.executeQuery();
 
             if (rs.next()) {

@@ -307,10 +307,17 @@ public class ReponseController {
                     edit.setOnAction(e -> {
                         ReponseReclamation r = getTableView().getItems().get(getIndex());
 
-                        if (r.isIs_read()) {
+                        if (!"ADMIN".equalsIgnoreCase(r.getRole_emetteur())) {
                             showAlert(Alert.AlertType.WARNING,
                                     "Action refusée",
-                                    "Cette réponse a déjà été lue par le patient. Modification impossible.");
+                                    "Vous ne pouvez modifier que vos propres réponses.");
+                            return;
+                        }
+
+                        if (r.isLu_par_patient()) {
+                            showAlert(Alert.AlertType.WARNING,
+                                    "Action refusée",
+                                    "Cette réponse admin a déjà été lue par le patient. Modification impossible.");
                             return;
                         }
 
@@ -320,10 +327,17 @@ public class ReponseController {
                     delete.setOnAction(e -> {
                         ReponseReclamation r = getTableView().getItems().get(getIndex());
 
-                        if (r.isIs_read()) {
+                        if (!"ADMIN".equalsIgnoreCase(r.getRole_emetteur())) {
                             showAlert(Alert.AlertType.WARNING,
                                     "Action refusée",
-                                    "Cette réponse a déjà été lue par le patient. Suppression impossible.");
+                                    "Vous ne pouvez supprimer que vos propres réponses.");
+                            return;
+                        }
+
+                        if (r.isLu_par_patient()) {
+                            showAlert(Alert.AlertType.WARNING,
+                                    "Action refusée",
+                                    "Cette réponse admin a déjà été lue par le patient. Suppression impossible.");
                             return;
                         }
 
@@ -350,11 +364,16 @@ public class ReponseController {
                     } else {
                         ReponseReclamation r = getTableView().getItems().get(getIndex());
 
-                        boolean locked = "ADMIN".equalsIgnoreCase(r.getRole_emetteur()) && r.isLu_par_patient();
-                        edit.setDisable(locked);
-                        delete.setDisable(locked);
+                        boolean isAdminMessage = "ADMIN".equalsIgnoreCase(r.getRole_emetteur());
+                        boolean locked = isAdminMessage && r.isLu_par_patient();
 
-                        setGraphic(box);
+                        if (!isAdminMessage) {
+                            setGraphic(null); // pas de boutons sur réponse patient côté admin
+                        } else {
+                            edit.setDisable(locked);
+                            delete.setDisable(locked);
+                            setGraphic(box);
+                        }
                     }
                 }
             });

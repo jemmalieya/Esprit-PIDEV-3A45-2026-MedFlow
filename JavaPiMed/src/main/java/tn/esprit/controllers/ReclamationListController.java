@@ -103,7 +103,6 @@ public class ReclamationListController {
         });
 
         colActions.setCellFactory(param -> new TableCell<>() {
-
             private final Button deleteBtn = new Button("🗑 Supprimer");
             private final Button editBtn = new Button("✏️ Modifier");
             private final Button viewBtn = new Button("👁 voir reponses");
@@ -112,10 +111,9 @@ public class ReclamationListController {
                 deleteBtn.getStyleClass().add("btn-delete");
                 editBtn.getStyleClass().add("btn-edit");
 
-// 🔥 SUPPRIMER
+                // 🔥 SUPPRIMER
                 deleteBtn.setOnAction(event -> {
                     Reclamation r = getTableView().getItems().get(getIndex());
-
                     if (reponseService.hasAdminResponseReadByPatient(r.getId_reclamation())) {
                         Alert alert = new Alert(Alert.AlertType.WARNING);
                         alert.setTitle("Action refusée");
@@ -124,15 +122,13 @@ public class ReclamationListController {
                         alert.showAndWait();
                         return;
                     }
-
                     reclamationService.supprimer(r);
                     loadTable();
                 });
 
-// 🔥 MODIFIER
+                // 🔥 MODIFIER
                 editBtn.setOnAction(event -> {
                     Reclamation r = getTableView().getItems().get(getIndex());
-
                     if (reponseService.hasAdminResponseReadByPatient(r.getId_reclamation())) {
                         Alert alert = new Alert(Alert.AlertType.WARNING);
                         alert.setTitle("Action refusée");
@@ -141,18 +137,16 @@ public class ReclamationListController {
                         alert.showAndWait();
                         return;
                     }
-
                     openEditPage(r);
                 });
 
                 viewBtn.getStyleClass().add("btn-view");
 
-// 🔥 VOIR RÉPONSE
+                // 🔥 VOIR RÉPONSE
                 viewBtn.setOnAction(event -> {
                     Reclamation r = getTableView().getItems().get(getIndex());
                     showReclamationDetails(r);
                 });
-
             }
 
             @Override
@@ -163,7 +157,19 @@ public class ReclamationListController {
                     setGraphic(null);
                 } else {
                     Reclamation r = getTableView().getItems().get(getIndex());
-                    boolean isLocked = reponseService.hasAdminResponseReadByPatient(r.getId_reclamation());
+
+                    User currentUser = SessionManager.getCurrentUser();
+                    boolean isAdmin = currentUser.getRoleSysteme().equalsIgnoreCase("ADMIN");
+
+                    boolean isLocked;
+
+                    if (isAdmin) {
+                        // 🔵 ADMIN → bloqué si le patient a déjà lu
+                        isLocked = reponseService.hasAdminResponseReadByPatient(r.getId_reclamation());
+                    } else {
+                        // 🟢 PATIENT → bloqué si admin a déjà lu
+                        isLocked = reponseService.hasPatientResponseReadByAdmin(r.getId_reclamation());
+                    }
 
                     editBtn.setDisable(isLocked);
                     deleteBtn.setDisable(isLocked);
@@ -230,6 +236,14 @@ public class ReclamationListController {
             Button sendBtn = new Button("Envoyer");
             sendBtn.getStyleClass().add("btn-view");
 
+            boolean finalExists = reponseService.hasFinalResponseForReclamation(r.getId_reclamation());
+            sendBtn.setDisable(finalExists);
+
+            if (finalExists) {
+                replyArea.setDisable(true);
+                replyArea.setPromptText("Réponse impossible : l'admin a déjà choisi une réponse finale.");
+            }
+
             VBox content = new VBox(10, scroll, replyArea, sendBtn);
             content.setStyle("-fx-padding: 10;");
 
@@ -242,6 +256,14 @@ public class ReclamationListController {
             alert.getDialogPane().setStyle("-fx-background-color: #f8fafc;");
 
             sendBtn.setOnAction(ev -> {
+                if (reponseService.hasFinalResponseForReclamation(r.getId_reclamation())) {
+                    Alert a = new Alert(Alert.AlertType.WARNING);
+                    a.setTitle("Action refusée");
+                    a.setHeaderText(null);
+                    a.setContentText("Impossible d'envoyer une réponse : l'admin a déjà choisi une réponse finale.");
+                    a.showAndWait();
+                    return;
+                }
                 String msg = replyArea.getText() == null ? "" : replyArea.getText().trim();
 
                 if (msg.isEmpty()) {

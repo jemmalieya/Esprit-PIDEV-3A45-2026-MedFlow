@@ -20,11 +20,18 @@ import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import tn.esprit.entities.Evenement;
+import tn.esprit.entities.User;
+import tn.esprit.services.TwilioSmsServiceEvent;
 import tn.esprit.services.DashboardBIServiceEvenement;
 import tn.esprit.services.EvenementService;
+import tn.esprit.services.ParticipationDemandeService;
+import tn.esprit.services.ParticipationDemandeService.ParticipationDemande;
+import tn.esprit.tools.SessionManager;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
+import java.net.URL;
 import java.sql.Date;
 import java.sql.SQLException;
 import java.time.LocalDate;
@@ -52,6 +59,9 @@ public class EvenementController {
     @FXML private Label brouillonsLabel;
     @FXML private Label archivesLabel;
     @FXML private Label inventoryCountLabel;
+    @FXML private HBox participationAlertBox;
+    @FXML private Label participationAlertCountLabel;
+    @FXML private Label participationAlertMessageLabel;
     @FXML private Label evenementArrow;
 
     @FXML private TextField searchField;
@@ -138,6 +148,8 @@ public class EvenementController {
 
     /* ===================== DATA ===================== */
     private final EvenementService evenementService = new EvenementService();
+    private final ParticipationDemandeService participationService = new ParticipationDemandeService();
+    private final TwilioSmsServiceEvent smsServiceEvent = new TwilioSmsServiceEvent();
     private final ObservableList<Evenement> masterList = FXCollections.observableArrayList();
     private final DashboardBIServiceEvenement dashboardService = new DashboardBIServiceEvenement();
     private final EvenementPDFService pdfService = new EvenementPDFService();
@@ -886,6 +898,10 @@ public class EvenementController {
         return isDraftStatusSelected() || visibilite.toLowerCase(Locale.ROOT).contains("priv");
     }
 
+    private boolean isBrouillon(Evenement ev) {
+        return safeValue(ev.getStatut_event()).toLowerCase(Locale.ROOT).contains("brouillon");
+    }
+
     private void syncDraftVisibility() {
         if (getVisibiliteCombo() == null) return;
 
@@ -1281,26 +1297,140 @@ public class EvenementController {
             else archives++;
         }
 
+        long demandesEnAttente = participationService.countPending(masterList);
+
         if (totalEventsLabel != null) totalEventsLabel.setText(String.valueOf(total));
         if (publiesLabel != null) publiesLabel.setText(String.valueOf(publies));
         if (brouillonsLabel != null) brouillonsLabel.setText(String.valueOf(brouillons));
         if (archivesLabel != null) archivesLabel.setText(String.valueOf(archives));
-        if (inventoryCountLabel != null) inventoryCountLabel.setText(total + " événement(s)");
+        if (inventoryCountLabel != null) {
+            inventoryCountLabel.setText(total + " evenement(s) | " + demandesEnAttente + " demande(s) en attente");
+        }
+        updateParticipationAlert(demandesEnAttente);
+    }
+
+    private void updateParticipationAlert(long demandesEnAttente) {
+        if (participationAlertBox == null) return;
+
+        boolean hasPending = demandesEnAttente > 0;
+        participationAlertBox.setVisible(hasPending);
+        participationAlertBox.setManaged(hasPending);
+
+        if (!hasPending) return;
+
+        if (participationAlertCountLabel != null) {
+            participationAlertCountLabel.setText(demandesEnAttente + " demande(s) de participation en attente");
+        }
+        if (participationAlertMessageLabel != null) {
+            participationAlertMessageLabel.setText("Des participants attendent une decision. Ouvrez la liste pour accepter, refuser ou remettre une demande en attente.");
+        }
+    }
+
+    private void showParticipationBackOfficeMessage(String title, String message) {
+        if (participationAlertBox == null) {
+            showAlert(Alert.AlertType.INFORMATION, title, message);
+            return;
+        }
+
+        participationAlertBox.setVisible(true);
+        participationAlertBox.setManaged(true);
+        if (participationAlertCountLabel != null) {
+            participationAlertCountLabel.setText(title);
+        }
+        if (participationAlertMessageLabel != null) {
+            participationAlertMessageLabel.setText(message);
+        }
+    }
+    @FXML
+    private void ouvrirAlertDemandesParticipation() {
+        List<Evenement> eventsWithPending = masterList.stream()
+                .filter(ev -> participationService.countPending(ev) > 0)
+                .toList();
+
+        if (eventsWithPending.isEmpty()) {
+            showAlert(Alert.AlertType.INFORMATION, "Demandes", "Aucune demande de participation en attente.");
+            updateParticipationAlert(0);
+            return;
+        }
+
+        if (eventsWithPending.size() == 1) {
+            afficherDemandesParticipation(eventsWithPending.get(0));
+            return;
+        }
+
+        afficherEvenementsAvecDemandes(eventsWithPending);
+    }
+
+    private void afficherEvenementsAvecDemandes(List<Evenement> eventsWithPending) {
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("Demandes de participation");
+        dialog.setHeaderText(null);
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        dialog.getDialogPane().setMinWidth(700);
+        dialog.getDialogPane().setPrefWidth(780);
+
+        VBox content = new VBox(14);
+        content.getStyleClass().add("participation-modal-card");
+
+        Label title = new Label("Evenements avec demandes en attente");
+        title.setStyle("-fx-text-fill: #123c69; -fx-font-size: 24px; -fx-font-weight: 900;");
+
+        Label subtitle = new Label("Choisissez un evenement pour traiter ses demandes de participation.");
+        subtitle.setWrapText(true);
+        subtitle.setStyle("-fx-text-fill: #e6f9ff; -fx-font-size: 13px; -fx-font-weight: 600;");
+
+        VBox rows = new VBox(10);
+        for (Evenement ev : eventsWithPending) {
+            long pending = participationService.countPending(ev);
+            HBox row = new HBox(12);
+            row.setAlignment(Pos.CENTER_LEFT);
+            row.setStyle("-fx-background-color: white; -fx-background-radius: 16; -fx-border-color: #d5ebf7; -fx-border-radius: 16; -fx-padding: 14;");
+
+            VBox info = new VBox(3);
+            Label name = new Label(valueOrDash(ev.getTitre_event()));
+            name.setStyle("-fx-text-fill: #153946; -fx-font-size: 16px; -fx-font-weight: 800;");
+            Label meta = new Label(valueOrDash(ev.getVille_event()) + " | " + pending + " demande(s) en attente");
+            meta.setStyle("-fx-text-fill: #4d6d78; -fx-font-size: 12px; -fx-font-weight: 700;");
+            info.getChildren().addAll(name, meta);
+
+            Button open = new Button("Traiter");
+            open.getStyleClass().add("participation-alert-button");
+            open.setOnAction(e -> {
+                dialog.close();
+                afficherDemandesParticipation(ev);
+            });
+
+            Region spacer = new Region();
+            HBox.setHgrow(spacer, Priority.ALWAYS);
+            row.getChildren().addAll(info, spacer, open);
+            rows.getChildren().add(row);
+        }
+
+        content.getChildren().addAll(title, subtitle, rows);
+        dialog.getDialogPane().setContent(content);
+        Button close = (Button) dialog.getDialogPane().lookupButton(ButtonType.CLOSE);
+        close.setText("Fermer");
+        close.getStyleClass().add("cancel-button");
+        dialog.showAndWait();
     }
 
     private void addActionsColumn() {
         actionsCol.setCellFactory(col -> new TableCell<>() {
             private final Button viewBtn = new Button("Voir");
             private final Button editBtn = new Button("Modifier");
+            private final Button demandesBtn = new Button("Demandes");
             private final Button publishBtn = new Button("Publier");
+            private final Button deleteBtn = new Button("Supprimer");
             private final Button archiveBtn = new Button("Historique");
-            private final ToolBar toolBar = new ToolBar(viewBtn, editBtn, publishBtn, archiveBtn);
+            private final ToolBar toolBar = new ToolBar(viewBtn, editBtn, demandesBtn, publishBtn, deleteBtn, archiveBtn);
 
             {
                 toolBar.getStyleClass().add("action-toolbar");
                 viewBtn.getStyleClass().add("view-btn");
                 editBtn.getStyleClass().add("edit-btn");
+                demandesBtn.getStyleClass().add("publish-btn");
                 publishBtn.getStyleClass().add("publish-btn");
+                deleteBtn.getStyleClass().add("delete-btn");
                 archiveBtn.getStyleClass().add("delete-btn");
 
                 viewBtn.setOnAction(e -> ouvrirPageCardsBack());
@@ -1310,10 +1440,30 @@ public class EvenementController {
                     ouvrirPageModification(ev);
                 });
 
+                demandesBtn.setOnAction(e -> {
+                    Evenement ev = getTableView().getItems().get(getIndex());
+                    afficherDemandesParticipation(ev);
+                });
+
                 publishBtn.setOnAction(e -> {
                     Evenement ev = getTableView().getItems().get(getIndex());
                     publicationMode = true;
                     ouvrirPageModification(ev);
+                });
+
+                deleteBtn.setOnAction(e -> {
+                    Evenement ev = getTableView().getItems().get(getIndex());
+
+                    Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+                    confirm.setTitle("Confirmation de suppression");
+                    confirm.setHeaderText(null);
+                    confirm.setContentText("Êtes-vous sûr de vouloir supprimer cet événement brouillon : " + safeValue(ev.getTitre_event()) + " ?");
+
+                    Optional<ButtonType> result = confirm.showAndWait();
+                    if (result.isPresent() && result.get() == ButtonType.OK) {
+                        evenementService.supprimer(ev);
+                        retourListeEvenements(null);
+                    }
                 });
 
                 archiveBtn.setOnAction(e -> {
@@ -1342,9 +1492,14 @@ public class EvenementController {
                 }
 
                 Evenement ev = getTableView().getItems().get(getIndex());
-                toolBar.getItems().setAll(viewBtn, editBtn);
+                long pending = participationService.countPending(ev);
+                demandesBtn.setText(pending > 0 ? "Demandes (" + pending + ")" : "Demandes");
+                toolBar.getItems().setAll(viewBtn, editBtn, demandesBtn);
                 if (!isVisibleOnFront(ev)) {
                     toolBar.getItems().add(publishBtn);
+                }
+                if (isBrouillon(ev)) {
+                    toolBar.getItems().add(deleteBtn);
                 }
                 toolBar.getItems().add(archiveBtn);
                 setGraphic(toolBar);
@@ -1352,6 +1507,254 @@ public class EvenementController {
         });
 
         actionsCol.setCellValueFactory(param -> Bindings.createObjectBinding(() -> null));
+    }
+
+    private void afficherDemandesParticipation(Evenement ev) {
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("Demandes de participation");
+        dialog.setHeaderText(null);
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        dialog.getDialogPane().setMinWidth(920);
+        dialog.getDialogPane().setPrefWidth(980);
+        dialog.getDialogPane().setStyle("-fx-background-color: transparent; -fx-background-radius: 26; -fx-padding: 0;");
+
+        VBox content = new VBox(18);
+        content.getStyleClass().add("participation-modal-card");
+
+        List<ParticipationDemande> demandes = participationService.getDemandes(ev);
+        long pending = demandes.stream().filter(d -> ParticipationDemande.STATUS_PENDING.equals(d.getStatus())).count();
+        long accepted = demandes.stream().filter(d -> ParticipationDemande.STATUS_ACCEPTED.equals(d.getStatus())).count();
+        long refused = demandes.stream().filter(d -> ParticipationDemande.STATUS_REFUSED.equals(d.getStatus())).count();
+
+        HBox header = new HBox(16);
+        header.setAlignment(Pos.CENTER_LEFT);
+        header.setStyle("-fx-background-color: linear-gradient(to right, #08a6c8, #1f64d8); -fx-background-radius: 22; -fx-padding: 20 22; -fx-effect: dropshadow(gaussian, rgba(28,103,202,0.18), 14, 0.14, 0, 4);");
+
+        VBox titleBox = new VBox(5);
+        Label overline = new Label("GESTION DES PARTICIPATIONS");
+        overline.setStyle("-fx-text-fill: #dff9ff; -fx-font-size: 11px; -fx-font-weight: 900;");
+        Label title = new Label(valueOrDash(ev.getTitre_event()));
+        title.setWrapText(true);
+        title.setStyle("-fx-text-fill: white; -fx-font-size: 26px; -fx-font-weight: 900;");
+        Label subtitle = new Label("Traitez les demandes, ajoutez un motif de refus si besoin, puis le participant recoit la decision par SMS.");
+        subtitle.setWrapText(true);
+        subtitle.setStyle("-fx-text-fill: #e6f9ff; -fx-font-size: 13px; -fx-font-weight: 600;");
+        titleBox.getChildren().addAll(overline, title, subtitle);
+
+        Region headerSpacer = new Region();
+        HBox.setHgrow(headerSpacer, Priority.ALWAYS);
+        header.getChildren().addAll(titleBox, headerSpacer);
+
+        HBox stats = new HBox(10,
+                createDemandStatChip("En attente", pending, "#e8f6ff", "#087ea4"),
+                createDemandStatChip("Acceptees", accepted, "#eafff4", "#15803d"),
+                createDemandStatChip("Refusees", refused, "#fff1f2", "#be123c")
+        );
+        stats.setAlignment(Pos.CENTER_LEFT);
+
+        VBox rows = new VBox(12);
+        if (demandes.isEmpty()) {
+            Label empty = new Label("Aucune demande pour cet evenement.");
+            empty.setStyle("-fx-background-color: white; -fx-background-radius: 18; -fx-padding: 24; -fx-text-fill: #6e8c97; -fx-font-size: 15px; -fx-font-weight: 700;");
+            rows.getChildren().add(empty);
+        } else {
+            for (ParticipationDemande demande : demandes) {
+                rows.getChildren().add(buildDemandeRow(dialog, ev, demande));
+            }
+        }
+
+        ScrollPane scrollPane = new ScrollPane(rows);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setPrefHeight(500);
+        scrollPane.setStyle("-fx-background-color: transparent; -fx-border-color: transparent;");
+
+        content.getChildren().addAll(header, stats, scrollPane);
+        dialog.getDialogPane().setContent(content);
+
+        Button closeButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.CLOSE);
+        closeButton.setText("Fermer");
+        closeButton.getStyleClass().add("cancel-button");
+
+        dialog.showAndWait();
+    }
+
+    private Label createDemandStatChip(String label, long value, String background, String textColor) {
+        Label chip = new Label(label + " : " + value);
+        chip.setStyle("-fx-background-color: " + background + "; -fx-text-fill: " + textColor + "; -fx-background-radius: 999; -fx-padding: 9 15; -fx-font-size: 13px; -fx-font-weight: 900;");
+        return chip;
+    }
+
+    private HBox buildDemandeRow(Dialog<Void> dialog, Evenement ev, ParticipationDemande demande) {
+        VBox info = new VBox(7);
+        info.setMaxWidth(Double.MAX_VALUE);
+
+        HBox nameRow = new HBox(10);
+        nameRow.setAlignment(Pos.CENTER_LEFT);
+        Label name = new Label(demande.getDisplayName());
+        name.setStyle("-fx-text-fill: #153946; -fx-font-size: 17px; -fx-font-weight: 900;");
+        Label status = new Label(demande.getStatusLabel());
+        status.setStyle(getStatusChipStyle(demande.getStatus()));
+        nameRow.getChildren().addAll(name, status);
+
+        Label contact = new Label(valueOrDash(demande.getEmail()) + "   |   " + valueOrDash(demande.getTelephone()));
+        contact.setWrapText(true);
+        contact.setStyle("-fx-text-fill: #456779; -fx-font-size: 12px; -fx-font-weight: 700;");
+
+        Label motif = new Label("Motif : " + (safeValue(demande.getMotif()).isBlank() ? "Non renseigne" : demande.getMotif()));
+        motif.setWrapText(true);
+        motif.setStyle("-fx-text-fill: #5c7280; -fx-font-size: 12px;");
+
+        String ticketText = safeValue(demande.getTicketCode()).isBlank() ? "Ticket : pas encore genere" : "Ticket : " + demande.getTicketCode();
+        Label ticket = new Label(ticketText);
+        ticket.setStyle("-fx-text-fill: #0b8fb4; -fx-font-size: 12px; -fx-font-weight: 800;");
+
+        info.getChildren().addAll(nameRow, contact, motif, ticket);
+
+        Button acceptBtn = new Button("Accepter");
+        acceptBtn.setStyle("-fx-background-color: linear-gradient(to right, #08a6c8, #1f64d8); -fx-text-fill: white; -fx-background-radius: 14; -fx-padding: 10 18; -fx-font-weight: 900; -fx-cursor: hand; -fx-effect: dropshadow(gaussian, rgba(31,100,216,0.22), 10, 0.12, 0, 3);");
+        acceptBtn.setOnAction(e -> {
+            dialog.close();
+            traiterDecisionParticipation(ev, demande, ParticipationDemande.STATUS_ACCEPTED);
+        });
+
+        Button refuseBtn = new Button("Refuser");
+        refuseBtn.setStyle("-fx-background-color: white; -fx-text-fill: #be123c; -fx-border-color: #fecdd3; -fx-border-radius: 14; -fx-background-radius: 14; -fx-padding: 10 18; -fx-font-weight: 900; -fx-cursor: hand;");
+        refuseBtn.setOnAction(e -> {
+            dialog.close();
+            traiterDecisionParticipation(ev, demande, ParticipationDemande.STATUS_REFUSED);
+        });
+
+        Button pendingBtn = new Button("Attente");
+        pendingBtn.setStyle("-fx-background-color: #e8f6ff; -fx-text-fill: #087ea4; -fx-border-color: #9ddff0; -fx-border-radius: 14; -fx-background-radius: 14; -fx-padding: 10 18; -fx-font-weight: 900; -fx-cursor: hand;");
+        pendingBtn.setOnAction(e -> {
+            dialog.close();
+            traiterDecisionParticipation(ev, demande, ParticipationDemande.STATUS_PENDING);
+        });
+
+        HBox actions = new HBox(8, acceptBtn, refuseBtn, pendingBtn);
+        actions.setAlignment(Pos.CENTER_RIGHT);
+
+        HBox row = new HBox(16, info, actions);
+        HBox.setHgrow(info, Priority.ALWAYS);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.setStyle("-fx-background-color: white; -fx-background-radius: 18; -fx-border-color: #d5ebf7; -fx-border-radius: 18; -fx-padding: 16; -fx-effect: dropshadow(gaussian, rgba(15,90,170,0.07), 10, 0.12, 0, 2);");
+        return row;
+    }
+
+    private String getStatusChipStyle(String status) {
+        if (ParticipationDemande.STATUS_ACCEPTED.equals(status)) {
+            return "-fx-background-color: #eafff4; -fx-text-fill: #15803d; -fx-background-radius: 999; -fx-padding: 5 11; -fx-font-size: 11px; -fx-font-weight: 900;";
+        }
+        if (ParticipationDemande.STATUS_REFUSED.equals(status)) {
+            return "-fx-background-color: #fff1f2; -fx-text-fill: #be123c; -fx-background-radius: 999; -fx-padding: 5 11; -fx-font-size: 11px; -fx-font-weight: 900;";
+        }
+        return "-fx-background-color: #e8f6ff; -fx-text-fill: #087ea4; -fx-background-radius: 999; -fx-padding: 5 11; -fx-font-size: 11px; -fx-font-weight: 900;";
+    }
+
+    private String demanderDecisionParticipation(ParticipationDemande demande, String status) {
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Decision participation");
+        dialog.setHeaderText(null);
+        dialog.getDialogPane().getButtonTypes().addAll(
+                new ButtonType("Confirmer", ButtonBar.ButtonData.OK_DONE),
+                ButtonType.CANCEL
+        );
+        dialog.getDialogPane().setMinWidth(560);
+
+        VBox content = new VBox(14);
+        content.getStyleClass().add("participation-modal-card");
+
+        String actionLabel = ParticipationDemande.STATUS_ACCEPTED.equals(status)
+                ? "Accepter la demande"
+                : ParticipationDemande.STATUS_REFUSED.equals(status)
+                ? "Refuser la demande"
+                : "Remettre en attente";
+
+        Label overline = new Label("DECISION ADMINISTRATIVE");
+        overline.setStyle("-fx-text-fill: #dff9ff; -fx-font-size: 11px; -fx-font-weight: 900;");
+
+        Label title = new Label(actionLabel);
+        title.setWrapText(true);
+        title.setStyle("-fx-text-fill: #123c69; -fx-font-size: 24px; -fx-font-weight: 900;");
+
+        Label participant = new Label(demande.getDisplayName() + " | " + valueOrDash(demande.getTelephone()));
+        participant.setWrapText(true);
+        participant.setStyle("-fx-text-fill: #4e6d82; -fx-font-size: 13px; -fx-font-weight: 700;");
+
+        TextArea noteArea = new TextArea();
+        noteArea.setPromptText(ParticipationDemande.STATUS_REFUSED.equals(status)
+                ? "Motif de refus (recommande)"
+                : "Note interne optionnelle");
+        noteArea.setWrapText(true);
+        noteArea.setPrefRowCount(4);
+        noteArea.setStyle("-fx-background-color: white; -fx-background-radius: 14; -fx-border-color: #bce6f1; -fx-border-radius: 14; -fx-font-size: 13px;");
+
+        Label helper = new Label(ParticipationDemande.STATUS_ACCEPTED.equals(status)
+                ? "Un ticket sera genere si besoin et un SMS sera envoye au participant."
+                : ParticipationDemande.STATUS_REFUSED.equals(status)
+                ? "Le motif sera conserve avec la demande et inclus dans le SMS si vous le renseignez."
+                : "La demande restera visible dans les demandes en attente.");
+        helper.setWrapText(true);
+        helper.setStyle("-fx-text-fill: #5c7280; -fx-font-size: 12px; -fx-font-weight: 600;");
+
+        content.getChildren().addAll(overline, title, participant, helper, noteArea);
+        dialog.getDialogPane().setContent(content);
+
+        Button confirmButton = (Button) dialog.getDialogPane().lookupButton(dialog.getDialogPane().getButtonTypes().get(0));
+        confirmButton.getStyleClass().add("participation-alert-button");
+        Button cancelButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.CANCEL);
+        cancelButton.setText("Annuler");
+        cancelButton.getStyleClass().add("cancel-button");
+
+        Optional<ButtonType> result = dialog.showAndWait();
+        if (result.isEmpty() || result.get().getButtonData() != ButtonBar.ButtonData.OK_DONE) {
+            return null;
+        }
+        return safeValue(noteArea.getText()).trim();
+    }
+    private void traiterDecisionParticipation(Evenement ev, ParticipationDemande demande, String status) {
+        String note = demanderDecisionParticipation(demande, status);
+        if (note == null) {
+            afficherDemandesParticipation(ev);
+            return;
+        }
+
+        try {
+            ParticipationDemande updated = participationService.changerStatut(ev, demande.getId(), status, note.trim());
+
+            if (evenementTable != null) {
+                evenementTable.refresh();
+            }
+            updateStats();
+
+            if (ParticipationDemande.STATUS_ACCEPTED.equals(status) || ParticipationDemande.STATUS_REFUSED.equals(status)) {
+                envoyerSmsDecision(ev, updated);
+            } else {
+                showParticipationBackOfficeMessage("Decision enregistree", "La demande est remise en attente.");
+            }
+
+            afficherDemandesParticipation(ev);
+        } catch (SQLException e) {
+            showAlert(Alert.AlertType.ERROR, "Erreur", "Decision non enregistree : " + e.getMessage());
+        }
+    }
+
+    private void envoyerSmsDecision(Evenement ev, ParticipationDemande demande) {
+        String recipient = participationService.normalizeTunisianPhone(demande.getTelephone());
+        if (recipient.isBlank()) {
+            showParticipationBackOfficeMessage("Decision enregistree", "Telephone introuvable. SMS non envoye.");
+            return;
+        }
+
+        String message = participationService.buildDecisionSms(ev, demande);
+        TwilioSmsServiceEvent.SmsResult result = smsServiceEvent.sendEvenementSms(recipient, message);
+        if (result.success()) {
+            showParticipationBackOfficeMessage("Decision enregistree", "Decision enregistree et SMS envoye au participant.");
+        } else if (result.missingConfiguration()) {
+            showParticipationBackOfficeMessage("Decision enregistree", "Configurez TWILIO_SMS_EVENT_ACCOUNT_SID, TWILIO_SMS_EVENT_AUTH_TOKEN et TWILIO_SMS_EVENT_FROM pour envoyer les SMS.");
+        } else {
+            showParticipationBackOfficeMessage("Decision enregistree", "Decision enregistree, mais le SMS a echoue : " + result.responseBody());
+        }
     }
 
     /* =========================================================
@@ -1604,8 +2007,49 @@ public class EvenementController {
     }
 
     @FXML
-    private void onGoToFront() {
-        loadScene("/FrontFXML/Accueil.fxml", "MedFlow - Espace Patient");
+    private void onGoToFront(ActionEvent event) {
+        try {
+            URL url = getClass().getResource("/FrontFXML/Accueil.fxml");
+            if (url == null) {
+                throw new IOException("Fichier introuvable : /FrontFXML/Accueil.fxml");
+            }
+
+            Parent root = FXMLLoader.load(url);
+            Stage stage = resolveCurrentStage();
+            if (stage == null) return;
+
+            stage.setScene(new Scene(root, 1400, 820));
+            stage.setTitle("Accueil");
+            stage.setMaximized(true);
+            stage.show();
+        } catch (Exception e) {
+            showAlert(Alert.AlertType.ERROR, "Erreur Navigation",
+                    "Impossible d'ouvrir l'espace front : " + e.getMessage());
+        }
+    }
+
+    @FXML
+    private void onLogout(ActionEvent event) {
+        try {
+            SessionManager.clear();
+
+            URL url = getClass().getResource("/FrontFXML/Login.fxml");
+            if (url == null) {
+                throw new IOException("Fichier introuvable : /FrontFXML/Login.fxml");
+            }
+
+            Parent root = FXMLLoader.load(url);
+            Stage stage = resolveCurrentStage();
+            if (stage == null) return;
+
+            stage.setScene(new Scene(root, 1400, 820));
+            stage.setTitle("Connexion");
+            stage.setMaximized(true);
+            stage.show();
+        } catch (Exception e) {
+            showAlert(Alert.AlertType.ERROR, "Erreur Déconnexion",
+                    "Impossible de se déconnecter : " + e.getMessage());
+        }
     }
 
     @FXML
@@ -1796,6 +2240,122 @@ public class EvenementController {
             }
         }
     }
+
+    @FXML
+    private void ouvrirFormulaireParticipation() {
+        if (evenementSelectionneFront == null) {
+            showAlert(Alert.AlertType.ERROR, "Erreur", "Aucun evenement selectionne.");
+            return;
+        }
+
+        User user = SessionManager.getCurrentUser();
+        if (user == null) {
+            showAlert(Alert.AlertType.WARNING, "Connexion requise", "Veuillez vous connecter avant de participer a cet evenement.");
+            return;
+        }
+
+        if (participationService.userHasDemande(evenementSelectionneFront, user.getId())) {
+            showAlert(Alert.AlertType.INFORMATION, "Demande existante", "Vous avez deja envoye une demande pour cet evenement.");
+            return;
+        }
+
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Participation evenement");
+        dialog.setHeaderText(null);
+        dialog.getDialogPane().getButtonTypes().addAll(
+                new ButtonType("Oui, envoyer", ButtonBar.ButtonData.OK_DONE),
+                ButtonType.CANCEL
+        );
+
+        VBox form = new VBox(16);
+        form.setPrefWidth(620);
+        form.setStyle("-fx-background-color: linear-gradient(to bottom right, #f7fcff, #edf6ff); -fx-padding: 26; -fx-background-radius: 24; -fx-border-color: #c9e6f7; -fx-border-radius: 24;");
+
+        Label overline = new Label("DEMANDE DE PARTICIPATION");
+        overline.setStyle("-fx-text-fill: #dff9ff; -fx-font-size: 11px; -fx-font-weight: 900;");
+
+        Label question = new Label("Souhaitez-vous participer a cet evenement ?");
+        question.setWrapText(true);
+        question.setStyle("-fx-text-fill: #123c69; -fx-font-size: 25px; -fx-font-weight: 900;");
+
+        Label subtitle = new Label(valueOrDash(evenementSelectionneFront.getTitre_event()) + " | Votre demande sera examinee par l equipe evenement.");
+        subtitle.setWrapText(true);
+        subtitle.setStyle("-fx-text-fill: #4e6d82; -fx-font-size: 13px; -fx-font-weight: 700;");
+
+        TextField nomField = createParticipationField((safeValue(user.getPrenom()) + " " + safeValue(user.getNom())).trim());
+        nomField.setEditable(false);
+
+        TextField emailField = createParticipationField(safeValue(user.getEmailUser()));
+        emailField.setEditable(false);
+
+        TextField telField = createParticipationField(participationService.normalizeTunisianPhone(user.getTelephoneUser()));
+        telField.setPromptText("+216XXXXXXXX");
+
+        TextArea motifArea = new TextArea();
+        motifArea.setPromptText("Motif de participation (optionnel)");
+        motifArea.setWrapText(true);
+        motifArea.setPrefRowCount(4);
+        motifArea.getStyleClass().add("modern-text-area");
+
+        form.getChildren().addAll(
+                overline,
+                question,
+                subtitle,
+                buildParticipationField("Nom et prenom", nomField),
+                buildParticipationField("Email", emailField),
+                buildParticipationField("Telephone", telField),
+                buildParticipationField("Motif", motifArea)
+        );
+
+        dialog.getDialogPane().setContent(form);
+        dialog.getDialogPane().setMinWidth(680);
+
+        Button sendButton = (Button) dialog.getDialogPane().lookupButton(dialog.getDialogPane().getButtonTypes().get(0));
+        sendButton.getStyleClass().add("confirm-button");
+        Button cancelButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.CANCEL);
+        cancelButton.setText("Annuler");
+        cancelButton.getStyleClass().add("cancel-button");
+
+        Optional<ButtonType> result = dialog.showAndWait();
+        if (result.isEmpty() || result.get().getButtonData() != ButtonBar.ButtonData.OK_DONE) {
+            return;
+        }
+
+        String phone = participationService.normalizeTunisianPhone(telField.getText());
+        if (phone.isBlank()) {
+            showAlert(Alert.AlertType.ERROR, "Telephone requis", "Le telephone est obligatoire pour recevoir la decision par SMS.");
+            return;
+        }
+
+        ParticipationDemande demande = new ParticipationDemande();
+        demande.setUserId(user.getId());
+        demande.setNom(safeValue(user.getNom()));
+        demande.setPrenom(safeValue(user.getPrenom()));
+        demande.setEmail(safeValue(user.getEmailUser()));
+        demande.setTelephone(phone);
+        demande.setMotif(safeValue(motifArea.getText()).trim());
+
+        try {
+            participationService.ajouterDemande(evenementSelectionneFront, demande);
+            showAlert(Alert.AlertType.INFORMATION, "Demande envoyee", "Votre demande est envoyee. Elle est maintenant en attente de validation par l equipe evenement.");
+        } catch (SQLException e) {
+            showAlert(Alert.AlertType.ERROR, "Erreur", "Impossible d'enregistrer la demande : " + e.getMessage());
+        }
+    }
+
+    private VBox buildParticipationField(String labelText, Control field) {
+        Label label = new Label(labelText);
+        label.getStyleClass().add("field-label");
+        VBox box = new VBox(6, label, field);
+        return box;
+    }
+
+    private TextField createParticipationField(String value) {
+        TextField field = new TextField(value == null ? "" : value);
+        field.getStyleClass().add("modern-text-field");
+        return field;
+    }
+
     private void initFiltres() {
         if (filterTypeCombo != null) {
             filterTypeCombo.setItems(FXCollections.observableArrayList(
@@ -2160,3 +2720,8 @@ public class EvenementController {
         alert.showAndWait();
     }
 }
+
+
+
+
+

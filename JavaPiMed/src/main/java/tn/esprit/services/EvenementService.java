@@ -143,6 +143,7 @@ public class EvenementService implements IGeneralService<Evenement> {
                 Evenement e = new Evenement();
 
                 e.setId(rs.getInt("id"));
+                e.setDemandes_json(rs.getString("demandes_json"));
                 e.setTitre_event(rs.getString("titre_event"));
                 e.setSlug_event(rs.getString("slug_event"));
                 e.setType_event(rs.getString("type_event"));
@@ -193,6 +194,7 @@ public class EvenementService implements IGeneralService<Evenement> {
                 Evenement e = new Evenement();
 
                 e.setId(rs.getInt("id"));
+                e.setDemandes_json(rs.getString("demandes_json"));
                 e.setTitre_event(rs.getString("titre_event"));
                 e.setSlug_event(rs.getString("slug_event"));
                 e.setType_event(rs.getString("type_event"));

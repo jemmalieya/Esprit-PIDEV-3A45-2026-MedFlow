@@ -181,6 +181,7 @@
                                 <Region HBox.hgrow="ALWAYS"/>
 
                                 <Button text="Participer"
+                                        onAction="#ouvrirFormulaireParticipation"
                                         styleClass="confirm-button"/>
                             </HBox>
                         </VBox>

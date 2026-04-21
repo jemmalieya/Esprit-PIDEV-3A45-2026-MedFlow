@@ -96,13 +96,41 @@
                     </children>
                 </VBox>
 
-                <Region VBox.vgrow="ALWAYS"/>
+                <Region prefHeight="18.0" maxHeight="18.0"/>
 
-                <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="sidebar-item">
-                    <children>
-                        <Label text="Quitter" styleClass="sidebar-item-text"/>
-                    </children>
-                </HBox>
+                <Button text=""
+                        onAction="#onGoToFront"
+                        alignment="CENTER_LEFT"
+                        maxWidth="Infinity"
+                        prefWidth="220.0"
+                        contentDisplay="GRAPHIC_ONLY"
+                        styleClass="sidebar-item, sidebar-btn, sidebar-utility-btn">
+                    <graphic>
+                        <HBox alignment="CENTER_LEFT" spacing="10.0" maxWidth="Infinity">
+                            <children>
+                                <Label text="&gt;" styleClass="sidebar-item-icon"/>
+                                <Label text="Espace front" styleClass="sidebar-item-text"/>
+                            </children>
+                        </HBox>
+                    </graphic>
+                </Button>
+
+                <Button text=""
+                        onAction="#onLogout"
+                        alignment="CENTER_LEFT"
+                        maxWidth="Infinity"
+                        prefWidth="220.0"
+                        contentDisplay="GRAPHIC_ONLY"
+                        styleClass="sidebar-item, sidebar-btn, sidebar-utility-btn logout-utility-btn">
+                    <graphic>
+                        <HBox alignment="CENTER_LEFT" spacing="10.0" maxWidth="Infinity">
+                            <children>
+                                <Label text="X" styleClass="sidebar-item-icon"/>
+                                <Label text="Deconnexion" styleClass="sidebar-item-text"/>
+                            </children>
+                        </HBox>
+                    </graphic>
+                </Button>
 
             </children>
             <padding>
@@ -112,16 +140,39 @@
     </left>
 
     <center>
-        <VBox spacing="22.0" styleClass="main-area">
+        <VBox spacing="16.0" styleClass="main-area">
             <padding>
-                <Insets top="18.0" right="22.0" bottom="22.0" left="22.0"/>
+                <Insets top="14.0" right="22.0" bottom="18.0" left="22.0"/>
             </padding>
 
             <HBox alignment="CENTER_LEFT" spacing="14.0" styleClass="top-search-box">
                 <children>
                     <TextField promptText="" HBox.hgrow="ALWAYS" styleClass="top-search-input"/>
                     <Region HBox.hgrow="ALWAYS"/>
-                        <Label text="" styleClass="notif-icon"/>
+                    <HBox fx:id="participationAlertBox"
+                          managed="false"
+                          visible="false"
+                          alignment="CENTER_LEFT"
+                          spacing="12.0"
+                          styleClass="participation-alert-compact">
+                        <children>
+                            <StackPane prefWidth="36.0" prefHeight="36.0" styleClass="participation-alert-icon-box">
+                                <children>
+                                    <Label text="!" styleClass="participation-alert-icon"/>
+                                </children>
+                            </StackPane>
+                            <VBox spacing="1.0">
+                                <children>
+                                    <Label fx:id="participationAlertCountLabel" text="Demandes" styleClass="participation-alert-title compact-alert-title"/>
+                                    <Label fx:id="participationAlertMessageLabel" text="En attente" styleClass="participation-alert-message compact-alert-message"/>
+                                </children>
+                            </VBox>
+                            <Button text="Ouvrir" onAction="#ouvrirAlertDemandesParticipation" styleClass="participation-alert-button compact-alert-button"/>
+                        </children>
+                        <padding>
+                            <Insets top="8.0" right="10.0" bottom="8.0" left="10.0"/>
+                        </padding>
+                    </HBox>
                 </children>
             </HBox>
 
@@ -153,7 +204,6 @@
                             <Button text="Brouillons back-office" onAction="#onShowDraftEvents" styleClass="white-btn"/>
                             <Button text="Tous les evenements" onAction="#onShowAllEvents" styleClass="white-btn"/>
                             <Button text="Export PDF selection" onAction="#handleExportPDF" styleClass="yellow-btn"/>
-                            <Button text="Espace front" onAction="#onGoToFront" styleClass="white-btn"/>
                         </children>
                     </HBox>
                 </children>
@@ -161,7 +211,6 @@
                     <Insets top="30.0" right="30.0" bottom="30.0" left="30.0"/>
                 </padding>
             </HBox>
-
             <VBox spacing="16.0" styleClass="list-header-card">
                 <children>
                     <HBox alignment="CENTER_LEFT" spacing="18.0">
@@ -251,7 +300,7 @@
 
             <VBox styleClass="table-wrapper" VBox.vgrow="ALWAYS">
                 <children>
-                    <TableView fx:id="evenementTable" VBox.vgrow="ALWAYS" prefHeight="620" styleClass="events-table">
+                    <TableView fx:id="evenementTable" VBox.vgrow="ALWAYS" prefHeight="760" minHeight="700" styleClass="events-table">
                         <columns>
                             <TableColumn fx:id="titreCol" prefWidth="280.0" text="TITRE"/>
                             <TableColumn fx:id="typeCol" prefWidth="170.0" text="TYPE"/>
@@ -269,3 +318,9 @@
         </VBox>
     </center>
 </BorderPane>
+
+
+
+
+
+

@@ -27,6 +27,7 @@ import tn.esprit.entities.Prescription;
 import tn.esprit.entities.FicheMedicale;
 import tn.esprit.entities.RendezVous;
 import tn.esprit.entities.User;
+import tn.esprit.services.HuggingFaceUrgencyService;
 import tn.esprit.services.FicheMedicaleService;
 import tn.esprit.services.PrescriptionService;
 import tn.esprit.services.RendezVousService;
@@ -199,6 +200,7 @@ public class ConsultationController implements Initializable {
     private final UserService userService = new UserService();
     private final FicheMedicaleService ficheMedicaleService = new FicheMedicaleService();
     private final PrescriptionService prescriptionService = new PrescriptionService();
+    private final HuggingFaceUrgencyService urgencyService = new HuggingFaceUrgencyService();
 
     private LocalDate currentWeekStart;
     private LocalDateTime selectedDateTime;
@@ -364,6 +366,7 @@ public class ConsultationController implements Initializable {
                 throw new IllegalArgumentException("Please enter a motif.");
             }
             motif = motif.trim();
+            String urgencyLevel = determineUrgencyLevel(motif);
 
             if (selectedDateTime.isBefore(LocalDateTime.now())) {
                 throw new IllegalArgumentException("The appointment date/time must be in the future.");
@@ -381,7 +384,7 @@ public class ConsultationController implements Initializable {
                     new Timestamp(System.currentTimeMillis()),
                         patientId,
                     idStaff,
-                    null
+                    urgencyLevel
             );
 
             rendezVousService.ajouter(rendezVous);
@@ -420,6 +423,7 @@ public class ConsultationController implements Initializable {
                 throw new IllegalArgumentException("Motif is required.");
             }
             motif = motif.trim();
+            String urgencyLevel = determineUrgencyLevel(motif);
 
             String rawDateTime = modifyDateTimeField != null ? modifyDateTimeField.getText() : null;
             if (rawDateTime == null || rawDateTime.isBlank()) {
@@ -450,7 +454,7 @@ public class ConsultationController implements Initializable {
                     new Timestamp(System.currentTimeMillis()),
                         patientId,
                     idStaff,
-                    null
+                    urgencyLevel
             );
 
             rendezVousService.modifier(rendezVous);
@@ -1426,6 +1430,14 @@ public class ConsultationController implements Initializable {
 
     private String valueOrDash(String value) {
         return value == null || value.isBlank() ? "-" : value;
+    }
+
+    private String determineUrgencyLevel(String motif) {
+        String urgencyLevel = urgencyService.classifyUrgencyLevel(motif);
+        if (urgencyLevel == null || urgencyLevel.isBlank()) {
+            return "mid";
+        }
+        return urgencyLevel;
     }
 
     private void showInfo(String title, String message) {

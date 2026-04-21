@@ -40,3 +40,4 @@ build/
 
 ### Local secrets ###
 src/main/resources/brevo.properties
+src/main/resources/hf.properties

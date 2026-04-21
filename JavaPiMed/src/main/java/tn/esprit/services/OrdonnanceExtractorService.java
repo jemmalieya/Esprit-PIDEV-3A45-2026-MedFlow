@@ -16,7 +16,7 @@ public class OrdonnanceExtractorService {
     private static final String OCR_API_URL = "https://api.ocr.space/parse/image";
 
     // ─────────────────────────────────────────────────────────────────────────
-    // POINT D'ENTRÉE : retourne le texte brut OCR (plus de détection générique)
+    // POINT D'ENTRÉE : retourne le texte brut OCR
     // ─────────────────────────────────────────────────────────────────────────
 
     public String extraireTexteOcr(File imageFile) throws Exception {
@@ -148,13 +148,9 @@ public class OrdonnanceExtractorService {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // EXTRACTION CIBLÉE : uniquement les médicaments du panier dans le texte
+    // EXTRACTION CIBLÉE : uniquement les médicaments attendus dans le texte OCR
     // ─────────────────────────────────────────────────────────────────────────
 
-    /**
-     * Compare le texte OCR uniquement aux noms des médicaments attendus (panier).
-     * Élimine tout faux positif (mots Java, mots communs, etc.)
-     */
     public List<String> extraireMedicamentsCibles(String texteOcr, List<String> nomsMedicamentsCibles) {
         if (texteOcr == null || texteOcr.isBlank()) return Collections.emptyList();
         if (nomsMedicamentsCibles == null || nomsMedicamentsCibles.isEmpty()) return Collections.emptyList();
@@ -164,15 +160,11 @@ public class OrdonnanceExtractorService {
 
         for (String med : nomsMedicamentsCibles) {
             String medLower = med.toLowerCase(Locale.ROOT);
-
             boolean trouve = false;
 
-            // 1. Correspondance exacte
             if (texteNorm.contains(medLower)) {
                 trouve = true;
-            }
-            // 2. Correspondance sur les 6 premiers caractères (ex: "aspirin" ~ "aspirine")
-            else if (medLower.length() >= 6 && texteNorm.contains(medLower.substring(0, 6))) {
+            } else if (medLower.length() >= 6 && texteNorm.contains(medLower.substring(0, 6))) {
                 trouve = true;
             }
 

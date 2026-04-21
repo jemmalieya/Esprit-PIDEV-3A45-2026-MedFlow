@@ -27,14 +27,14 @@ public class ReclamationController {
     @FXML private TextField tfContenu;
     @FXML private TextArea taDescription;
     @FXML private ComboBox<String> cbType;
-    @FXML private ComboBox<String> cbPriorite;
+
     @FXML private Label lblMessage;
     private Reclamation reclamationToEdit = null;
     private boolean isEditMode = false;
     @FXML private Label errContenu;
     @FXML private Label errDescription;
     @FXML private Label errType;
-    @FXML private Label errPriorite;
+
 
     private final ReclamationService reclamationService = new ReclamationService();
     public void setReclamation(Reclamation r) {
@@ -45,7 +45,7 @@ public class ReclamationController {
         tfContenu.setText(r.getContenu());
         taDescription.setText(r.getDescription());
         cbType.setValue(r.getType());
-        cbPriorite.setValue(r.getPriorite());
+
     }
     // ===== INIT =====
     @FXML
@@ -55,9 +55,6 @@ public class ReclamationController {
                 "Technique", "Service", "Paiement", "Livraison", "Autre"
         ));
 
-        cbPriorite.setItems(FXCollections.observableArrayList(
-                "Faible", "Moyenne", "Élevée"
-        ));
         tfContenu.textProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal.length() >= 3) {
                 tfContenu.setStyle("-fx-border-color: green;");
@@ -69,6 +66,7 @@ public class ReclamationController {
                 taDescription.setStyle("-fx-border-color: green;");
             }
         });
+
     }
 
     // ===== AJOUT =====
@@ -80,8 +78,7 @@ public class ReclamationController {
 
         if (tfContenu.getText().isEmpty()
                 || taDescription.getText().isEmpty()
-                || cbType.getValue() == null
-                || cbPriorite.getValue() == null) {
+                || cbType.getValue() == null) {
 
             showMessage("Veuillez remplir tous les champs", "red");
             return;
@@ -95,7 +92,7 @@ public class ReclamationController {
                     reclamationToEdit.setContenu(tfContenu.getText());
                     reclamationToEdit.setDescription(taDescription.getText());
                     reclamationToEdit.setType(cbType.getValue());
-                    reclamationToEdit.setPriorite(cbPriorite.getValue());
+
 
                     reclamationService.modifier(reclamationToEdit);
 
@@ -130,7 +127,7 @@ public class ReclamationController {
                     r.setContenu(tfContenu.getText());
                     r.setDescription(taDescription.getText());
                     r.setType(cbType.getValue());
-                    r.setPriorite(cbPriorite.getValue());
+
                     r.setStatut_reclamation("En attente");
                     r.setDate_creation_r(LocalDateTime.now());
                     r.setNotification_envoyee(false);
@@ -153,7 +150,7 @@ public class ReclamationController {
         errContenu.setText("");
         errDescription.setText("");
         errType.setText("");
-        errPriorite.setText("");
+
     }
     private boolean validerFormulaire() {
 
@@ -184,11 +181,7 @@ public class ReclamationController {
             isValid = false;
         }
 
-        // 🔴 PRIORITE
-        if (cbPriorite.getValue() == null) {
-            errPriorite.setText("Veuillez choisir une priorité");
-            isValid = false;
-        }
+
 
         // 🔥 MESSAGE GLOBAL
         if (!isValid) {
@@ -209,7 +202,7 @@ public class ReclamationController {
         tfContenu.setStyle(null);
         taDescription.setStyle(null);
         cbType.setStyle(null);
-        cbPriorite.setStyle(null);
+
     }
     private void goToListPage() {
         try {
@@ -236,7 +229,7 @@ public class ReclamationController {
         tfContenu.clear();
         taDescription.clear();
         cbType.setValue(null);
-        cbPriorite.setValue(null);
+
     }
 
     // ===== NAVIGATION =====

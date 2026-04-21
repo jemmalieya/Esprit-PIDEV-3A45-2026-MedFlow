@@ -64,12 +64,6 @@
                                 <Label fx:id="errType" styleClass="error-label"/>
                             </VBox>
 
-                            <VBox spacing="5">
-                                <Label text="Priorité" styleClass="input-label"/>
-                                <ComboBox fx:id="cbPriorite" styleClass="modern-combo"/>
-                                <Label fx:id="errPriorite" styleClass="error-label"/>
-                            </VBox>
-
                             <Button text="➕ Envoyer la Réclamation"
                                     onAction="#ajouterReclamation"
                                     styleClass="hero-cart-btn"/>

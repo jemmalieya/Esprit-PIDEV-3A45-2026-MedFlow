@@ -16,6 +16,60 @@ public class EvenementService implements IGeneralService<Evenement> {
 
     public EvenementService() {
         cn = MyDataBase.getInstance().getCnx();
+        ensureCancellationReasonColumn();
+    }
+
+    private void ensureCancellationReasonColumn() {
+        if (cn == null) return;
+
+        try {
+            DatabaseMetaData metaData = cn.getMetaData();
+            try (ResultSet columns = metaData.getColumns(cn.getCatalog(), null, "evenement", "motif_annulation_event")) {
+                if (columns.next()) {
+                    return;
+                }
+            }
+
+            try (Statement statement = cn.createStatement()) {
+                statement.executeUpdate("""
+                        ALTER TABLE evenement
+                        ADD COLUMN motif_annulation_event TEXT NULL AFTER statut_event
+                        """);
+            }
+        } catch (SQLException ex) {
+            System.out.println("Impossible de verifier/creer motif_annulation_event: " + ex.getMessage());
+        }
+    }
+
+    public String recupererMotifAnnulation(int eventId) {
+        ensureCancellationReasonColumn();
+        String sql = "SELECT motif_annulation_event FROM evenement WHERE id = ?";
+
+        try (PreparedStatement ps = cn.prepareStatement(sql)) {
+            ps.setInt(1, eventId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("motif_annulation_event");
+                }
+            }
+        } catch (SQLException ex) {
+            System.out.println("Impossible de recuperer le motif d'annulation: " + ex.getMessage());
+        }
+        return "";
+    }
+
+    public void modifierMotifAnnulation(int eventId, String motif) {
+        ensureCancellationReasonColumn();
+        String sql = "UPDATE evenement SET motif_annulation_event = ?, date_mise_a_jour_event = ? WHERE id = ?";
+
+        try (PreparedStatement ps = cn.prepareStatement(sql)) {
+            ps.setString(1, motif == null ? "" : motif.trim());
+            ps.setDate(2, new java.sql.Date(new java.util.Date().getTime()));
+            ps.setInt(3, eventId);
+            ps.executeUpdate();
+        } catch (SQLException ex) {
+            System.out.println("Impossible de modifier le motif d'annulation: " + ex.getMessage());
+        }
     }
 
     @Override

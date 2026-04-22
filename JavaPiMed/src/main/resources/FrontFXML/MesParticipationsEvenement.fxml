@@ -9,13 +9,17 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
+<?import java.net.URL?>
 
 <BorderPane xmlns:fx="http://javafx.com/fxml/1"
             xmlns="http://javafx.com/javafx/21"
             prefWidth="1400.0" prefHeight="820.0"
-            stylesheets="@../CSS/booking.css"
             fx:controller="tn.esprit.controllers.EvenementController"
             styleClass="root-pane">
+    <stylesheets>
+        <URL value="@../CSS/booking.css"/>
+        <URL value="@../CSS/evenement.css"/>
+    </stylesheets>
 
     <left>
         <fx:include source="Sidebar.fxml"/>
@@ -33,13 +37,13 @@
                         <Insets top="26" right="28" bottom="26" left="28"/>
                     </padding>
 
-                    <HBox spacing="18" alignment="CENTER_LEFT" styleClass="page-header">
+                    <HBox spacing="18" alignment="CENTER_LEFT" styleClass="page-header participations-header">
                         <VBox spacing="6" HBox.hgrow="ALWAYS">
-                            <Label text="Mes participations" styleClass="page-title"/>
+                            <Label text="Mes participations" styleClass="page-title participations-header-title"/>
                             <Label fx:id="participationSummaryLabel"
                                    text="Suivez vos demandes, vos decisions et vos tickets QR."
                                    wrapText="true"
-                                   styleClass="page-subtitle"/>
+                                   styleClass="page-subtitle participations-header-subtitle"/>
                         </VBox>
                         <Button text="Retour événements"
                                 onAction="#retourVersListeFrontFixe"

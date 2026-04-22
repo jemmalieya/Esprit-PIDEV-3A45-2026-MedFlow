@@ -8,13 +8,17 @@
 <?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
+<?import java.net.URL?>
 
 <BorderPane xmlns:fx="http://javafx.com/fxml/1"
             xmlns="http://javafx.com/javafx/21"
             prefWidth="1400.0" prefHeight="820.0"
-            stylesheets="@../CSS/booking.css"
             fx:controller="tn.esprit.controllers.EvenementController"
             styleClass="root-pane">
+    <stylesheets>
+        <URL value="@../CSS/booking.css"/>
+        <URL value="@../CSS/evenement.css"/>
+    </stylesheets>
     <Label fx:id="frontPageMarker" visible="false" managed="false"/>
 
     <!-- LEFT SIDEBAR -->
@@ -43,6 +47,16 @@
                             <Label text="Decouvrez les evenements MedFlow et suivez vos demandes de participation."
                                    wrapText="true"
                                    styleClass="page-subtitle"/>
+                        </VBox>
+                        <VBox fx:id="eventUpdateToast"
+                              visible="false"
+                              managed="false"
+                              spacing="4"
+                              styleClass="event-update-toast">
+                            <Label text="Mise a jour evenement" styleClass="event-update-toast-title"/>
+                            <Label text="Un evenement de vos participations a change. Consultez Mes participations."
+                                   wrapText="true"
+                                   styleClass="event-update-toast-message"/>
                         </VBox>
                         <Button text="Mes participations"
                                 onAction="#ouvrirMesParticipations"

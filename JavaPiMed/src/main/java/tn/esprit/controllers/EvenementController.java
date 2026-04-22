@@ -2,6 +2,7 @@ package tn.esprit.controllers;
 
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
@@ -24,18 +25,22 @@ import tn.esprit.entities.User;
 import tn.esprit.services.TwilioSmsServiceEvent;
 import tn.esprit.services.DashboardBIServiceEvenement;
 import tn.esprit.services.EvenementService;
+import tn.esprit.services.EventLocationService;
 import tn.esprit.services.ParticipationDemandeService;
 import tn.esprit.services.ParticipationDemandeService.ParticipationDemande;
 import tn.esprit.tools.SessionManager;
 
+import java.awt.Desktop;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.net.URI;
 import java.net.URL;
 import java.sql.Date;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -153,6 +158,7 @@ public class EvenementController {
     private final ObservableList<Evenement> masterList = FXCollections.observableArrayList();
     private final DashboardBIServiceEvenement dashboardService = new DashboardBIServiceEvenement();
     private final EvenementPDFService pdfService = new EvenementPDFService();
+    private final EventLocationService eventLocationService = new EventLocationService();
 
     private static Evenement evenementAModifier;
     private static boolean publicationMode;
@@ -207,6 +213,16 @@ public class EvenementController {
     @FXML private ComboBox<String> filterTypeCombo;
     @FXML private ComboBox<String> filterStatutCombo;
     @FXML private ComboBox<String> filterVilleCombo;
+    @FXML private ImageView mapImageView;
+    @FXML private Label mapStatusLabel;
+    @FXML private Label weatherConditionLabel;
+    @FXML private Label weatherTempLabel;
+    @FXML private Label weatherHumidityLabel;
+    @FXML private Label weatherWindLabel;
+    @FXML private FlowPane participationsContainer;
+    @FXML private Label participationSummaryLabel;
+    private EventLocationService.EventLocation currentEventLocation;
+    private int currentMapZoom = 16;
 
 
 
@@ -219,6 +235,7 @@ public class EvenementController {
         chargerEvenementAModifier();
         initFiltres();
         chargerDetailFrontIfExists();
+        initMesParticipationsIfExists();
         initDashboardBIIfExists();
 
         try {
@@ -2144,6 +2161,12 @@ public class EvenementController {
         if (cardsContainer != null && cardsContainer.getScene() != null) {
             return (Stage) cardsContainer.getScene().getWindow();
         }
+        if (participationsContainer != null && participationsContainer.getScene() != null) {
+            return (Stage) participationsContainer.getScene().getWindow();
+        }
+        if (titreDetailLabel != null && titreDetailLabel.getScene() != null) {
+            return (Stage) titreDetailLabel.getScene().getWindow();
+        }
 
         return null;
     }
@@ -2239,6 +2262,381 @@ public class EvenementController {
                 detailImageView.setImage(image);
             }
         }
+
+        chargerCarteEtMeteo(ev);
+    }
+
+    private void chargerCarteEtMeteo(Evenement ev) {
+        if (mapImageView == null && weatherConditionLabel == null) return;
+
+        currentEventLocation = null;
+        currentMapZoom = 16;
+        if (mapStatusLabel != null) {
+            mapStatusLabel.setText("Chargement de la carte...");
+            mapStatusLabel.setVisible(true);
+        }
+        if (weatherConditionLabel != null) weatherConditionLabel.setText("Chargement de la meteo...");
+        if (weatherTempLabel != null) weatherTempLabel.setText("-");
+        if (weatherHumidityLabel != null) weatherHumidityLabel.setText("-");
+        if (weatherWindLabel != null) weatherWindLabel.setText("-");
+
+        Thread worker = new Thread(() -> {
+            try {
+                EventLocationService.EventLocation location = eventLocationService.resolve(ev);
+                EventLocationService.WeatherInfo weather = eventLocationService.getWeather(location);
+                String mapUrl = eventLocationService.buildStaticMapUrl(location, currentMapZoom);
+
+                Platform.runLater(() -> {
+                    currentEventLocation = location;
+                    if (mapImageView != null) {
+                        mapImageView.setImage(new Image(mapUrl, true));
+                    }
+                    if (mapStatusLabel != null) {
+                        mapStatusLabel.setText(location.query() + " | Zoom " + currentMapZoom);
+                        mapStatusLabel.setVisible(true);
+                    }
+                    if (weatherConditionLabel != null) weatherConditionLabel.setText(weather.condition());
+                    if (weatherTempLabel != null) weatherTempLabel.setText(weather.temperature());
+                    if (weatherHumidityLabel != null) weatherHumidityLabel.setText("Humidite " + weather.humidity());
+                    if (weatherWindLabel != null) weatherWindLabel.setText("Vent " + weather.wind());
+                });
+            } catch (Exception e) {
+                Platform.runLater(() -> {
+                    if (mapStatusLabel != null) {
+                        mapStatusLabel.setText("Carte indisponible pour cette adresse.");
+                    }
+                    if (weatherConditionLabel != null) weatherConditionLabel.setText("Meteo indisponible");
+                    if (weatherTempLabel != null) weatherTempLabel.setText("-");
+                    if (weatherHumidityLabel != null) weatherHumidityLabel.setText("-");
+                    if (weatherWindLabel != null) weatherWindLabel.setText("Verifiez la connexion internet ou l'adresse de l'evenement.");
+                });
+            }
+        }, "event-map-weather-loader");
+        worker.setDaemon(true);
+        worker.start();
+    }
+
+    @FXML
+    private void ouvrirCarteEvenement() {
+        if (currentEventLocation == null) {
+            showAlert(Alert.AlertType.INFORMATION, "Carte", "La carte n'est pas encore disponible.");
+            return;
+        }
+        try {
+            if (!Desktop.isDesktopSupported()) {
+                showAlert(Alert.AlertType.INFORMATION, "Carte", eventLocationService.buildInteractiveMapUrl(currentEventLocation));
+                return;
+            }
+            Desktop.getDesktop().browse(URI.create(eventLocationService.buildInteractiveMapUrl(currentEventLocation)));
+        } catch (Exception e) {
+            showAlert(Alert.AlertType.ERROR, "Carte", "Impossible d'ouvrir la carte : " + e.getMessage());
+        }
+    }
+
+    @FXML
+    private void zoomAvantCarteEvenement() {
+        changerZoomCarte(1);
+    }
+
+    @FXML
+    private void zoomArriereCarteEvenement() {
+        changerZoomCarte(-1);
+    }
+
+    @FXML
+    private void ouvrirItineraireEvenement() {
+        if (currentEventLocation == null) {
+            showAlert(Alert.AlertType.INFORMATION, "Itineraire", "L'itineraire n'est pas encore disponible.");
+            return;
+        }
+
+        afficherItineraireDansApplication();
+    }
+
+    private void afficherItineraireDansApplication() {
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("Itineraire vers l'evenement");
+        dialog.setHeaderText(null);
+        applyBookingStyles(dialog);
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        dialog.getDialogPane().getStyleClass().add("directions-dialog");
+
+        VBox content = new VBox(14);
+        content.setPrefWidth(980);
+        content.getStyleClass().add("directions-card");
+
+        Label badge = new Label("ITINERAIRE");
+        badge.getStyleClass().add("participation-request-overline");
+
+        Label title = new Label("Choisir un point de depart");
+        title.getStyleClass().add("participation-request-title");
+
+        Label helper = new Label("Saisissez votre adresse ou votre ville. L'application prepare l'itineraire et garde la carte detaillee visible ici.");
+        helper.setWrapText(true);
+        helper.getStyleClass().add("participation-request-subtitle");
+
+        TextField originField = new TextField();
+        originField.setPromptText("Exemple : Esprit Ghazela, Ariana");
+        originField.getStyleClass().add("modern-text-field");
+
+        ImageView previewMap = new ImageView(new Image(eventLocationService.buildStaticMapUrl(currentEventLocation, 17), true));
+        previewMap.setFitWidth(940);
+        previewMap.setFitHeight(520);
+        previewMap.setPreserveRatio(false);
+        previewMap.setSmooth(true);
+
+        Label routeStatus = new Label("Destination : " + currentEventLocation.query());
+        routeStatus.setWrapText(true);
+        routeStatus.getStyleClass().add("event-map-status");
+
+        Button previewBtn = new Button("Preparer le trajet");
+        previewBtn.getStyleClass().add("confirm-button");
+        previewBtn.setOnAction(e -> {
+            String origin = safeValue(originField.getText()).trim();
+            if (origin.isBlank()) {
+                showAlert(Alert.AlertType.WARNING, "Depart requis", "Entrez votre position ou votre adresse de depart.");
+                return;
+            }
+            routeStatus.setText("Calcul du trajet...");
+            final boolean[] routeFinished = {false};
+            Thread timeoutWorker = new Thread(() -> {
+                try {
+                    Thread.sleep(12000);
+                } catch (InterruptedException ignored) {
+                    Thread.currentThread().interrupt();
+                }
+                Platform.runLater(() -> {
+                    if (!routeFinished[0]) {
+                        routeStatus.setText("Le calcul routier prend trop de temps. Utilisez Ouvrir dans navigateur pour le guidage complet.");
+                    }
+                });
+            }, "event-route-preview-timeout");
+            timeoutWorker.setDaemon(true);
+            timeoutWorker.start();
+
+            Thread routeWorker = new Thread(() -> {
+                try {
+                    EventLocationService.EventLocation routeOrigin = eventLocationService.resolveForRouteOrigin(origin);
+                    String directMapUrl = eventLocationService.buildDirectLineStaticMapUrl(routeOrigin, currentEventLocation);
+                    Platform.runLater(() -> {
+                        routeFinished[0] = true;
+                        previewMap.setImage(new Image(directMapUrl, true));
+                        routeStatus.setText("Trace directe affichee. Calcul du trajet routier en option...");
+                    });
+
+                    String routeMapUrl = eventLocationService.buildRouteStaticMapUrl(routeOrigin, currentEventLocation);
+                    Platform.runLater(() -> {
+                        routeFinished[0] = true;
+                        previewMap.setImage(new Image(routeMapUrl, true));
+                        routeStatus.setText("Depart : " + origin + " | Destination : " + currentEventLocation.query());
+                    });
+                } catch (Exception ex) {
+                    Platform.runLater(() -> {
+                        routeFinished[0] = true;
+                        String message = ex.getMessage() == null ? "" : ex.getMessage();
+                        if (message.contains("HTTP 429")) {
+                            routeStatus.setText("Quota LocationIQ depasse. Reessayez dans quelques minutes ou ouvrez le trajet dans le navigateur.");
+                            showAlert(Alert.AlertType.WARNING, "Quota LocationIQ", "LocationIQ a refuse la requete avec HTTP 429. Cela signifie trop de requetes ou quota gratuit depasse.");
+                        } else {
+                            routeStatus.setText("Trajet routier indisponible. Verifiez l'adresse de depart ou la cle LocationIQ.");
+                            showAlert(Alert.AlertType.WARNING, "Itineraire", message);
+                        }
+                    });
+                }
+            }, "event-route-preview-loader");
+            routeWorker.setDaemon(true);
+            routeWorker.start();
+        });
+
+        Button browserBtn = new Button("Ouvrir dans navigateur");
+        browserBtn.getStyleClass().add("event-link-button");
+        browserBtn.setOnAction(e -> ouvrirItineraireNavigateur(safeValue(originField.getText()).trim()));
+
+        HBox controls = new HBox(10, originField, previewBtn, browserBtn);
+        controls.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(originField, Priority.ALWAYS);
+
+        StackPane webFrame = new StackPane(previewMap, routeStatus);
+        webFrame.getStyleClass().add("directions-web-frame");
+
+        content.getChildren().addAll(badge, title, helper, controls, webFrame);
+        dialog.getDialogPane().setContent(content);
+
+        Button closeButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.CLOSE);
+        closeButton.setText("Fermer");
+        closeButton.getStyleClass().add("cancel-button");
+        dialog.showAndWait();
+    }
+
+    private void ouvrirItineraireNavigateur(String origin) {
+        try {
+            String directionsUrl = eventLocationService.buildDirectionsUrl(origin, currentEventLocation);
+            if (!Desktop.isDesktopSupported()) {
+                showAlert(Alert.AlertType.INFORMATION, "Itineraire", directionsUrl);
+                return;
+            }
+            Desktop.getDesktop().browse(URI.create(directionsUrl));
+        } catch (Exception e) {
+            showAlert(Alert.AlertType.ERROR, "Itineraire", "Impossible d'ouvrir l'itineraire : " + e.getMessage());
+        }
+    }
+
+    private void changerZoomCarte(int delta) {
+        if (currentEventLocation == null) {
+            showAlert(Alert.AlertType.INFORMATION, "Carte", "La carte n'est pas encore disponible.");
+            return;
+        }
+        currentMapZoom = Math.max(3, Math.min(18, currentMapZoom + delta));
+        if (mapImageView != null) {
+            String mapUrl = eventLocationService.buildStaticMapUrl(currentEventLocation, currentMapZoom);
+            mapImageView.setImage(new Image(mapUrl, true));
+        }
+        if (mapStatusLabel != null) {
+            mapStatusLabel.setText(currentEventLocation.query() + " | Zoom " + currentMapZoom);
+            mapStatusLabel.setVisible(true);
+        }
+    }
+
+    @FXML
+    private void ouvrirMesParticipations() {
+        User user = SessionManager.getCurrentUser();
+        if (user == null) {
+            showAlert(Alert.AlertType.WARNING, "Connexion requise", "Connectez-vous pour voir vos participations.");
+            return;
+        }
+
+        try {
+            Parent root = FXMLLoader.load(getClass().getResource("/FrontFXML/MesParticipationsEvenement.fxml"));
+            Stage stage = resolveCurrentStage();
+            if (stage != null) {
+                stage.setScene(new Scene(root, 1400, 820));
+                stage.setTitle("Mes participations evenement");
+                stage.show();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Erreur", "Impossible d'ouvrir vos participations : " + e.getMessage());
+        }
+    }
+
+    private void initMesParticipationsIfExists() {
+        if (participationsContainer == null) return;
+
+        User user = SessionManager.getCurrentUser();
+        participationsContainer.getChildren().clear();
+        if (user == null) {
+            if (participationSummaryLabel != null) {
+                participationSummaryLabel.setText("Connectez-vous pour consulter vos participations.");
+            }
+            participationsContainer.getChildren().add(createEmptyParticipationCard("Connexion requise"));
+            return;
+        }
+
+        try {
+            List<ParticipationEntry> entries = new ArrayList<>();
+            for (Evenement ev : evenementService.recuperer()) {
+                for (ParticipationDemande demande : participationService.getDemandes(ev)) {
+                    if (demande.getUserId() == user.getId()) {
+                        entries.add(new ParticipationEntry(ev, demande));
+                    }
+                }
+            }
+
+            long accepted = entries.stream()
+                    .filter(e -> ParticipationDemande.STATUS_ACCEPTED.equals(e.demande().getStatus()))
+                    .count();
+            if (participationSummaryLabel != null) {
+                participationSummaryLabel.setText(entries.size() + " demande(s) | " + accepted + " ticket(s) disponible(s)");
+            }
+
+            if (entries.isEmpty()) {
+                participationsContainer.getChildren().add(createEmptyParticipationCard("Aucune participation pour le moment."));
+                return;
+            }
+
+            for (ParticipationEntry entry : entries) {
+                participationsContainer.getChildren().add(createParticipationCard(entry.event(), entry.demande(), user));
+            }
+        } catch (Exception e) {
+            participationsContainer.getChildren().add(createEmptyParticipationCard("Impossible de charger vos participations."));
+        }
+    }
+
+    private VBox createEmptyParticipationCard(String message) {
+        VBox card = new VBox(10);
+        card.setPrefWidth(420);
+        card.getStyleClass().add("participation-front-card");
+        Label title = new Label(message);
+        title.setWrapText(true);
+        title.getStyleClass().add("participation-front-title");
+        card.getChildren().add(title);
+        return card;
+    }
+
+    private VBox createParticipationCard(Evenement ev, ParticipationDemande demande, User user) {
+        VBox card = new VBox(12);
+        card.setPrefWidth(350);
+        card.getStyleClass().add("participation-front-card");
+
+        HBox top = new HBox(10);
+        top.setAlignment(Pos.CENTER_LEFT);
+        Label status = new Label(demande.getStatusLabel());
+        status.setStyle(getStatusChipStyle(demande.getStatus()));
+        Label type = new Label(valueOrDash(ev.getType_event()));
+        type.getStyleClass().add("participation-type-chip");
+        top.getChildren().addAll(status, type);
+
+        Label title = new Label(valueOrDash(ev.getTitre_event()));
+        title.setWrapText(true);
+        title.getStyleClass().add("participation-front-title");
+
+        Label meta = new Label(valueOrDash(ev.getVille_event()) + " | " + dateText(ev.getDate_debut_event()) + " -> " + dateText(ev.getDate_fin_event()));
+        meta.setWrapText(true);
+        meta.getStyleClass().add("participation-front-meta");
+
+        Label ticket = new Label(safeValue(demande.getTicketCode()).isBlank()
+                ? "Ticket QR disponible apres acceptation"
+                : "Ticket : " + demande.getTicketCode());
+        ticket.setWrapText(true);
+        ticket.getStyleClass().add("participation-front-ticket");
+
+        HBox actions = new HBox(10);
+        Button detailBtn = new Button("Detail");
+        detailBtn.getStyleClass().add("event-link-button");
+        detailBtn.setOnAction(e -> ouvrirDetailEvenementFront(ev));
+        actions.getChildren().add(detailBtn);
+
+        if (ParticipationDemande.STATUS_ACCEPTED.equals(demande.getStatus())) {
+            Button pdfBtn = new Button("PDF QR");
+            pdfBtn.getStyleClass().add("confirm-button");
+            pdfBtn.setOnAction(e -> telechargerTicketParticipation(ev, demande, user));
+            actions.getChildren().add(pdfBtn);
+        }
+
+        card.getChildren().addAll(top, title, meta, ticket, actions);
+        return card;
+    }
+
+    private void telechargerTicketParticipation(Evenement ev, ParticipationDemande demande, User user) {
+        try {
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setTitle("Telecharger le ticket QR");
+            fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Fichier PDF", "*.pdf"));
+            String ticket = safeValue(demande.getTicketCode()).isBlank() ? "ticket" : demande.getTicketCode();
+            fileChooser.setInitialFileName("ticket_" + ticket.replaceAll("[^A-Za-z0-9_-]", "_") + ".pdf");
+
+            Stage stage = resolveCurrentStage();
+            File file = fileChooser.showSaveDialog(stage);
+            if (file == null) return;
+
+            pdfService.genererTicketParticipation(ev, demande, user, file.getAbsolutePath());
+            showAlert(Alert.AlertType.INFORMATION, "Ticket genere", "Votre ticket PDF avec QR code est pret.");
+        } catch (Exception e) {
+            showAlert(Alert.AlertType.ERROR, "Ticket", "Impossible de generer le ticket : " + e.getMessage());
+        }
+    }
+
+    private record ParticipationEntry(Evenement event, ParticipationDemande demande) {
     }
 
     @FXML
@@ -2255,32 +2653,38 @@ public class EvenementController {
         }
 
         if (participationService.userHasDemande(evenementSelectionneFront, user.getId())) {
-            showAlert(Alert.AlertType.INFORMATION, "Demande existante", "Vous avez deja envoye une demande pour cet evenement.");
+            showParticipationNotice(
+                    "Demande deja envoyee",
+                    "Votre participation est deja enregistree pour cet evenement.",
+                    "Vous pouvez suivre son statut depuis la page Mes participations."
+            );
             return;
         }
 
         Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle("Participation evenement");
         dialog.setHeaderText(null);
+        applyBookingStyles(dialog);
+        dialog.getDialogPane().getStyleClass().add("participation-request-dialog");
         dialog.getDialogPane().getButtonTypes().addAll(
                 new ButtonType("Oui, envoyer", ButtonBar.ButtonData.OK_DONE),
                 ButtonType.CANCEL
         );
 
-        VBox form = new VBox(16);
+        VBox form = new VBox(18);
         form.setPrefWidth(620);
-        form.setStyle("-fx-background-color: linear-gradient(to bottom right, #f7fcff, #edf6ff); -fx-padding: 26; -fx-background-radius: 24; -fx-border-color: #c9e6f7; -fx-border-radius: 24;");
+        form.getStyleClass().add("participation-request-card");
 
         Label overline = new Label("DEMANDE DE PARTICIPATION");
-        overline.setStyle("-fx-text-fill: #dff9ff; -fx-font-size: 11px; -fx-font-weight: 900;");
+        overline.getStyleClass().add("participation-request-overline");
 
         Label question = new Label("Souhaitez-vous participer a cet evenement ?");
         question.setWrapText(true);
-        question.setStyle("-fx-text-fill: #123c69; -fx-font-size: 25px; -fx-font-weight: 900;");
+        question.getStyleClass().add("participation-request-title");
 
         Label subtitle = new Label(valueOrDash(evenementSelectionneFront.getTitre_event()) + " | Votre demande sera examinee par l equipe evenement.");
         subtitle.setWrapText(true);
-        subtitle.setStyle("-fx-text-fill: #4e6d82; -fx-font-size: 13px; -fx-font-weight: 700;");
+        subtitle.getStyleClass().add("participation-request-subtitle");
 
         TextField nomField = createParticipationField((safeValue(user.getPrenom()) + " " + safeValue(user.getNom())).trim());
         nomField.setEditable(false);
@@ -2321,6 +2725,15 @@ public class EvenementController {
             return;
         }
 
+        if (participationService.userHasDemande(evenementSelectionneFront, user.getId())) {
+            showParticipationNotice(
+                    "Demande deja envoyee",
+                    "Votre participation est deja enregistree pour cet evenement.",
+                    "Aucune nouvelle demande n'a ete creee."
+            );
+            return;
+        }
+
         String phone = participationService.normalizeTunisianPhone(telField.getText());
         if (phone.isBlank()) {
             showAlert(Alert.AlertType.ERROR, "Telephone requis", "Le telephone est obligatoire pour recevoir la decision par SMS.");
@@ -2337,7 +2750,11 @@ public class EvenementController {
 
         try {
             participationService.ajouterDemande(evenementSelectionneFront, demande);
-            showAlert(Alert.AlertType.INFORMATION, "Demande envoyee", "Votre demande est envoyee. Elle est maintenant en attente de validation par l equipe evenement.");
+            showParticipationNotice(
+                    "Demande envoyee",
+                    "Votre demande est en attente de validation.",
+                    "Vous recevrez la decision apres traitement par l equipe evenement."
+            );
         } catch (SQLException e) {
             showAlert(Alert.AlertType.ERROR, "Erreur", "Impossible d'enregistrer la demande : " + e.getMessage());
         }
@@ -2354,6 +2771,49 @@ public class EvenementController {
         TextField field = new TextField(value == null ? "" : value);
         field.getStyleClass().add("modern-text-field");
         return field;
+    }
+
+    private void showParticipationNotice(String titleText, String messageText, String detailText) {
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle(titleText);
+        dialog.setHeaderText(null);
+        applyBookingStyles(dialog);
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.OK);
+        dialog.getDialogPane().getStyleClass().add("participation-request-dialog");
+
+        VBox content = new VBox(12);
+        content.setPrefWidth(500);
+        content.getStyleClass().add("participation-notice-card");
+
+        Label badge = new Label("PARTICIPATION");
+        badge.getStyleClass().add("participation-request-overline");
+
+        Label title = new Label(titleText);
+        title.setWrapText(true);
+        title.getStyleClass().add("participation-request-title");
+
+        Label message = new Label(messageText);
+        message.setWrapText(true);
+        message.getStyleClass().add("participation-request-subtitle");
+
+        Label detail = new Label(detailText);
+        detail.setWrapText(true);
+        detail.getStyleClass().add("participation-front-ticket");
+
+        content.getChildren().addAll(badge, title, message, detail);
+        dialog.getDialogPane().setContent(content);
+
+        Button okButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
+        okButton.setText("Compris");
+        okButton.getStyleClass().add("confirm-button");
+        dialog.showAndWait();
+    }
+
+    private void applyBookingStyles(Dialog<?> dialog) {
+        URL css = getClass().getResource("/CSS/booking.css");
+        if (css != null) {
+            dialog.getDialogPane().getStylesheets().add(css.toExternalForm());
+        }
     }
 
     private void initFiltres() {
@@ -2397,6 +2857,25 @@ public class EvenementController {
         }
     }
 
+
+    @FXML
+    private void retourVersListeFrontFixe() {
+        try {
+            URL resource = getClass().getResource("/FrontFXML/Événement.fxml");
+            if (resource == null) {
+                throw new IOException("Fichier /FrontFXML/Événement.fxml introuvable.");
+            }
+
+            Parent root = FXMLLoader.load(resource);
+            Stage stage = resolveCurrentStage();
+            if (stage != null) {
+                applySceneToStage(stage, root, "Evenements");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Erreur", "Impossible de revenir a la liste : " + e.getMessage());
+        }
+    }
 
     private VBox createEventCardFront(Evenement ev) {
         VBox card = new VBox(12);
@@ -2704,6 +3183,10 @@ public class EvenementController {
 
     private String valueOrDash(String value) {
         return (value == null || value.isBlank()) ? "-" : value;
+    }
+
+    private String dateText(java.util.Date date) {
+        return date == null ? "-" : date.toString();
     }
 
     private String shortText(String value, int max) {

@@ -5,6 +5,7 @@ import tn.esprit.entities.Produit;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -47,6 +48,7 @@ public class OpenFdaInteractionService {
 
     private boolean derniereAnalyseIndisponible = false;
     private String dernierMessageIndisponibilite = "";
+    private volatile boolean apiTemporairementIndisponible = false;
 
     public boolean isDerniereAnalyseIndisponible() { return derniereAnalyseIndisponible; }
     public String getDernierMessageIndisponibilite() { return dernierMessageIndisponibilite; }
@@ -59,6 +61,7 @@ public class OpenFdaInteractionService {
         List<DrugInteractionResult> resultats = new ArrayList<>();
         derniereAnalyseIndisponible = false;
         dernierMessageIndisponibilite = "";
+        apiTemporairementIndisponible = false;
 
         if (produits == null || produits.size() < 2) return resultats;
 
@@ -70,16 +73,18 @@ public class OpenFdaInteractionService {
         }
 
         List<String> noms = new ArrayList<>(nomsUniques);
+        Map<String, String> interactionTextCache = new HashMap<>();
         System.out.println("[OpenFDA] ══════════════════════════════════════");
         System.out.println("[OpenFDA] Vérification pour : " + noms);
         System.out.println("[OpenFDA] ══════════════════════════════════════");
 
+        outer:
         for (int i = 0; i < noms.size(); i++) {
             for (int j = i + 1; j < noms.size(); j++) {
                 String a = noms.get(i);
                 String b = noms.get(j);
                 try {
-                    DrugInteractionResult r = verifierPaire(a, b);
+                    DrugInteractionResult r = verifierPaire(a, b, interactionTextCache);
                     if (r != null) {
                         System.out.println("[OpenFDA] ⚠⚠⚠ INTERACTION TROUVÉE : " + a + " ↔ " + b);
                         resultats.add(r);
@@ -91,6 +96,8 @@ public class OpenFdaInteractionService {
                     e.printStackTrace();
                     derniereAnalyseIndisponible = true;
                     dernierMessageIndisponibilite = "OpenFDA indisponible : " + e.getMessage();
+                    apiTemporairementIndisponible = true;
+                    break outer;
                 }
             }
         }
@@ -104,10 +111,10 @@ public class OpenFdaInteractionService {
     // VÉRIFICATION D'UNE PAIRE
     // ─────────────────────────────────────────────────────────────────────────
 
-    private DrugInteractionResult verifierPaire(String nomA, String nomB) throws Exception {
+    private DrugInteractionResult verifierPaire(String nomA, String nomB, Map<String, String> interactionTextCache) throws Exception {
         System.out.println("[OpenFDA] ── Paire : " + nomA + " ↔ " + nomB);
 
-        String texteA = fetchDrugInteractionText(nomA);
+        String texteA = fetchDrugInteractionText(nomA, interactionTextCache);
         if (texteA != null && !texteA.isBlank()) {
             System.out.println("[OpenFDA] Texte '" + nomA + "' ("
                     + texteA.length() + " chars) : "
@@ -118,7 +125,7 @@ public class OpenFdaInteractionService {
             System.out.println("[OpenFDA] Texte '" + nomA + "' : (vide)");
         }
 
-        String texteB = fetchDrugInteractionText(nomB);
+        String texteB = fetchDrugInteractionText(nomB, interactionTextCache);
         if (texteB != null && !texteB.isBlank()) {
             System.out.println("[OpenFDA] Texte '" + nomB + "' ("
                     + texteB.length() + " chars) : "
@@ -136,26 +143,48 @@ public class OpenFdaInteractionService {
     // RÉCUPÉRATION DU TEXTE FDA (5 STRATÉGIES)
     // ─────────────────────────────────────────────────────────────────────────
 
-    private String fetchDrugInteractionText(String nomMedicament) throws Exception {
+    private String fetchDrugInteractionText(String nomMedicament, Map<String, String> interactionTextCache) throws Exception {
         String nom = nomMedicament.trim().toLowerCase(Locale.ROOT);
+        if (interactionTextCache.containsKey(nom)) {
+            return interactionTextCache.get(nom);
+        }
+        if (apiTemporairementIndisponible) {
+            return "";
+        }
 
         String r = fetchFromUrl(buildUrl("openfda.generic_name", nom, true));
-        if (r != null && !r.isBlank()) return r;
+        if (r != null && !r.isBlank()) {
+            interactionTextCache.put(nom, r);
+            return r;
+        }
 
         r = fetchFromUrl(buildUrl("openfda.brand_name", nom, true));
-        if (r != null && !r.isBlank()) return r;
+        if (r != null && !r.isBlank()) {
+            interactionTextCache.put(nom, r);
+            return r;
+        }
 
         r = fetchFromUrl(buildUrl("openfda.substance_name", nom, true));
-        if (r != null && !r.isBlank()) return r;
+        if (r != null && !r.isBlank()) {
+            interactionTextCache.put(nom, r);
+            return r;
+        }
 
         String encoded = URLEncoder.encode(nom, StandardCharsets.UTF_8).replace("+", "%20");
         String urlFullText = BASE_URL + "?search=drug_interactions:%22" + encoded + "%22&limit=1";
         r = fetchFromUrl(urlFullText);
-        if (r != null && !r.isBlank()) return r;
+        if (r != null && !r.isBlank()) {
+            interactionTextCache.put(nom, r);
+            return r;
+        }
 
         r = fetchFromUrl(buildUrl("openfda.generic_name", nom, false));
-        if (r != null && !r.isBlank()) return r;
+        if (r != null && !r.isBlank()) {
+            interactionTextCache.put(nom, r);
+            return r;
+        }
 
+        interactionTextCache.put(nom, "");
         return "";
     }
 
@@ -177,43 +206,57 @@ public class OpenFdaInteractionService {
     // ─────────────────────────────────────────────────────────────────────────
 
     private String fetchFromUrl(String urlStr) throws Exception {
-        System.out.println("[OpenFDA] GET " + urlStr);
-
-        HttpURLConnection conn = (HttpURLConnection) new URL(urlStr).openConnection();
-        conn.setRequestMethod("GET");
-        conn.setRequestProperty("Accept", "application/json");
-        conn.setRequestProperty("User-Agent", "MedicamentInteractionChecker/1.0");
-        conn.setConnectTimeout(10000);
-        conn.setReadTimeout(15000);
-
-        int code = conn.getResponseCode();
-        System.out.println("[OpenFDA] HTTP " + code);
-
-        if (code == 404) return "";
-        if (code == 429) {
-            System.err.println("[OpenFDA] Rate limit, pause 3s...");
-            Thread.sleep(3000);
+        if (apiTemporairementIndisponible) {
             return "";
         }
-        if (code != 200) return "";
 
-        StringBuilder sb = new StringBuilder();
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
-            String line;
-            while ((line = reader.readLine()) != null) sb.append(line);
+        System.out.println("[OpenFDA] GET " + urlStr);
+
+        HttpURLConnection conn = null;
+        try {
+            conn = (HttpURLConnection) new URL(urlStr).openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Accept", "application/json");
+            conn.setRequestProperty("User-Agent", "MedicamentInteractionChecker/1.0");
+            conn.setConnectTimeout(4000);
+            conn.setReadTimeout(7000);
+
+            int code = conn.getResponseCode();
+            System.out.println("[OpenFDA] HTTP " + code);
+
+            if (code == 404) return "";
+            if (code == 429) {
+                System.err.println("[OpenFDA] Rate limit, pause 1.5s...");
+                Thread.sleep(1500);
+                return "";
+            }
+            if (code != 200) return "";
+
+            StringBuilder sb = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = reader.readLine()) != null) sb.append(line);
+            }
+
+            String json = sb.toString();
+            String result = extraireTexteInteractions(json);
+
+            if (result == null || result.isBlank()) {
+                System.out.println("[OpenFDA] → Extraction vide");
+            } else {
+                System.out.println("[OpenFDA] → Extrait " + result.length() + " chars");
+            }
+
+            return result == null ? "" : result;
+        } catch (SocketTimeoutException e) {
+            apiTemporairementIndisponible = true;
+            throw e;
+        } finally {
+            if (conn != null) {
+                conn.disconnect();
+            }
         }
-
-        String json = sb.toString();
-        String result = extraireTexteInteractions(json);
-
-        if (result == null || result.isBlank()) {
-            System.out.println("[OpenFDA] → Extraction vide");
-        } else {
-            System.out.println("[OpenFDA] → Extrait " + result.length() + " chars");
-        }
-
-        return result == null ? "" : result;
     }
 
     // ─────────────────────────────────────────────────────────────────────────

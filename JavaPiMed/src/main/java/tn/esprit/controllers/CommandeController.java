@@ -1804,7 +1804,7 @@ public class CommandeController {
                 }
             });
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("[Stripe] Impossible de démarrer le callback local: " + e.getMessage());
             showCommandeToast("Erreur démarrage callback Stripe.", "commande-toast-danger", "✖");
         }
     }

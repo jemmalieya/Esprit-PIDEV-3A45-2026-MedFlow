@@ -74,6 +74,7 @@ public class PanierController {
     private String  messageAnalyseOpenFda         = "";
     private long    interactionCheckVersion       = 0;
     private String  dernierEtatAlerteInteractions = "";
+    private volatile Task<InteractionCheckOutcome> interactionTaskEnCours;
 
     // ─────────────────────────────────────────────────────────────────────────
     // DEBUG
@@ -169,6 +170,11 @@ public class PanierController {
         final long version           = ++interactionCheckVersion;
         final List<Produit> snapshot = new ArrayList<>(panier);
 
+        Task<InteractionCheckOutcome> ancienneTask = interactionTaskEnCours;
+        if (ancienneTask != null && ancienneTask.isRunning()) {
+            ancienneTask.cancel();
+        }
+
         debug("Lancement vérification openFDA v" + version + " avec " + snapshot.size() + " produit(s)");
 
         if (btnValiderCommande != null) {
@@ -192,6 +198,7 @@ public class PanierController {
         task.setOnSucceeded(event -> {
             if (version != interactionCheckVersion) return;
             appliquerEtatInteractions(task.getValue());
+            interactionTaskEnCours = null;
         });
 
         task.setOnFailed(event -> {
@@ -205,7 +212,16 @@ public class PanierController {
                 btnValiderCommande.setDisable(false);
                 btnValiderCommande.setTooltip(new Tooltip("Analyse openFDA indisponible : vérifiez manuellement."));
             }
+            interactionTaskEnCours = null;
         });
+
+        task.setOnCancelled(event -> {
+            if (interactionTaskEnCours == task) {
+                interactionTaskEnCours = null;
+            }
+        });
+
+        interactionTaskEnCours = task;
 
         Thread thread = new Thread(task, "openfda-panier-check");
         thread.setDaemon(true);

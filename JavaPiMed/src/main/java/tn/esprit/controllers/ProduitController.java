@@ -53,6 +53,7 @@ import tn.esprit.entities.Produit;
 import tn.esprit.services.HuggingFaceRecommendationService;
 import tn.esprit.services.ProduitService;
 import tn.esprit.services.ProduitSpeechService;
+import tn.esprit.services.ProduitVoiceSearchService;
 import tn.esprit.session.CartSession;
 import tn.esprit.tools.SessionManager;
 
@@ -68,6 +69,9 @@ public class ProduitController {
     private static final String PHARMACY_EMAIL = "contact@medflow.tn";
     private static final String PHARMACY_ADDRESS = "Pharmacie Esprit Ariana, Ariana, Tunisie";
     private final ProduitSpeechService produitSpeechService = new ProduitSpeechService();
+    private final ProduitVoiceSearchService produitVoiceSearchService = new ProduitVoiceSearchService();
+    private final Object voiceSearchLock = new Object();
+    private volatile boolean voiceSearchRunning = false;
 
     // AJOUT / MODIF
     @FXML private Button btnAjouterProduit;
@@ -105,6 +109,7 @@ public class ProduitController {
     @FXML private ComboBox<String> categorieCombo;
     @FXML private Label resultCountLabel;
     @FXML private Button btnPanier;
+    @FXML private Button voiceSearchBtn;
 
     // DASHBOARD ADMIN BI
     @FXML private Label biPeriodeLabel;
@@ -154,6 +159,7 @@ public class ProduitController {
     private final ObservableList<Produit> masterList = FXCollections.observableArrayList();
     private final ObservableList<Produit> filteredList = FXCollections.observableArrayList();
     private final List<Produit> allProduitsFront = new ArrayList<>();
+    private final Map<String, Image> thumbnailImageCache = new HashMap<>();
 
     private static Produit produitAmodifier;
     private String imagePath = "";
@@ -729,6 +735,8 @@ public class ProduitController {
         if (triStockCombo != null) triStockCombo.setOnAction(e -> refreshPharmacieGrid());
         if (categorieCombo != null) categorieCombo.setOnAction(e -> refreshPharmacieGrid());
 
+        updateVoiceSearchButtonState(false);
+
         updatePanierButton();
         refreshPharmacieGrid();
 
@@ -787,6 +795,92 @@ public class ProduitController {
         if (resultCountLabel != null) {
             resultCountLabel.setText(filtered.size() + " produit(s) trouvé(s)");
         }
+    }
+
+    @FXML
+    private void onVoiceSearchClicked(ActionEvent event) {
+        if (searchProduitField == null) return;
+
+        if (voiceSearchRunning) {
+            stopVoiceSearch();
+            return;
+        }
+        startVoiceSearch();
+    }
+
+    private void startVoiceSearch() {
+        synchronized (voiceSearchLock) {
+            if (voiceSearchRunning) return;
+            voiceSearchRunning = true;
+        }
+        updateVoiceSearchButtonState(true);
+
+        Thread t = new Thread(() -> {
+            String recognized = "";
+            try {
+                recognized = produitVoiceSearchService.ecouterNomProduit(8, extraireNomsProduitsPourReconnaissance());
+            } catch (Exception ex) {
+                System.err.println("[ProduitController] Recherche vocale indisponible: " + ex.getMessage());
+            }
+
+            final String finalRecognized = recognized;
+            Platform.runLater(() -> {
+                try {
+                    if (voiceSearchRunning && finalRecognized != null && !finalRecognized.isBlank()) {
+                        searchProduitField.setText(finalRecognized);
+                    } else if (voiceSearchRunning) {
+                        afficherFeedbackVoiceAmbigu();
+                    }
+                } finally {
+                    synchronized (voiceSearchLock) {
+                        voiceSearchRunning = false;
+                    }
+                    updateVoiceSearchButtonState(false);
+                }
+            });
+        }, "produit-voice-search-thread");
+
+        t.setDaemon(true);
+        t.start();
+    }
+
+    private void afficherFeedbackVoiceAmbigu() {
+        if (voiceSearchBtn == null) {
+            return;
+        }
+        voiceSearchBtn.setTooltip(new Tooltip("Je n'ai pas bien compris. Reessayez avec le nom exact du produit."));
+    }
+
+    private List<String> extraireNomsProduitsPourReconnaissance() {
+        List<String> noms = new ArrayList<>();
+        for (Produit produit : allProduitsFront) {
+            if (produit == null) {
+                continue;
+            }
+            String nom = safe(produit.getNom_produit());
+            if (!nom.isBlank()) {
+                noms.add(nom);
+            }
+        }
+        return noms;
+    }
+
+    private void stopVoiceSearch() {
+        synchronized (voiceSearchLock) {
+            if (!voiceSearchRunning) return;
+            voiceSearchRunning = false;
+        }
+        produitVoiceSearchService.arreterEcoute();
+        updateVoiceSearchButtonState(false);
+    }
+
+    private void updateVoiceSearchButtonState(boolean listening) {
+        if (voiceSearchBtn == null) return;
+
+        voiceSearchBtn.setText(listening ? "⏹" : "🎤");
+        voiceSearchBtn.setTooltip(new Tooltip(listening
+                ? "Cliquer pour arrêter l'écoute"
+                : "Cliquer pour rechercher un produit par la voix"));
     }
 
     private VBox createProductCard(Produit produit) {
@@ -2744,7 +2838,7 @@ public class ProduitController {
             new javafx.animation.ParallelTransition(fade, slide).play();
         };
 
-        Timeline loop = new Timeline(new KeyFrame(Duration.seconds(2.0), e -> {
+        Timeline loop = new Timeline(new KeyFrame(Duration.seconds(2.6), e -> {
             index[0] = index[0] + 1;
             render.run();
         }));
@@ -2773,22 +2867,9 @@ public class ProduitController {
 
         StackPane imageBox = new StackPane();
         imageBox.getStyleClass().add("reco-product-image-box");
-        String imgPath = produit.getImage_produit() == null ? "" : produit.getImage_produit().trim();
-        if (!imgPath.isEmpty()) {
-            try {
-                File f = new File(imgPath);
-                if (f.exists()) {
-                    ImageView iv = new ImageView(new Image(f.toURI().toString()));
-                    iv.setFitWidth(72);
-                    iv.setFitHeight(72);
-                    iv.setPreserveRatio(true);
-                    imageBox.getChildren().add(iv);
-                } else {
-                    imageBox.getChildren().add(new Label("🖼"));
-                }
-            } catch (Exception e) {
-                imageBox.getChildren().add(new Label("🖼"));
-            }
+        ImageView iv = buildThumbnailImageView(produit == null ? null : produit.getImage_produit(), 72, 72);
+        if (iv != null) {
+            imageBox.getChildren().add(iv);
         } else {
             imageBox.getChildren().add(new Label("🖼"));
         }
@@ -2802,6 +2883,34 @@ public class ProduitController {
 
         card.getChildren().addAll(imageBox, nom, prix);
         return card;
+    }
+
+    private ImageView buildThumbnailImageView(String imagePath, double width, double height) {
+        String path = imagePath == null ? "" : imagePath.trim();
+        if (path.isEmpty()) {
+            return null;
+        }
+
+        try {
+            File file = new File(path);
+            if (!file.exists()) {
+                return null;
+            }
+
+            String uri = file.toURI().toString();
+            String cacheKey = uri + "|" + (int) width + "x" + (int) height;
+            Image image = thumbnailImageCache.computeIfAbsent(cacheKey,
+                    k -> new Image(uri, width, height, true, true, true));
+
+            ImageView view = new ImageView(image);
+            view.setFitWidth(width);
+            view.setFitHeight(height);
+            view.setPreserveRatio(true);
+            view.setSmooth(true);
+            return view;
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
     private String normalizeRecoText(String value) {
@@ -2839,24 +2948,9 @@ public class ProduitController {
         // Image
         javafx.scene.layout.StackPane imgBox = new javafx.scene.layout.StackPane();
         imgBox.setPrefHeight(80);
-        String imgPath = produit.getImage_produit() == null ? "" : produit.getImage_produit();
-        if (!imgPath.isEmpty()) {
-            try {
-                java.io.File f = new java.io.File(imgPath);
-                if (f.exists()) {
-                    javafx.scene.image.ImageView iv =
-                            new javafx.scene.image.ImageView(
-                                    new javafx.scene.image.Image(f.toURI().toString()));
-                    iv.setFitWidth(70);
-                    iv.setFitHeight(70);
-                    iv.setPreserveRatio(true);
-                    imgBox.getChildren().add(iv);
-                } else {
-                    imgBox.getChildren().add(new javafx.scene.control.Label("🖼"));
-                }
-            } catch (Exception e) {
-                imgBox.getChildren().add(new javafx.scene.control.Label("🖼"));
-            }
+        javafx.scene.image.ImageView bestIv = buildThumbnailImageView(produit == null ? null : produit.getImage_produit(), 70, 70);
+        if (bestIv != null) {
+            imgBox.getChildren().add(bestIv);
         } else {
             imgBox.getChildren().add(new javafx.scene.control.Label("🖼"));
         }

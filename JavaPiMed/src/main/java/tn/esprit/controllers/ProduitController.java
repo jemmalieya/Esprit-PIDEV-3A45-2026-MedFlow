@@ -1,6 +1,8 @@
 package tn.esprit.controllers;
 
 import javafx.animation.FadeTransition;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.scene.chart.BarChart;
 import javafx.scene.chart.LineChart;
 import javafx.scene.chart.NumberAxis;
@@ -16,8 +18,8 @@ import tn.esprit.services.CommandeService;
 import tn.esprit.services.DashboardBIService;
 
 import java.time.LocalDate;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -40,6 +42,7 @@ import javafx.stage.Stage;
 import javafx.stage.Window;
 import javafx.util.Duration;
 import tn.esprit.entities.Produit;
+import tn.esprit.services.HuggingFaceRecommendationService;
 import tn.esprit.services.ProduitService;
 import tn.esprit.session.CartSession;
 import tn.esprit.tools.SessionManager;
@@ -47,11 +50,6 @@ import tn.esprit.tools.SessionManager;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Optional;
 
 public class ProduitController {
 
@@ -131,6 +129,8 @@ public class ProduitController {
     @FXML private TableColumn<Produit, String> stockStatutCol;
 
     @FXML private FlowPane recommandationsContainer;
+    private final HuggingFaceRecommendationService huggingFaceService =
+            new HuggingFaceRecommendationService();
 
 
     private final DashboardBIService dashboardBIService = new DashboardBIService();
@@ -709,13 +709,17 @@ public class ProduitController {
         if (searchProduitField != null) {
             searchProduitField.textProperty().addListener((obs, oldV, newV) -> refreshPharmacieGrid());
         }
-        if (triPrixCombo != null) triPrixCombo.setOnAction(e -> refreshPharmacieGrid());
+        if (triPrixCombo  != null) triPrixCombo.setOnAction(e -> refreshPharmacieGrid());
         if (triStockCombo != null) triStockCombo.setOnAction(e -> refreshPharmacieGrid());
         if (categorieCombo != null) categorieCombo.setOnAction(e -> refreshPharmacieGrid());
 
         updatePanierButton();
         refreshPharmacieGrid();
+
+        // ── Charger les recommandations IA en arrière-plan ────────────────────
+        chargerRecommandationsIA();
     }
+
 
     private void refreshPharmacieGrid() {
         if (productGrid == null) return;
@@ -2374,6 +2378,357 @@ public class ProduitController {
 
         sequence.setOnFinished(e -> popup.hide());
         sequence.play();
+    }
+// ─────────────────────────────────────────────────────────────────────────
+// ── 3. AJOUTER cette nouvelle méthode dans ProduitController ─────────────
+// ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Charge les recommandations IA en arrière-plan (thread séparé)
+     * et met à jour l'UI sur le JavaFX thread.
+     */
+    private void chargerRecommandationsIA() {
+        // Récupérer l'ID du user connecté
+        tn.esprit.entities.User user = SessionManager.getCurrentUser();
+        final int userId = (user != null && user.getId() > 0) ? user.getId() : 0;
+
+        // Afficher un état de chargement dans le FlowPane recommandations
+        // (si tu as un recommandationsContainer dans Pharmacie.fxml, sinon skip)
+        // Pour la pharmacie on injecte directement les cartes dans productGrid section
+
+        // Lancer en arrière-plan pour ne pas bloquer l'UI
+        Thread thread = new Thread(() -> {
+            System.out.println("[Pharmacie] Chargement recommandations IA pour user " + userId);
+
+            List<String> recommandationsTexte;
+            List<tn.esprit.entities.Produit> produitsBestSellers;
+
+            try {
+                // Appel IA (peut prendre quelques secondes)
+                recommandationsTexte = huggingFaceService.genererRecommandations(userId);
+                // Best sellers complets avec objets Produit pour les cartes
+                produitsBestSellers  = huggingFaceService.getProduitsBestSellersComplets(4);
+            } catch (Exception e) {
+                System.err.println("[Pharmacie] Erreur IA : " + e.getMessage());
+                recommandationsTexte = List.of(
+                        "💊 Recommandations en cours de chargement...",
+                        "🔥 Découvrez nos best sellers"
+                );
+                produitsBestSellers = new ArrayList<>();
+            }
+
+            final List<String>   finalRecoTexte    = recommandationsTexte;
+            final List<tn.esprit.entities.Produit> finalBestSellers = produitsBestSellers;
+
+            // Mettre à jour l'UI sur le JavaFX Application Thread
+            javafx.application.Platform.runLater(() -> {
+                afficherRecommandationsIA(finalRecoTexte, finalBestSellers);
+            });
+
+        }, "huggingface-reco-thread");
+        thread.setDaemon(true);
+        thread.start();
+    }
+
+// ─────────────────────────────────────────────────────────────────────────
+// ── 4. AJOUTER cette méthode d'affichage ─────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Affiche les recommandations IA dans une section dédiée
+     * au-dessus du productGrid.
+     */
+    private void afficherRecommandationsIA(
+            List<String> recommandationsTexte,
+            List<tn.esprit.entities.Produit> bestSellers) {
+
+        if (productGrid == null) return;
+
+        // Récupérer le parent ScrollPane content VBox
+        javafx.scene.Parent parent = productGrid.getParent();
+        if (!(parent instanceof javafx.scene.layout.VBox mainVBox)) return;
+
+        // Supprimer l'ancienne section recommandations si elle existe
+        mainVBox.getChildren().removeIf(n -> "reco-section".equals(n.getId()));
+
+        // ── Construire la section recommandations ─────────────────────────────
+        javafx.scene.layout.VBox recoSection = new javafx.scene.layout.VBox(14);
+        recoSection.setId("reco-section");
+        recoSection.getStyleClass().add("reco-section");
+        recoSection.setPadding(new javafx.geometry.Insets(0, 0, 8, 0));
+
+        // Titre section
+        javafx.scene.layout.HBox titreBox = new javafx.scene.layout.HBox(10);
+        titreBox.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+
+        javafx.scene.control.Label titreLbl = new javafx.scene.control.Label("🤖 Recommandés pour vous");
+        titreLbl.getStyleClass().add("reco-title");
+
+        javafx.scene.control.Label badgeLbl = new javafx.scene.control.Label("IA");
+        badgeLbl.getStyleClass().add("reco-badge");
+
+        titreBox.getChildren().addAll(titreLbl, badgeLbl);
+        recoSection.getChildren().add(titreBox);
+
+        List<Produit> produitsRecommandes = findRecommendedProducts(recommandationsTexte, bestSellers);
+        if (produitsRecommandes.isEmpty()) {
+            produitsRecommandes.addAll(bestSellers.stream().limit(6).toList());
+        }
+
+        javafx.scene.control.Label recoProductsTitle = new javafx.scene.control.Label("Produits recommandés");
+        recoProductsTitle.getStyleClass().add("reco-strip-title");
+        recoSection.getChildren().add(recoProductsTitle);
+
+        javafx.scene.Node recoCarousel = createAutoCarousel(produitsRecommandes, false);
+        recoSection.getChildren().add(recoCarousel);
+
+        javafx.scene.control.Label bsTitle = new javafx.scene.control.Label("Best sellers");
+        bsTitle.getStyleClass().add("reco-strip-title");
+        recoSection.getChildren().add(bsTitle);
+
+        javafx.scene.Node bestCarousel = createAutoCarousel(bestSellers, true);
+        recoSection.getChildren().add(bestCarousel);
+
+        // Inserer la section en haut, juste avant la barre de recherche/filtres.
+        int filterIndex = -1;
+        for (int i = 0; i < mainVBox.getChildren().size(); i++) {
+            javafx.scene.Node child = mainVBox.getChildren().get(i);
+            if (child.getStyleClass().contains("filter-card")) {
+                filterIndex = i;
+                break;
+            }
+        }
+
+        if (filterIndex >= 0) {
+            mainVBox.getChildren().add(filterIndex, recoSection);
+        } else {
+            // Fallback: avant la grille produits si le bloc filtres est absent.
+            int gridIndex = mainVBox.getChildren().indexOf(productGrid);
+            if (gridIndex >= 0) {
+                mainVBox.getChildren().add(gridIndex, recoSection);
+            } else {
+                mainVBox.getChildren().add(recoSection);
+            }
+        }
+
+        System.out.println("[Pharmacie] Recommandations IA affichées : " + recommandationsTexte.size());
+    }
+
+    private List<Produit> findRecommendedProducts(List<String> recommandationsTexte, List<Produit> bestSellers) {
+        Map<String, Produit> byName = new LinkedHashMap<>();
+        for (Produit p : allProduitsFront) {
+            byName.put(normalizeRecoText(p.getNom_produit()), p);
+        }
+
+        LinkedHashSet<Produit> ordered = new LinkedHashSet<>();
+        for (String reco : recommandationsTexte) {
+            String normReco = normalizeRecoText(reco);
+            for (Map.Entry<String, Produit> e : byName.entrySet()) {
+                if (!e.getKey().isBlank() && normReco.contains(e.getKey())) {
+                    ordered.add(e.getValue());
+                    break;
+                }
+            }
+            if (ordered.size() >= 8) {
+                break;
+            }
+        }
+
+        if (ordered.isEmpty()) {
+            ordered.addAll(bestSellers);
+        }
+        return new ArrayList<>(ordered);
+    }
+
+    private Node createAutoCarousel(List<Produit> produits, boolean bestSellerMode) {
+        List<Produit> safe = new ArrayList<>(produits == null ? List.of() : produits);
+        if (safe.isEmpty()) {
+            return new Label("Aucun produit à afficher");
+        }
+
+        StackPane host = new StackPane();
+        host.getStyleClass().add("reco-auto-carousel");
+        host.setPrefHeight(220);
+
+        Integer[] index = {0};
+        Runnable render = () -> {
+            HBox row = new HBox(24);
+            row.setAlignment(Pos.CENTER);
+            row.getStyleClass().add("reco-carousel-row");
+
+            int maxVisible = Math.min(3, safe.size());
+            for (int offset = 0; offset < maxVisible; offset++) {
+                Produit current = safe.get(Math.floorMod(index[0] + offset, safe.size()));
+                Node card = createRecoProduitCard(current, bestSellerMode);
+                row.getChildren().add(card);
+            }
+
+            row.setOpacity(0);
+            row.setTranslateX(32);
+            host.getChildren().setAll(row);
+
+            FadeTransition fade = new FadeTransition(Duration.millis(260), row);
+            fade.setFromValue(0);
+            fade.setToValue(1);
+
+            javafx.animation.TranslateTransition slide = new javafx.animation.TranslateTransition(Duration.millis(260), row);
+            slide.setFromX(32);
+            slide.setToX(0);
+
+            new javafx.animation.ParallelTransition(fade, slide).play();
+        };
+
+        Timeline loop = new Timeline(new KeyFrame(Duration.seconds(2.0), e -> {
+            index[0] = index[0] + 1;
+            render.run();
+        }));
+        loop.setCycleCount(Timeline.INDEFINITE);
+
+        render.run();
+        loop.play();
+
+        host.sceneProperty().addListener((obs, oldScene, newScene) -> {
+            if (newScene == null) {
+                loop.stop();
+            }
+        });
+
+        return host;
+    }
+
+    private Node createRecoProduitCard(Produit produit, boolean bestSellerMode) {
+        VBox card = new VBox(8);
+        card.getStyleClass().add("reco-product-card");
+        card.setPrefWidth(230);
+        card.setMaxWidth(230);
+        if (bestSellerMode) {
+            card.getStyleClass().add("reco-best-card");
+        }
+
+        StackPane imageBox = new StackPane();
+        imageBox.getStyleClass().add("reco-product-image-box");
+        String imgPath = produit.getImage_produit() == null ? "" : produit.getImage_produit().trim();
+        if (!imgPath.isEmpty()) {
+            try {
+                File f = new File(imgPath);
+                if (f.exists()) {
+                    ImageView iv = new ImageView(new Image(f.toURI().toString()));
+                    iv.setFitWidth(72);
+                    iv.setFitHeight(72);
+                    iv.setPreserveRatio(true);
+                    imageBox.getChildren().add(iv);
+                } else {
+                    imageBox.getChildren().add(new Label("🖼"));
+                }
+            } catch (Exception e) {
+                imageBox.getChildren().add(new Label("🖼"));
+            }
+        } else {
+            imageBox.getChildren().add(new Label("🖼"));
+        }
+
+        Label nom = new Label(produit.getNom_produit() == null ? "Produit" : produit.getNom_produit());
+        nom.getStyleClass().add("reco-product-name");
+        nom.setWrapText(true);
+
+        Label prix = new Label(String.format(Locale.US, "%.2f DT", produit.getPrix_produit()));
+        prix.getStyleClass().add("reco-product-price");
+
+        card.getChildren().addAll(imageBox, nom, prix);
+        return card;
+    }
+
+    private String normalizeRecoText(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.toLowerCase(Locale.ROOT)
+                .replaceAll("[^a-z0-9 ]", " ")
+                .replaceAll("\\s+", " ")
+                .trim();
+    }
+
+// ─────────────────────────────────────────────────────────────────────────
+// ── 5. AJOUTER cette méthode de carte best seller ────────────────────────
+// ─────────────────────────────────────────────────────────────────────────
+
+    private javafx.scene.layout.VBox createBestSellerCard(tn.esprit.entities.Produit produit) {
+        javafx.scene.layout.VBox card = new javafx.scene.layout.VBox(8);
+        card.setPrefWidth(200);
+        card.setMaxWidth(200);
+        card.setStyle(
+                "-fx-background-color: white; -fx-border-color: #fca5a5; "
+                        + "-fx-border-radius: 12; -fx-background-radius: 12; "
+                        + "-fx-padding: 12; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 6, 0, 0, 2);"
+        );
+
+        // Badge best seller
+        javafx.scene.control.Label badgeLbl = new javafx.scene.control.Label("🔥 Best Seller");
+        badgeLbl.setStyle(
+                "-fx-background-color: #fef2f2; -fx-text-fill: #dc2626; "
+                        + "-fx-font-size: 10px; -fx-font-weight: bold; "
+                        + "-fx-background-radius: 6; -fx-padding: 2 6;"
+        );
+
+        // Image
+        javafx.scene.layout.StackPane imgBox = new javafx.scene.layout.StackPane();
+        imgBox.setPrefHeight(80);
+        String imgPath = produit.getImage_produit() == null ? "" : produit.getImage_produit();
+        if (!imgPath.isEmpty()) {
+            try {
+                java.io.File f = new java.io.File(imgPath);
+                if (f.exists()) {
+                    javafx.scene.image.ImageView iv =
+                            new javafx.scene.image.ImageView(
+                                    new javafx.scene.image.Image(f.toURI().toString()));
+                    iv.setFitWidth(70);
+                    iv.setFitHeight(70);
+                    iv.setPreserveRatio(true);
+                    imgBox.getChildren().add(iv);
+                } else {
+                    imgBox.getChildren().add(new javafx.scene.control.Label("🖼"));
+                }
+            } catch (Exception e) {
+                imgBox.getChildren().add(new javafx.scene.control.Label("🖼"));
+            }
+        } else {
+            imgBox.getChildren().add(new javafx.scene.control.Label("🖼"));
+        }
+
+        // Nom
+        javafx.scene.control.Label nomLbl = new javafx.scene.control.Label(
+                produit.getNom_produit() == null ? "" : produit.getNom_produit());
+        nomLbl.setWrapText(true);
+        nomLbl.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #111827;");
+
+        // Prix
+        javafx.scene.control.Label prixLbl = new javafx.scene.control.Label(
+                String.format(Locale.US, "%.2f DT", produit.getPrix_produit()));
+        prixLbl.setStyle("-fx-font-size: 13px; -fx-text-fill: #059669; -fx-font-weight: bold;");
+
+        // Bouton ajouter
+        javafx.scene.control.Button addBtn = new javafx.scene.control.Button("+ Ajouter");
+        addBtn.setMaxWidth(Double.MAX_VALUE);
+        addBtn.setStyle(
+                "-fx-background-color: #dc2626; -fx-text-fill: white; "
+                        + "-fx-font-size: 12px; -fx-font-weight: bold; "
+                        + "-fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 6 10;"
+        );
+
+        boolean rupture = "Rupture".equalsIgnoreCase(produit.getStatus_produit());
+        if (rupture) {
+            addBtn.setDisable(true);
+            addBtn.setText("Rupture");
+            addBtn.setStyle(addBtn.getStyle() + "-fx-background-color: #9ca3af;");
+        } else {
+            addBtn.setOnAction(e -> {
+                ajouterProduitAuPanier(produit, 1);
+                updatePanierButton();
+            });
+        }
+
+        card.getChildren().addAll(badgeLbl, imgBox, nomLbl, prixLbl, addBtn);
+        return card;
     }
 
 

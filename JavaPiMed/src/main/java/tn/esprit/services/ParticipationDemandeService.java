@@ -36,6 +36,13 @@ public class ParticipationDemandeService {
 
     public ParticipationDemande ajouterDemande(Evenement evenement, ParticipationDemande demande) throws SQLException {
         List<ParticipationDemande> demandes = getDemandes(evenement);
+        if (demande != null && demande.getUserId() > 0) {
+            for (ParticipationDemande existing : demandes) {
+                if (existing.getUserId() == demande.getUserId()) {
+                    throw new SQLException("Vous avez deja envoye une demande pour cet evenement.");
+                }
+            }
+        }
         demande.setId(UUID.randomUUID().toString());
         demande.setStatus(ParticipationDemande.STATUS_PENDING);
         demande.markCreatedNow();

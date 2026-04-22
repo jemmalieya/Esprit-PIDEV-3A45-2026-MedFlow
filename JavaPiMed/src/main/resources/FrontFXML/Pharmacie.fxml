@@ -56,14 +56,19 @@
                                 </children>
                             </VBox>
 
+                            <Button text="📇 Contacter pharmacie"
+                                    onAction="#ouvrirContactPharmaciePopup"
+                                    styleClass="hero-contact-btn"/>
+
                             <Button fx:id="btnPanier"
                                     text="🛒 Panier (0)"
                                     onAction="#ouvrirPanierPopup"
                                     styleClass="hero-cart-btn"/>
+
+                            <Button text="📦 Mes commandes"
+                                    onAction="#ouvrirMesCommandes"
+                                    styleClass="hero-cart-btn"/>
                         </children>
-                        <Button text="📦 Mes commandes"
-                                onAction="#ouvrirMesCommandes"
-                                styleClass="hero-cart-btn"/>
                     </HBox>
 
 

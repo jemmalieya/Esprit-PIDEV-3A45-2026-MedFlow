@@ -1,5 +1,12 @@
 package tn.esprit.controllers;
 
+
+import tn.esprit.entities.Commande;
+import tn.esprit.services.CommandeService;
+import tn.esprit.services.DashboardBIService;
+
+import java.time.LocalDate;
+import java.util.*;
 import javafx.animation.FadeTransition;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -13,12 +20,6 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
-import tn.esprit.entities.Commande;
-import tn.esprit.services.CommandeService;
-import tn.esprit.services.DashboardBIService;
-
-import java.time.LocalDate;
-import java.util.*;
 
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
@@ -36,22 +37,37 @@ import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
+import javafx.embed.swing.SwingFXUtils;
 import javafx.stage.FileChooser;
 import javafx.stage.Popup;
 import javafx.stage.Stage;
 import javafx.stage.Window;
 import javafx.util.Duration;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.EncodeHintType;
+import com.google.zxing.WriterException;
+import com.google.zxing.client.j2se.MatrixToImageWriter;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
 import tn.esprit.entities.Produit;
 import tn.esprit.services.HuggingFaceRecommendationService;
 import tn.esprit.services.ProduitService;
+import tn.esprit.services.ProduitSpeechService;
 import tn.esprit.session.CartSession;
 import tn.esprit.tools.SessionManager;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.awt.image.BufferedImage;
 
 public class ProduitController {
+
+    private static final String PHARMACY_NAME = "Pharmacie Esprit Ariana";
+    private static final String PHARMACY_PHONE = "+216 22 123 456";
+    private static final String PHARMACY_EMAIL = "contact@medflow.tn";
+    private static final String PHARMACY_ADDRESS = "Pharmacie Esprit Ariana, Ariana, Tunisie";
+    private final ProduitSpeechService produitSpeechService = new ProduitSpeechService();
 
     // AJOUT / MODIF
     @FXML private Button btnAjouterProduit;
@@ -1742,6 +1758,125 @@ public class ProduitController {
             e.printStackTrace();
         }
     }
+
+    @FXML
+    private void ouvrirContactPharmaciePopup() {
+        try {
+            Dialog<Void> dialog = new Dialog<>();
+            dialog.setTitle("Contacter la pharmacie");
+            dialog.setHeaderText(null);
+            dialog.setResizable(false);
+
+            DialogPane dialogPane = dialog.getDialogPane();
+            dialogPane.getButtonTypes().add(ButtonType.CLOSE);
+
+            URL cssUrl = getClass().getResource("/CSS/pharmacie.css");
+            if (cssUrl != null) {
+                dialogPane.getStylesheets().add(cssUrl.toExternalForm());
+            }
+
+            VBox content = new VBox(16);
+            content.setAlignment(Pos.CENTER);
+            content.setPadding(new Insets(18));
+            content.setMinWidth(540);
+            content.getStyleClass().add("contact-popup");
+
+            Label title = new Label("📇 Contact rapide de la pharmacie");
+            title.getStyleClass().add("contact-popup-title");
+            title.setWrapText(true);
+            title.setAlignment(Pos.CENTER);
+
+            Label subtitle = new Label("Scannez le QR code pour enregistrer le contact dans votre téléphone.");
+            subtitle.getStyleClass().add("contact-popup-subtitle");
+            subtitle.setWrapText(true);
+            subtitle.setAlignment(Pos.CENTER);
+
+            ImageView qrView = new ImageView(SwingFXUtils.toFXImage(createContactQrImage(buildPharmacyVCard(), 240, 240), null));
+            qrView.setFitWidth(240);
+            qrView.setFitHeight(240);
+            qrView.setPreserveRatio(true);
+
+            Label qrCaption = new Label("📱 Ouvrez l’app appareil photo pour scanner");
+            qrCaption.getStyleClass().add("contact-qr-caption");
+
+            VBox qrBox = new VBox(10, qrView, qrCaption);
+            qrBox.setAlignment(Pos.CENTER);
+            qrBox.getStyleClass().add("contact-qr-box");
+
+            GridPane infoGrid = new GridPane();
+            infoGrid.setHgap(12);
+            infoGrid.setVgap(10);
+            infoGrid.setPadding(new Insets(4, 6, 4, 6));
+
+            infoGrid.add(createContactLabel("Nom"), 0, 0);
+            infoGrid.add(createContactValue(PHARMACY_NAME), 1, 0);
+            infoGrid.add(createContactLabel("Téléphone"), 0, 1);
+            infoGrid.add(createContactValue(PHARMACY_PHONE), 1, 1);
+            infoGrid.add(createContactLabel("Email"), 0, 2);
+            infoGrid.add(createContactValue(PHARMACY_EMAIL), 1, 2);
+            infoGrid.add(createContactLabel("Adresse"), 0, 3);
+            infoGrid.add(createContactValue(PHARMACY_ADDRESS), 1, 3);
+
+            ColumnConstraints labelCol = new ColumnConstraints();
+            labelCol.setMinWidth(110);
+            ColumnConstraints valueCol = new ColumnConstraints();
+            valueCol.setHgrow(Priority.ALWAYS);
+            infoGrid.getColumnConstraints().addAll(labelCol, valueCol);
+
+            VBox infoCard = new VBox(infoGrid);
+            infoCard.getStyleClass().add("contact-info-card");
+
+            content.getChildren().addAll(title, subtitle, qrBox, infoCard);
+            dialogPane.setContent(content);
+            dialogPane.setPrefWidth(600);
+            dialogPane.setPrefHeight(620);
+
+            Button closeButton = (Button) dialogPane.lookupButton(ButtonType.CLOSE);
+            closeButton.setText("Fermer");
+            closeButton.getStyleClass().add("contact-close-btn");
+            closeButton.setDefaultButton(true);
+
+            dialog.showAndWait();
+        } catch (Exception e) {
+            e.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Erreur contact", "Impossible d'afficher le contact pharmacie : " + e.getMessage());
+        }
+    }
+
+    private Label createContactLabel(String text) {
+        Label label = new Label(text + " :");
+        label.getStyleClass().add("contact-info-label");
+        return label;
+    }
+
+    private Label createContactValue(String text) {
+        Label label = new Label(text);
+        label.setWrapText(true);
+        label.getStyleClass().add("contact-info-value");
+        return label;
+    }
+
+    private String buildPharmacyVCard() {
+        return "BEGIN:VCARD\n" +
+                "VERSION:3.0\n" +
+                "FN:" + PHARMACY_NAME + "\n" +
+                "ORG:MedFlow\n" +
+                "TEL;TYPE=CELL:" + PHARMACY_PHONE + "\n" +
+                "EMAIL;TYPE=WORK:" + PHARMACY_EMAIL + "\n" +
+                "ADR;TYPE=WORK:;;" + PHARMACY_ADDRESS + "\n" +
+                "END:VCARD";
+    }
+
+    private BufferedImage createContactQrImage(String content, int width, int height) throws WriterException {
+        QRCodeWriter writer = new QRCodeWriter();
+        Map<EncodeHintType, Object> hints = new HashMap<>();
+        hints.put(EncodeHintType.CHARACTER_SET, "UTF-8");
+        hints.put(EncodeHintType.MARGIN, 1);
+
+        BitMatrix matrix = writer.encode(content, BarcodeFormat.QR_CODE, width, height, hints);
+        return MatrixToImageWriter.toBufferedImage(matrix);
+    }
+
     private void showSuccessAlert(String produitName, int quantity) {
         Platform.runLater(() -> {
             String text = quantity == 1
@@ -2160,6 +2295,16 @@ public class ProduitController {
             nameLabel.setWrapText(true);
             nameLabel.setAlignment(Pos.CENTER);
 
+            Button voiceBtn = new Button("🔊");
+            voiceBtn.setTooltip(new Tooltip("Lire tous les détails du produit"));
+            voiceBtn.getStyleClass().add("popup-voice-btn");
+            voiceBtn.setOnAction(e -> lireDetailsProduit(p));
+
+            HBox titleRow = new HBox(12);
+            titleRow.setAlignment(Pos.CENTER_LEFT);
+            HBox.setHgrow(nameLabel, Priority.ALWAYS);
+            titleRow.getChildren().addAll(nameLabel, voiceBtn);
+
             HBox tagsRow = new HBox(10);
             tagsRow.setAlignment(Pos.CENTER);
 
@@ -2208,7 +2353,7 @@ public class ProduitController {
             content.getChildren().addAll(
                     imageWrapper,
                     badgesRow,
-                    nameLabel,
+                    titleRow,
                     tagsRow,
                     detailsCard,
                     descCard
@@ -2231,6 +2376,27 @@ public class ProduitController {
             showAlert(Alert.AlertType.ERROR, "Erreur popup", "Impossible d'afficher les détails : " + e.getMessage());
         }
     }
+
+    private void lireDetailsProduit(Produit produit) {
+        if (produit == null) return;
+
+        String texte = construireTexteLectureProduit(produit);
+        produitSpeechService.parlerAsync(texte);
+    }
+
+    private String construireTexteLectureProduit(Produit produit) {
+        String description = safe(produit.getDescription_produit()).isBlank()
+                ? "Aucune description disponible"
+                : safe(produit.getDescription_produit());
+
+        return "Produit " + safe(produit.getNom_produit()) + ". " +
+                "Catégorie " + safe(produit.getCategorie_produit()) + ". " +
+                "Prix " + formatPrix(produit.getPrix_produit()) + ". " +
+                "Quantité en stock " + produit.getQuantite_produit() + ". " +
+                "Statut " + safe(produit.getStatus_produit()) + ". " +
+                "Description " + description + ".";
+    }
+
     private boolean showStyledConfirmationDialog(String title, String message, String confirmText, String cancelText, String variant) {
         Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle("");

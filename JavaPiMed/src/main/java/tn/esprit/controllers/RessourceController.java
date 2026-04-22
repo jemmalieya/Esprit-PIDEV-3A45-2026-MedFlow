@@ -20,6 +20,7 @@ import tn.esprit.entities.Evenement;
 import tn.esprit.entities.Ressource;
 import tn.esprit.services.EvenementService;
 import tn.esprit.services.RessourceService;
+import tn.esprit.tools.SessionManager;
 
 import java.sql.SQLException;
 import java.util.Date;
@@ -189,6 +190,12 @@ public class RessourceController {
     @FXML
     private void onGestionEvenements() {
         loadScene("/EvenementDashboard.fxml", "Gestion des Evenements");
+    }
+
+    @FXML
+    private void onLogout() {
+        SessionManager.clear();
+        loadScene("/FrontFXML/Login.fxml", "Connexion");
     }
 
     /* =========================================================

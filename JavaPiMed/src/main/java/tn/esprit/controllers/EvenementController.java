@@ -2,7 +2,13 @@ package tn.esprit.controllers;
 
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.animation.FadeTransition;
+import javafx.animation.KeyFrame;
+import javafx.animation.PauseTransition;
+import javafx.animation.Timeline;
+import javafx.animation.TranslateTransition;
 import javafx.application.Platform;
+import javafx.concurrent.Task;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
@@ -19,9 +25,13 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
+import javafx.stage.Popup;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 import tn.esprit.entities.Evenement;
 import tn.esprit.entities.User;
+import tn.esprit.services.AiCancellationCareService;
+import tn.esprit.services.HuggingFaceCareAiClient;
 import tn.esprit.services.TwilioSmsServiceEvent;
 import tn.esprit.services.DashboardBIServiceEvenement;
 import tn.esprit.services.EvenementService;
@@ -41,9 +51,11 @@ import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
 import javafx.stage.FileChooser;
 import javafx.scene.chart.BarChart;
 import javafx.scene.chart.LineChart;
@@ -97,6 +109,7 @@ public class EvenementController {
     @FXML private ComboBox<String> cbTypeEvent;
     @FXML private TextArea taDescriptionEvent;
     @FXML private TextArea taObjectifEvent;
+    @FXML private TextArea taMotifAnnulationEvent;
     @FXML private ComboBox<String> cbStatutEvent;
 
     @FXML private TextField tfNomLieuEvent;
@@ -155,6 +168,8 @@ public class EvenementController {
     private final EvenementService evenementService = new EvenementService();
     private final ParticipationDemandeService participationService = new ParticipationDemandeService();
     private final TwilioSmsServiceEvent smsServiceEvent = new TwilioSmsServiceEvent();
+    private final AiCancellationCareService cancellationCareService = new AiCancellationCareService();
+    private final HuggingFaceCareAiClient huggingFaceCareAiClient = new HuggingFaceCareAiClient();
     private final ObservableList<Evenement> masterList = FXCollections.observableArrayList();
     private final DashboardBIServiceEvenement dashboardService = new DashboardBIServiceEvenement();
     private final EvenementPDFService pdfService = new EvenementPDFService();
@@ -164,7 +179,7 @@ public class EvenementController {
     private static boolean publicationMode;
 
     /* ===================== VALIDATION ===================== */
-    private Label titreMsg, slugMsg, typeMsg, descriptionMsg, objectifMsg, statutMsg, dateDebutMsg,
+    private Label titreMsg, slugMsg, typeMsg, descriptionMsg, objectifMsg, statutMsg, motifAnnulationMsg, dateDebutMsg,
             dateFinMsg, nomLieuMsg, adresseMsg, villeMsg, emailMsg, telMsg, organisateurMsg,
             nbParticipantsMsg, dateLimiteMsg, imageMsg, visibiliteMsg;
 
@@ -174,6 +189,7 @@ public class EvenementController {
     private boolean isDescriptionValid = false;
     private boolean isObjectifValid = false;
     private boolean isStatutValid = false;
+    private boolean isMotifAnnulationValid = true;
     private boolean isDateDebutValid = false;
     private boolean isDateFinValid = false;
     private boolean isNomLieuValid = false;
@@ -221,8 +237,13 @@ public class EvenementController {
     @FXML private Label weatherWindLabel;
     @FXML private FlowPane participationsContainer;
     @FXML private Label participationSummaryLabel;
+    @FXML private VBox eventUpdateToast;
     private EventLocationService.EventLocation currentEventLocation;
     private int currentMapZoom = 16;
+    private Timeline participationCareTimeline;
+    private final Set<Integer> displayedCancellationCareEvents = new HashSet<>();
+    private boolean eventUpdateToastAnimated;
+    private boolean floatingEventUpdatePopupShown;
 
 
 
@@ -307,6 +328,7 @@ public class EvenementController {
             boolean isFront = (frontPageMarker != null);
             if (isFront) {
                 events = events.stream().filter(this::isVisibleOnFront).toList();
+                updateFrontCancellationToast();
             }
 
             for (Evenement ev : events) {
@@ -326,6 +348,7 @@ public class EvenementController {
     private ComboBox<String> getTypeCombo() { return cbTypeEvent; }
     private TextArea getDescriptionArea() { return taDescriptionEvent; }
     private TextArea getObjectifArea() { return taObjectifEvent; }
+    private TextArea getMotifAnnulationArea() { return taMotifAnnulationEvent; }
     private ComboBox<String> getStatutCombo() { return cbStatutEvent; }
 
     private DatePicker getDateDebutPicker() { return dpDateDebut; }
@@ -361,6 +384,7 @@ public class EvenementController {
         descriptionMsg = createValidationLabel();
         objectifMsg = createValidationLabel();
         statutMsg = createValidationLabel();
+        motifAnnulationMsg = createValidationLabel();
         dateDebutMsg = createValidationLabel();
         dateFinMsg = createValidationLabel();
         nomLieuMsg = createValidationLabel();
@@ -380,6 +404,7 @@ public class EvenementController {
         insertValidationLabel(getDescriptionArea(), descriptionMsg);
         insertValidationLabel(getObjectifArea(), objectifMsg);
         insertValidationLabel(getStatutCombo(), statutMsg);
+        insertValidationLabel(getMotifAnnulationArea(), motifAnnulationMsg);
         insertValidationLabel(getDateDebutPicker(), dateDebutMsg);
         insertValidationLabel(getDateFinPicker(), dateFinMsg);
         insertValidationLabel(getNomLieuField(), nomLieuMsg);
@@ -433,10 +458,15 @@ public class EvenementController {
             getObjectifArea().textProperty().addListener((obs, oldVal, newVal) -> validateObjectif());
         }
 
+        if (getMotifAnnulationArea() != null) {
+            getMotifAnnulationArea().textProperty().addListener((obs, oldVal, newVal) -> validateMotifAnnulation());
+        }
+
         if (getStatutCombo() != null) {
             getStatutCombo().valueProperty().addListener((obs, oldVal, newVal) -> {
                 syncDraftVisibility();
                 validateStatut();
+                validateMotifAnnulation();
                 validateDescription();
                 validateObjectif();
                 validateImage();
@@ -511,6 +541,7 @@ public class EvenementController {
         validateDescription();
         validateObjectif();
         validateStatut();
+        validateMotifAnnulation();
         validateDateDebut();
         validateDateFin();
         validateNomLieu();
@@ -641,6 +672,39 @@ public class EvenementController {
         } else {
             setFieldSuccess(getStatutCombo(), statutMsg, "Statut valide.");
             isStatutValid = true;
+        }
+    }
+
+    private void validateMotifAnnulation() {
+        if (getMotifAnnulationArea() == null) {
+            isMotifAnnulationValid = true;
+            return;
+        }
+
+        if (evenementAModifier == null) {
+            isMotifAnnulationValid = true;
+            return;
+        }
+
+        String motif = safeValue(getMotifAnnulationArea().getText()).trim();
+        if (!isCancelledStatusSelected()) {
+            clearFieldState(getMotifAnnulationArea(), motifAnnulationMsg, "Motif requis seulement si l'evenement est annule.");
+            isMotifAnnulationValid = true;
+            return;
+        }
+
+        if (motif.isEmpty()) {
+            setFieldError(getMotifAnnulationArea(), motifAnnulationMsg, "Expliquez pourquoi l'evenement est annule.");
+            isMotifAnnulationValid = false;
+        } else if (motif.length() < 10) {
+            setFieldError(getMotifAnnulationArea(), motifAnnulationMsg, "Minimum 10 caracteres.");
+            isMotifAnnulationValid = false;
+        } else if (motif.length() > 1000) {
+            setFieldError(getMotifAnnulationArea(), motifAnnulationMsg, "Maximum 1000 caracteres.");
+            isMotifAnnulationValid = false;
+        } else {
+            setFieldSuccess(getMotifAnnulationArea(), motifAnnulationMsg, "Motif d'annulation valide.");
+            isMotifAnnulationValid = true;
         }
     }
 
@@ -910,6 +974,12 @@ public class EvenementController {
         return statut.toLowerCase(Locale.ROOT).contains("brouillon");
     }
 
+    private boolean isCancelledStatusSelected() {
+        String statut = getStatutCombo() != null ? safeValue(getStatutCombo().getValue()) : "";
+        String normalized = statut.toLowerCase(Locale.ROOT);
+        return normalized.contains("annul") || normalized.contains("cancel");
+    }
+
     private boolean isDraftWorkflow() {
         String visibilite = getVisibiliteCombo() != null ? safeValue(getVisibiliteCombo().getValue()) : "";
         return isDraftStatusSelected() || visibilite.toLowerCase(Locale.ROOT).contains("priv");
@@ -964,7 +1034,7 @@ public class EvenementController {
     private boolean isFormValid() {
         validateAllFields();
         return isTitreValid && isSlugValid && isTypeValid && isDescriptionValid && isObjectifValid
-                && isStatutValid && isDateDebutValid && isDateFinValid && isNomLieuValid
+                && isStatutValid && isMotifAnnulationValid && isDateDebutValid && isDateFinValid && isNomLieuValid
                 && isAdresseValid && isVilleValid && isEmailValid && isTelValid
                 && isOrganisateurValid && isNbParticipantsValid && isDateLimiteValid
                 && isImageValid && isVisibiliteValid;
@@ -979,6 +1049,7 @@ public class EvenementController {
         if (!isDescriptionValid) errors.append("- Description\n");
         if (!isObjectifValid) errors.append("- Objectif\n");
         if (!isStatutValid) errors.append("- Statut\n");
+        if (!isMotifAnnulationValid) errors.append("- Motif d'annulation\n");
         if (!isDateDebutValid) errors.append("- Date début\n");
         if (!isDateFinValid) errors.append("- Date fin\n");
         if (!isNomLieuValid) errors.append("- Nom du lieu\n");
@@ -1070,6 +1141,12 @@ public class EvenementController {
             evenementAModifier.setDate_mise_a_jour_event(new java.util.Date());
 
             evenementService.modifier(evenementAModifier);
+            if (getMotifAnnulationArea() != null) {
+                evenementService.modifierMotifAnnulation(
+                        evenementAModifier.getId(),
+                        getMotifAnnulationArea().getText()
+                );
+            }
 
             showAlert(Alert.AlertType.INFORMATION, "Succès", "Événement modifié avec succès.");
             evenementAModifier = null;
@@ -1130,6 +1207,9 @@ public class EvenementController {
         if (getDescriptionArea() != null) getDescriptionArea().setText(safeValue(evenementAModifier.getDescription_event()));
         if (getObjectifArea() != null) getObjectifArea().setText(safeValue(evenementAModifier.getObjectif_event()));
         if (getStatutCombo() != null) getStatutCombo().setValue(safeValue(evenementAModifier.getStatut_event()));
+        if (getMotifAnnulationArea() != null) {
+            getMotifAnnulationArea().setText(safeValue(evenementService.recupererMotifAnnulation(evenementAModifier.getId())));
+        }
 
         if (evenementAModifier.getDate_debut_event() != null && getDateDebutPicker() != null) {
             getDateDebutPicker().setValue(convertToLocalDate(evenementAModifier.getDate_debut_event()));
@@ -1192,6 +1272,7 @@ public class EvenementController {
         if (getDescriptionArea() != null) getDescriptionArea().clear();
         if (getObjectifArea() != null) getObjectifArea().clear();
         if (getStatutCombo() != null) getStatutCombo().setValue(null);
+        if (getMotifAnnulationArea() != null) getMotifAnnulationArea().clear();
         if (getDateDebutPicker() != null) getDateDebutPicker().setValue(null);
         if (getDateFinPicker() != null) getDateFinPicker().setValue(null);
         if (getNomLieuField() != null) getNomLieuField().clear();
@@ -1766,11 +1847,22 @@ public class EvenementController {
         String message = participationService.buildDecisionSms(ev, demande);
         TwilioSmsServiceEvent.SmsResult result = smsServiceEvent.sendEvenementSms(recipient, message);
         if (result.success()) {
-            showParticipationBackOfficeMessage("Decision enregistree", "Decision enregistree et SMS envoye au participant.");
+            String diagnostic = result.deliveryDiagnostic();
+            showParticipationBackOfficeMessage(
+                    "Decision enregistree",
+                    "Decision enregistree. SMS accepte par Twilio pour " + recipient + ". "
+                            + (diagnostic.isBlank() ? "" : diagnostic + " ")
+                            + "Si le participant ne recoit rien, verifiez ce SID dans les logs Twilio: l'acceptation API ne garantit pas la livraison operateur."
+            );
         } else if (result.missingConfiguration()) {
             showParticipationBackOfficeMessage("Decision enregistree", "Configurez TWILIO_SMS_EVENT_ACCOUNT_SID, TWILIO_SMS_EVENT_AUTH_TOKEN et TWILIO_SMS_EVENT_FROM pour envoyer les SMS.");
         } else {
-            showParticipationBackOfficeMessage("Decision enregistree", "Decision enregistree, mais le SMS a echoue : " + result.responseBody());
+            String diagnostic = result.deliveryDiagnostic();
+            showParticipationBackOfficeMessage(
+                    "Decision enregistree",
+                    "Decision enregistree, mais le SMS a echoue pour " + recipient + " : "
+                            + (diagnostic.isBlank() ? result.responseBody() : diagnostic)
+            );
         }
     }
 
@@ -2046,7 +2138,7 @@ public class EvenementController {
     }
 
     @FXML
-    private void onLogout(ActionEvent event) {
+    private void onLogout() {
         try {
             SessionManager.clear();
 
@@ -2534,7 +2626,8 @@ public class EvenementController {
 
         try {
             List<ParticipationEntry> entries = new ArrayList<>();
-            for (Evenement ev : evenementService.recuperer()) {
+            List<Evenement> allEvents = evenementService.recuperer();
+            for (Evenement ev : allEvents) {
                 for (ParticipationDemande demande : participationService.getDemandes(ev)) {
                     if (demande.getUserId() == user.getId()) {
                         entries.add(new ParticipationEntry(ev, demande));
@@ -2555,11 +2648,148 @@ public class EvenementController {
             }
 
             for (ParticipationEntry entry : entries) {
-                participationsContainer.getChildren().add(createParticipationCard(entry.event(), entry.demande(), user));
+                participationsContainer.getChildren().add(createParticipationCard(entry.event(), entry.demande(), user, allEvents));
             }
+            startParticipationCareRealtime(user);
+            showFirstCancellationCareIfNeeded(entries, user, allEvents);
         } catch (Exception e) {
             participationsContainer.getChildren().add(createEmptyParticipationCard("Impossible de charger vos participations."));
         }
+    }
+
+    private void updateFrontCancellationToast() {
+        if (eventUpdateToast == null) return;
+
+        User user = SessionManager.getCurrentUser();
+        if (user == null) {
+            eventUpdateToast.setVisible(false);
+            eventUpdateToast.setManaged(false);
+            return;
+        }
+
+        try {
+            boolean hasCancelledParticipation = false;
+            for (Evenement ev : evenementService.recuperer()) {
+                if (!cancellationCareService.isCancelled(ev)) {
+                    continue;
+                }
+                for (ParticipationDemande demande : participationService.getDemandes(ev)) {
+                    if (demande.getUserId() == user.getId() && isCareEligibleParticipation(demande)) {
+                        hasCancelledParticipation = true;
+                        break;
+                    }
+                }
+                if (hasCancelledParticipation) {
+                    break;
+                }
+            }
+
+            showFrontCancellationToast(hasCancelledParticipation);
+        } catch (Exception ignored) {
+            showFrontCancellationToast(false);
+        }
+    }
+
+    private void showFrontCancellationToast(boolean show) {
+        if (eventUpdateToast == null) return;
+
+        eventUpdateToast.setVisible(show);
+        eventUpdateToast.setManaged(show);
+        if (!show) {
+            eventUpdateToastAnimated = false;
+            floatingEventUpdatePopupShown = false;
+            eventUpdateToast.setOpacity(1);
+            eventUpdateToast.setTranslateX(0);
+            return;
+        }
+
+        showFloatingEventUpdatePopup();
+
+        if (eventUpdateToastAnimated) {
+            return;
+        }
+        eventUpdateToastAnimated = true;
+        eventUpdateToast.setOpacity(0);
+        eventUpdateToast.setTranslateX(180);
+
+        FadeTransition fade = new FadeTransition(Duration.millis(520), eventUpdateToast);
+        fade.setFromValue(0);
+        fade.setToValue(1);
+
+        TranslateTransition slide = new TranslateTransition(Duration.millis(520), eventUpdateToast);
+        slide.setFromX(180);
+        slide.setToX(0);
+        slide.setCycleCount(1);
+
+        fade.play();
+        slide.play();
+    }
+
+    private void showFloatingEventUpdatePopup() {
+        if (floatingEventUpdatePopupShown || eventUpdateToast == null || eventUpdateToast.getScene() == null) {
+            return;
+        }
+        floatingEventUpdatePopupShown = true;
+
+        Stage stage = resolveCurrentStage();
+        if (stage == null) return;
+
+        Popup popup = new Popup();
+        popup.setAutoFix(true);
+        popup.setAutoHide(true);
+
+        VBox card = new VBox(6);
+        card.getStyleClass().add("event-floating-toast");
+        card.setPrefWidth(390);
+        card.setOnMouseClicked(e -> {
+            popup.hide();
+            ouvrirMesParticipations();
+        });
+
+        Label title = new Label("Mise a jour importante");
+        title.getStyleClass().add("event-floating-toast-title");
+
+        Label message = new Label("Un evenement de vos participations a ete annule. Cliquez ici pour consulter Mes participations.");
+        message.setWrapText(true);
+        message.getStyleClass().add("event-floating-toast-message");
+
+        card.getChildren().addAll(title, message);
+
+        URL css = getClass().getResource("/CSS/evenement.css");
+        if (css != null) {
+            card.getStylesheets().add(css.toExternalForm());
+        }
+
+        card.setOpacity(0);
+        card.setTranslateX(220);
+        popup.getContent().add(card);
+
+        double x = stage.getX() + stage.getWidth() - 430;
+        double y = stage.getY() + 92;
+        popup.show(stage, Math.max(stage.getX() + 20, x), y);
+
+        FadeTransition fade = new FadeTransition(Duration.millis(520), card);
+        fade.setFromValue(0);
+        fade.setToValue(1);
+
+        TranslateTransition slide = new TranslateTransition(Duration.millis(520), card);
+        slide.setFromX(220);
+        slide.setToX(0);
+
+        fade.play();
+        slide.play();
+
+        PauseTransition pause = new PauseTransition(Duration.seconds(8));
+        pause.setOnFinished(e -> {
+            if (popup.isShowing()) {
+                FadeTransition out = new FadeTransition(Duration.millis(260), card);
+                out.setFromValue(card.getOpacity());
+                out.setToValue(0);
+                out.setOnFinished(done -> popup.hide());
+                out.play();
+            }
+        });
+        pause.play();
     }
 
     private VBox createEmptyParticipationCard(String message) {
@@ -2573,7 +2803,7 @@ public class EvenementController {
         return card;
     }
 
-    private VBox createParticipationCard(Evenement ev, ParticipationDemande demande, User user) {
+    private VBox createParticipationCard(Evenement ev, ParticipationDemande demande, User user, List<Evenement> allEvents) {
         VBox card = new VBox(12);
         card.setPrefWidth(350);
         card.getStyleClass().add("participation-front-card");
@@ -2606,6 +2836,13 @@ public class EvenementController {
         detailBtn.setOnAction(e -> ouvrirDetailEvenementFront(ev));
         actions.getChildren().add(detailBtn);
 
+        if (cancellationCareService.isCancelled(ev) && isCareEligibleParticipation(demande)) {
+            Button careBtn = new Button("Care Assistant");
+            careBtn.getStyleClass().add("care-assistant-button");
+            careBtn.setOnAction(e -> ouvrirCancellationCareRoom(ev, demande, user, allEvents));
+            actions.getChildren().add(careBtn);
+        }
+
         if (ParticipationDemande.STATUS_ACCEPTED.equals(demande.getStatus())) {
             Button pdfBtn = new Button("PDF QR");
             pdfBtn.getStyleClass().add("confirm-button");
@@ -2634,6 +2871,294 @@ public class EvenementController {
         } catch (Exception e) {
             showAlert(Alert.AlertType.ERROR, "Ticket", "Impossible de generer le ticket : " + e.getMessage());
         }
+    }
+
+    private void startParticipationCareRealtime(User user) {
+        if (participationsContainer == null || user == null) return;
+
+        if (participationCareTimeline != null) {
+            participationCareTimeline.stop();
+        }
+
+        participationCareTimeline = new Timeline(new KeyFrame(Duration.seconds(8), e -> detectCancellationCareRealtime(user)));
+        participationCareTimeline.setCycleCount(Timeline.INDEFINITE);
+        participationCareTimeline.play();
+    }
+
+    private void detectCancellationCareRealtime(User user) {
+        if (participationsContainer == null || participationsContainer.getScene() == null) {
+            if (participationCareTimeline != null) {
+                participationCareTimeline.stop();
+            }
+            return;
+        }
+
+        try {
+            List<Evenement> allEvents = evenementService.recuperer();
+            List<ParticipationEntry> entries = new ArrayList<>();
+            for (Evenement ev : allEvents) {
+                for (ParticipationDemande demande : participationService.getDemandes(ev)) {
+                    if (demande.getUserId() == user.getId()) {
+                        entries.add(new ParticipationEntry(ev, demande));
+                    }
+                }
+            }
+            showFirstCancellationCareIfNeeded(entries, user, allEvents);
+        } catch (Exception ignored) {
+            // Real-time care polling must never block the participations page.
+        }
+    }
+
+    private void showFirstCancellationCareIfNeeded(List<ParticipationEntry> entries, User user, List<Evenement> allEvents) {
+        if (entries == null || user == null) return;
+
+        for (ParticipationEntry entry : entries) {
+            if (!cancellationCareService.isCancelled(entry.event()) || !isCareEligibleParticipation(entry.demande())) {
+                continue;
+            }
+            int eventId = entry.event().getId();
+            if (displayedCancellationCareEvents.add(eventId)) {
+                Platform.runLater(() -> ouvrirCancellationCareRoom(entry.event(), entry.demande(), user, allEvents));
+                return;
+            }
+        }
+    }
+
+    private void ouvrirCancellationCareRoom(Evenement ev, ParticipationDemande demande, User user, List<Evenement> allEvents) {
+        List<Evenement> alternatives = cancellationCareService.recommendAlternatives(ev, allEvents, 3);
+
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("MedFlow Care Assistant");
+        dialog.setHeaderText(null);
+        applyBookingStyles(dialog);
+        dialog.getDialogPane().getStyleClass().add("participation-request-dialog");
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+
+        VBox content = new VBox(12);
+        content.setPrefWidth(620);
+        content.getStyleClass().add("care-room-card");
+
+        Label badge = new Label("AI CANCELLATION CARE ROOM");
+        badge.getStyleClass().add("care-room-overline");
+
+        Label title = new Label("Votre evenement est annule. MedFlow vous accompagne.");
+        title.setWrapText(true);
+        title.getStyleClass().add("care-room-title");
+
+        Label aiStatus = new Label(huggingFaceCareAiClient.isConfigured()
+                ? "Mode IA cloud: Hugging Face actif | FR / EN / AR"
+                : "Mode IA local: " + huggingFaceCareAiClient.getConfigurationStatus());
+        aiStatus.setWrapText(true);
+        aiStatus.getStyleClass().add("care-room-ai-status");
+
+        TextArea conversation = new TextArea();
+        conversation.setEditable(false);
+        conversation.setWrapText(true);
+        conversation.setPrefRowCount(9);
+        conversation.setPrefHeight(260);
+        conversation.getStyleClass().add("care-room-chat");
+        String cancellationReason = evenementService.recupererMotifAnnulation(ev.getId());
+        conversation.setText(cancellationCareService.buildOpeningMessage(ev, demande, user, alternatives, cancellationReason));
+
+        Label emotionLabel = new Label("Comment vous sentez-vous ?");
+        emotionLabel.getStyleClass().add("participation-request-subtitle");
+
+        HBox emotions = new HBox(10);
+        emotions.setAlignment(Pos.CENTER_LEFT);
+        Button disappointedBtn = createCareEmotionButton(":-/ Decu", "care-emotion-sad");
+        Button neutralBtn = createCareEmotionButton("OK Calme", "care-emotion-calm");
+        Button angryBtn = createCareEmotionButton("! En colere", "care-emotion-angry");
+        emotions.getChildren().addAll(disappointedBtn, neutralBtn, angryBtn);
+
+        disappointedBtn.setOnAction(e -> sendCareMessage(
+                "Je suis decu / disappointed / محبط", ev, user, alternatives, conversation, aiStatus, null));
+        neutralBtn.setOnAction(e -> sendCareMessage(
+                "Je suis calme, donne-moi la solution / I am calm / انا هادئ", ev, user, alternatives, conversation, aiStatus, null));
+        angryBtn.setOnAction(e -> sendCareMessage(
+                "Je suis en colere / angry / غاضب", ev, user, alternatives, conversation, aiStatus, null));
+
+        TextField input = new TextField();
+        input.setPromptText("FR / EN / AR: compensation, alternative, why cancelled, علاش تلغى؟");
+        input.getStyleClass().add("modern-text-field");
+
+        Button send = new Button("Envoyer");
+        send.getStyleClass().add("confirm-button");
+        send.setOnAction(e -> {
+            String message = safeValue(input.getText()).trim();
+            if (message.isBlank()) return;
+            sendCareMessage(message, ev, user, alternatives, conversation, aiStatus, send);
+            input.clear();
+        });
+        input.setOnAction(e -> send.fire());
+
+        HBox inputRow = new HBox(10, input, send);
+        inputRow.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(input, Priority.ALWAYS);
+
+        Label compensation = new Label("Code prioritaire: " + cancellationCareService.buildCompensationCode(ev, user));
+        compensation.setWrapText(true);
+        compensation.getStyleClass().add("care-room-compensation");
+
+        content.getChildren().addAll(badge, title, aiStatus, conversation, emotionLabel, emotions, inputRow, compensation);
+        dialog.getDialogPane().setContent(content);
+        dialog.getDialogPane().setMinWidth(660);
+
+        Button close = (Button) dialog.getDialogPane().lookupButton(ButtonType.CLOSE);
+        close.setText("Fermer");
+        close.getStyleClass().add("cancel-button");
+
+        dialog.showAndWait();
+    }
+
+    private Button createCareEmotionButton(String label, String accentStyleClass) {
+        Button button = new Button(label);
+        button.getStyleClass().add("care-emotion-button");
+        button.getStyleClass().add(accentStyleClass);
+        return button;
+    }
+
+    private void sendCareMessage(
+            String message,
+            Evenement ev,
+            User user,
+            List<Evenement> alternatives,
+            TextArea conversation,
+            Label aiStatus,
+            Button sendButton
+    ) {
+        appendCareReply(conversation, "Vous: " + message);
+        String cancellationReason = evenementService.recupererMotifAnnulation(ev.getId());
+
+        if (!huggingFaceCareAiClient.isConfigured()) {
+            appendCareReply(conversation, cancellationCareService.replyToMessage(message, ev, user, alternatives, cancellationReason));
+            String configStatus = huggingFaceCareAiClient.getConfigurationStatus();
+            aiStatus.setText("Mode IA local actif: " + configStatus);
+            appendCareReply(conversation, "Diagnostic IA: " + configStatus);
+            return;
+        }
+
+        aiStatus.setText("Hugging Face reflechit en temps reel...");
+        if (sendButton != null) {
+            sendButton.setDisable(true);
+        }
+
+        Task<String> task = new Task<>() {
+            @Override
+            protected String call() throws Exception {
+                return huggingFaceCareAiClient.generateCareReply(
+                        cancellationCareService.buildCloudSystemPrompt(),
+                        cancellationCareService.buildCloudUserPrompt(message, ev, user, alternatives, cancellationReason)
+                );
+            }
+        };
+
+        task.setOnSucceeded(e -> {
+            String localFallback = cancellationCareService.replyToMessage(message, ev, user, alternatives, cancellationReason);
+            appendCareReply(conversation, "MedFlow AI: " + sanitizeAiReply(task.getValue(), localFallback));
+            aiStatus.setText("Mode IA cloud: Hugging Face actif | FR / EN / AR");
+            if (sendButton != null) {
+                sendButton.setDisable(false);
+            }
+        });
+
+        task.setOnFailed(e -> {
+            Throwable error = task.getException();
+            String reason = buildAiDiagnostic(error);
+            if (huggingFaceCareAiClient.isCloudRequired()) {
+                appendCareReply(conversation, "MedFlow AI: Hugging Face est configure comme obligatoire, mais la connexion a echoue. "
+                        + "Verifiez internet, le token, le modele et l'endpoint Hugging Face, puis reessayez.");
+                aiStatus.setText("Hugging Face requis mais indisponible: " + shortText(reason, 90));
+            } else {
+                appendCareReply(conversation, "MedFlow local: "
+                        + cancellationCareService.replyToMessage(message, ev, user, alternatives, cancellationReason));
+                aiStatus.setText("Hugging Face indisponible, reponse locale utilisee: " + shortText(reason, 90));
+            }
+            if (sendButton != null) {
+                sendButton.setDisable(false);
+            }
+        });
+
+        Thread worker = new Thread(task, "medflow-care-ai");
+        worker.setDaemon(true);
+        worker.start();
+    }
+
+    private String sanitizeAiReply(String rawReply, String localFallback) {
+        String reply = safeValue(rawReply).trim();
+        if (reply.isBlank()) {
+            return localFallback;
+        }
+
+        String[] markers = {
+                "Possible response:",
+                "Final answer:",
+                "Final response:",
+                "Participant-facing answer:",
+                "Answer:",
+                "Response:"
+        };
+        for (String marker : markers) {
+            int index = reply.toLowerCase(Locale.ROOT).lastIndexOf(marker.toLowerCase(Locale.ROOT));
+            if (index >= 0) {
+                reply = reply.substring(index + marker.length()).trim();
+                break;
+            }
+        }
+
+        reply = reply.replaceAll("(?is)<think>.*?</think>", "").trim();
+        if (reply.isBlank()) {
+            return localFallback;
+        }
+
+        String[] reasoningStarts = {
+                "Okay,", "First,", "I need to", "The user", "Let me", "Looking at", "I notice",
+                "Possible response", "Wait,", "*checks", "Important details", "The context"
+        };
+        boolean looksLikeReasoning = false;
+        for (String start : reasoningStarts) {
+            if (reply.startsWith(start)) {
+                looksLikeReasoning = true;
+                break;
+            }
+        }
+
+        if (looksLikeReasoning) {
+            return localFallback;
+        }
+
+        return reply;
+    }
+
+    private String buildAiDiagnostic(Throwable error) {
+        if (error == null) {
+            return "Erreur inconnue: aucune exception recue.";
+        }
+
+        String message = safeValue(error.getMessage());
+        String type = error.getClass().getSimpleName();
+        if (message.isBlank()) {
+            Throwable cause = error.getCause();
+            if (cause != null) {
+                String causeMessage = safeValue(cause.getMessage());
+                return type + " cause " + cause.getClass().getSimpleName()
+                        + (causeMessage.isBlank() ? "" : ": " + causeMessage);
+            }
+            return type + ": message vide. Verifiez internet, modele active et permissions Hugging Face.";
+        }
+        return type + ": " + message;
+    }
+
+    private boolean isCareEligibleParticipation(ParticipationDemande demande) {
+        if (demande == null) return false;
+        String status = safeValue(demande.getStatus());
+        return ParticipationDemande.STATUS_ACCEPTED.equals(status)
+                || ParticipationDemande.STATUS_PENDING.equals(status)
+                || status.isBlank();
+    }
+
+    private void appendCareReply(TextArea conversation, String message) {
+        conversation.appendText("\n\n" + message);
+        conversation.setScrollTop(Double.MAX_VALUE);
     }
 
     private record ParticipationEntry(Evenement event, ParticipationDemande demande) {
@@ -2813,6 +3338,10 @@ public class EvenementController {
         URL css = getClass().getResource("/CSS/booking.css");
         if (css != null) {
             dialog.getDialogPane().getStylesheets().add(css.toExternalForm());
+        }
+        URL eventCss = getClass().getResource("/CSS/evenement.css");
+        if (eventCss != null) {
+            dialog.getDialogPane().getStylesheets().add(eventCss.toExternalForm());
         }
     }
 

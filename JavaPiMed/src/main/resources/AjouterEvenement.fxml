@@ -446,10 +446,10 @@
                                                         </VBox>
 
                                                         <TextField fx:id="tfImageEvent"
-                                                                   promptText="https://.../image.jpg ou C:\image.jpg"
+                                                                   promptText="https://.../image.jpg"
                                                                    styleClass="custom-field"/>
 
-                                                        <Button text="Choisir une image depuis le PC"
+                                                        <Button text="Uploader l'image vers Cloudinary"
                                                                 onAction="#choisirImageDepuisPC"
                                                                 maxWidth="Infinity"
                                                                 styleClass="btn-retour"/>

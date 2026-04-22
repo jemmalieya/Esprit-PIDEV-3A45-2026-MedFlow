@@ -6,6 +6,7 @@
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
@@ -134,6 +135,21 @@
                                        text="Objectif..."
                                        wrapText="true"
                                        style="-fx-text-fill: #4d6d78; -fx-font-size: 14px;"/>
+                            </VBox>
+
+                            <VBox spacing="12" styleClass="ai-front-card">
+                                <HBox spacing="10" alignment="CENTER_LEFT">
+                                    <Label text="Recommandations IA" styleClass="card-title"/>
+                                    <Region HBox.hgrow="ALWAYS"/>
+                                    <Label fx:id="aiFrontStatusLabel"
+                                           text="Analyse locale"
+                                           wrapText="true"
+                                           styleClass="ai-status-chip"/>
+                                </HBox>
+                                <FlowPane fx:id="aiFrontRecommendationsContainer"
+                                          hgap="12"
+                                          vgap="12"
+                                          prefWrapLength="780"/>
                             </VBox>
 
                             <VBox spacing="12" styleClass="event-map-card">

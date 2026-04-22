@@ -178,23 +178,74 @@ public class DashboardBIServiceEvenement {
     private void calculerRecommandations(DashboardData data) {
         List<String> recommandations = new ArrayList<>();
 
-        if (data.brouillons > 0) {
-            recommandations.add("Publier les événements en brouillon.");
+        if (data != null) {
+            if (data.totalEvenements == 0) {
+                recommandations.add("Aucun evenement sur cette periode: elargir le filtre ou planifier une nouvelle programmation.");
+                data.recommandations = recommandations;
+                return;
+            }
+
+            if (data.brouillons > 0) {
+                recommandations.add(data.brouillons + " evenement(s) en brouillon: finaliser les fiches et publier les plus complets.");
+            }
+            if (data.annules > 0) {
+                recommandations.add(data.annules + " annulation(s): verifier les motifs recurrents avant de relancer des evenements similaires.");
+            }
+            if (data.evenementsAVenir < 3) {
+                recommandations.add("Calendrier faible: programmer au moins 3 evenements a venir pour maintenir l'activite.");
+            } else {
+                recommandations.add("Calendrier actif: prioriser la promotion des evenements les plus proches.");
+            }
+            if (data.tauxPublication < 50.0) {
+                recommandations.add("Taux de publication bas: reduire le temps entre creation, validation et mise en ligne.");
+            } else if (data.tauxPublication >= 80.0) {
+                recommandations.add("Bon taux de publication: concentrer l'effort sur les inscriptions et la visibilite.");
+            }
+            if (data.capaciteTotale > 0) {
+                int capaciteMoyenne = Math.round(data.capaciteTotale / (float) data.totalEvenements);
+                recommandations.add("Capacite moyenne " + capaciteMoyenne + " places: ajuster la promotion selon le remplissage attendu.");
+            }
+
+            Map.Entry<String, Integer> typeDominant = plusGrandSegment(data.parType);
+            if (typeDominant != null && typeDominant.getValue() >= 2) {
+                recommandations.add("Type dominant \"" + typeDominant.getKey() + "\": tester un format different pour diversifier l'offre.");
+            }
+
+            Map.Entry<String, Integer> villeDominante = plusGrandSegment(data.parVille);
+            if (villeDominante != null && villeDominante.getValue() >= 2) {
+                recommandations.add("Ville la plus active \"" + villeDominante.getKey() + "\": renforcer la communication locale.");
+            }
+
+            if (!data.topEvenements.isEmpty()) {
+                Evenement top = data.topEvenements.get(0);
+                if (top.getNb_participants_max_event() > 0) {
+                    recommandations.add("Evenement prioritaire: \"" + safe(top.getTitre_event()) + "\" avec "
+                            + top.getNb_participants_max_event() + " places a valoriser.");
+                }
+            }
+
+            if (recommandations.isEmpty()) {
+                recommandations.add("Les indicateurs sont stables.");
+            }
+
+            data.recommandations = recommandations.stream()
+                    .filter(rec -> rec != null && !rec.isBlank())
+                    .distinct()
+                    .limit(6)
+                    .toList();
+            return;
         }
-        if (data.annules > 0) {
-            recommandations.add("Analyser les causes d’annulation.");
-        }
-        if (data.evenementsAVenir < 3) {
-            recommandations.add("Créer plus d’événements à venir.");
-        }
-        if (data.capaciteTotale > 0) {
-            recommandations.add("Mettre en avant les événements à forte capacité.");
-        }
-        if (recommandations.isEmpty()) {
-            recommandations.add("Les indicateurs sont stables.");
+    }
+
+    private Map.Entry<String, Integer> plusGrandSegment(Map<String, Integer> values) {
+        if (values == null || values.isEmpty()) {
+            return null;
         }
 
-        data.recommandations = recommandations;
+        return values.entrySet().stream()
+                .filter(entry -> entry.getKey() != null && !entry.getKey().isBlank())
+                .max(Map.Entry.comparingByValue())
+                .orElse(null);
     }
 
     private String safe(String value) {

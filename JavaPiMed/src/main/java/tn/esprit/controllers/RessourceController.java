@@ -14,14 +14,18 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.util.StringConverter;
 import tn.esprit.entities.Evenement;
 import tn.esprit.entities.Ressource;
+import tn.esprit.services.CloudinaryEventUploadService;
 import tn.esprit.services.EvenementService;
 import tn.esprit.services.RessourceService;
 import tn.esprit.tools.SessionManager;
 
+import java.io.File;
+import java.nio.file.Files;
 import java.sql.SQLException;
 import java.util.Date;
 import java.util.HashMap;
@@ -75,6 +79,7 @@ public class RessourceController {
     /* ===================== SERVICES / DATA ===================== */
     private final RessourceService ressourceService = new RessourceService();
     private final EvenementService evenementService = new EvenementService();
+    private final CloudinaryEventUploadService cloudinaryEventUploadService = new CloudinaryEventUploadService();
     private final ObservableList<Ressource> masterList = FXCollections.observableArrayList();
     private final ObservableList<Evenement> evenements = FXCollections.observableArrayList();
     private final Map<Integer, String> eventTitlesById = new HashMap<>();
@@ -251,6 +256,46 @@ public class RessourceController {
 
         } catch (Exception e) {
             showAlert(Alert.AlertType.ERROR, "Erreur", e.getMessage());
+        }
+    }
+
+    @FXML
+    private void choisirFichierCloudinary() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Uploader une ressource vers Cloudinary");
+        fileChooser.getExtensionFilters().addAll(
+                new FileChooser.ExtensionFilter("Documents et images",
+                        "*.pdf", "*.png", "*.jpg", "*.jpeg", "*.webp", "*.doc", "*.docx", "*.ppt", "*.pptx", "*.xls", "*.xlsx"),
+                new FileChooser.ExtensionFilter("Tous les fichiers", "*.*")
+        );
+
+        File file = fileChooser.showOpenDialog(resolveCurrentStage());
+        if (file == null) {
+            return;
+        }
+
+        if (!cloudinaryEventUploadService.isConfigured()) {
+            showAlert(
+                    Alert.AlertType.ERROR,
+                    "Cloudinary non configure",
+                    "Ajoutez CLOUDINARY_EVENT_CLOUD_NAME, CLOUDINARY_EVENT_API_KEY et CLOUDINARY_EVENT_API_SECRET dans .env.local, les variables d'environnement ou VM options."
+            );
+            return;
+        }
+
+        try {
+            CloudinaryEventUploadService.UploadResult result = cloudinaryEventUploadService.uploadResourceFile(file);
+            cbTypeRessource.setValue("file");
+            tfCheminFichier.setText(result.secureUrl());
+
+            String mime = Files.probeContentType(file.toPath());
+            tfMimeType.setText(mime == null || mime.isBlank() ? "application/octet-stream" : mime);
+            tfTailleKb.setText(String.valueOf(Math.max(1, Math.round(file.length() / 1024.0f))));
+
+            validateConditionalFields();
+            showAlert(Alert.AlertType.INFORMATION, "Cloudinary", "Ressource uploadee avec succes vers Cloudinary.");
+        } catch (Exception e) {
+            showAlert(Alert.AlertType.ERROR, "Cloudinary", "Upload impossible : " + e.getMessage());
         }
     }
 

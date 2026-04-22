@@ -203,6 +203,7 @@
                             <Button text="Nouveau evenement" onAction="#onNewEvent" styleClass="yellow-btn"/>
                             <Button text="Brouillons back-office" onAction="#onShowDraftEvents" styleClass="white-btn"/>
                             <Button text="Tous les evenements" onAction="#onShowAllEvents" styleClass="white-btn"/>
+                            <Button text="Assistant IA" onAction="#ouvrirRecommandationsAiBack" styleClass="white-btn"/>
                             <Button text="Export PDF selection" onAction="#handleExportPDF" styleClass="yellow-btn"/>
                         </children>
                     </HBox>

@@ -31,11 +31,14 @@ import javafx.util.Duration;
 import tn.esprit.entities.Evenement;
 import tn.esprit.entities.User;
 import tn.esprit.services.AiCancellationCareService;
+import tn.esprit.services.AiEventIntelligenceService;
+import tn.esprit.services.CloudinaryEventUploadService;
 import tn.esprit.services.HuggingFaceCareAiClient;
 import tn.esprit.services.TwilioSmsServiceEvent;
 import tn.esprit.services.DashboardBIServiceEvenement;
 import tn.esprit.services.EvenementService;
 import tn.esprit.services.EventLocationService;
+import tn.esprit.services.GroqEventAiClient;
 import tn.esprit.services.ParticipationDemandeService;
 import tn.esprit.services.ParticipationDemandeService.ParticipationDemande;
 import tn.esprit.tools.SessionManager;
@@ -163,19 +166,33 @@ public class EvenementController {
     @FXML private TableColumn<Evenement, String> topStatutCol;
 
     @FXML private FlowPane recommandationsContainer;
+    @FXML private Label aiBackEventTitleLabel;
+    @FXML private Label aiBackEventMetaLabel;
+    @FXML private Label aiBackStatusLabel;
+    @FXML private Label aiBackRiskScoreLabel;
+    @FXML private Label aiBackRiskLevelLabel;
+    @FXML private ProgressBar aiBackRiskProgress;
+    @FXML private VBox aiBackReasonsContainer;
+    @FXML private VBox aiBackSuggestionsContainer;
+    @FXML private FlowPane aiBackRecommendationsContainer;
+    @FXML private TextArea aiBackSummaryArea;
 
     /* ===================== DATA ===================== */
     private final EvenementService evenementService = new EvenementService();
     private final ParticipationDemandeService participationService = new ParticipationDemandeService();
     private final TwilioSmsServiceEvent smsServiceEvent = new TwilioSmsServiceEvent();
     private final AiCancellationCareService cancellationCareService = new AiCancellationCareService();
+    private final AiEventIntelligenceService aiEventIntelligenceService = new AiEventIntelligenceService();
+    private final GroqEventAiClient groqEventAiClient = new GroqEventAiClient();
     private final HuggingFaceCareAiClient huggingFaceCareAiClient = new HuggingFaceCareAiClient();
+    private final CloudinaryEventUploadService cloudinaryEventUploadService = new CloudinaryEventUploadService();
     private final ObservableList<Evenement> masterList = FXCollections.observableArrayList();
     private final DashboardBIServiceEvenement dashboardService = new DashboardBIServiceEvenement();
     private final EvenementPDFService pdfService = new EvenementPDFService();
     private final EventLocationService eventLocationService = new EventLocationService();
 
     private static Evenement evenementAModifier;
+    private static Evenement evenementSelectionneAiBack;
     private static boolean publicationMode;
 
     /* ===================== VALIDATION ===================== */
@@ -235,6 +252,8 @@ public class EvenementController {
     @FXML private Label weatherTempLabel;
     @FXML private Label weatherHumidityLabel;
     @FXML private Label weatherWindLabel;
+    @FXML private FlowPane aiFrontRecommendationsContainer;
+    @FXML private Label aiFrontStatusLabel;
     @FXML private FlowPane participationsContainer;
     @FXML private Label participationSummaryLabel;
     @FXML private VBox eventUpdateToast;
@@ -258,6 +277,7 @@ public class EvenementController {
         chargerDetailFrontIfExists();
         initMesParticipationsIfExists();
         initDashboardBIIfExists();
+        initAiBackPageIfExists();
 
         try {
             DashboardBIServiceEvenement.DashboardData data =
@@ -1010,7 +1030,22 @@ public class EvenementController {
         File file = fileChooser.showOpenDialog(stage);
 
         if (file != null) {
-            tfImageEvent.setText(file.getAbsolutePath());
+            if (!cloudinaryEventUploadService.isEventConfigured()) {
+                showAlert(
+                        Alert.AlertType.ERROR,
+                        "Cloudinary non configure",
+                        "Ajoutez CLOUDINARY_EVENT_CLOUD_NAME, CLOUDINARY_EVENT_API_KEY et CLOUDINARY_EVENT_API_SECRET dans .env.local, les variables d'environnement ou VM options."
+                );
+                return;
+            }
+
+            try {
+                CloudinaryEventUploadService.UploadResult result = cloudinaryEventUploadService.uploadEventImage(file);
+                tfImageEvent.setText(result.secureUrl());
+                validateImage();
+            } catch (Exception e) {
+                showAlert(Alert.AlertType.ERROR, "Cloudinary", "Upload image evenement impossible : " + e.getMessage());
+            }
         }
     }
 
@@ -1517,16 +1552,18 @@ public class EvenementController {
             private final Button viewBtn = new Button("Voir");
             private final Button editBtn = new Button("Modifier");
             private final Button demandesBtn = new Button("Demandes");
+            private final Button aiBtn = new Button("AI");
             private final Button publishBtn = new Button("Publier");
             private final Button deleteBtn = new Button("Supprimer");
             private final Button archiveBtn = new Button("Historique");
-            private final ToolBar toolBar = new ToolBar(viewBtn, editBtn, demandesBtn, publishBtn, deleteBtn, archiveBtn);
+            private final ToolBar toolBar = new ToolBar(viewBtn, editBtn, demandesBtn, aiBtn, publishBtn, deleteBtn, archiveBtn);
 
             {
                 toolBar.getStyleClass().add("action-toolbar");
                 viewBtn.getStyleClass().add("view-btn");
                 editBtn.getStyleClass().add("edit-btn");
                 demandesBtn.getStyleClass().add("publish-btn");
+                aiBtn.getStyleClass().add("ai-action-btn");
                 publishBtn.getStyleClass().add("publish-btn");
                 deleteBtn.getStyleClass().add("delete-btn");
                 archiveBtn.getStyleClass().add("delete-btn");
@@ -1541,6 +1578,11 @@ public class EvenementController {
                 demandesBtn.setOnAction(e -> {
                     Evenement ev = getTableView().getItems().get(getIndex());
                     afficherDemandesParticipation(ev);
+                });
+
+                aiBtn.setOnAction(e -> {
+                    Evenement ev = getTableView().getItems().get(getIndex());
+                    ouvrirPageAiEvenement(ev);
                 });
 
                 publishBtn.setOnAction(e -> {
@@ -1592,7 +1634,7 @@ public class EvenementController {
                 Evenement ev = getTableView().getItems().get(getIndex());
                 long pending = participationService.countPending(ev);
                 demandesBtn.setText(pending > 0 ? "Demandes (" + pending + ")" : "Demandes");
-                toolBar.getItems().setAll(viewBtn, editBtn, demandesBtn);
+                toolBar.getItems().setAll(viewBtn, editBtn, demandesBtn, aiBtn);
                 if (!isVisibleOnFront(ev)) {
                     toolBar.getItems().add(publishBtn);
                 }
@@ -2084,6 +2126,241 @@ public class EvenementController {
         return new HBox(10, label, spacer, value);
     }
 
+    private void chargerRecommandationsFrontAi(Evenement ev) {
+        if (aiFrontRecommendationsContainer == null) return;
+
+        aiFrontRecommendationsContainer.getChildren().clear();
+        if (aiFrontStatusLabel != null) {
+            aiFrontStatusLabel.setText(groqEventAiClient.isConfigured()
+                    ? "Groq connecte + score local."
+                    : "IA locale active. Ajoutez GROQ_EVENT_API_KEY pour Groq.");
+        }
+
+        try {
+            List<Evenement> allEvents = evenementService.recuperer();
+            List<AiEventIntelligenceService.Recommendation> recommendations =
+                    aiEventIntelligenceService.recommendForEvent(ev, SessionManager.getCurrentUser(), allEvents, 4);
+
+            if (recommendations.isEmpty()) {
+                Label empty = new Label("Aucune alternative fiable pour le moment.");
+                empty.setWrapText(true);
+                empty.getStyleClass().add("ai-empty-note");
+                aiFrontRecommendationsContainer.getChildren().add(empty);
+                return;
+            }
+
+            for (AiEventIntelligenceService.Recommendation recommendation : recommendations) {
+                aiFrontRecommendationsContainer.getChildren().add(createAiFrontRecommendationCard(recommendation));
+            }
+        } catch (Exception e) {
+            Label error = new Label("Recommandations indisponibles: " + e.getMessage());
+            error.setWrapText(true);
+            error.getStyleClass().add("ai-empty-note");
+            aiFrontRecommendationsContainer.getChildren().add(error);
+        }
+    }
+
+    private VBox createAiFrontRecommendationCard(AiEventIntelligenceService.Recommendation recommendation) {
+        Evenement event = recommendation.event();
+        VBox card = new VBox(8);
+        card.setPrefWidth(245);
+        card.getStyleClass().add("ai-reco-card");
+
+        Label score = new Label(String.format(Locale.US, "Score %.1f/10", recommendation.score()));
+        score.getStyleClass().add("ai-score-pill");
+
+        Label title = new Label(valueOrDash(event.getTitre_event()));
+        title.setWrapText(true);
+        title.getStyleClass().add("ai-reco-title");
+
+        Label meta = new Label(valueOrDash(event.getVille_event()) + " | " + dateText(event.getDate_debut_event()));
+        meta.setWrapText(true);
+        meta.getStyleClass().add("ai-reco-meta");
+
+        Label reasons = new Label(String.join(" ", recommendation.reasons()));
+        reasons.setWrapText(true);
+        reasons.getStyleClass().add("ai-reco-reasons");
+
+        Button open = new Button("Voir");
+        open.getStyleClass().add("event-link-button");
+        open.setOnAction(e -> ouvrirDetailEvenementFront(event));
+
+        card.getChildren().addAll(score, title, meta, reasons, open);
+        return card;
+    }
+
+    @FXML
+    private void ouvrirRecommandationsAiBack() {
+        Evenement selected = evenementTable != null ? evenementTable.getSelectionModel().getSelectedItem() : null;
+        if (selected == null) {
+            try {
+                List<Evenement> events = evenementService.recuperer();
+                selected = events.stream()
+                        .filter(this::isVisibleOnFront)
+                        .findFirst()
+                        .orElse(events.isEmpty() ? null : events.get(0));
+            } catch (SQLException e) {
+                showAlert(Alert.AlertType.ERROR, "IA Evenements", e.getMessage());
+                return;
+            }
+        }
+
+        if (selected == null) {
+            showAlert(Alert.AlertType.INFORMATION, "IA Evenements", "Aucun evenement disponible pour l'analyse.");
+            return;
+        }
+
+        ouvrirPageAiEvenement(selected);
+    }
+
+    private void ouvrirPageAiEvenement(Evenement ev) {
+        evenementSelectionneAiBack = ev;
+        loadScene("/DashboardEvenementAI.fxml", "Assistant IA - Evenements");
+    }
+
+    private void initAiBackPageIfExists() {
+        if (aiBackEventTitleLabel == null) return;
+
+        try {
+            Evenement selected = evenementSelectionneAiBack;
+            if (selected == null) {
+                List<Evenement> events = evenementService.recuperer();
+                selected = events.stream()
+                        .filter(this::isVisibleOnFront)
+                        .findFirst()
+                        .orElse(events.isEmpty() ? null : events.get(0));
+            }
+
+            if (selected == null) {
+                aiBackEventTitleLabel.setText("Aucun evenement a analyser");
+                aiBackStatusLabel.setText("Ajoutez un evenement pour activer l'assistant.");
+                return;
+            }
+
+            remplirPageAiBack(selected);
+        } catch (Exception e) {
+            aiBackStatusLabel.setText("Analyse indisponible: " + e.getMessage());
+        }
+    }
+
+    private void remplirPageAiBack(Evenement ev) throws SQLException {
+        List<Evenement> allEvents = evenementService.recuperer();
+        List<ParticipationDemande> demandes = participationService.getDemandes(ev);
+        AiEventIntelligenceService.RiskReport risk = aiEventIntelligenceService.analyzeRisk(ev, demandes, allEvents);
+        List<AiEventIntelligenceService.Recommendation> recommendations =
+                aiEventIntelligenceService.recommendForEvent(ev, SessionManager.getCurrentUser(), allEvents, 6);
+
+        aiBackEventTitleLabel.setText(valueOrDash(ev.getTitre_event()));
+        aiBackEventMetaLabel.setText(valueOrDash(ev.getType_event()) + " | " + valueOrDash(ev.getVille_event()) + " | " + dateText(ev.getDate_debut_event()));
+        aiBackStatusLabel.setText(groqEventAiClient.publicStatus());
+
+        aiBackRiskScoreLabel.setText(risk.score() + "/100");
+        aiBackRiskLevelLabel.setText("Niveau " + risk.level());
+        aiBackRiskProgress.setProgress(risk.score() / 100.0);
+
+        fillAiList(aiBackReasonsContainer, risk.reasons());
+        fillAiList(aiBackSuggestionsContainer, risk.suggestions());
+
+        aiBackRecommendationsContainer.getChildren().clear();
+        if (recommendations.isEmpty()) {
+            Label empty = new Label("Aucune recommandation fiable pour le moment.");
+            empty.getStyleClass().add("ai-empty-note");
+            aiBackRecommendationsContainer.getChildren().add(empty);
+        } else {
+            for (AiEventIntelligenceService.Recommendation recommendation : recommendations) {
+                aiBackRecommendationsContainer.getChildren().add(createAiBackRecommendationCard(recommendation));
+            }
+        }
+
+        String localSummary = aiEventIntelligenceService.buildRecommendationSummary(ev, recommendations);
+        aiBackSummaryArea.setText(localSummary);
+        chargerResumeGroqAsync(ev, risk, recommendations, localSummary);
+    }
+
+    private void chargerResumeGroqAsync(
+            Evenement ev,
+            AiEventIntelligenceService.RiskReport risk,
+            List<AiEventIntelligenceService.Recommendation> recommendations,
+            String fallbackSummary
+    ) {
+        if (aiBackSummaryArea == null || !groqEventAiClient.isConfigured()) {
+            return;
+        }
+
+        aiBackSummaryArea.setText("Generation du resume professionnel avec Groq...\n\n" + fallbackSummary);
+
+        Task<String> task = new Task<>() {
+            @Override
+            protected String call() throws Exception {
+                return groqEventAiClient.generateEventExecutiveSummary(ev, risk, recommendations);
+            }
+        };
+
+        task.setOnSucceeded(e -> aiBackSummaryArea.setText(task.getValue()));
+        task.setOnFailed(e -> {
+            Throwable ex = task.getException();
+            String message = ex == null || ex.getMessage() == null ? "erreur inconnue" : ex.getMessage();
+            aiBackSummaryArea.setText(fallbackSummary + "\n\nGroq indisponible: " + message);
+        });
+
+        Thread thread = new Thread(task, "groq-event-summary");
+        thread.setDaemon(true);
+        thread.start();
+    }
+
+    private void fillAiList(VBox container, List<String> lines) {
+        if (container == null) return;
+        container.getChildren().clear();
+        if (lines == null || lines.isEmpty()) {
+            Label empty = new Label("-");
+            empty.getStyleClass().add("ai-page-muted");
+            container.getChildren().add(empty);
+            return;
+        }
+
+        for (String line : lines) {
+            HBox row = new HBox(10);
+            row.setAlignment(Pos.TOP_LEFT);
+            row.getStyleClass().add("ai-page-list-row");
+
+            Label dot = new Label("");
+            dot.getStyleClass().add("ai-page-dot");
+
+            Label label = new Label(line);
+            label.setWrapText(true);
+            label.getStyleClass().add("ai-page-list-text");
+            HBox.setHgrow(label, Priority.ALWAYS);
+
+            row.getChildren().addAll(dot, label);
+            container.getChildren().add(row);
+        }
+    }
+
+    private VBox createAiBackRecommendationCard(AiEventIntelligenceService.Recommendation recommendation) {
+        Evenement event = recommendation.event();
+        VBox card = new VBox(8);
+        card.setPrefWidth(270);
+        card.getStyleClass().add("ai-reco-card");
+
+        Label score = new Label(String.format(Locale.US, "%.1f/10", recommendation.score()));
+        score.getStyleClass().add("ai-score-pill");
+
+        Label title = new Label(valueOrDash(event.getTitre_event()));
+        title.setWrapText(true);
+        title.getStyleClass().add("ai-reco-title");
+
+        Label meta = new Label(valueOrDash(event.getType_event()) + " | " + valueOrDash(event.getVille_event()) + " | " + dateText(event.getDate_debut_event()));
+        meta.setWrapText(true);
+        meta.getStyleClass().add("ai-reco-meta");
+
+        Label reasons = new Label(String.join(" ", recommendation.reasons()));
+        reasons.setWrapText(true);
+        reasons.getStyleClass().add("ai-reco-reasons");
+
+        card.getChildren().addAll(score, title, meta, reasons);
+        return card;
+    }
+
     private void ouvrirPageCardsBack() {
         loadScene("/EvenementCardsBack.fxml", "Événements - Vue Cards");
     }
@@ -2235,7 +2512,9 @@ public class EvenementController {
                 sortCombo,
                 btnAjouterEvent,
                 btnModifierEvent,
-                btnResetEvent
+                btnResetEvent,
+                aiBackEventTitleLabel,
+                aiBackSummaryArea
         };
 
         for (Control c : controls) {
@@ -2356,6 +2635,7 @@ public class EvenementController {
         }
 
         chargerCarteEtMeteo(ev);
+        chargerRecommandationsFrontAi(ev);
     }
 
     private void chargerCarteEtMeteo(Evenement ev) {

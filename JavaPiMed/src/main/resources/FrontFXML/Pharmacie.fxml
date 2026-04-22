@@ -8,7 +8,6 @@
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 
 <BorderPane xmlns:fx="http://javafx.com/fxml/1"
@@ -67,38 +66,6 @@
                                 styleClass="hero-cart-btn"/>
                     </HBox>
 
-                    <!-- BLOCS INFO -->
-                    <HBox spacing="20">
-                        <children>
-                            <HBox spacing="12" alignment="CENTER_LEFT" HBox.hgrow="ALWAYS" styleClass="info-card">
-                                <children>
-                                    <Label text="🔥" styleClass="info-icon"/>
-                                    <VBox spacing="4">
-                                        <children>
-                                            <Label text="Best Sellers" styleClass="info-title"/>
-                                            <Label text="Produits les plus achetés" styleClass="info-subtitle"/>
-                                        </children>
-                                    </VBox>
-                                    <Region HBox.hgrow="ALWAYS"/>
-                                    <Label text="Top" styleClass="info-badge"/>
-                                </children>
-                            </HBox>
-
-                            <HBox spacing="12" alignment="CENTER_LEFT" HBox.hgrow="ALWAYS" styleClass="info-card">
-                                <children>
-                                    <Label text="🤖" styleClass="info-icon"/>
-                                    <VBox spacing="4">
-                                        <children>
-                                            <Label text="Recommandés pour vous" styleClass="info-title"/>
-                                            <Label text="Selon vos besoins" styleClass="info-subtitle"/>
-                                        </children>
-                                    </VBox>
-                                    <Region HBox.hgrow="ALWAYS"/>
-                                    <Label text="IA" styleClass="info-badge"/>
-                                </children>
-                            </HBox>
-                        </children>
-                    </HBox>
 
                     <!-- RECHERCHE / FILTRES -->
                     <VBox spacing="16" styleClass="filter-card">

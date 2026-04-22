@@ -10,33 +10,64 @@ import java.net.InetSocketAddress;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.BiConsumer;
 
 public class StripeCallbackServer {
 
-    private HttpServer server;
+    private static final Object LOCK = new Object();
+    private static HttpServer server;
+    private static volatile BiConsumer<String, Map<String, String>> callbackHandler;
+    private static final int DEFAULT_PORT = 4242;
 
     public void start(BiConsumer<String, Map<String, String>> callback) throws IOException {
-        server = HttpServer.create(new InetSocketAddress("127.0.0.1", 4242), 0);
+        Objects.requireNonNull(callback, "callback");
 
-        server.createContext("/stripe/success", exchange -> {
-            Map<String, String> params = parseQuery(exchange.getRequestURI());
-            sendHtml(exchange, "<h2>Paiement reçu. Vous pouvez revenir à l'application.</h2>");
-            Platform.runLater(() -> callback.accept("success", params));
-        });
+        synchronized (LOCK) {
+            callbackHandler = callback;
+            if (server != null) {
+                if (server.getAddress() != null) {
+                    return;
+                }
+                server = null;
+            }
 
-        server.createContext("/stripe/cancel", exchange -> {
-            Map<String, String> params = parseQuery(exchange.getRequestURI());
-            sendHtml(exchange, "<h2>Paiement annulé.</h2>");
-            Platform.runLater(() -> callback.accept("cancel", params));
-        });
+            try {
+                server = HttpServer.create(new InetSocketAddress("127.0.0.1", DEFAULT_PORT), 0);
+            } catch (IOException ex) {
+                throw new IOException("Impossible de démarrer le serveur callback Stripe sur le port " + DEFAULT_PORT
+                        + ". Il est probablement déjà utilisé par une autre instance de l'application.", ex);
+            }
 
-        server.start();
+            server.createContext("/stripe/success", exchange -> {
+                Map<String, String> params = parseQuery(exchange.getRequestURI());
+                sendHtml(exchange, "<h2>Paiement reçu. Vous pouvez revenir à l'application.</h2>");
+                BiConsumer<String, Map<String, String>> handler = callbackHandler;
+                if (handler != null) {
+                    Platform.runLater(() -> handler.accept("success", params));
+                }
+            });
+
+            server.createContext("/stripe/cancel", exchange -> {
+                Map<String, String> params = parseQuery(exchange.getRequestURI());
+                sendHtml(exchange, "<h2>Paiement annulé.</h2>");
+                BiConsumer<String, Map<String, String>> handler = callbackHandler;
+                if (handler != null) {
+                    Platform.runLater(() -> handler.accept("cancel", params));
+                }
+            });
+
+            server.start();
+        }
     }
 
     public void stop() {
-        if (server != null) {
-            server.stop(0);
+        synchronized (LOCK) {
+            if (server != null) {
+                server.stop(0);
+                server = null;
+            }
+            callbackHandler = null;
         }
     }
 

@@ -84,7 +84,10 @@
                                                        promptText="Rechercher (nom, catégorie, description...)"
                                                        styleClass="search-field"
                                                        HBox.hgrow="ALWAYS"/>
-                                            <Button text="🎤" styleClass="voice-btn"/>
+                                            <Button fx:id="voiceSearchBtn"
+                                                    text="🎤"
+                                                    onAction="#onVoiceSearchClicked"
+                                                    styleClass="voice-btn"/>
                                         </children>
                                     </HBox>
 

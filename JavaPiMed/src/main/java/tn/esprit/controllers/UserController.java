@@ -44,6 +44,7 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import tn.esprit.entities.User;
+import tn.esprit.services.EmailService;
 import tn.esprit.services.UserService;
 import tn.esprit.tools.SessionManager;
 
@@ -97,6 +98,15 @@ public class UserController {
     @FXML private TableColumn<User, String> statutCol;
     @FXML private TableColumn<User, String> verifiedCol;
     @FXML private TableColumn<User, Void> actionsCol;
+    @FXML private TableView<User> staffRequestTable;
+    @FXML private TableColumn<User, String> staffReqIdCol;
+    @FXML private TableColumn<User, String> staffReqNameCol;
+    @FXML private TableColumn<User, String> staffReqEmailCol;
+    @FXML private TableColumn<User, String> staffReqTypeCol;
+    @FXML private TableColumn<User, String> staffReqRequestedAtCol;
+    @FXML private TableColumn<User, String> staffReqReasonCol;
+    @FXML private Label staffRequestsCountLabel;
+    @FXML private Label staffRequestHintLabel;
 
     @FXML private VBox submenuVBox;
     @FXML private Label userArrow;
@@ -132,6 +142,7 @@ public class UserController {
 
     private final UserService userService = new UserService();
     private final ObservableList<User> masterList = FXCollections.observableArrayList();
+    private final ObservableList<User> pendingStaffRequests = FXCollections.observableArrayList();
     private FilteredList<User> filteredList;
     private boolean sortAscending = false;
     private int currentStatsPage = 0;
@@ -146,8 +157,10 @@ public class UserController {
         if (userTable != null) {
             // AdminDashboard.fxml
             configureTable();
+            configureStaffRequestTable();
             configureSort();
             loadData();
+            loadPendingStaffRequests();
             applySort();
             configureStatsBook();
             configureSearch();
@@ -373,6 +386,133 @@ public class UserController {
         });
 
         actionsCol.setCellValueFactory(param -> Bindings.createObjectBinding(() -> null));
+    }
+
+    private void configureStaffRequestTable() {
+        if (staffRequestTable == null) {
+            return;
+        }
+
+        if (staffReqIdCol != null) {
+            staffReqIdCol.setCellValueFactory(cell -> new SimpleStringProperty(String.valueOf(cell.getValue().getId())));
+        }
+        if (staffReqNameCol != null) {
+            staffReqNameCol.setCellValueFactory(cell -> new SimpleStringProperty(
+                    (safe(cell.getValue().getNom()) + " " + safe(cell.getValue().getPrenom())).trim()));
+        }
+        if (staffReqEmailCol != null) {
+            staffReqEmailCol.setCellValueFactory(cell -> new SimpleStringProperty(safe(cell.getValue().getEmailUser())));
+        }
+        if (staffReqTypeCol != null) {
+            staffReqTypeCol.setCellValueFactory(cell -> new SimpleStringProperty(safe(cell.getValue().getTypeStaff())));
+        }
+        if (staffReqRequestedAtCol != null) {
+            staffReqRequestedAtCol.setCellValueFactory(cell -> {
+                LocalDateTime requestedAt = cell.getValue().getStaffRequestedAt();
+                String value = requestedAt == null
+                        ? "-"
+                        : requestedAt.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+                return new SimpleStringProperty(value);
+            });
+        }
+        if (staffReqReasonCol != null) {
+            staffReqReasonCol.setCellValueFactory(cell -> {
+                String reason = safe(cell.getValue().getStaffRequestReason());
+                if (reason.isBlank()) {
+                    reason = safe(cell.getValue().getStaffRequestMessage());
+                }
+                if (reason.length() > 120) {
+                    reason = reason.substring(0, 117) + "...";
+                }
+                return new SimpleStringProperty(reason);
+            });
+        }
+
+        staffRequestTable.setItems(pendingStaffRequests);
+        staffRequestTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        staffRequestTable.setPlaceholder(new Label("Aucune demande staff en attente"));
+    }
+
+    private void loadPendingStaffRequests() {
+        if (staffRequestTable == null) {
+            return;
+        }
+        List<User> requests = userService.findPendingStaffRequests();
+        pendingStaffRequests.setAll(requests);
+        if (staffRequestsCountLabel != null) {
+            staffRequestsCountLabel.setText(String.valueOf(requests.size()));
+        }
+        if (staffRequestHintLabel != null) {
+            staffRequestHintLabel.setText(requests.isEmpty()
+                    ? "Aucune demande staff en attente."
+                    : "Sélectionnez une demande pour valider ou refuser.");
+        }
+    }
+
+    @FXML
+    private void onRefreshStaffRequests(ActionEvent event) {
+        loadPendingStaffRequests();
+    }
+
+    @FXML
+    private void onApproveStaffRequest(ActionEvent event) {
+        reviewSelectedStaffRequest(true);
+    }
+
+    @FXML
+    private void onRejectStaffRequest(ActionEvent event) {
+        reviewSelectedStaffRequest(false);
+    }
+
+    private void reviewSelectedStaffRequest(boolean approve) {
+        if (staffRequestTable == null) {
+            return;
+        }
+        User selected = staffRequestTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            showError("Demandes staff", "Veuillez sélectionner une demande d'abord.");
+            return;
+        }
+
+        String actionLabel = approve ? "approuver" : "refuser";
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setTitle("Validation demande staff");
+        confirm.setHeaderText(null);
+        confirm.setContentText("Confirmer l'action : " + actionLabel + " la demande de "
+                + safe(selected.getNom()) + " " + safe(selected.getPrenom()) + " ?");
+        Optional<ButtonType> result = confirm.showAndWait();
+        if (result.isEmpty() || result.get() != ButtonType.OK) {
+            return;
+        }
+
+        Integer reviewerId = null;
+        User current = SessionManager.getCurrentUser();
+        if (current != null && current.getId() > 0) {
+            reviewerId = current.getId();
+        }
+
+        boolean ok = userService.reviewStaffRequest(selected.getId(), approve, reviewerId);
+        if (!ok) {
+            showError("Demandes staff", "Impossible de mettre à jour cette demande.");
+            return;
+        }
+
+        // ── Envoi d'email de notification ────────────────────────────────────
+        try {
+            if (approve) {
+                EmailService.sendStaffApprovalEmail(selected);
+            } else {
+                EmailService.sendStaffRejectionEmail(selected);
+            }
+        } catch (Exception emailEx) {
+            // Ne pas bloquer le flux si l'email échoue
+            System.err.println("[UserController] Erreur envoi email staff : " + emailEx.getMessage());
+        }
+
+        loadData();
+        applySort();
+        updateStats();
+        loadPendingStaffRequests();
     }
 
     private void loadData() {
@@ -748,7 +888,7 @@ public class UserController {
         return "Surveillance standard";
     }
 
-    // ══════════════════════════════════════════════════════════════════════════
+    // ══════════════════════════════════════���═══════════════════════════════════
     //  AdminStatsDashboard logic
     // ══════════════════════════════════════════════════════════════════════════
 

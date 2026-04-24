@@ -41,7 +41,7 @@ public class StripeCallbackServer {
 
             server.createContext("/stripe/success", exchange -> {
                 Map<String, String> params = parseQuery(exchange.getRequestURI());
-                sendHtml(exchange, "<h2>Paiement reçu. Vous pouvez revenir à l'application.</h2>");
+                sendHtml(exchange, "<h2>Merci pour votre achat !</h2><p>Redirection vers le détail de votre commande...</p>");
                 BiConsumer<String, Map<String, String>> handler = callbackHandler;
                 if (handler != null) {
                     Platform.runLater(() -> handler.accept("success", params));

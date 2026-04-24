@@ -156,6 +156,9 @@ public class CommandeController {
     @FXML private Label checkoutTotalLabel;
     @FXML private CheckBox termsCheckBox;
     @FXML private Button btnPayerStripe;
+    @FXML private VBox stripePaymentBox;
+    @FXML private Label stripeWebHintLabel;
+    @FXML private StackPane stripeWebContainer;
     private final StripeCheckoutService stripeCheckoutService = new StripeCheckoutService();
     private final StripeCallbackServer stripeCallbackServer = new StripeCallbackServer();
     private final SmsService smsService = new SmsService();
@@ -1788,8 +1791,83 @@ public class CommandeController {
         sequence.setOnFinished(e -> popup.hide());
         sequence.play();
     }
+
+    private void ouvrirStripeDansApplication(String url) {
+        if (stripeWebContainer == null || url == null || url.isBlank()) {
+            showCommandeToast("Impossible d'afficher Stripe dans l'application.", "commande-toast-danger", "✖");
+            return;
+        }
+
+        Object webView = stripeWebContainer.getProperties().get("stripeWebViewInstance");
+        if (webView == null) {
+            try {
+                ClassLoader javafxWebLoader = ModuleLayer.boot().findLoader("javafx.web");
+                if (javafxWebLoader == null) {
+                    throw new IllegalStateException("Module javafx.web introuvable au lancement.");
+                }
+                Class<?> webViewClass = Class.forName("javafx.scene.web.WebView", true, javafxWebLoader);
+                webView = webViewClass.getConstructor().newInstance();
+                if (!(webView instanceof Node)) {
+                    throw new IllegalStateException("WebView non compatible avec la scène.");
+                }
+                stripeWebContainer.getProperties().put("stripeWebViewInstance", webView);
+                stripeWebContainer.getChildren().setAll((Node) webView);
+            } catch (Throwable ex) {
+                if (stripeWebHintLabel != null) {
+                    stripeWebHintLabel.setText("Stripe ne peut pas s'afficher dans la page interne.");
+                }
+                System.err.println("[Stripe] WebView indisponible: " + ex.getClass().getSimpleName() + " - " + ex.getMessage());
+                return;
+            }
+        }
+
+        if (stripePaymentBox != null) {
+            stripePaymentBox.setVisible(true);
+            stripePaymentBox.setManaged(true);
+        }
+
+        if (stripeWebHintLabel != null) {
+            stripeWebHintLabel.setText("Chargement sécurisé de Stripe dans la page interne...");
+        }
+
+        try {
+            Object engine = webView.getClass().getMethod("getEngine").invoke(webView);
+            engine.getClass().getMethod("load", String.class).invoke(engine, url);
+        } catch (Throwable ex) {
+            if (stripeWebHintLabel != null) {
+                stripeWebHintLabel.setText("Impossible de charger Stripe dans la page interne.");
+            }
+            System.err.println("[Stripe] Chargement WebView impossible: " + ex.getClass().getSimpleName() + " - " + ex.getMessage());
+        }
+    }
+
+    private void ouvrirStripeDansNavigateurExterne(String url) {
+        try {
+            if (Desktop.isDesktopSupported()) {
+                Desktop.getDesktop().browse(new URI(url));
+                showCommandeToast("Stripe ouvert dans le navigateur externe.", "commande-toast-warning", "💳");
+            } else {
+                showCommandeToast("Stripe intégré indisponible et navigateur externe non supporté.", "commande-toast-danger", "✖");
+            }
+        } catch (Exception ex) {
+            showCommandeToast("Impossible d'ouvrir Stripe : " + ex.getMessage(), "commande-toast-danger", "✖");
+        }
+    }
     private void initCheckoutPage() {
         chargerResumeCheckout();
+
+        if (stripePaymentBox != null) {
+            stripePaymentBox.setVisible(false);
+            stripePaymentBox.setManaged(false);
+        }
+
+        if (stripeWebHintLabel != null) {
+            stripeWebHintLabel.setText("Le formulaire Stripe apparaîtra dans cette page après le clic sur payer.");
+        }
+
+        if (stripeWebContainer != null) {
+            stripeWebContainer.getChildren().clear();
+        }
 
         if (btnPayerStripe != null && termsCheckBox != null) {
             btnPayerStripe.disableProperty().bind(termsCheckBox.selectedProperty().not());
@@ -1948,12 +2026,8 @@ public class CommandeController {
                 return;
             }
 
-            if (Desktop.isDesktopSupported()) {
-                Desktop.getDesktop().browse(new URI(session.getUrl()));
-                showCommandeToast("Redirection vers Stripe...", "commande-toast-warning", "💳");
-            } else {
-                showCommandeToast("Impossible d’ouvrir le navigateur.", "commande-toast-danger", "✖");
-            }
+            ouvrirStripeDansApplication(session.getUrl());
+            showCommandeToast("Paiement Stripe ouvert dans l'application.", "commande-toast-warning", "💳");
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -1990,7 +2064,7 @@ public class CommandeController {
                 return;
             }
 //NA7I
-          /*  User user = SessionManager.getCurrentUser();
+           /* User user = SessionManager.getCurrentUser();
             boolean smsEnvoye = smsService.envoyerSmsConfirmationCommande(user, commande);
 
             if (smsEnvoye) {
@@ -2016,11 +2090,11 @@ public class CommandeController {
             stage.show();
             Platform.runLater(() -> showToastOnStage(
                     stage,
-                    "Paiement effectué avec succès. Patientez pour votre SMS de confirmation.",
+                    "Merci pour votre achat. Redirection vers le détail de la commande.",
                     "commande-toast-success",
                     "✅"
             ));
-          /*  Platform.runLater(() -> showToastOnStage(
+           /*Platform.runLater(() -> showToastOnStage(
                     stage,
                     smsEnvoye
                             ? "Paiement effectué avec succès. SMS de confirmation envoyé."

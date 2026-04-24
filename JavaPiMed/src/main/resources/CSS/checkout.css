@@ -202,6 +202,23 @@
     -fx-effect: none;
 }
 
+.stripe-payment-box {
+    -fx-background-color: white;
+    -fx-background-radius: 18;
+    -fx-border-color: #dde7f2;
+    -fx-border-radius: 18;
+    -fx-padding: 18;
+    -fx-spacing: 12;
+    -fx-effect: dropshadow(gaussian, rgba(20, 40, 70, 0.08), 18, 0.18, 0, 4);
+}
+
+.stripe-webview {
+    -fx-background-color: white;
+    -fx-border-color: #dbe8f6;
+    -fx-border-radius: 14;
+    -fx-background-radius: 14;
+}
+
 /* Petit badge sécurité */
 .security-chip {
     -fx-background-color: #edfdf7;

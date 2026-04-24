@@ -9,6 +9,7 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Priority?>
 <?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
 <BorderPane xmlns="http://javafx.com/javafx/21"
@@ -95,6 +96,24 @@
                                         styleClass="pay-btn"/>
                             </children>
                         </HBox>
+
+                        <VBox fx:id="stripePaymentBox"
+                              spacing="10"
+                              visible="false"
+                              managed="false"
+                              styleClass="stripe-payment-box">
+                            <children>
+                                <Label text="🌐 Paiement Stripe dans l'application"
+                                       styleClass="checkout-summary-title"/>
+                                <Label fx:id="stripeWebHintLabel"
+                                       text="Le formulaire Stripe s'ouvrira ici après le clic sur payer."
+                                       wrapText="true"
+                                       styleClass="panier-subtitle"/>
+                                <StackPane fx:id="stripeWebContainer"
+                                           prefHeight="620.0"
+                                           styleClass="stripe-webview"/>
+                            </children>
+                        </VBox>
 
                     </VBox>
 

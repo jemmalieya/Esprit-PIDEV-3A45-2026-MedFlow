@@ -65,6 +65,8 @@
                                     prefWidth="140"
                                     minWidth="140"/>
 
+                            <Button text="Mes posts en attente" onAction="#showMyPendingPostsPopup"/>
+
                             <Button text="+ Nouveau post"
                                     onAction="#openAddPostPage"
                                     styleClass="new-post-btn"

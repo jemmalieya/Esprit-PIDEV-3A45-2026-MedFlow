@@ -12,6 +12,8 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import tn.esprit.entities.Post;
 import tn.esprit.services.PostService;
+import tn.esprit.entities.User;
+import tn.esprit.tools.SessionManager;
 
 import java.io.FileOutputStream;
 import java.util.List;
@@ -338,6 +340,10 @@ public class AddPostController {
                 if (postToEdit.getVisibilite() == null || postToEdit.getVisibilite().isBlank()) {
                     postToEdit.setVisibilite("Public");
                 }
+                postToEdit.setIs_approved(false);
+                postToEdit.setModeration_status("pending");
+                postToEdit.setModeration_message("Modification en attente de validation par l'administrateur");
+                postToEdit.setModeration_seen(false);
 
                 boolean success = postService.modifier(postToEdit);
 
@@ -351,16 +357,27 @@ public class AddPostController {
                 }
 
                 Alert alert = new Alert(Alert.AlertType.INFORMATION);
-                alert.setTitle("Succès");
+                alert.setTitle("Modification envoyée");
                 alert.setHeaderText(null);
-                alert.setContentText("Post modifié avec succès.");
+                alert.setContentText("Votre modification a été envoyée à l’administrateur pour validation.");
                 alert.showAndWait();
 
             } else {
                 // MODE AJOUT
                 Post post = new Post();
 
-                post.setUser_id(13);
+                User currentUser = SessionManager.getCurrentUser();
+
+                if (currentUser == null) {
+                    Alert alert = new Alert(Alert.AlertType.WARNING);
+                    alert.setTitle("Session expirée");
+                    alert.setHeaderText(null);
+                    alert.setContentText("Veuillez vous reconnecter pour publier un post.");
+                    alert.showAndWait();
+                    return;
+                }
+
+                post.setUser(currentUser);
                 post.setTitre(titreField.getText().trim());
                 post.setContenu(contenuArea.getText().trim());
                 post.setCategorie(categorieBox.getValue());
@@ -374,10 +391,10 @@ public class AddPostController {
 
                 post.setNbr_reactions(0);
                 post.setNbr_commentaires(0);
-                post.setIs_approved(true);
-                post.setModeration_status("approved");
-                post.setModeration_message("");
-                post.setModeration_seen(true);
+                post.setIs_approved(false);
+                post.setModeration_status("pending");
+                post.setModeration_message("En attente de validation par l'administrateur");
+                post.setModeration_seen(false);
                 boolean success = postService.ajouter(post);
 
                 if (!success) {
@@ -392,7 +409,7 @@ public class AddPostController {
                 Alert alert = new Alert(Alert.AlertType.INFORMATION);
                 alert.setTitle("Succès");
                 alert.setHeaderText(null);
-                alert.setContentText("Post ajouté avec succès.");
+                alert.setContentText("Votre post a été envoyé à l’administrateur pour validation.");
                 alert.showAndWait();
             }
 

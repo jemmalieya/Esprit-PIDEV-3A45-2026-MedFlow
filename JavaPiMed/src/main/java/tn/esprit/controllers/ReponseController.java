@@ -671,7 +671,10 @@ public class ReponseController {
     private void openBlogStats() {
         navigateTo("/BlogStats.fxml", "MedFlow - Statistiques Blog");
     }
-
+    @FXML
+    private void openPendingPostsAdminPage() {
+        navigateTo("/PendingPostsAdmin.fxml", "MedFlow - Validation des posts");
+    }
     @FXML
     private void handleLogout() {
         navigateTo("/FrontFXML/Login.fxml", "MedFlow - Connexion");

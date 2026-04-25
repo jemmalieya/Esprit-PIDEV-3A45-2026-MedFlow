@@ -402,7 +402,12 @@ public class BlogController {
                 commentaire.setModeration_label(null);
                 commentaire.setModerated_at(null);
 
-                commentaireService.ajouter(commentaire);
+                boolean success = commentaireService.ajouter(commentaire);
+
+                if (!success) {
+                    showModernCommentRefusedAlert();
+                    return;
+                }
                 commentInput.clear();
 
                 refreshCommentsList(post, commentsListBox, commentLabel);
@@ -552,7 +557,36 @@ public class BlogController {
         result.ifPresent(newText -> {
             String value = newText == null ? "" : newText.trim();
             if (!value.isEmpty()) {
+
+                Commentaire testCommentaire = new Commentaire();
+
+                Post p = new Post();
+                p.setId(post.getId());
+                testCommentaire.setPost(p);
+
+                testCommentaire.setUser(commentaire.getUser());
+                testCommentaire.setContenu(value);
+                testCommentaire.setDate_creation(commentaire.getDate_creation());
+                testCommentaire.setEst_anonyme(commentaire.isEst_anonyme());
+                testCommentaire.setParametres_confidentialite(commentaire.getParametres_confidentialite());
+                testCommentaire.setStatus("visible");
+                testCommentaire.setModeration_score(null);
+                testCommentaire.setModeration_label(null);
+                testCommentaire.setModerated_at(null);
+
+                boolean accepted = commentaireService.commentaireAccepteParModeration(testCommentaire);
+
+                if (!accepted) {
+                    showModernCommentRefusedAlert();
+                    return;
+                }
+
                 commentaire.setContenu(value);
+                commentaire.setStatus(testCommentaire.getStatus());
+                commentaire.setModeration_score(testCommentaire.getModeration_score());
+                commentaire.setModeration_label(testCommentaire.getModeration_label());
+                commentaire.setModerated_at(testCommentaire.getModerated_at());
+
                 commentaireService.modifier(commentaire);
                 refreshCommentsList(post, commentsListBox, commentLabel);
             }
@@ -1572,7 +1606,117 @@ public class BlogController {
             e.printStackTrace();
         }
     }
+    private void showModernCommentRefusedAlert() {
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("Commentaire refusé");
+        dialog.setHeaderText(null);
 
+        ButtonType closeButton = new ButtonType("Compris", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().add(closeButton);
+
+        VBox root = new VBox(18);
+        root.setAlignment(Pos.CENTER);
+        root.setPadding(new Insets(0));
+        root.setPrefWidth(520);
+        root.setStyle(
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 22;" +
+                        "-fx-border-radius: 22;"
+        );
+
+        HBox header = new HBox(16);
+        header.setAlignment(Pos.CENTER_LEFT);
+        header.setPadding(new Insets(24));
+        header.setStyle(
+                "-fx-background-color: linear-gradient(to right, #ef4444, #f97316);" +
+                        "-fx-background-radius: 22 22 0 0;"
+        );
+
+        StackPane iconBox = new StackPane();
+        iconBox.setPrefSize(62, 62);
+        iconBox.setStyle(
+                "-fx-background-color: rgba(255,255,255,0.22);" +
+                        "-fx-background-radius: 18;" +
+                        "-fx-border-color: rgba(255,255,255,0.35);" +
+                        "-fx-border-radius: 18;"
+        );
+
+        Label icon = new Label("⚠");
+        icon.setStyle(
+                "-fx-text-fill: white;" +
+                        "-fx-font-size: 34px;" +
+                        "-fx-font-weight: bold;"
+        );
+        iconBox.getChildren().add(icon);
+
+        VBox titleBox = new VBox(5);
+
+        Label title = new Label("Commentaire refusé");
+        title.setStyle(
+                "-fx-text-fill: white;" +
+                        "-fx-font-size: 25px;" +
+                        "-fx-font-weight: bold;"
+        );
+
+        Label subtitle = new Label("Votre commentaire n’a pas été publié");
+        subtitle.setStyle(
+                "-fx-text-fill: rgba(255,255,255,0.90);" +
+                        "-fx-font-size: 14px;"
+        );
+
+        titleBox.getChildren().addAll(title, subtitle);
+        header.getChildren().addAll(iconBox, titleBox);
+
+        VBox contentBox = new VBox(12);
+        contentBox.setPadding(new Insets(24, 28, 10, 28));
+        contentBox.setAlignment(Pos.CENTER_LEFT);
+
+        Label message = new Label(
+                "Le commentaire peut contenir un contenu inapproprié ou ne respecte pas les règles de la communauté."
+        );
+        message.setWrapText(true);
+        message.setStyle(
+                "-fx-text-fill: #374151;" +
+                        "-fx-font-size: 15px;" +
+                        "-fx-line-spacing: 4px;"
+        );
+
+        Label advice = new Label(
+                "Essayez de reformuler votre commentaire avec un langage plus respectueux."
+        );
+        advice.setWrapText(true);
+        advice.setStyle(
+                "-fx-background-color: #fff7ed;" +
+                        "-fx-text-fill: #c2410c;" +
+                        "-fx-font-size: 13px;" +
+                        "-fx-padding: 12 14;" +
+                        "-fx-background-radius: 12;"
+        );
+
+        contentBox.getChildren().addAll(message, advice);
+
+        root.getChildren().addAll(header, contentBox);
+
+        dialog.getDialogPane().setContent(root);
+        dialog.getDialogPane().setStyle(
+                "-fx-background-color: transparent;" +
+                        "-fx-padding: 0;"
+        );
+
+        Button closeBtn = (Button) dialog.getDialogPane().lookupButton(closeButton);
+        closeBtn.setText("Compris");
+        closeBtn.setStyle(
+                "-fx-background-color: linear-gradient(to right, #ef4444, #f97316);" +
+                        "-fx-text-fill: white;" +
+                        "-fx-font-weight: bold;" +
+                        "-fx-font-size: 14px;" +
+                        "-fx-background-radius: 12;" +
+                        "-fx-padding: 10 28;" +
+                        "-fx-cursor: hand;"
+        );
+
+        dialog.showAndWait();
+    }
 
 
 }

@@ -89,6 +89,12 @@ public class BlogController {
     @FXML private ComboBox<String> sortBox;
     @FXML private TextField searchField;
 
+    @FXML
+    private Label notificationBadgeLabel;
+
+    @FXML
+    private Button notificationButton;
+
     private List<Post> allPosts = null;
 
     private final PostService postService = new PostService();
@@ -111,6 +117,8 @@ public class BlogController {
             }
 
             loadPosts();
+            updateNotificationBadge();
+            javafx.application.Platform.runLater(this::showAutoModerationNotificationIfNeeded);
         }
 
         // Page BlogStats.fxml
@@ -1309,5 +1317,262 @@ public class BlogController {
             return false;
         }
     }
+
+    private void updateNotificationBadge() {
+        try {
+            User currentUser = SessionManager.getCurrentUser();
+
+            if (currentUser == null || notificationBadgeLabel == null) {
+                return;
+            }
+
+            int count = postService.countUnseenModerationNotificationsByUser(currentUser.getId());
+
+            notificationBadgeLabel.setText(String.valueOf(count));
+
+            boolean hasNotifications = count > 0;
+            notificationBadgeLabel.setVisible(hasNotifications);
+            notificationBadgeLabel.setManaged(hasNotifications);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @FXML
+    private void showModerationNotificationsPopup() {
+        showModerationNotificationsPopup(false);
+    }
+
+    private void showModerationNotificationsPopup(boolean autoOpen) {
+        try {
+            User currentUser = SessionManager.getCurrentUser();
+
+            if (currentUser == null) {
+                Alert alert = new Alert(Alert.AlertType.WARNING);
+                alert.setTitle("Session expirée");
+                alert.setHeaderText(null);
+                alert.setContentText("Veuillez vous reconnecter pour voir vos notifications.");
+                alert.showAndWait();
+                return;
+            }
+
+            List<Post> notifications = postService.getUnseenModerationNotificationsByUser(currentUser.getId());
+
+            if (notifications.isEmpty()) {
+                if (!autoOpen) {
+                    Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                    alert.setTitle("Notifications");
+                    alert.setHeaderText(null);
+                    alert.setContentText("Vous n’avez aucune nouvelle notification.");
+                    alert.showAndWait();
+                }
+                updateNotificationBadge();
+                return;
+            }
+
+            Dialog<Void> dialog = new Dialog<>();
+            dialog.setTitle("Notifications MedFlow");
+            dialog.setHeaderText(null);
+
+            ButtonType closeButton = new ButtonType("Fermer", ButtonBar.ButtonData.CANCEL_CLOSE);
+            ButtonType markAsReadButton = new ButtonType("Marquer comme lu", ButtonBar.ButtonData.OK_DONE);
+
+            dialog.getDialogPane().getButtonTypes().addAll(markAsReadButton, closeButton);
+
+            VBox root = new VBox(18);
+            root.setPrefWidth(780);
+            root.setPrefHeight(560);
+            root.setStyle("-fx-background-color: #f5f8fc; -fx-padding: 0;");
+
+            HBox header = new HBox(16);
+            header.setAlignment(Pos.CENTER_LEFT);
+            header.setStyle(
+                    "-fx-background-color: linear-gradient(to right, #0891b2, #2563eb);" +
+                            "-fx-padding: 24;" +
+                            "-fx-background-radius: 14 14 0 0;"
+            );
+
+            StackPane iconBox = new StackPane();
+            iconBox.setPrefSize(64, 64);
+            iconBox.setStyle(
+                    "-fx-background-color: rgba(255,255,255,0.22);" +
+                            "-fx-background-radius: 18;" +
+                            "-fx-border-color: rgba(255,255,255,0.35);" +
+                            "-fx-border-radius: 18;"
+            );
+
+            Label icon = new Label("🔔");
+            icon.setStyle("-fx-font-size: 32px;");
+            iconBox.getChildren().add(icon);
+
+            VBox titleBox = new VBox(6);
+
+            Label title = new Label("Notifications de modération");
+            title.setStyle("-fx-text-fill: white; -fx-font-size: 27px; -fx-font-weight: bold;");
+
+            Label subtitle = new Label(notifications.size() + " nouvelle(s) notification(s)");
+            subtitle.setStyle("-fx-text-fill: rgba(255,255,255,0.90); -fx-font-size: 15px;");
+
+            titleBox.getChildren().addAll(title, subtitle);
+            header.getChildren().addAll(iconBox, titleBox);
+
+            VBox listBox = new VBox(14);
+            listBox.setPadding(new Insets(20));
+
+            for (Post post : notifications) {
+                boolean approved = "approved".equalsIgnoreCase(post.getModeration_status());
+
+                VBox card = new VBox(10);
+                card.setStyle(
+                        "-fx-background-color: white;" +
+                                "-fx-padding: 18;" +
+                                "-fx-background-radius: 16;" +
+                                "-fx-border-color: " + (approved ? "#bbf7d0;" : "#fecaca;") +
+                                "-fx-border-radius: 16;" +
+                                "-fx-effect: dropshadow(gaussian, rgba(15,23,42,0.08), 12, 0, 0, 4);"
+                );
+
+                HBox top = new HBox(10);
+                top.setAlignment(Pos.CENTER_LEFT);
+
+                Label statusIcon = new Label(approved ? "✅" : "❌");
+                statusIcon.setStyle("-fx-font-size: 24px;");
+
+                Label postTitle = new Label(safeText(post.getTitre()));
+                postTitle.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #111827;");
+                postTitle.setWrapText(true);
+
+                Region spacer = new Region();
+                HBox.setHgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
+
+                Label badge = new Label(approved ? "Approuvé" : "Refusé");
+                badge.setStyle(
+                        "-fx-background-color: " + (approved ? "#dcfce7;" : "#fee2e2;") +
+                                "-fx-text-fill: " + (approved ? "#15803d;" : "#b91c1c;") +
+                                "-fx-font-weight: bold;" +
+                                "-fx-padding: 6 12;" +
+                                "-fx-background-radius: 999;"
+                );
+
+                top.getChildren().addAll(statusIcon, postTitle, spacer, badge);
+
+                Label message = new Label(safeText(post.getModeration_message()));
+                message.setWrapText(true);
+                message.setStyle("-fx-text-fill: #374151; -fx-font-size: 14px;");
+
+                Label date = new Label(post.getDate_modification() != null
+                        ? "Traité le : " + post.getDate_modification()
+                        : "Notification récente");
+                date.setStyle("-fx-text-fill: #6b7280; -fx-font-size: 12px;");
+
+                card.getChildren().addAll(top, message, date);
+                listBox.getChildren().add(card);
+            }
+
+            ScrollPane scrollPane = new ScrollPane(listBox);
+            scrollPane.setFitToWidth(true);
+            scrollPane.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
+            scrollPane.setPrefHeight(450);
+
+            root.getChildren().addAll(header, scrollPane);
+
+            dialog.getDialogPane().setContent(root);
+            dialog.getDialogPane().setStyle("-fx-background-color: #f5f8fc; -fx-padding: 0;");
+
+            Button markBtn = (Button) dialog.getDialogPane().lookupButton(markAsReadButton);
+            markBtn.setStyle(
+                    "-fx-background-color: #0891b2;" +
+                            "-fx-text-fill: white;" +
+                            "-fx-font-weight: bold;" +
+                            "-fx-background-radius: 10;" +
+                            "-fx-padding: 8 18;"
+            );
+
+            Button closeBtn = (Button) dialog.getDialogPane().lookupButton(closeButton);
+            closeBtn.setStyle(
+                    "-fx-background-color: #e5e7eb;" +
+                            "-fx-text-fill: #111827;" +
+                            "-fx-font-weight: bold;" +
+                            "-fx-background-radius: 10;" +
+                            "-fx-padding: 8 18;"
+            );
+
+            dialog.setResultConverter(button -> {
+                if (button == markAsReadButton) {
+                    postService.markAllModerationNotificationsAsSeen(currentUser.getId());
+                    updateNotificationBadge();
+                }
+                return null;
+            });
+
+            dialog.showAndWait();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Erreur");
+            alert.setHeaderText(null);
+            alert.setContentText("Impossible de charger vos notifications.");
+            alert.showAndWait();
+        }
+    }
+
+    private void showAutoModerationNotificationIfNeeded() {
+        try {
+            User currentUser = SessionManager.getCurrentUser();
+
+            if (currentUser == null) {
+                return;
+            }
+
+            int count = postService.countUnseenModerationNotificationsByUser(currentUser.getId());
+
+            if (count > 0) {
+                showSystemTrayNotification(
+                        "MedFlow Blog",
+                        "Vous avez " + count + " nouvelle(s) notification(s) de modération."
+                );
+
+                showModerationNotificationsPopup(true);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void showSystemTrayNotification(String title, String message) {
+        try {
+            if (!java.awt.SystemTray.isSupported()) {
+                return;
+            }
+
+            java.awt.SystemTray tray = java.awt.SystemTray.getSystemTray();
+
+            java.awt.Image image = java.awt.Toolkit.getDefaultToolkit().createImage("");
+
+            java.awt.TrayIcon trayIcon = new java.awt.TrayIcon(image, "MedFlow");
+            trayIcon.setImageAutoSize(true);
+            trayIcon.setToolTip("MedFlow Notification");
+
+            tray.add(trayIcon);
+            trayIcon.displayMessage(title, message, java.awt.TrayIcon.MessageType.INFO);
+
+            new Thread(() -> {
+                try {
+                    Thread.sleep(5000);
+                    tray.remove(trayIcon);
+                } catch (Exception ignored) {
+                }
+            }).start();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
 
 }

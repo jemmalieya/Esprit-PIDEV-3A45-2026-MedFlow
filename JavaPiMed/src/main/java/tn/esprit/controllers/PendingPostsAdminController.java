@@ -11,6 +11,7 @@ import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.stage.Stage;
 import tn.esprit.entities.Post;
+import tn.esprit.services.MailService;
 import tn.esprit.services.PostService;
 
 import java.time.LocalDate;
@@ -36,6 +37,7 @@ public class PendingPostsAdminController {
 
     private final PostService postService = new PostService();
     private List<Post> allPendingPosts = new ArrayList<>();
+    private final MailService mailService = new MailService();
 
     private int approvedToday = 0;
     private int rejectedToday = 0;
@@ -151,6 +153,7 @@ public class PendingPostsAdminController {
 
                 if (success) {
                     approvedToday++;
+                    sendModerationEmail(post, true);
                     showInfo("Succès", "Post approuvé avec succès.");
                     loadPendingPosts();
                 } else {
@@ -172,6 +175,7 @@ public class PendingPostsAdminController {
 
                 if (success) {
                     rejectedToday++;
+                    sendModerationEmail(post, false);
                     showInfo("Succès", "Post refusé avec succès.");
                     loadPendingPosts();
                 } else {
@@ -284,5 +288,29 @@ public class PendingPostsAdminController {
         }
 
         return "Utilisateur";
+    }
+
+    private void sendModerationEmail(Post post, boolean approved) {
+        try {
+            if (post == null || post.getUser() == null) {
+                return;
+            }
+
+            String email = post.getUser().getEmailUser();
+
+            String prenom = post.getUser().getPrenom() != null ? post.getUser().getPrenom().trim() : "";
+            String nom = post.getUser().getNom() != null ? post.getUser().getNom().trim() : "";
+            String fullName = (prenom + " " + nom).trim();
+
+            mailService.sendPostModerationEmail(
+                    email,
+                    fullName,
+                    post.getTitre(),
+                    approved
+            );
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

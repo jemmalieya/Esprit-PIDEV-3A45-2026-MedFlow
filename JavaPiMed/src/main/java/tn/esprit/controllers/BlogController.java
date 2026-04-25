@@ -66,6 +66,10 @@ import java.util.ArrayList;
 
 
 import tn.esprit.tools.SessionManager;
+import javafx.scene.control.ScrollPane;
+
+import javafx.scene.layout.StackPane;
+
 public class BlogController {
 
     @FXML
@@ -116,7 +120,7 @@ public class BlogController {
     }
 
     private void loadPosts() {
-        allPosts = new PostService().getAllPosts();
+        allPosts = new PostService().getApprovedPosts();
         List<Post> posts = new java.util.ArrayList<>(allPosts);
 
         // Filtrage par recherche en temps réel
@@ -251,6 +255,14 @@ public class BlogController {
         Button deleteBtn = new Button("Delete");
         deleteBtn.getStyleClass().add("small-delete-btn");
 
+        boolean isOwner = isPostOwner(post);
+
+        editBtn.setVisible(isOwner);
+        editBtn.setManaged(isOwner);
+
+        deleteBtn.setVisible(isOwner);
+        deleteBtn.setManaged(isOwner);
+
         actions.getChildren().addAll(editBtn, deleteBtn);
         contentBox.getChildren().addAll(category, title, summary, meta, actions);
         topSection.getChildren().addAll(imageView, contentBox);
@@ -281,11 +293,31 @@ public class BlogController {
 
         editBtn.setOnAction(e -> {
             e.consume();
+
+            if (!isPostOwner(post)) {
+                Alert alert = new Alert(Alert.AlertType.WARNING);
+                alert.setTitle("Accès refusé");
+                alert.setHeaderText(null);
+                alert.setContentText("Vous ne pouvez modifier que vos propres posts.");
+                alert.showAndWait();
+                return;
+            }
+
             openEditPost(post);
         });
 
         deleteBtn.setOnAction(e -> {
             e.consume();
+
+            if (!isPostOwner(post)) {
+                Alert alert = new Alert(Alert.AlertType.WARNING);
+                alert.setTitle("Accès refusé");
+                alert.setHeaderText(null);
+                alert.setContentText("Vous ne pouvez supprimer que vos propres posts.");
+                alert.showAndWait();
+                return;
+            }
+
             deletePost(post);
         });
 
@@ -647,15 +679,7 @@ public class BlogController {
         String date = formatDate(post);
         String localisation = safeText(post.getLocalisation()).isBlank() ? "Tunis" : post.getLocalisation();
 
-        String auteur = "MedFlow Admin";
-        try {
-            if (post.getUser() != null
-                    && post.getUser().getNom() != null
-                    && !post.getUser().getNom().trim().isEmpty()) {
-                auteur = post.getUser().getNom().trim();
-            }
-        } catch (Exception ignored) {
-        }
+        String auteur = getPostAuthorName(post);
 
         return date + " · " + localisation + " · " + auteur;
     }
@@ -1075,7 +1099,215 @@ public class BlogController {
     }
 
     @FXML
+    private void showMyPendingPostsPopup() {
+        try {
+            User currentUser = SessionManager.getCurrentUser();
+
+            if (currentUser == null) {
+                Alert alert = new Alert(Alert.AlertType.WARNING);
+                alert.setTitle("Session expirée");
+                alert.setHeaderText(null);
+                alert.setContentText("Veuillez vous reconnecter pour voir vos posts en attente.");
+                alert.showAndWait();
+                return;
+            }
+
+            List<Post> pendingPosts = postService.getPendingPostsByUser(currentUser.getId());
+
+            Dialog<Void> dialog = new Dialog<>();
+            dialog.setTitle("Mes posts en attente");
+            dialog.setHeaderText(null);
+
+            ButtonType closeButton = new ButtonType("Fermer", ButtonBar.ButtonData.CANCEL_CLOSE);
+            dialog.getDialogPane().getButtonTypes().add(closeButton);
+
+            VBox root = new VBox(18);
+            root.setPrefWidth(760);
+            root.setPrefHeight(560);
+            root.setStyle("-fx-background-color: #f5f8fc; -fx-padding: 0;");
+
+            HBox header = new HBox(16);
+            header.setAlignment(Pos.CENTER_LEFT);
+            header.setStyle(
+                    "-fx-background-color: linear-gradient(to right, #0891b2, #3b82f6);" +
+                            "-fx-padding: 24;" +
+                            "-fx-background-radius: 14 14 0 0;"
+            );
+
+            StackPane iconBox = new StackPane();
+            iconBox.setPrefSize(64, 64);
+            iconBox.setStyle(
+                    "-fx-background-color: rgba(255,255,255,0.20);" +
+                            "-fx-background-radius: 18;" +
+                            "-fx-border-color: rgba(255,255,255,0.30);" +
+                            "-fx-border-radius: 18;"
+            );
+
+            Label icon = new Label("⏳");
+            icon.setStyle("-fx-font-size: 30px;");
+            iconBox.getChildren().add(icon);
+
+            VBox titleBox = new VBox(6);
+
+            Label title = new Label("Mes posts en attente");
+            title.setStyle("-fx-text-fill: white; -fx-font-size: 28px; -fx-font-weight: bold;");
+
+            Label subtitle = new Label(pendingPosts.size() + " post(s) non encore validé(s)");
+            subtitle.setStyle("-fx-text-fill: rgba(255,255,255,0.90); -fx-font-size: 15px;");
+
+            titleBox.getChildren().addAll(title, subtitle);
+            header.getChildren().addAll(iconBox, titleBox);
+
+            VBox listBox = new VBox(14);
+            listBox.setPadding(new Insets(20));
+
+            if (pendingPosts.isEmpty()) {
+                VBox emptyBox = new VBox(10);
+                emptyBox.setAlignment(Pos.CENTER);
+                emptyBox.setPrefHeight(320);
+                emptyBox.setStyle(
+                        "-fx-background-color: white;" +
+                                "-fx-background-radius: 16;" +
+                                "-fx-border-color: #e5e7eb;" +
+                                "-fx-border-radius: 16;" +
+                                "-fx-padding: 30;"
+                );
+
+                Label emptyIcon = new Label("✅");
+                emptyIcon.setStyle("-fx-font-size: 42px;");
+
+                Label emptyTitle = new Label("Aucun post en attente");
+                emptyTitle.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #111827;");
+
+                Label emptyText = new Label("Tous vos posts ont déjà été traités par l’administrateur.");
+                emptyText.setStyle("-fx-font-size: 14px; -fx-text-fill: #6b7280;");
+
+                emptyBox.getChildren().addAll(emptyIcon, emptyTitle, emptyText);
+                listBox.getChildren().add(emptyBox);
+
+            } else {
+                for (Post post : pendingPosts) {
+                    VBox card = new VBox(10);
+                    card.setStyle(
+                            "-fx-background-color: white;" +
+                                    "-fx-padding: 18;" +
+                                    "-fx-background-radius: 16;" +
+                                    "-fx-border-color: #dbeafe;" +
+                                    "-fx-border-radius: 16;" +
+                                    "-fx-effect: dropshadow(gaussian, rgba(15,23,42,0.08), 12, 0, 0, 4);"
+                    );
+
+                    HBox top = new HBox(10);
+                    top.setAlignment(Pos.CENTER_LEFT);
+
+                    Label postTitle = new Label(safeText(post.getTitre()));
+                    postTitle.setStyle("-fx-font-size: 19px; -fx-font-weight: bold; -fx-text-fill: #111827;");
+                    postTitle.setWrapText(true);
+
+                    Region spacer = new Region();
+                    HBox.setHgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
+
+                    Label badge = new Label("En attente");
+                    badge.setStyle(
+                            "-fx-background-color: #fef3c7;" +
+                                    "-fx-text-fill: #d97706;" +
+                                    "-fx-font-weight: bold;" +
+                                    "-fx-padding: 6 12;" +
+                                    "-fx-background-radius: 999;"
+                    );
+
+                    top.getChildren().addAll(postTitle, spacer, badge);
+
+                    Label category = new Label("Catégorie : " + safeText(post.getCategorie()));
+                    category.setStyle("-fx-text-fill: #2563eb; -fx-font-weight: bold;");
+
+                    Label content = new Label(getShortContent(post.getContenu(), 220));
+                    content.setWrapText(true);
+                    content.setStyle("-fx-text-fill: #374151; -fx-font-size: 14px;");
+
+                    Label date = new Label(post.getDate_creation() != null ? "Créé le : " + post.getDate_creation() : "");
+                    date.setStyle("-fx-text-fill: #6b7280; -fx-font-size: 12px;");
+
+                    card.getChildren().addAll(top, category, content, date);
+                    listBox.getChildren().add(card);
+                }
+            }
+
+            ScrollPane scrollPane = new ScrollPane(listBox);
+            scrollPane.setFitToWidth(true);
+            scrollPane.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
+            scrollPane.setPrefHeight(450);
+
+            root.getChildren().addAll(header, scrollPane);
+
+            dialog.getDialogPane().setContent(root);
+            dialog.getDialogPane().setStyle("-fx-background-color: #f5f8fc; -fx-padding: 0;");
+            dialog.getDialogPane().getScene().getWindow().setOnCloseRequest(e -> dialog.close());
+
+            Button close = (Button) dialog.getDialogPane().lookupButton(closeButton);
+            close.setStyle(
+                    "-fx-background-color: #0891b2;" +
+                            "-fx-text-fill: white;" +
+                            "-fx-font-weight: bold;" +
+                            "-fx-background-radius: 10;" +
+                            "-fx-padding: 8 18;"
+            );
+
+            dialog.showAndWait();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Erreur");
+            alert.setHeaderText(null);
+            alert.setContentText("Impossible de charger vos posts en attente.");
+            alert.showAndWait();
+        }
+    }
+    @FXML
+    private void openPendingPostsAdminPage() {
+        navigateTo("/PendingPostsAdmin.fxml", "MedFlow - Validation des posts");
+    }
+    @FXML
     private void backToReponses() {
         navigateTo("/reponse.fxml", "MedFlow - Gestion des réclamations");
     }
+
+    private String getPostAuthorName(Post post) {
+        if (post == null || post.isEst_anonyme()) {
+            return "Anonyme";
+        }
+
+        try {
+            if (post.getUser() != null) {
+                String prenom = post.getUser().getPrenom() != null ? post.getUser().getPrenom().trim() : "";
+                String nom = post.getUser().getNom() != null ? post.getUser().getNom().trim() : "";
+
+                String fullName = (prenom + " " + nom).trim();
+
+                if (!fullName.isEmpty()) {
+                    return fullName;
+                }
+            }
+        } catch (Exception ignored) {
+        }
+
+        return "Utilisateur";
+    }
+
+    private boolean isPostOwner(Post post) {
+        try {
+            User currentUser = SessionManager.getCurrentUser();
+
+            return currentUser != null
+                    && post != null
+                    && post.getUser() != null
+                    && post.getUser().getId() == currentUser.getId();
+
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
 }

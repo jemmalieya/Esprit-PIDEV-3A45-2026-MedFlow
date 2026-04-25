@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+
 public class PostService {
 
     private Connection cn;
@@ -283,4 +284,155 @@ public class PostService {
 
         return false;
     }
+
+    public List<Post> getApprovedPosts() {
+        List<Post> posts = new ArrayList<>();
+
+        String sql = "SELECT p.*, u.nom AS user_nom, u.prenom AS user_prenom " +
+                "FROM post p " +
+                "LEFT JOIN user u ON p.user_id = u.id " +
+                "WHERE p.is_approved = 1 AND p.moderation_status = 'approved' " +
+                "ORDER BY p.date_creation DESC";
+
+        try {
+            PreparedStatement ps = cn.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                posts.add(mapPostWithUser(rs));
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return posts;
+    }
+
+    public List<Post> getPendingPostsByUser(int userId) {
+        List<Post> posts = new ArrayList<>();
+
+        String sql = "SELECT p.*, u.nom AS user_nom, u.prenom AS user_prenom " +
+                "FROM post p " +
+                "LEFT JOIN user u ON p.user_id = u.id " +
+                "WHERE p.user_id = ? AND p.moderation_status = 'pending' " +
+                "ORDER BY p.date_creation DESC";
+
+        try {
+            PreparedStatement ps = cn.prepareStatement(sql);
+            ps.setInt(1, userId);
+
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                posts.add(mapPostWithUser(rs));
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return posts;
+    }
+
+    public List<Post> getPendingPostsForAdmin() {
+        List<Post> posts = new ArrayList<>();
+
+        String sql = "SELECT p.*, u.nom AS user_nom, u.prenom AS user_prenom " +
+                "FROM post p " +
+                "LEFT JOIN user u ON p.user_id = u.id " +
+                "WHERE p.moderation_status = 'pending' " +
+                "ORDER BY p.date_creation DESC";
+
+        try {
+            PreparedStatement ps = cn.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                posts.add(mapPostWithUser(rs));
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return posts;
+    }
+
+    public boolean approvePost(int postId) {
+        String sql = "UPDATE post SET is_approved = 1, moderation_status = 'approved', moderation_message = 'Post approuvé par l’administrateur', moderation_seen = 0 WHERE id = ?";
+
+        try {
+            PreparedStatement ps = cn.prepareStatement(sql);
+            ps.setInt(1, postId);
+
+            return ps.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public boolean rejectPost(int postId) {
+        String sql = "UPDATE post SET is_approved = 0, moderation_status = 'rejected', moderation_message = 'Post refusé par l’administrateur', moderation_seen = 0 WHERE id = ?";
+
+        try {
+            PreparedStatement ps = cn.prepareStatement(sql);
+            ps.setInt(1, postId);
+
+            return ps.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    private Post mapPostWithUser(ResultSet rs) throws SQLException {
+        Post p = new Post();
+
+        p.setId(rs.getInt("id"));
+        p.setTitre(rs.getString("titre"));
+        p.setContenu(rs.getString("contenu"));
+        p.setLocalisation(rs.getString("localisation"));
+        p.setImg_post(rs.getString("img_post"));
+        p.setHashtags(rs.getString("hashtags"));
+        p.setVisibilite(rs.getString("visibilite"));
+
+        Timestamp tsCreation = rs.getTimestamp("date_creation");
+        p.setDate_creation(tsCreation != null ? tsCreation.toLocalDateTime() : null);
+
+        Timestamp tsModif = rs.getTimestamp("date_modification");
+        p.setDate_modification(tsModif != null ? tsModif.toLocalDateTime() : null);
+
+        p.setEst_anonyme(rs.getBoolean("est_anonyme"));
+        p.setCategorie(rs.getString("categorie"));
+        p.setHumeur(rs.getString("humeur"));
+        p.setNbr_reactions(rs.getInt("nbr_reactions"));
+        p.setNbr_commentaires(rs.getInt("nbr_commentaires"));
+        p.setIs_approved(rs.getBoolean("is_approved"));
+        p.setModeration_status(rs.getString("moderation_status"));
+        p.setModeration_message(rs.getString("moderation_message"));
+        p.setModeration_seen(rs.getBoolean("moderation_seen"));
+
+        tn.esprit.entities.User user = new tn.esprit.entities.User();
+        user.setId(rs.getInt("user_id"));
+
+        try {
+            user.setNom(rs.getString("user_nom"));
+        } catch (Exception ignored) {
+        }
+
+        try {
+            user.setPrenom(rs.getString("user_prenom"));
+        } catch (Exception ignored) {
+        }
+
+        p.setUser(user);
+
+        return p;
+    }
+
+
 }

@@ -11,6 +11,7 @@ import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import tn.esprit.entities.Post;
+import tn.esprit.services.GeminiPostAssistantService;
 import tn.esprit.services.PostService;
 import tn.esprit.entities.User;
 import tn.esprit.tools.SessionManager;
@@ -25,6 +26,20 @@ import com.itextpdf.text.Phrase;
 import com.itextpdf.text.pdf.PdfPTable;
 import com.itextpdf.text.pdf.PdfWriter;
 import java.time.LocalDateTime;
+
+import javafx.application.Platform;
+import javafx.concurrent.Task;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.Priority;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
+import tn.esprit.entities.PostAiSuggestion;
+
 
 public class AddPostController {
 
@@ -50,6 +65,7 @@ public class AddPostController {
     @FXML private Label previewMeta;
     @FXML private FlowPane previewTagsPane;
     private final PostService postService = new PostService();
+    private final GeminiPostAssistantService geminiPostAssistantService = new GeminiPostAssistantService();
 
     private Post postToEdit = null;
     private boolean editMode = false;
@@ -446,5 +462,325 @@ public class AddPostController {
 
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
+    }
+
+    @FXML
+    private void handleImproveWithAi() {
+        String contenu = contenuArea.getText() == null ? "" : contenuArea.getText().trim();
+
+        if (contenu.isEmpty()) {
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("Assistant IA");
+            alert.setHeaderText(null);
+            alert.setContentText("Écrivez d’abord un contenu avant d’utiliser l’assistant IA.");
+            alert.showAndWait();
+            return;
+        }
+
+        if (contenu.length() < 20) {
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("Assistant IA");
+            alert.setHeaderText(null);
+            alert.setContentText("Le contenu est trop court. Ajoutez quelques détails pour obtenir une meilleure suggestion.");
+            alert.showAndWait();
+            return;
+        }
+
+        Dialog<Void> loadingDialog = createLoadingDialog();
+        loadingDialog.show();
+
+        Task<PostAiSuggestion> task = new Task<>() {
+            @Override
+            protected PostAiSuggestion call() {
+                return geminiPostAssistantService.improvePost(contenu);
+            }
+        };
+
+        task.setOnSucceeded(event -> {
+            PostAiSuggestion suggestion = task.getValue();
+
+            javafx.application.Platform.runLater(() -> {
+                closeDialogForce(loadingDialog);
+                showAiSuggestionPopup(suggestion);
+            });
+        });
+
+        task.setOnFailed(event -> {
+            Throwable ex = task.getException();
+            ex.printStackTrace();
+
+            javafx.application.Platform.runLater(() -> {
+                closeDialogForce(loadingDialog);
+
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Assistant IA");
+                alert.setHeaderText("Impossible de générer la suggestion");
+                alert.setContentText(
+                        "L’assistant IA n’a pas pu générer une suggestion correcte.\n" +
+                                "Veuillez réessayer avec un contenu plus simple ou plus court.\n\n" +
+                                "Détail : " + ex.getMessage()
+                );
+                alert.showAndWait();
+            });
+        });
+
+        task.setOnCancelled(event -> {
+            javafx.application.Platform.runLater(() -> closeDialogForce(loadingDialog));
+        });
+
+        Thread thread = new Thread(task);
+        thread.setDaemon(true);
+        thread.start();
+    }
+
+    private Dialog<Void> createLoadingDialog() {
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("Assistant IA");
+        dialog.setHeaderText(null);
+
+        VBox root = new VBox(14);
+        root.setAlignment(Pos.CENTER);
+        root.setPadding(new Insets(28));
+        root.setPrefWidth(420);
+        root.setStyle("-fx-background-color: white; -fx-background-radius: 18;");
+
+        Label icon = new Label("✨");
+        icon.setStyle("-fx-font-size: 42px;");
+
+        Label title = new Label("Assistant IA MedFlow");
+        title.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #111827;");
+
+        Label subtitle = new Label("Analyse du contenu et génération des suggestions...");
+        subtitle.setStyle("-fx-font-size: 14px; -fx-text-fill: #6b7280;");
+        subtitle.setWrapText(true);
+
+        ProgressIndicator loader = new ProgressIndicator();
+        loader.setPrefSize(46, 46);
+
+        root.getChildren().addAll(icon, title, subtitle, loader);
+
+        dialog.getDialogPane().setContent(root);
+        dialog.getDialogPane().getButtonTypes().clear();
+        dialog.getDialogPane().setStyle("-fx-background-color: white;");
+
+        dialog.setOnCloseRequest(e -> {
+            closeDialogForce(dialog);
+        });
+
+        return dialog;
+    }
+
+    private void showAiSuggestionPopup(PostAiSuggestion suggestion) {
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Suggestion IA");
+        dialog.setHeaderText(null);
+
+        ButtonType applyAllButton = new ButtonType("Appliquer tout", ButtonBar.ButtonData.OK_DONE);
+        ButtonType applyContentButton = new ButtonType("Appliquer contenu seulement", ButtonBar.ButtonData.APPLY);
+        ButtonType cancelButton = new ButtonType("Annuler", ButtonBar.ButtonData.CANCEL_CLOSE);
+
+        dialog.getDialogPane().getButtonTypes().addAll(applyAllButton, applyContentButton, cancelButton);
+
+        VBox root = new VBox(18);
+        root.setPrefWidth(820);
+        root.setPrefHeight(620);
+        root.setStyle("-fx-background-color: #f5f8fc; -fx-padding: 0;");
+
+        HBox header = new HBox(16);
+        header.setAlignment(Pos.CENTER_LEFT);
+        header.setStyle(
+                "-fx-background-color: linear-gradient(to right, #0891b2, #2563eb);" +
+                        "-fx-padding: 24;" +
+                        "-fx-background-radius: 14 14 0 0;"
+        );
+
+        StackPane iconBox = new StackPane();
+        iconBox.setPrefSize(64, 64);
+        iconBox.setStyle(
+                "-fx-background-color: rgba(255,255,255,0.22);" +
+                        "-fx-background-radius: 18;" +
+                        "-fx-border-color: rgba(255,255,255,0.35);" +
+                        "-fx-border-radius: 18;"
+        );
+
+        Label icon = new Label("✨");
+        icon.setStyle("-fx-font-size: 32px;");
+        iconBox.getChildren().add(icon);
+
+        VBox titleBox = new VBox(6);
+
+        Label title = new Label("Assistant IA MedFlow");
+        title.setStyle("-fx-text-fill: white; -fx-font-size: 28px; -fx-font-weight: bold;");
+
+        Label subtitle = new Label("Suggestions pour rendre votre article plus clair, utile et responsable.");
+        subtitle.setStyle("-fx-text-fill: rgba(255,255,255,0.90); -fx-font-size: 15px;");
+        subtitle.setWrapText(true);
+
+        titleBox.getChildren().addAll(title, subtitle);
+        header.getChildren().addAll(iconBox, titleBox);
+
+        VBox content = new VBox(14);
+        content.setPadding(new Insets(20));
+        content.setStyle("-fx-background-color: #f5f8fc;");
+
+        HBox topCards = new HBox(14);
+        topCards.getChildren().addAll(
+                createAiInfoCard("Titre recommandé", suggestion.getTitre(), true),
+                createAiInfoCard("Catégorie proposée", suggestion.getCategorie(), false),
+                createAiInfoCard("Ton", suggestion.getTon(), false)
+        );
+        HBox.setHgrow(topCards, Priority.ALWAYS);
+
+        VBox hashtagsCard = createAiInfoCard("Hashtags proposés", suggestion.getHashtags(), true);
+        VBox resumeCard = createAiInfoCard("Résumé court", suggestion.getResume(), true);
+        VBox contenuCard = createAiInfoCard("Contenu amélioré", suggestion.getContenuReformule(), true);
+        VBox conseilCard = createAiInfoCard("Conseil de publication responsable", suggestion.getConseilResponsable(), true);
+
+        content.getChildren().addAll(topCards, hashtagsCard, resumeCard, contenuCard, conseilCard);
+
+        ScrollPane scrollPane = new ScrollPane(content);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
+        scrollPane.setPrefHeight(500);
+
+        root.getChildren().addAll(header, scrollPane);
+
+        dialog.getDialogPane().setContent(root);
+        dialog.getDialogPane().setStyle("-fx-background-color: #f5f8fc; -fx-padding: 0;");
+
+        Button applyAll = (Button) dialog.getDialogPane().lookupButton(applyAllButton);
+        applyAll.setStyle("-fx-background-color: #0891b2; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-padding: 8 18;");
+
+        Button applyContent = (Button) dialog.getDialogPane().lookupButton(applyContentButton);
+        applyContent.setStyle("-fx-background-color: #2563eb; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-padding: 8 18;");
+
+        Button cancel = (Button) dialog.getDialogPane().lookupButton(cancelButton);
+        cancel.setStyle("-fx-background-color: #e5e7eb; -fx-text-fill: #111827; -fx-font-weight: bold; -fx-background-radius: 10; -fx-padding: 8 18;");
+
+        dialog.showAndWait().ifPresent(result -> {
+            if (result == applyAllButton) {
+                applyAiSuggestion(suggestion, true);
+            } else if (result == applyContentButton) {
+                applyAiSuggestion(suggestion, false);
+            }
+        });
+    }
+
+    private VBox createAiInfoCard(String title, String value, boolean wide) {
+        VBox card = new VBox(8);
+
+        card.setStyle(
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 16;" +
+                        "-fx-border-color: #dbeafe;" +
+                        "-fx-border-radius: 16;" +
+                        "-fx-padding: 16;" +
+                        "-fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.08), 12, 0, 0, 4);"
+        );
+
+        if (!wide) {
+            card.setPrefWidth(240);
+        } else {
+            card.setMaxWidth(Double.MAX_VALUE);
+        }
+
+        Label titleLabel = new Label(title);
+        titleLabel.setStyle(
+                "-fx-text-fill: #2563eb;" +
+                        "-fx-font-size: 13px;" +
+                        "-fx-font-weight: bold;"
+        );
+
+        Label valueLabel = new Label(value == null || value.isBlank() ? "-" : value);
+        valueLabel.setWrapText(true);
+        valueLabel.setStyle(
+                "-fx-text-fill: #111827;" +
+                        "-fx-font-size: 14px;" +
+                        "-fx-line-spacing: 3px;"
+        );
+
+        card.getChildren().addAll(titleLabel, valueLabel);
+
+        return card;
+    }
+
+    private void applyAiSuggestion(PostAiSuggestion suggestion, boolean applyAll) {
+        if (suggestion == null) {
+            return;
+        }
+
+        if (applyAll) {
+            if (suggestion.getTitre() != null && !suggestion.getTitre().isBlank()) {
+                titreField.setText(suggestion.getTitre());
+            }
+
+            if (suggestion.getCategorie() != null && !suggestion.getCategorie().isBlank()) {
+                categorieBox.setValue(normalizeCategory(suggestion.getCategorie()));
+            }
+
+            if (suggestion.getHashtags() != null && !suggestion.getHashtags().isBlank()) {
+                hashtagsField.setText(suggestion.getHashtags());
+            }
+        }
+
+        if (suggestion.getContenuReformule() != null && !suggestion.getContenuReformule().isBlank()) {
+            contenuArea.setText(suggestion.getContenuReformule());
+        }
+
+        refreshPreview();
+
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Assistant IA");
+        alert.setHeaderText(null);
+        alert.setContentText(applyAll
+                ? "Toutes les suggestions IA ont été appliquées."
+                : "Le contenu amélioré a été appliqué.");
+        alert.showAndWait();
+    }
+
+    private String normalizeCategory(String category) {
+        if (category == null) {
+            return "Conseils";
+        }
+
+        String c = category.trim().toLowerCase();
+
+        if (c.contains("actualité") || c.contains("actualite")) {
+            return "Actualité";
+        }
+
+        if (c.contains("service")) {
+            return "Service";
+        }
+
+        if (c.contains("santé") || c.contains("sante")) {
+            return "Santé";
+        }
+
+        if (c.contains("urgence")) {
+            return "Urgence";
+        }
+
+        return "Conseils";
+    }
+
+    private void closeDialogForce(Dialog<?> dialog) {
+        try {
+            if (dialog == null) {
+                return;
+            }
+
+            dialog.close();
+            dialog.hide();
+
+            if (dialog.getDialogPane() != null
+                    && dialog.getDialogPane().getScene() != null
+                    && dialog.getDialogPane().getScene().getWindow() != null) {
+                dialog.getDialogPane().getScene().getWindow().hide();
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

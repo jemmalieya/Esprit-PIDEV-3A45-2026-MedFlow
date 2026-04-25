@@ -118,14 +118,28 @@
                                        GridPane.columnIndex="1"
                                        GridPane.rowIndex="8"/>
 
+                                
                                 <!-- CONTENU -->
-                                <Label text="Contenu" GridPane.columnIndex="0" GridPane.rowIndex="9"/>
+                                <HBox alignment="CENTER_LEFT"
+                                      spacing="10"
+                                      GridPane.columnIndex="0"
+                                      GridPane.rowIndex="9"
+                                      GridPane.columnSpan="2">
+
+                                    <Label text="Contenu"/>
+                                    <Region HBox.hgrow="ALWAYS"/>
+                                    <Button text="✨ Améliorer avec IA"
+                                            onAction="#handleImproveWithAi"
+                                            styleClass="ai-assistant-btn"/>
+                                </HBox>
+
                                 <TextArea fx:id="contenuArea"
                                           prefRowCount="8"
                                           promptText="Écrivez le contenu du post..."
                                           GridPane.columnIndex="0"
                                           GridPane.rowIndex="10"
                                           GridPane.columnSpan="2"/>
+
                                 <Label fx:id="contenuError"
                                        style="-fx-text-fill: red;"
                                        GridPane.columnIndex="0"

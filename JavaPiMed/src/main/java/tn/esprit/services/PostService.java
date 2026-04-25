@@ -288,7 +288,7 @@ public class PostService {
     public List<Post> getApprovedPosts() {
         List<Post> posts = new ArrayList<>();
 
-        String sql = "SELECT p.*, u.nom AS user_nom, u.prenom AS user_prenom " +
+        String sql ="SELECT p.*, u.nom AS user_nom, u.prenom AS user_prenom, u.email_user AS user_email " +
                 "FROM post p " +
                 "LEFT JOIN user u ON p.user_id = u.id " +
                 "WHERE p.is_approved = 1 AND p.moderation_status = 'approved' " +
@@ -312,7 +312,7 @@ public class PostService {
     public List<Post> getPendingPostsByUser(int userId) {
         List<Post> posts = new ArrayList<>();
 
-        String sql = "SELECT p.*, u.nom AS user_nom, u.prenom AS user_prenom " +
+        String sql = "SELECT p.*, u.nom AS user_nom, u.prenom AS user_prenom, u.email_user AS user_email " +
                 "FROM post p " +
                 "LEFT JOIN user u ON p.user_id = u.id " +
                 "WHERE p.user_id = ? AND p.moderation_status = 'pending' " +
@@ -338,7 +338,7 @@ public class PostService {
     public List<Post> getPendingPostsForAdmin() {
         List<Post> posts = new ArrayList<>();
 
-        String sql = "SELECT p.*, u.nom AS user_nom, u.prenom AS user_prenom " +
+        String sql = "SELECT p.*, u.nom AS user_nom, u.prenom AS user_prenom, u.email_user AS user_email " +
                 "FROM post p " +
                 "LEFT JOIN user u ON p.user_id = u.id " +
                 "WHERE p.moderation_status = 'pending' " +
@@ -360,7 +360,12 @@ public class PostService {
     }
 
     public boolean approvePost(int postId) {
-        String sql = "UPDATE post SET is_approved = 1, moderation_status = 'approved', moderation_message = 'Post approuvé par l’administrateur', moderation_seen = 0 WHERE id = ?";
+        String sql = "UPDATE post SET " +
+                "is_approved = 1, " +
+                "moderation_status = 'approved', " +
+                "moderation_message = 'Votre post a été approuvé par l’administrateur. Il est maintenant visible dans le blog.', " +
+                "moderation_seen = 0 " +
+                "WHERE id = ?";
 
         try {
             PreparedStatement ps = cn.prepareStatement(sql);
@@ -375,7 +380,12 @@ public class PostService {
     }
 
     public boolean rejectPost(int postId) {
-        String sql = "UPDATE post SET is_approved = 0, moderation_status = 'rejected', moderation_message = 'Post refusé par l’administrateur', moderation_seen = 0 WHERE id = ?";
+        String sql = "UPDATE post SET " +
+                "is_approved = 0, " +
+                "moderation_status = 'rejected', " +
+                "moderation_message = 'Votre post a été refusé par l’administrateur. Merci de le modifier puis de le renvoyer pour validation.', " +
+                "moderation_seen = 0 " +
+                "WHERE id = ?";
 
         try {
             PreparedStatement ps = cn.prepareStatement(sql);
@@ -428,11 +438,94 @@ public class PostService {
             user.setPrenom(rs.getString("user_prenom"));
         } catch (Exception ignored) {
         }
+        try {
+            user.setEmailUser(rs.getString("user_email"));
+        } catch (Exception ignored) {
+        }
 
         p.setUser(user);
 
         return p;
     }
+    public List<Post> getUnseenModerationNotificationsByUser(int userId) {
+        List<Post> posts = new ArrayList<>();
 
+        String sql = "SELECT p.*, u.nom AS user_nom, u.prenom AS user_prenom, u.email_user AS user_email " +
+                "FROM post p " +
+                "LEFT JOIN user u ON p.user_id = u.id " +
+                "WHERE p.user_id = ? " +
+                "AND p.moderation_seen = 0 " +
+                "AND p.moderation_status IN ('approved', 'rejected') " +
+                "ORDER BY p.date_modification DESC, p.date_creation DESC";
+
+        try {
+            PreparedStatement ps = cn.prepareStatement(sql);
+            ps.setInt(1, userId);
+
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                posts.add(mapPostWithUser(rs));
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return posts;
+    }
+    public int countUnseenModerationNotificationsByUser(int userId) {
+        String sql = "SELECT COUNT(*) FROM post " +
+                "WHERE user_id = ? " +
+                "AND moderation_seen = 0 " +
+                "AND moderation_status IN ('approved', 'rejected')";
+
+        try {
+            PreparedStatement ps = cn.prepareStatement(sql);
+            ps.setInt(1, userId);
+
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return 0;
+    }
+    public boolean markModerationNotificationAsSeen(int postId) {
+        String sql = "UPDATE post SET moderation_seen = 1 WHERE id = ?";
+
+        try {
+            PreparedStatement ps = cn.prepareStatement(sql);
+            ps.setInt(1, postId);
+
+            return ps.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+    public boolean markAllModerationNotificationsAsSeen(int userId) {
+        String sql = "UPDATE post SET moderation_seen = 1 " +
+                "WHERE user_id = ? " +
+                "AND moderation_status IN ('approved', 'rejected')";
+
+        try {
+            PreparedStatement ps = cn.prepareStatement(sql);
+            ps.setInt(1, userId);
+
+            ps.executeUpdate();
+            return true;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 
 }

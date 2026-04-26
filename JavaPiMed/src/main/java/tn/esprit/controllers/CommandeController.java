@@ -79,7 +79,13 @@ public class CommandeController {
     private static final String START_MARKER_COLOR = "#2563eb";
     private static final String DEST_MARKER_COLOR = "#ef4444";
     private final GeocodingService geocodingService = new GeocodingService();
-
+    @FXML private Label aiDecisionLabel;
+    @FXML private Label aiScoreLabel;
+    @FXML private Label aiPrioriteLabel;
+    @FXML private Label aiOrdonnanceLabel;
+    @FXML private Label aiDoublonLabel;
+    @FXML private Label aiInteractionLabel;
+    @FXML private Label aiVerificationLabel;
     @FXML private StackPane mapContainer;
     @FXML private Label livraisonDepartLabel;
     @FXML private Label livraisonDestinationLabel;
@@ -122,6 +128,22 @@ public class CommandeController {
     @FXML private Label resumeTotal;
     @FXML private Button btnPanierDetail;
 
+    @FXML private Label    heroSubtitleLabel;
+    @FXML private Label    statMontantLabel;
+    @FXML private Label    statNbProduitsLabel;
+    @FXML private Label    statStatutLabel;
+    @FXML private Label    produitsTotalBadge;
+    @FXML private Label    clientDateCommandeLabel;
+
+    // IA
+    @FXML private Button   btnAnalyseIA;
+    @FXML private VBox     aiResultBox;
+    @FXML private HBox     aiLoadingBox;
+    @FXML private Label    aiResumLabel;
+    @FXML private Label    aiRisqueLabel;
+    @FXML private Label    aiActionLabel;
+    @FXML private Label    aiConfidenceLabel;
+
     // =======================
     // BACK - LISTE
     // =======================
@@ -162,6 +184,8 @@ public class CommandeController {
     private final StripeCheckoutService stripeCheckoutService = new StripeCheckoutService();
     private final StripeCallbackServer stripeCallbackServer = new StripeCallbackServer();
    // private final SmsService smsService = new SmsService();
+   private final CommandeAnalyseIAService analyseIAService = new CommandeAnalyseIAService();
+
 
     @FXML
     public void initialize() {
@@ -936,34 +960,90 @@ public class CommandeController {
 
         populateBackDetails();
     }
-
     private void populateBackDetails() {
         if (commandeSelectionneeBack == null) return;
 
-        detailCommandeNumeroLabel.setText("Commande #" + commandeSelectionneeBack.getId_commande());
-        detailDateLabel.setText(String.valueOf(commandeSelectionneeBack.getDate_creation_commande()));
+        Commande commande = commandeSelectionneeBack;
 
-        clientNomLabel.setText(safe(readStringReflect(commandeSelectionneeBack, "getNom_client", "getNomClient", "getNom")));
-        clientCinLabel.setText(safe(readStringReflect(commandeSelectionneeBack, "getCin_client", "getCinClient", "getCin")));
-        clientEmailLabel.setText(safe(readStringReflect(commandeSelectionneeBack, "getEmail_client", "getEmailClient", "getEmail")));
-        clientTelephoneLabel.setText(safe(readStringReflect(commandeSelectionneeBack, "getTelephone_client", "getTelephoneClient", "getTelephone")));
-        clientAdresseLabel.setText(safe(readStringReflect(commandeSelectionneeBack, "getAdresse_client", "getAdresseClient", "getAdresse")));
+        if (detailCommandeNumeroLabel != null) {
+            detailCommandeNumeroLabel.setText("Commande #" + commande.getId_commande());
+        }
 
-        detailMontantLabel.setText(String.format("%.2f Dt", commandeSelectionneeBack.getMontant_total_cents() / 100.0));
+        if (detailDateLabel != null) {
+            detailDateLabel.setText(displayValue(String.valueOf(commande.getDate_creation_commande())));
+        }
 
-        detailStatutLabel.setText(normalizeStatut(commandeSelectionneeBack.getStatut_commande()));
-        detailStatutLabel.getStyleClass().removeAll(
-                "status-confirmed", "status-progress", "status-pending",
-                "status-delivery", "status-final", "status-cancel"
-        );
-        detailStatutLabel.getStyleClass().addAll("status-badge", getStatusClass(commandeSelectionneeBack.getStatut_commande()));
+        User user = commande.getUser();
+
+        if (clientNomLabel != null) {
+            clientNomLabel.setText(getNomCompletUser(user));
+        }
+
+        if (clientEmailLabel != null) {
+            clientEmailLabel.setText(displayValue(readStringReflect(
+                    user,
+                    "getEmailUser", "getEmail_user", "getEmail"
+            )));
+        }
+
+        if (clientCinLabel != null) {
+            clientCinLabel.setText(displayValue(readStringReflect(
+                    user,
+                    "getCinUser", "getCin_user", "getCin", "getCIN"
+            )));
+        }
+
+        if (clientTelephoneLabel != null) {
+            clientTelephoneLabel.setText(displayValue(readStringReflect(
+                    user,
+                    "getTelephoneUser", "getTelephone_user", "getTelephone",
+                    "getTelUser", "getTel", "getNumTel", "getPhone"
+            )));
+        }
+
+        if (clientAdresseLabel != null) {
+            clientAdresseLabel.setText(displayValue(readStringReflect(
+                    user,
+                    "getAdresseUser", "getAdresse_user", "getAdresse", "getAddress"
+            )));
+        }
+
+        double montant = commande.getMontant_total_cents() / 100.0;
+
+        if (detailMontantLabel != null) {
+            detailMontantLabel.setText(String.format("%.2f Dt", montant));
+        }
+
+        String statut = commande.getStatut_commande();
+
+        if (detailStatutLabel != null) {
+            detailStatutLabel.setText(normalizeStatut(statut));
+            detailStatutLabel.getStyleClass().setAll("badge-detail", getBadgeClass(statut));
+        }
 
         if (btnCommencerLivraison != null) {
-            String statut = commandeSelectionneeBack.getStatut_commande();
             btnCommencerLivraison.setDisable(isStatutLivraison(statut) || isStatutTerminee(statut));
         }
 
+        populerNouveauxLabels(commande);
         fillProduitsGridBack();
+    }
+    private String displayValue(String value) {
+        if (value == null || value.trim().isEmpty() || value.equalsIgnoreCase("null")) {
+            return "—";
+        }
+        return value.trim();
+    }
+
+    private String getNomCompletUser(User user) {
+        if (user == null) return "Client inconnu";
+
+        String prenom = user.getPrenom() != null ? user.getPrenom() : "";
+        String nom = user.getNom() != null ? user.getNom() : "";
+
+        String fullName = (prenom + " " + nom).trim();
+
+        return fullName.isEmpty() ? "Client inconnu" : fullName;
     }
 
     @FXML
@@ -1043,12 +1123,16 @@ public class CommandeController {
 
             VBox produitInfos = new VBox(4);
             Label nom = new Label(safe(cp.getProduit().getNom_produit()));
+            nom.getStyleClass().add("grid-product-name");
             Label cat = new Label(safe(cp.getProduit().getCategorie_produit()));
+            cat.getStyleClass().add("grid-product-cat");
             produitInfos.getChildren().addAll(nom, cat);
 
             produitCell.getChildren().addAll(imgBox, produitInfos);
 
             Label qte = new Label(String.valueOf(cp.getQuantite_commandee()));
+            qte.getStyleClass().add("qty-circle");
+
             Label prix = new Label(String.format("%.2f Dt", cp.getProduit().getPrix_produit()));
             Label sub = new Label(String.format("%.2f Dt", cp.getProduit().getPrix_produit() * cp.getQuantite_commandee()));
 
@@ -1069,16 +1153,20 @@ public class CommandeController {
 
     private void addHeaderCellBack(String text, int col, int row) {
         Label label = new Label(text);
+        label.getStyleClass().add("grid-header-cell");
+        label.setMaxWidth(Double.MAX_VALUE);
+
         produitsGrid.add(label, col, row);
         GridPane.setHgrow(label, Priority.ALWAYS);
         GridPane.setFillWidth(label, true);
-        label.setMaxWidth(Double.MAX_VALUE);
     }
 
     private void addBodyCellBack(javafx.scene.Node node, int col, int row) {
         StackPane wrapper = new StackPane(node);
+        wrapper.getStyleClass().add("grid-body-cell");
         wrapper.setAlignment(col == 1 ? Pos.CENTER : Pos.CENTER_LEFT);
-        wrapper.setPadding(new Insets(12));
+        wrapper.setMaxWidth(Double.MAX_VALUE);
+
         produitsGrid.add(wrapper, col, row);
         GridPane.setHgrow(wrapper, Priority.ALWAYS);
         GridPane.setFillWidth(wrapper, true);
@@ -1086,8 +1174,10 @@ public class CommandeController {
 
     private void addFooterCellBack(javafx.scene.Node node, int col, int row, int colspan) {
         StackPane wrapper = new StackPane(node);
+        wrapper.getStyleClass().add("grid-footer-cell");
         wrapper.setAlignment(Pos.CENTER_LEFT);
-        wrapper.setPadding(new Insets(12));
+        wrapper.setMaxWidth(Double.MAX_VALUE);
+
         produitsGrid.add(wrapper, col, row, colspan, 1);
         GridPane.setHgrow(wrapper, Priority.ALWAYS);
         GridPane.setFillWidth(wrapper, true);
@@ -1520,12 +1610,14 @@ public class CommandeController {
         if (statut == null || statut.isBlank()) return "En attente";
 
         String s = statut.toLowerCase();
+
         if (s.contains("pay")) return "Payée";
         if (s.contains("confirm")) return "Confirmée";
         if (s.contains("cours")) return "En cours";
         if (s.contains("attente")) return "En attente";
         if (s.contains("livraison")) return "Livraison";
         if (s.contains("final")) return "Finalisée";
+        if (s.contains("termin")) return "Terminée";
         if (s.contains("annul")) return "Annulée";
 
         return statut;
@@ -1545,9 +1637,12 @@ public class CommandeController {
         if (statut == null) return "badge-default";
 
         String s = statut.toLowerCase();
-        if (s.contains("livraison")) return "badge-livraison";
+
+        if (s.contains("pay") || s.contains("confirm")) return "badge-confirmed";
         if (s.contains("cours")) return "badge-cours";
-        if (s.contains("final")) return "badge-finalise";
+        if (s.contains("attente")) return "badge-attente";
+        if (s.contains("livraison")) return "badge-livraison";
+        if (s.contains("final") || s.contains("termin")) return "badge-finalise";
 
         return "badge-default";
     }
@@ -2993,6 +3088,230 @@ public class CommandeController {
         return polyline.isEmpty() ? null : polyline.toString();
     }
 
+
+    private void populerNouveauxLabels(Commande commande) {
+        if (commande == null) return;
+
+        int nbProduits = commande.getCommande_produits() != null
+                ? commande.getCommande_produits().size()
+                : 0;
+
+        double montant = commande.getMontant_total_cents() / 100.0;
+        String statut = normalizeStatut(commande.getStatut_commande());
+
+        if (heroSubtitleLabel != null) {
+            heroSubtitleLabel.setText(nbProduits + " produit(s) · " + statut);
+        }
+
+        if (statMontantLabel != null) {
+            statMontantLabel.setText(String.format("%.2f Dt", montant));
+        }
+
+        if (statNbProduitsLabel != null) {
+            statNbProduitsLabel.setText(String.valueOf(nbProduits));
+        }
+
+        if (statStatutLabel != null) {
+            statStatutLabel.setText(statut);
+        }
+
+        if (produitsTotalBadge != null) {
+            produitsTotalBadge.setText(String.format("Total : %.2f Dt", montant));
+        }
+
+        if (clientDateCommandeLabel != null) {
+            clientDateCommandeLabel.setText(
+                    commande.getDate_creation_commande() == null
+                            ? "—"
+                            : String.valueOf(commande.getDate_creation_commande())
+            );
+        }
+
+        if (aiResultBox != null) {
+            aiResultBox.setVisible(false);
+            aiResultBox.setManaged(false);
+        }
+
+        if (aiLoadingBox != null) {
+            aiLoadingBox.setVisible(false);
+            aiLoadingBox.setManaged(false);
+        }
+    }
+
+// ── MÉTHODE IA ───────────────────────────────────────────────────────────────
+
+    @FXML
+    private void lancerAnalyseIA() {
+        if (commandeSelectionneeBack == null) return;   // ← CORRIGÉ
+
+        if (btnAnalyseIA != null) {
+            btnAnalyseIA.setDisable(true);
+            btnAnalyseIA.setText("⏳ Analyse...");
+        }
+
+        if (aiResultBox != null) {
+            aiResultBox.setVisible(false);
+            aiResultBox.setManaged(false);
+        }
+        if (aiLoadingBox != null) {
+            aiLoadingBox.setVisible(true);
+            aiLoadingBox.setManaged(true);
+        }
+
+        final Commande commandeAAnalyser = commandeSelectionneeBack;   // ← CORRIGÉ
+
+        Thread t = new Thread(() -> {
+            CommandeAnalyseIAService.AnalyseResult result =
+                    analyseIAService.analyserCommande(commandeAAnalyser);
+
+            javafx.application.Platform.runLater(() -> {
+                if (aiLoadingBox != null) {
+                    aiLoadingBox.setVisible(false);
+                    aiLoadingBox.setManaged(false);
+                }
+
+                if (result.success) {
+
+                    if (aiDecisionLabel != null) {
+                        aiDecisionLabel.setText(result.decision);
+                    }
+
+                    if (aiScoreLabel != null) {
+                        aiScoreLabel.setText(result.score);
+                    }
+
+                    if (aiPrioriteLabel != null) {
+                        aiPrioriteLabel.setText(result.priorite);
+                    }
+
+                    if (aiOrdonnanceLabel != null) {
+                        aiOrdonnanceLabel.setText(result.ordonnance);
+                    }
+
+                    if (aiDoublonLabel != null) {
+                        aiDoublonLabel.setText(result.doublon);
+                    }
+
+                    if (aiInteractionLabel != null) {
+                        aiInteractionLabel.setText(result.interaction);
+                    }
+
+                    if (aiVerificationLabel != null) {
+                        aiVerificationLabel.setText(result.verification);
+                    }
+
+                    if (aiResumLabel != null) {
+                        aiResumLabel.setText(result.resume);
+                    }
+
+                    if (aiRisqueLabel != null) {
+                        aiRisqueLabel.setText(result.risques);
+                    }
+
+                    if (aiActionLabel != null) {
+                        aiActionLabel.setText(result.action);
+                    }
+
+                    if (aiConfidenceLabel != null) {
+                        aiConfidenceLabel.setText(result.confiance);
+                    }
+
+                    if (aiResultBox != null) {
+                        aiResultBox.setVisible(true);
+                        aiResultBox.setManaged(true);
+                        aiResultBox.setOpacity(0);
+
+                        javafx.animation.FadeTransition fade =
+                                new javafx.animation.FadeTransition(
+                                        javafx.util.Duration.millis(350), aiResultBox);
+                        fade.setFromValue(0);
+                        fade.setToValue(1);
+                        fade.play();
+                    }
+
+                    afficherToastCommande("✨ Analyse IA terminée !", "commande-toast-success", "🤖");
+
+                } else {
+                    if (aiResumLabel != null) {
+                        aiResumLabel.setText("Erreur : " + result.error);
+                    }
+                    if (aiResultBox != null) {
+                        aiResultBox.setVisible(true);
+                        aiResultBox.setManaged(true);
+                    }
+                    afficherToastCommande("Erreur IA : " + result.error, "commande-toast-danger", "✖");
+                }
+
+                if (btnAnalyseIA != null) {
+                    btnAnalyseIA.setDisable(false);
+                    btnAnalyseIA.setText("✨ Analyser avec IA");
+                }
+            });
+        }, "commande-ia-analyse-thread");
+        t.setDaemon(true);
+        t.start();
+    }
+
+    // ── TOAST HELPER (si pas déjà dans votre controller) ─────────────────────────
+    private void afficherToastCommande(String message, String styleClass, String iconText) {
+        // Récupérer un nœud ancre
+        javafx.scene.Node anchor = null;
+        if (btnAnalyseIA != null && btnAnalyseIA.getScene() != null) anchor = btnAnalyseIA;
+        else if (btnMettreAJourStatut != null && btnMettreAJourStatut.getScene() != null) anchor = btnMettreAJourStatut;
+        if (anchor == null) return;
+
+        javafx.scene.Scene scene = anchor.getScene();
+        if (scene == null) return;
+        javafx.stage.Window window = scene.getWindow();
+        if (window == null) return;
+
+        javafx.scene.layout.HBox toast = new javafx.scene.layout.HBox(10);
+        toast.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        toast.getStyleClass().addAll("floating-toast", styleClass);
+        toast.setMaxWidth(380);
+        toast.setPadding(new javafx.geometry.Insets(14, 18, 14, 14));
+
+        javafx.scene.control.Label icon = new javafx.scene.control.Label(iconText);
+        icon.getStyleClass().add("toast-icon");
+
+        javafx.scene.control.Label text = new javafx.scene.control.Label(message);
+        text.getStyleClass().add("toast-text");
+        text.setWrapText(true);
+        text.setMaxWidth(300);
+
+        toast.getChildren().addAll(icon, text);
+
+        javafx.stage.Popup popup = new javafx.stage.Popup();
+        popup.getContent().add(toast);
+        popup.setAutoHide(false);
+        popup.setAutoFix(true);
+
+        double x = window.getX() + scene.getWidth() - 420;
+        double y = window.getY() + scene.getHeight() - 100;
+        popup.show(window, x, y);
+
+        java.net.URL cssUrl = getClass().getResource("/CSS/commande_detail.css");
+        if (cssUrl != null && popup.getScene() != null) {
+            popup.getScene().getStylesheets().add(cssUrl.toExternalForm());
+        }
+
+        toast.setOpacity(0);
+        javafx.animation.FadeTransition fadeIn = new javafx.animation.FadeTransition(
+                javafx.util.Duration.millis(220), toast);
+        fadeIn.setFromValue(0); fadeIn.setToValue(1);
+
+        javafx.animation.PauseTransition pause =
+                new javafx.animation.PauseTransition(javafx.util.Duration.seconds(3));
+
+        javafx.animation.FadeTransition fadeOut = new javafx.animation.FadeTransition(
+                javafx.util.Duration.millis(250), toast);
+        fadeOut.setFromValue(1); fadeOut.setToValue(0);
+
+        javafx.animation.SequentialTransition seq =
+                new javafx.animation.SequentialTransition(fadeIn, pause, fadeOut);
+        seq.setOnFinished(e -> popup.hide());
+        seq.play();
+    }
 
 
 

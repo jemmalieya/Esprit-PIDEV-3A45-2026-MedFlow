@@ -5,10 +5,10 @@
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextArea?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.Priority?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
@@ -17,16 +17,16 @@
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="tn.esprit.controllers.CommandeController"
             prefWidth="1400.0" prefHeight="850.0"
-            stylesheets="@CSS/commande_back.css"
+            stylesheets="@CSS/cmd_dt_back.css"
             styleClass="root-pane">
 
+    <!-- ══════════════════════════════════════════════════════════ SIDEBAR -->
     <left>
         <VBox prefWidth="250.0" minWidth="250.0" maxWidth="250.0" styleClass="sidebar">
-            <padding>
-                <Insets top="24.0" right="18.0" bottom="24.0" left="18.0"/>
-            </padding>
-
+            <padding><Insets top="24.0" right="18.0" bottom="24.0" left="18.0"/></padding>
             <children>
+
+                <!-- Logo -->
                 <HBox alignment="CENTER_LEFT" spacing="14.0" styleClass="logo-box">
                     <children>
                         <StackPane prefWidth="40.0" prefHeight="40.0">
@@ -50,10 +50,7 @@
 
                 <Label text="GESTIONS" styleClass="sidebar-section-title"/>
 
-                <Button text=""
-                        alignment="CENTER_LEFT"
-                        maxWidth="Infinity"
-                        prefWidth="220.0"
+                <Button text="" alignment="CENTER_LEFT" maxWidth="Infinity" prefWidth="220.0"
                         contentDisplay="GRAPHIC_ONLY"
                         styleClass="sidebar-item, sidebar-btn, active-product-btn">
                     <graphic>
@@ -68,33 +65,32 @@
                     </graphic>
                 </Button>
 
-                <VBox spacing="18.0"
-                      styleClass="submenu-card"
-                      managed="true"
-                      visible="true"
-                      maxWidth="220.0">
+                <VBox spacing="18.0" styleClass="submenu-card" managed="true" visible="true" maxWidth="220.0">
                     <children>
                         <Label text="GESTION DES PRODUITS :" styleClass="submenu-title"/>
-
-                        <Button text="Voir tous les produits"
-                                onAction="#retourProduitDashboard"
-                                maxWidth="Infinity"
-                                alignment="CENTER_LEFT"
-                                styleClass="submenu-link"/>
-
-                        <Button text="↗ Dashboard Admin BI"
-                                onAction="#retourProduitDashboard"
-                                maxWidth="Infinity"
-                                alignment="CENTER_LEFT"
-                                styleClass="submenu-link"/>
-
-                        <Button text="Autres actions"
-                                onAction="#retourProduitDashboard"
-                                maxWidth="Infinity"
-                                alignment="CENTER_LEFT"
-                                styleClass="submenu-link"/>
+                        <Button text="Voir tous les produits" onAction="#retourProduitDashboard"
+                                maxWidth="Infinity" alignment="CENTER_LEFT" styleClass="submenu-link"/>
+                        <Button text="↗ Dashboard Admin BI" onAction="#retourProduitDashboard"
+                                maxWidth="Infinity" alignment="CENTER_LEFT" styleClass="submenu-link"/>
+                        <Button text="Autres actions" onAction="#retourProduitDashboard"
+                                maxWidth="Infinity" alignment="CENTER_LEFT" styleClass="submenu-link"/>
                     </children>
                 </VBox>
+
+                <Label text="COMMANDES" styleClass="sidebar-section-title"/>
+
+                <Button text="" alignment="CENTER_LEFT" maxWidth="Infinity" prefWidth="220.0"
+                        contentDisplay="GRAPHIC_ONLY"
+                        styleClass="sidebar-item, sidebar-btn">
+                    <graphic>
+                        <HBox alignment="CENTER_LEFT" spacing="10.0" maxWidth="Infinity">
+                            <children>
+                                <Label text="🧾" styleClass="sidebar-item-icon"/>
+                                <Label text="Commandes" styleClass="sidebar-item-text"/>
+                            </children>
+                        </HBox>
+                    </graphic>
+                </Button>
 
                 <Region VBox.vgrow="ALWAYS"/>
 
@@ -108,192 +104,465 @@
         </VBox>
     </left>
 
+    <!-- ══════════════════════════════════════════════════════════ CONTENT -->
     <center>
-        <ScrollPane fitToWidth="true"
-                    hbarPolicy="NEVER"
-                    vbarPolicy="AS_NEEDED"
-                    styleClass="detail-scroll">
+        <ScrollPane fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" styleClass="detail-scroll">
             <content>
                 <VBox spacing="20.0" styleClass="detail-page">
-                    <padding>
-                        <Insets top="24.0" right="28.0" bottom="24.0" left="28.0"/>
-                    </padding>
+                    <padding><Insets top="24.0" right="28.0" bottom="32.0" left="28.0"/></padding>
 
-                    <Button text="← Retour à la liste"
-                            onAction="#retourListeCommandes"
-                            styleClass="back-btn"/>
-
-                    <VBox spacing="0.0" styleClass="detail-card">
+                    <!-- ── Top bar ─────────────────────────────────────── -->
+                    <HBox alignment="CENTER_LEFT" spacing="14.0" styleClass="top-bar">
                         <children>
-                            <HBox alignment="CENTER_LEFT" styleClass="detail-header">
+                            <Button text="← Retour aux commandes" onAction="#retourListeCommandes" styleClass="back-btn"/>
+                            <Region HBox.hgrow="ALWAYS"/>
+                            <Label fx:id="detailCommandeNumeroLabel" text="Commande #—" styleClass="top-cmd-number"/>
+                            <Label fx:id="detailDateLabel" text="—" styleClass="top-cmd-date"/>
+                        </children>
+                    </HBox>
+
+                    <!-- ── HERO CARD ───────────────────────────────────── -->
+                    <HBox styleClass="hero-gradient-card" alignment="CENTER_LEFT" spacing="24.0">
+                        <padding><Insets top="26.0" right="30.0" bottom="26.0" left="30.0"/></padding>
+                        <children>
+                            <StackPane prefWidth="72.0" prefHeight="72.0" styleClass="hero-icon-circle">
+                                <children><Label text="🧾" styleClass="hero-icon"/></children>
+                            </StackPane>
+                            <VBox spacing="6.0">
                                 <children>
-                                    <Label fx:id="detailCommandeNumeroLabel"
-                                           text="Commande #0"
-                                           styleClass="detail-title"/>
+                                    <Label text="Détail de la Commande" styleClass="hero-title"/>
+                                    <HBox spacing="12.0" alignment="CENTER_LEFT">
+                                        <children>
+                                            <Label fx:id="heroSubtitleLabel" text="Chargement..." styleClass="hero-subtitle"/>
+                                            <Label text="🛡 Pharmacien" styleClass="hero-badge"/>
+                                        </children>
+                                    </HBox>
+                                </children>
+                            </VBox>
+                            <Region HBox.hgrow="ALWAYS"/>
+                            <VBox alignment="CENTER_RIGHT" spacing="8.0">
+                                <children>
+                                    <Label fx:id="detailMontantLabel" text="0.00 Dt" styleClass="hero-amount"/>
+                                    <Label fx:id="detailStatutLabel" text="—" styleClass="badge-detail"/>
+                                </children>
+                            </VBox>
+                        </children>
+                    </HBox>
+
+                    <!-- ── ROW : Client + Récap ────────────────────────── -->
+                    <HBox spacing="18.0">
+                        <children>
+
+                            <!-- Client card -->
+                            <VBox styleClass="info-card" HBox.hgrow="ALWAYS" spacing="0.0">
+                                <children>
+                                    <HBox styleClass="card-header-blue">
+                                        <children>
+                                            <Label text="👤  Informations Client" styleClass="card-header-title"/>
+                                        </children>
+                                    </HBox>
+                                    <VBox spacing="14.0" styleClass="card-body">
+                                        <padding><Insets top="20.0" right="22.0" bottom="20.0" left="22.0"/></padding>
+                                        <children>
+
+                                            <!-- Avatar + nom -->
+                                            <HBox alignment="CENTER_LEFT" spacing="16.0">
+                                                <children>
+                                                    <StackPane prefWidth="56.0" prefHeight="56.0" styleClass="client-avatar">
+                                                        <children><Label text="👤" styleClass="client-avatar-icon"/></children>
+                                                    </StackPane>
+                                                    <VBox spacing="3.0">
+                                                        <children>
+                                                            <Label fx:id="clientNomLabel" text="—" styleClass="client-name-big"/>
+                                                            <Label fx:id="clientEmailLabel" text="—" styleClass="client-email-line"/>
+                                                        </children>
+                                                    </VBox>
+                                                </children>
+                                            </HBox>
+
+                                            <Region prefHeight="6.0" styleClass="card-divider"/>
+
+                                            <!-- Info grid -->
+                                            <HBox spacing="12.0">
+                                                <children>
+                                                    <VBox spacing="10.0" HBox.hgrow="ALWAYS">
+                                                        <children>
+                                                            <HBox styleClass="info-row" spacing="10.0">
+                                                                <children>
+                                                                    <Label text="🪪" styleClass="info-icon"/>
+                                                                    <VBox spacing="1.0">
+                                                                        <children>
+                                                                            <Label text="CIN" styleClass="info-label"/>
+                                                                            <Label fx:id="clientCinLabel" text="—" styleClass="info-value"/>
+                                                                        </children>
+                                                                    </VBox>
+                                                                </children>
+                                                            </HBox>
+                                                            <HBox styleClass="info-row" spacing="10.0">
+                                                                <children>
+                                                                    <Label text="📞" styleClass="info-icon"/>
+                                                                    <VBox spacing="1.0">
+                                                                        <children>
+                                                                            <Label text="Téléphone" styleClass="info-label"/>
+                                                                            <Label fx:id="clientTelephoneLabel" text="—" styleClass="info-value"/>
+                                                                        </children>
+                                                                    </VBox>
+                                                                </children>
+                                                            </HBox>
+                                                        </children>
+                                                    </VBox>
+                                                    <VBox spacing="10.0" HBox.hgrow="ALWAYS">
+                                                        <children>
+                                                            <HBox styleClass="info-row" spacing="10.0">
+                                                                <children>
+                                                                    <Label text="📍" styleClass="info-icon"/>
+                                                                    <VBox spacing="1.0">
+                                                                        <children>
+                                                                            <Label text="Adresse" styleClass="info-label"/>
+                                                                            <Label fx:id="clientAdresseLabel" text="—" styleClass="info-value" wrapText="true" maxWidth="180.0"/>
+                                                                        </children>
+                                                                    </VBox>
+                                                                </children>
+                                                            </HBox>
+                                                            <HBox styleClass="info-row" spacing="10.0">
+                                                                <children>
+                                                                    <Label text="🕐" styleClass="info-icon"/>
+                                                                    <VBox spacing="1.0">
+                                                                        <children>
+                                                                            <Label text="Date commande" styleClass="info-label"/>
+                                                                            <Label fx:id="clientDateCommandeLabel" text="—" styleClass="info-value"/>
+                                                                        </children>
+                                                                    </VBox>
+                                                                </children>
+                                                            </HBox>
+                                                        </children>
+                                                    </VBox>
+                                                </children>
+                                            </HBox>
+                                        </children>
+                                    </VBox>
+                                </children>
+                            </VBox>
+
+                            <!-- Récap rapide -->
+                            <VBox spacing="14.0" prefWidth="220.0">
+                                <children>
+                                    <!-- Montant card -->
+                                    <VBox styleClass="stat-mini-card green-glow" spacing="6.0">
+                                        <padding><Insets top="18.0" right="18.0" bottom="18.0" left="18.0"/></padding>
+                                        <children>
+                                            <Label text="💰 Montant total" styleClass="stat-mini-label"/>
+                                            <Label fx:id="statMontantLabel" text="0.00 Dt" styleClass="stat-mini-value green"/>
+                                        </children>
+                                    </VBox>
+                                    <!-- Nb produits card -->
+                                    <VBox styleClass="stat-mini-card blue-glow" spacing="6.0">
+                                        <padding><Insets top="18.0" right="18.0" bottom="18.0" left="18.0"/></padding>
+                                        <children>
+                                            <Label text="📦 Produits" styleClass="stat-mini-label"/>
+                                            <Label fx:id="statNbProduitsLabel" text="0" styleClass="stat-mini-value blue"/>
+                                        </children>
+                                    </VBox>
+                                    <!-- Statut card -->
+                                    <VBox styleClass="stat-mini-card orange-glow" spacing="6.0">
+                                        <padding><Insets top="18.0" right="18.0" bottom="18.0" left="18.0"/></padding>
+                                        <children>
+                                            <Label text="ⓘ Statut" styleClass="stat-mini-label"/>
+                                            <Label fx:id="statStatutLabel" text="—" styleClass="stat-mini-value orange"/>
+                                        </children>
+                                    </VBox>
+                                </children>
+                            </VBox>
+
+                        </children>
+                    </HBox>
+
+                    <!-- ── Produits commandés ──────────────────────────── -->
+                    <VBox styleClass="info-card" spacing="0.0">
+                        <children>
+                            <HBox styleClass="card-header-teal">
+                                <children>
+                                    <Label text="📦  Produits commandés" styleClass="card-header-title"/>
                                     <Region HBox.hgrow="ALWAYS"/>
-                                    <Label fx:id="detailDateLabel"
-                                           text="14/04/2026"
-                                           styleClass="detail-date"/>
+                                    <Label fx:id="produitsTotalBadge" text="Total : 0.00 Dt" styleClass="card-header-badge"/>
                                 </children>
                             </HBox>
-
-                            <HBox spacing="40.0" styleClass="detail-info-row">
-                                <padding>
-                                    <Insets top="22.0" right="20.0" bottom="22.0" left="20.0"/>
-                                </padding>
+                            <VBox styleClass="card-body" spacing="0.0">
+                                <padding><Insets top="0.0" right="0.0" bottom="0.0" left="0.0"/></padding>
                                 <children>
-                                    <VBox spacing="8.0" HBox.hgrow="ALWAYS">
-                                        <children>
-                                            <Label text="👤 Informations client" styleClass="section-mini-title"/>
-                                            <Label fx:id="clientNomLabel" text="Nom : -" styleClass="info-line"/>
-                                            <Label fx:id="clientCinLabel" text="CIN : -" styleClass="info-line"/>
-                                            <Label fx:id="clientEmailLabel" text="Email : -" styleClass="info-line"/>
-                                            <Label fx:id="clientTelephoneLabel" text="Téléphone : -" styleClass="info-line"/>
-                                            <Label fx:id="clientAdresseLabel" text="Adresse : -" styleClass="info-line"/>
-                                        </children>
-                                    </VBox>
-
-                                    <VBox spacing="8.0" prefWidth="220.0">
-                                        <children>
-                                            <Label text="💳 Montant" styleClass="section-mini-title"/>
-                                            <Label fx:id="detailMontantLabel"
-                                                   text="0.00 Dt"
-                                                   styleClass="amount-big"/>
-                                        </children>
-                                    </VBox>
-
-                                    <VBox spacing="8.0" prefWidth="220.0">
-                                        <children>
-                                            <Label text="ⓘ Statut" styleClass="section-mini-title"/>
-                                            <Label fx:id="detailStatutLabel"
-                                                   text="Confirmée"
-                                                   styleClass="badge-detail"/>
-                                        </children>
-                                    </VBox>
-                                </children>
-                            </HBox>
-
-                            <VBox spacing="12.0" styleClass="products-section">
-                                <padding>
-                                    <Insets top="0.0" right="20.0" bottom="20.0" left="20.0"/>
-                                </padding>
-                                <children>
-                                    <Label text="📦 Produits commandés" styleClass="section-title"/>
-
-                                    <GridPane fx:id="produitsGrid"
-                                              hgap="0.0"
-                                              vgap="0.0"
-                                              maxWidth="Infinity"/>
+                                    <GridPane fx:id="produitsGrid" hgap="0.0" vgap="0.0" maxWidth="Infinity"/>
                                 </children>
                             </VBox>
                         </children>
                     </VBox>
 
-                    <VBox spacing="0.0" styleClass="section-card warning-card">
+                    <!-- ── IA ANALYSE ─────────────────────────────────── -->
+                    <!-- ── IA ANALYSE ─────────────────────────────────── -->
+                    <VBox styleClass="ai-card" spacing="0.0">
                         <children>
-                            <HBox styleClass="warning-header">
+                            <HBox styleClass="ai-header" alignment="CENTER_LEFT" spacing="14.0">
+                                <padding>
+                                    <Insets top="16.0" right="20.0" bottom="16.0" left="20.0"/>
+                                </padding>
                                 <children>
-                                    <Label text="🚚 Livraison (Staff)"
-                                           styleClass="section-card-title-dark"/>
+                                    <StackPane prefWidth="40.0" prefHeight="40.0" styleClass="ai-icon-box">
+                                        <children>
+                                            <Label text="🤖" styleClass="ai-icon"/>
+                                        </children>
+                                    </StackPane>
+
+                                    <VBox spacing="2.0">
+                                        <children>
+                                            <Label text="Analyse Intelligente de la Commande" styleClass="ai-title"/>
+                                            <Label text="Powered by Groq AI · Assistant pharmacien intelligent" styleClass="ai-subtitle"/>
+                                        </children>
+                                    </VBox>
+
+                                    <Region HBox.hgrow="ALWAYS"/>
+
+                                    <Button fx:id="btnAnalyseIA"
+                                            text="✨ Analyser avec IA"
+                                            onAction="#lancerAnalyseIA"
+                                            styleClass="ai-btn"/>
                                 </children>
                             </HBox>
 
-                            <VBox styleClass="section-card-body" spacing="14.0">
+                            <VBox fx:id="aiResultBox"
+                                  styleClass="ai-result-body"
+                                  spacing="18.0"
+                                  visible="false"
+                                  managed="false">
                                 <padding>
-                                    <Insets top="18.0" right="18.0" bottom="18.0" left="18.0"/>
+                                    <Insets top="22.0" right="24.0" bottom="24.0" left="24.0"/>
+                                </padding>
+
+                                <children>
+
+                                    <!-- Ligne décision + score + priorité -->
+                                    <HBox spacing="14.0" alignment="CENTER_LEFT">
+                                        <children>
+                                            <VBox styleClass="ai-main-decision-card" HBox.hgrow="ALWAYS" spacing="8.0">
+                                                <children>
+                                                    <Label text="Décision IA" styleClass="ai-small-title"/>
+                                                    <Label fx:id="aiDecisionLabel"
+                                                           text="—"
+                                                           styleClass="ai-decision-text"
+                                                           wrapText="true"/>
+                                                </children>
+                                            </VBox>
+
+                                            <VBox styleClass="ai-score-card" prefWidth="180.0" spacing="8.0">
+                                                <children>
+                                                    <Label text="Score sécurité" styleClass="ai-small-title"/>
+                                                    <Label fx:id="aiScoreLabel"
+                                                           text="—"
+                                                           styleClass="ai-score-text"/>
+                                                </children>
+                                            </VBox>
+
+                                            <VBox styleClass="ai-priority-card" prefWidth="180.0" spacing="8.0">
+                                                <children>
+                                                    <Label text="Priorité" styleClass="ai-small-title"/>
+                                                    <Label fx:id="aiPrioriteLabel"
+                                                           text="—"
+                                                           styleClass="ai-priority-text"/>
+                                                </children>
+                                            </VBox>
+                                        </children>
+                                    </HBox>
+
+                                    <!-- Ligne ordonnance / doublon / interaction -->
+                                    <HBox spacing="14.0">
+                                        <children>
+                                            <VBox styleClass="ai-check-card" HBox.hgrow="ALWAYS" spacing="8.0">
+                                                <children>
+                                                    <Label text="Ordonnance" styleClass="ai-check-title"/>
+                                                    <Label fx:id="aiOrdonnanceLabel"
+                                                           text="—"
+                                                           styleClass="ai-check-text"
+                                                           wrapText="true"/>
+                                                </children>
+                                            </VBox>
+
+                                            <VBox styleClass="ai-check-card" HBox.hgrow="ALWAYS" spacing="8.0">
+                                                <children>
+                                                    <Label text="Doublon / Quantité" styleClass="ai-check-title"/>
+                                                    <Label fx:id="aiDoublonLabel"
+                                                           text="—"
+                                                           styleClass="ai-check-text"
+                                                           wrapText="true"/>
+                                                </children>
+                                            </VBox>
+
+                                            <VBox styleClass="ai-check-card" HBox.hgrow="ALWAYS" spacing="8.0">
+                                                <children>
+                                                    <Label text="Interaction possible" styleClass="ai-check-title"/>
+                                                    <Label fx:id="aiInteractionLabel"
+                                                           text="—"
+                                                           styleClass="ai-check-text"
+                                                           wrapText="true"/>
+                                                </children>
+                                            </VBox>
+                                        </children>
+                                    </HBox>
+
+                                    <!-- Résumé -->
+                                    <VBox styleClass="ai-section-pro" spacing="8.0">
+                                        <children>
+                                            <Label text="Résumé professionnel" styleClass="ai-section-title"/>
+                                            <Label fx:id="aiResumLabel"
+                                                   text="—"
+                                                   styleClass="ai-text-pro"
+                                                   wrapText="true"/>
+                                        </children>
+                                    </VBox>
+
+                                    <!-- Points critiques -->
+                                    <VBox styleClass="ai-warning-pro" spacing="8.0">
+                                        <children>
+                                            <Label text="Points critiques à vérifier" styleClass="ai-warning-title"/>
+                                            <Label fx:id="aiRisqueLabel"
+                                                   text="—"
+                                                   styleClass="ai-text-pro"
+                                                   wrapText="true"/>
+                                        </children>
+                                    </VBox>
+
+                                    <!-- Action -->
+                                    <VBox styleClass="ai-action-pro" spacing="8.0">
+                                        <children>
+                                            <Label text="Action recommandée" styleClass="ai-action-title"/>
+                                            <Label fx:id="aiActionLabel"
+                                                   text="—"
+                                                   styleClass="ai-action-text"
+                                                   wrapText="true"/>
+                                        </children>
+                                    </VBox>
+
+                                    <!-- Footer IA -->
+                                    <HBox alignment="CENTER_LEFT" spacing="14.0">
+                                        <children>
+                                            <Label text="Checklist pharmacien :" styleClass="ai-confidence-label"/>
+                                            <Label fx:id="aiVerificationLabel"
+                                                   text="—"
+                                                   styleClass="ai-confidence-value"
+                                                   wrapText="true"/>
+
+                                            <Region HBox.hgrow="ALWAYS"/>
+
+                                            <Label text="Confiance IA :" styleClass="ai-confidence-label"/>
+                                            <Label fx:id="aiConfidenceLabel"
+                                                   text="—"
+                                                   styleClass="ai-confidence-value"/>
+                                        </children>
+                                    </HBox>
+
+                                </children>
+                            </VBox>
+
+                            <!-- Loading state -->
+                            <HBox fx:id="aiLoadingBox"
+                                  alignment="CENTER"
+                                  spacing="12.0"
+                                  styleClass="ai-loading"
+                                  visible="false"
+                                  managed="false">
+                                <padding>
+                                    <Insets top="20.0" right="0.0" bottom="20.0" left="0.0"/>
                                 </padding>
                                 <children>
-                                    <Label text="Le départ se fait depuis la pharmacie Esprit Ariana et la destination est l’adresse du client."
-                                           wrapText="true"
-                                           styleClass="info-line"/>
+                                    <Label text="⏳" styleClass="ai-loading-icon"/>
+                                    <Label text="Analyse en cours par Groq AI..." styleClass="ai-loading-text"/>
+                                </children>
+                            </HBox>
+                        </children>
+                    </VBox>
 
-                                    <HBox spacing="12" alignment="CENTER_LEFT">
-                                        <Button fx:id="btnCommencerLivraison" text="🚚 Commencer livraison"
-                                                onAction="#commencerLivraisonCommande"
-                                                styleClass="btn-update"/>
+                    <!-- ── Livraison ───────────────────────────────────── -->
+                    <VBox styleClass="info-card" spacing="0.0">
+                        <children>
+                            <HBox styleClass="card-header-yellow">
+                                <children>
+                                    <Label text="🚚  Livraison (Staff)" styleClass="card-header-title-dark"/>
+                                </children>
+                            </HBox>
+                            <VBox styleClass="card-body" spacing="14.0">
+                                <padding><Insets top="18.0" right="22.0" bottom="18.0" left="22.0"/></padding>
+                                <children>
+                                    <Label text="Le départ se fait depuis la Pharmacie Esprit Ariana → destination : adresse du client."
+                                           wrapText="true" styleClass="delivery-info-text"/>
+                                    <HBox spacing="12.0" alignment="CENTER_LEFT">
+                                        <children>
+                                            <Button fx:id="btnCommencerLivraison" text="🚚 Commencer la livraison"
+                                                    onAction="#commencerLivraisonCommande" styleClass="btn-delivery"/>
+                                        </children>
                                     </HBox>
                                 </children>
                             </VBox>
                         </children>
                     </VBox>
 
-                    <VBox spacing="0.0" styleClass="section-card">
+                    <!-- ── Modifier statut ─────────────────────────────── -->
+                    <VBox styleClass="info-card" spacing="0.0">
                         <children>
-                            <HBox styleClass="section-card-header">
+                            <HBox styleClass="card-header-blue">
                                 <children>
-                                    <Label text="✏ Modifier le statut"
-                                           styleClass="section-card-title"/>
+                                    <Label text="✏  Modifier le statut" styleClass="card-header-title"/>
                                 </children>
                             </HBox>
-
-                            <HBox alignment="CENTER_LEFT"
-                                  spacing="18.0"
-                                  styleClass="section-card-body">
-                                <padding>
-                                    <Insets top="18.0" right="18.0" bottom="18.0" left="18.0"/>
-                                </padding>
+                            <HBox alignment="CENTER_LEFT" spacing="18.0" styleClass="card-body">
+                                <padding><Insets top="18.0" right="22.0" bottom="18.0" left="22.0"/></padding>
                                 <children>
-                                    <Label text="Nouveau statut :" styleClass="info-line"/>
-                                    <ComboBox fx:id="nouveauStatutCombo"
-                                              prefWidth="180.0"/>
+                                    <Label text="Nouveau statut :" styleClass="info-value"/>
+                                    <ComboBox fx:id="nouveauStatutCombo" prefWidth="200.0" styleClass="statut-combo"/>
                                     <Region HBox.hgrow="ALWAYS"/>
-                                    <Button fx:id="btnMettreAJourStatut"
-                                            text="✔ Mettre à jour"
-                                            onAction="#mettreAJourStatutCommande"
-                                            styleClass="btn-update"/>
+                                    <Button fx:id="btnMettreAJourStatut" text="✔ Mettre à jour"
+                                            onAction="#mettreAJourStatutCommande" styleClass="btn-update"/>
                                 </children>
                             </HBox>
                         </children>
                     </VBox>
 
-                    <VBox spacing="0.0" styleClass="section-card">
+                    <!-- ── Facture ─────────────────────────────────────── -->
+                    <VBox styleClass="info-card" spacing="0.0">
                         <children>
-                            <HBox styleClass="section-card-header">
+                            <HBox styleClass="card-header-teal">
                                 <children>
-                                    <Label text="📄 Facture"
-                                           styleClass="section-card-title"/>
+                                    <Label text="📄  Facture PDF" styleClass="card-header-title"/>
                                 </children>
                             </HBox>
-
-                            <HBox spacing="12.0" styleClass="section-card-body">
-                                <padding>
-                                    <Insets top="18.0" right="18.0" bottom="18.0" left="18.0"/>
-                                </padding>
+                            <HBox spacing="12.0" styleClass="card-body" alignment="CENTER_LEFT">
+                                <padding><Insets top="18.0" right="22.0" bottom="18.0" left="22.0"/></padding>
                                 <children>
-                                    <Button fx:id="btnTelechargerFacture"
-                                            text="⬇ Télécharger la facture"
-                                            onAction="#telechargerFacture"
-                                            styleClass="btn-yellow"/>
+                                    <Label text="Générez et téléchargez la facture au format PDF." styleClass="delivery-info-text"/>
+                                    <Region HBox.hgrow="ALWAYS"/>
+                                    <Button fx:id="btnTelechargerFacture" text="⬇ Télécharger la facture"
+                                            onAction="#telechargerFacture" styleClass="btn-yellow"/>
                                 </children>
                             </HBox>
                         </children>
                     </VBox>
 
-                    <VBox spacing="0.0" styleClass="section-card danger-card">
+                    <!-- ── Zone dangereuse ────────────────────────────── -->
+                    <VBox styleClass="info-card danger-card" spacing="0.0">
                         <children>
-                            <HBox styleClass="danger-header">
+                            <HBox styleClass="card-header-red">
                                 <children>
-                                    <Label text="🗑 Zone dangereuse"
-                                           styleClass="section-card-title-white"/>
+                                    <Label text="🗑  Zone dangereuse" styleClass="card-header-title"/>
                                 </children>
                             </HBox>
-
-                            <VBox spacing="14.0" styleClass="section-card-body">
-                                <padding>
-                                    <Insets top="18.0" right="18.0" bottom="18.0" left="18.0"/>
-                                </padding>
+                            <VBox spacing="14.0" styleClass="card-body">
+                                <padding><Insets top="18.0" right="22.0" bottom="18.0" left="22.0"/></padding>
                                 <children>
-                                    <Label text="Une fois supprimée, cette commande ne pourra pas être récupérée."
-                                           wrapText="true"
-                                           styleClass="danger-text"/>
-                                    <Button fx:id="btnSupprimerCommande"
-                                            text="🗑 Supprimer cette commande"
-                                            onAction="#supprimerCommande"
-                                            styleClass="btn-danger"/>
+                                    <Label text="Une fois supprimée, cette commande ne pourra pas être récupérée. Cette action est irréversible."
+                                           wrapText="true" styleClass="danger-text"/>
+                                    <Button fx:id="btnSupprimerCommande" text="🗑 Supprimer cette commande"
+                                            onAction="#supprimerCommande" styleClass="btn-danger"/>
                                 </children>
                             </VBox>
                         </children>
                     </VBox>
+
                 </VBox>
             </content>
         </ScrollPane>

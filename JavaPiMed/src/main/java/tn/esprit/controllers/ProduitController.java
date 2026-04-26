@@ -2,8 +2,7 @@ package tn.esprit.controllers;
 
 
 import tn.esprit.entities.Commande;
-import tn.esprit.services.CommandeService;
-import tn.esprit.services.DashboardBIService;
+import tn.esprit.services.*;
 
 import java.time.LocalDate;
 import java.util.*;
@@ -50,10 +49,6 @@ import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
 import tn.esprit.entities.Produit;
-import tn.esprit.services.HuggingFaceRecommendationService;
-import tn.esprit.services.ProduitService;
-import tn.esprit.services.ProduitSpeechService;
-import tn.esprit.services.ProduitVoiceSearchService;
 import tn.esprit.session.CartSession;
 import tn.esprit.tools.SessionManager;
 
@@ -72,7 +67,7 @@ public class ProduitController {
     private final ProduitVoiceSearchService produitVoiceSearchService = new ProduitVoiceSearchService();
     private final Object voiceSearchLock = new Object();
     private volatile boolean voiceSearchRunning = false;
-
+    private final AssistantServiceProduit assistantServiceProduit = new AssistantServiceProduit();
     // AJOUT / MODIF
     @FXML private Button btnAjouterProduit;
     @FXML private Button btnModifierProduit;
@@ -148,6 +143,15 @@ public class ProduitController {
     @FXML private TableColumn<Produit, String> stockCategorieCol;
     @FXML private TableColumn<Produit, Number> stockStockCol;
     @FXML private TableColumn<Produit, String> stockStatutCol;
+    @FXML private Button       btnAssistant;
+    @FXML private VBox         assistantPanel;
+    @FXML private VBox         assistantMessagesContainer;
+    @FXML private ScrollPane   assistantScrollPane;
+    @FXML private TextField    assistantInputField;
+    @FXML private HBox         assistantTypingIndicator;
+    @FXML private VBox         assistantSuggestionsBar;
+    @FXML private FlowPane     suggestionsFlow;
+
 
     @FXML private FlowPane recommandationsContainer;
     private final HuggingFaceRecommendationService huggingFaceService =
@@ -175,6 +179,9 @@ public class ProduitController {
         initModifierPageIfExists();
         initPharmacieIfExists();
         initDashboardBIIfExists();
+        if (suggestionsFlow != null) {
+            buildAssistantSuggestions();
+        }
 
 
 
@@ -2989,6 +2996,146 @@ public class ProduitController {
 
         card.getChildren().addAll(badgeLbl, imgBox, nomLbl, prixLbl, addBtn);
         return card;
+    }
+    /** Ouvre / ferme le panneau chat latéral. */
+    @FXML
+    private void toggleAssistantPanel() {
+        if (assistantPanel == null) return;
+        boolean show = !assistantPanel.isVisible();
+        assistantPanel.setVisible(show);
+        assistantPanel.setManaged(show);
+        if (btnAssistant != null) {
+            btnAssistant.setText(show ? "✕ Fermer" : "🤖 Assistant");
+        }
+    }
+
+    /** Vide la conversation et réaffiche les suggestions. */
+    @FXML
+    private void onClearAssistant() {
+        if (assistantMessagesContainer != null) {
+            assistantMessagesContainer.getChildren().clear();
+        }
+        assistantServiceProduit.resetConversation();  // resetConversation() est la nouvelle méthode du service
+        if (assistantSuggestionsBar != null) {
+            assistantSuggestionsBar.setVisible(true);
+            assistantSuggestionsBar.setManaged(true);
+        }
+    }
+
+    /** Envoie le message saisi dans le chat assistant. */
+    @FXML
+    private void onSendAssistantMessage() {
+        if (assistantInputField == null) return;
+        String text = assistantInputField.getText();
+        if (text == null || text.isBlank()) return;
+
+        assistantInputField.clear();
+        addUserBubble(text);
+
+        // Cacher les suggestions dès le premier message
+        if (assistantSuggestionsBar != null) {
+            assistantSuggestionsBar.setVisible(false);
+            assistantSuggestionsBar.setManaged(false);
+        }
+
+        showAssistantTyping(true);
+
+        // Appel API en arrière-plan
+        Thread t = new Thread(() -> {
+            String response = assistantServiceProduit.chat(text);
+            Platform.runLater(() -> {
+                showAssistantTyping(false);
+                addAssistantBubble(response);
+                scrollAssistantToBottom();
+            });
+        }, "pharma-chat-thread");
+        t.setDaemon(true);
+        t.start();
+    }
+
+    /** Construit les chips de suggestions rapides. */
+    private void buildAssistantSuggestions() {
+        if (suggestionsFlow == null) return;
+        suggestionsFlow.getChildren().clear();
+
+        java.util.List<String> suggestions = java.util.List.of(
+                "💊 Effets secondaires ibuprofène",
+                "🤒 J'ai de la fièvre",
+                "😣 Mal à la tête",
+                "🤧 Allergie au pollen",
+                "😴 Médicaments pour dormir",
+                "🩺 Douleurs abdominales"
+        );
+
+        for (String s : suggestions) {
+            Button chip = new Button(s);
+            chip.getStyleClass().add("suggestion-chip");
+            chip.setWrapText(true);
+            chip.setOnAction(e -> {
+                if (assistantInputField != null) {
+                    // Retirer l'emoji du début pour envoyer un texte propre
+                    assistantInputField.setText(s.replaceAll("^[^a-zA-ZÀ-ÿ]+", "").trim());
+                    onSendAssistantMessage();
+                }
+            });
+            suggestionsFlow.getChildren().add(chip);
+        }
+    }
+
+    /** Ajoute une bulle utilisateur (droite, bleue). */
+    private void addUserBubble(String text) {
+        if (assistantMessagesContainer == null) return;
+
+        HBox row = new HBox();
+        row.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
+
+        Label bubble = new Label(text);
+        bubble.getStyleClass().add("bubble-user");
+        bubble.setWrapText(true);
+        bubble.setMaxWidth(260);
+
+        row.getChildren().add(bubble);
+        assistantMessagesContainer.getChildren().add(row);
+        scrollAssistantToBottom();
+    }
+
+    /** Ajoute une bulle réponse assistant (gauche, blanche). */
+    private void addAssistantBubble(String text) {
+        if (assistantMessagesContainer == null) return;
+
+        HBox row = new HBox(8);
+        row.setAlignment(javafx.geometry.Pos.TOP_LEFT);
+
+        Label avatar = new Label("💊");
+        avatar.getStyleClass().add("bubble-assistant-avatar");
+        avatar.setMinWidth(30);
+
+        Label bubble = new Label(text);
+        bubble.getStyleClass().add("bubble-assistant");
+        bubble.setWrapText(true);
+        bubble.setMaxWidth(260);
+
+        row.getChildren().addAll(avatar, bubble);
+        assistantMessagesContainer.getChildren().add(row);
+        scrollAssistantToBottom();
+    }
+
+    private void showAssistantTyping(boolean visible) {
+        if (assistantTypingIndicator == null) return;
+        assistantTypingIndicator.setVisible(visible);
+        assistantTypingIndicator.setManaged(visible);
+        if (visible) scrollAssistantToBottom();
+    }
+
+    private void scrollAssistantToBottom() {
+        if (assistantScrollPane == null) return;
+        javafx.animation.Timeline scroll = new javafx.animation.Timeline(
+                new javafx.animation.KeyFrame(
+                        javafx.util.Duration.millis(80),
+                        e -> assistantScrollPane.setVvalue(1.0)
+                )
+        );
+        scroll.play();
     }
 
 

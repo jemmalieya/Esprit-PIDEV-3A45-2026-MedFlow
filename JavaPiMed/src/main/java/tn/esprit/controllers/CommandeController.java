@@ -161,7 +161,7 @@ public class CommandeController {
     @FXML private StackPane stripeWebContainer;
     private final StripeCheckoutService stripeCheckoutService = new StripeCheckoutService();
     private final StripeCallbackServer stripeCallbackServer = new StripeCallbackServer();
-    private final SmsService smsService = new SmsService();
+   // private final SmsService smsService = new SmsService();
 
     @FXML
     public void initialize() {

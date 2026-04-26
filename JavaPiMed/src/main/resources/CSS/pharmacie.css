@@ -762,3 +762,247 @@
     -fx-font-size: 13px;
     -fx-font-weight: bold;
 }
+
+/* Bouton hero */
+.hero-assistant-btn {
+    -fx-background-color: linear-gradient(to right, #7c3aed, #6d28d9);
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 14px;
+    -fx-padding: 10 16 10 16;
+    -fx-cursor: hand;
+}
+
+.hero-assistant-btn:hover {
+    -fx-effect: dropshadow(gaussian, rgba(109,40,217,0.38), 12, 0.2, 0, 2);
+}
+
+/* Panneau latéral chat */
+.assistant-panel {
+    -fx-background-color: #f8faff;
+    -fx-border-color: #d4e4f7;
+    -fx-border-radius: 22px;
+    -fx-background-radius: 22px;
+    -fx-effect: dropshadow(gaussian, rgba(30,64,175,0.10), 16, 0.14, 0, 4);
+}
+
+.assistant-panel-header {
+    -fx-background-color: linear-gradient(to right, #0e8ecf, #1263c7);
+    -fx-background-radius: 22px 22px 0px 0px;
+}
+
+.assistant-panel-avatar {
+    -fx-font-size: 22px;
+    -fx-background-color: rgba(255,255,255,0.20);
+    -fx-background-radius: 999px;
+    -fx-padding: 6;
+}
+
+.assistant-panel-name {
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+.assistant-online-dot {
+    -fx-text-fill: #4ade80;
+    -fx-font-size: 11px;
+}
+
+.assistant-panel-status {
+    -fx-text-fill: #c2e4ff;
+    -fx-font-size: 12px;
+}
+
+.assistant-clear-btn {
+    -fx-background-color: rgba(255,255,255,0.15);
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+    -fx-background-radius: 999px;
+    -fx-min-width: 30px;
+    -fx-min-height: 30px;
+    -fx-pref-width: 30px;
+    -fx-pref-height: 30px;
+    -fx-cursor: hand;
+    -fx-padding: 0;
+}
+
+.assistant-clear-btn:hover {
+    -fx-background-color: rgba(255,255,255,0.28);
+}
+
+.assistant-close-x-btn {
+    -fx-background-color: rgba(255,255,255,0.15);
+    -fx-text-fill: white;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 999px;
+    -fx-min-width: 30px;
+    -fx-min-height: 30px;
+    -fx-pref-width: 30px;
+    -fx-pref-height: 30px;
+    -fx-cursor: hand;
+    -fx-padding: 0;
+}
+
+.assistant-close-x-btn:hover {
+    -fx-background-color: rgba(255,255,255,0.30);
+}
+
+/* Welcome bar */
+.assistant-welcome-bar {
+    -fx-background-color: #dbeafe;
+    -fx-padding: 8 12 8 12;
+}
+
+.assistant-welcome-text {
+    -fx-font-size: 12px;
+    -fx-text-fill: #1e40af;
+    -fx-wrap-text: true;
+}
+
+/* Suggestions */
+.suggestions-bar {
+    -fx-background-color: white;
+    -fx-border-color: #e2eaf5 transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 8 12 8 12;
+}
+
+.suggestions-label {
+    -fx-font-size: 11px;
+    -fx-text-fill: #7c8ca2;
+    -fx-font-weight: bold;
+}
+
+.suggestion-chip {
+    -fx-background-color: #eff6ff;
+    -fx-border-color: #bfdbfe;
+    -fx-border-radius: 999px;
+    -fx-background-radius: 999px;
+    -fx-text-fill: #1d4ed8;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 5 10 5 10;
+    -fx-cursor: hand;
+    -fx-wrap-text: true;
+}
+
+.suggestion-chip:hover {
+    -fx-background-color: #dbeafe;
+}
+
+/* Scroll messages */
+.assistant-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-border-color: transparent;
+}
+
+.assistant-scroll > .viewport {
+    -fx-background-color: #f8faff;
+}
+
+.messages-container {
+    -fx-background-color: #f8faff;
+}
+
+/* Bulle utilisateur */
+.bubble-user {
+    -fx-background-color: linear-gradient(to bottom right, #1b6ee9, #0e8ecf);
+    -fx-text-fill: white;
+    -fx-font-size: 13px;
+    -fx-background-radius: 16px 4px 16px 16px;
+    -fx-padding: 10 14 10 14;
+    -fx-effect: dropshadow(gaussian, rgba(14,142,207,0.24), 6, 0.10, 0, 2);
+}
+
+/* Bulle assistant */
+.bubble-assistant-avatar {
+    -fx-background-color: #dbeafe;
+    -fx-background-radius: 999px;
+    -fx-font-size: 14px;
+    -fx-min-width: 30px;
+    -fx-min-height: 30px;
+    -fx-pref-width: 30px;
+    -fx-pref-height: 30px;
+    -fx-alignment: center;
+    -fx-padding: 4;
+}
+
+.bubble-assistant {
+    -fx-background-color: white;
+    -fx-text-fill: #0f172a;
+    -fx-font-size: 13px;
+    -fx-background-radius: 4px 16px 16px 16px;
+    -fx-padding: 10 14 10 14;
+    -fx-border-color: #e2eaf5;
+    -fx-border-radius: 4px 16px 16px 16px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 6, 0.08, 0, 1);
+}
+
+/* Typing indicator */
+.typing-indicator {
+    -fx-padding: 4 12 2 12;
+}
+
+.typing-text {
+    -fx-text-fill: #64748b;
+    -fx-font-size: 11px;
+    -fx-font-style: italic;
+}
+
+.typing-dots {
+    -fx-text-fill: #0e8ecf;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
+/* Barre de saisie */
+.assistant-input-area {
+    -fx-background-color: white;
+    -fx-border-color: #e2eaf5 transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+    -fx-background-radius: 0 0 22px 22px;
+    -fx-padding: 10 12 12 12;
+}
+
+.assistant-input {
+    -fx-background-color: #f4f9ff;
+    -fx-border-color: #d8eaf9;
+    -fx-border-radius: 16px;
+    -fx-background-radius: 16px;
+    -fx-font-size: 13px;
+    -fx-padding: 8 12 8 12;
+    -fx-pref-height: 40px;
+}
+
+.assistant-input:focused {
+    -fx-border-color: #0e8ecf;
+}
+
+.assistant-send-btn {
+    -fx-background-color: linear-gradient(to right, #0e8ecf, #1263c7);
+    -fx-text-fill: white;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 999px;
+    -fx-min-width: 40px;
+    -fx-min-height: 40px;
+    -fx-pref-width: 40px;
+    -fx-pref-height: 40px;
+    -fx-cursor: hand;
+    -fx-padding: 0;
+}
+
+.assistant-send-btn:hover {
+    -fx-effect: dropshadow(gaussian, rgba(18,99,199,0.36), 8, 0.14, 0, 2);
+}
+
+.assistant-disclaimer {
+    -fx-font-size: 10px;
+    -fx-text-fill: #94a3b8;
+    -fx-wrap-text: true;
+    -fx-font-style: italic;
+}

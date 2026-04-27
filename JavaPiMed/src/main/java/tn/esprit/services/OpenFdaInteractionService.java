@@ -93,11 +93,8 @@ public class OpenFdaInteractionService {
                     }
                 } catch (Exception e) {
                     System.err.println("[OpenFDA] ✗ Erreur pour " + a + "/" + b + " : " + e.getMessage());
-                    e.printStackTrace();
-                    derniereAnalyseIndisponible = true;
-                    dernierMessageIndisponibilite = "OpenFDA indisponible : " + e.getMessage();
-                    apiTemporairementIndisponible = true;
-                    break outer;
+                    // Continuer au lieu de s'arrêter complètement
+                    System.err.println("[OpenFDA] → Continuant les vérifications...");
                 }
             }
         }
@@ -218,8 +215,8 @@ public class OpenFdaInteractionService {
             conn.setRequestMethod("GET");
             conn.setRequestProperty("Accept", "application/json");
             conn.setRequestProperty("User-Agent", "MedicamentInteractionChecker/1.0");
-            conn.setConnectTimeout(4000);
-            conn.setReadTimeout(7000);
+            conn.setConnectTimeout(15000);  // 15 secondes pour la connexion
+            conn.setReadTimeout(20000);     // 20 secondes pour la lecture
 
             int code = conn.getResponseCode();
             System.out.println("[OpenFDA] HTTP " + code);
@@ -250,8 +247,14 @@ public class OpenFdaInteractionService {
 
             return result == null ? "" : result;
         } catch (SocketTimeoutException e) {
-            apiTemporairementIndisponible = true;
-            throw e;
+            System.err.println("[OpenFDA] ⏱ TIMEOUT - L'API FDA a pris trop de temps à répondre");
+            System.err.println("[OpenFDA] ⏱ Pause avant prochaine tentative...");
+            try { Thread.sleep(2000); } catch (InterruptedException ignored) {}
+            // Ne pas marquer comme indisponible, juste continuer
+            return "";
+        } catch (Exception e) {
+            System.err.println("[OpenFDA] Erreur réseau : " + e.getClass().getSimpleName() + " - " + e.getMessage());
+            return "";
         } finally {
             if (conn != null) {
                 conn.disconnect();

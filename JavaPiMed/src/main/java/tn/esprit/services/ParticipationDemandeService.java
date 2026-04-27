@@ -44,8 +44,14 @@ public class ParticipationDemandeService {
             }
         }
         demande.setId(UUID.randomUUID().toString());
-        demande.setStatus(ParticipationDemande.STATUS_PENDING);
+        demande.setStatus(hasRemainingCapacity(evenement, demandes)
+                ? ParticipationDemande.STATUS_ACCEPTED
+                : ParticipationDemande.STATUS_WAITING);
         demande.markCreatedNow();
+        if (ParticipationDemande.STATUS_ACCEPTED.equals(demande.getStatus()) && safe(demande.getTicketCode()).isBlank()) {
+            demande.setTicketCode(generateTicketCode(evenement));
+            demande.markDecidedNow();
+        }
         demandes.add(demande);
         persist(evenement, demandes);
         return demande;
@@ -62,6 +68,12 @@ public class ParticipationDemandeService {
 
         for (ParticipationDemande demande : demandes) {
             if (safe(demande.getId()).equals(demandeId)) {
+                String currentStatus = safe(demande.getStatus());
+                if (ParticipationDemande.STATUS_ACCEPTED.equals(status)
+                        && !ParticipationDemande.STATUS_ACCEPTED.equals(currentStatus)
+                        && !hasRemainingCapacity(evenement, demandes)) {
+                    throw new SQLException("Capacite maximale atteinte. Placez ce participant en liste d'attente ou liberez une place.");
+                }
                 demande.setStatus(status);
                 demande.setAdminNote(adminNote);
                 demande.markDecidedNow();
@@ -77,13 +89,18 @@ public class ParticipationDemandeService {
             throw new SQLException("Demande introuvable.");
         }
 
+        if (!ParticipationDemande.STATUS_ACCEPTED.equals(selected.getStatus())) {
+            promoteFirstWaiting(evenement, demandes);
+        }
+
         persist(evenement, demandes);
         return selected;
     }
 
     public long countPending(Evenement evenement) {
         return getDemandes(evenement).stream()
-                .filter(d -> ParticipationDemande.STATUS_PENDING.equals(safe(d.getStatus())))
+                .filter(d -> ParticipationDemande.STATUS_PENDING.equals(safe(d.getStatus()))
+                        || ParticipationDemande.STATUS_WAITING.equals(safe(d.getStatus())))
                 .count();
     }
 
@@ -110,9 +127,42 @@ public class ParticipationDemandeService {
                     + ", votre demande de participation a " + title + " est acceptee." + ticket + dates;
         }
 
+        if (ParticipationDemande.STATUS_WAITING.equals(demande.getStatus())) {
+            return "MedFlow: Bonjour " + demande.getDisplayName()
+                    + ", vous etes actuellement sur liste d attente pour " + title + ".";
+        }
+
         String note = safe(demande.getAdminNote()).isBlank() ? "" : " Motif: " + demande.getAdminNote();
         return "MedFlow: Bonjour " + demande.getDisplayName()
                 + ", votre demande de participation a " + title + " est refusee." + note;
+    }
+
+    private boolean hasRemainingCapacity(Evenement evenement, List<ParticipationDemande> demandes) {
+        if (evenement == null) return true;
+        int capacity = evenement.getNb_participants_max_event();
+        if (capacity <= 0) return true;
+        long accepted = demandes.stream()
+                .filter(d -> ParticipationDemande.STATUS_ACCEPTED.equals(safe(d.getStatus())))
+                .count();
+        return accepted < capacity;
+    }
+
+    private void promoteFirstWaiting(Evenement evenement, List<ParticipationDemande> demandes) {
+        if (!hasRemainingCapacity(evenement, demandes)) {
+            return;
+        }
+        for (ParticipationDemande demande : demandes) {
+            String status = safe(demande.getStatus());
+            if (ParticipationDemande.STATUS_WAITING.equals(status) || ParticipationDemande.STATUS_PENDING.equals(status)) {
+                demande.setStatus(ParticipationDemande.STATUS_ACCEPTED);
+                if (safe(demande.getTicketCode()).isBlank()) {
+                    demande.setTicketCode(generateTicketCode(evenement));
+                }
+                demande.setAdminNote("Promotion automatique depuis la liste d'attente.");
+                demande.markDecidedNow();
+                return;
+            }
+        }
     }
 
     private void persist(Evenement evenement, List<ParticipationDemande> demandes) throws SQLException {
@@ -195,6 +245,7 @@ public class ParticipationDemandeService {
 
     public static class ParticipationDemande {
         public static final String STATUS_PENDING = "pending";
+        public static final String STATUS_WAITING = "waiting";
         public static final String STATUS_ACCEPTED = "accepted";
         public static final String STATUS_REFUSED = "refused";
 

@@ -198,15 +198,23 @@
 
                     <Region HBox.hgrow="ALWAYS"/>
 
-                    <HBox spacing="16.0" alignment="CENTER_RIGHT">
+                    <VBox spacing="10.0" alignment="CENTER_RIGHT">
                         <children>
-                            <Button text="Nouveau evenement" onAction="#onNewEvent" styleClass="yellow-btn"/>
-                            <Button text="Brouillons back-office" onAction="#onShowDraftEvents" styleClass="white-btn"/>
-                            <Button text="Tous les evenements" onAction="#onShowAllEvents" styleClass="white-btn"/>
-                            <Button text="Assistant IA" onAction="#ouvrirRecommandationsAiBack" styleClass="white-btn"/>
-                            <Button text="Export PDF selection" onAction="#handleExportPDF" styleClass="yellow-btn"/>
+                            <HBox spacing="10.0" alignment="CENTER_RIGHT">
+                                <children>
+                                    <Button text="Nouvel event" onAction="#onNewEvent" styleClass="yellow-btn"/>
+                                    <Button text="Brouillons" onAction="#onShowDraftEvents" styleClass="white-btn"/>
+                                    <Button text="Tous les events" onAction="#onShowAllEvents" styleClass="white-btn"/>
+                                </children>
+                            </HBox>
+                            <HBox spacing="10.0" alignment="CENTER_RIGHT">
+                                <children>
+                                    <Button text="Assistant IA" onAction="#ouvrirRecommandationsAiBack" styleClass="white-btn"/>
+                                    <Button text="Export PDF" onAction="#handleExportPDF" styleClass="yellow-btn"/>
+                                </children>
+                            </HBox>
                         </children>
-                    </HBox>
+                    </VBox>
                 </children>
                 <padding>
                     <Insets top="30.0" right="30.0" bottom="30.0" left="30.0"/>

@@ -229,10 +229,12 @@
 .yellow-btn {
     -fx-background-color: #ffbf11;
     -fx-text-fill: #111111;
-    -fx-font-size: 17px;
+    -fx-font-size: 14px;
     -fx-font-weight: bold;
     -fx-background-radius: 18px;
-    -fx-padding: 16 28;
+    -fx-padding: 12 16;
+    -fx-min-width: 138px;
+    -fx-pref-width: 138px;
     -fx-cursor: hand;
     -fx-border-color: rgba(0,0,0,0.06);
     -fx-border-radius: 18px;
@@ -245,10 +247,12 @@
 .white-btn {
     -fx-background-color: white;
     -fx-text-fill: #3059cf;
-    -fx-font-size: 17px;
+    -fx-font-size: 14px;
     -fx-font-weight: bold;
     -fx-background-radius: 18px;
-    -fx-padding: 16 26;
+    -fx-padding: 12 16;
+    -fx-min-width: 138px;
+    -fx-pref-width: 138px;
     -fx-cursor: hand;
     -fx-border-color: #dbe6f7;
     -fx-border-radius: 18px;
@@ -431,7 +435,9 @@
     -fx-font-size: 13px;
     -fx-font-weight: bold;
     -fx-background-radius: 14px;
-    -fx-padding: 9 14;
+    -fx-padding: 9 16;
+    -fx-min-width: 104px;
+    -fx-pref-width: 104px;
     -fx-cursor: hand;
 }
 

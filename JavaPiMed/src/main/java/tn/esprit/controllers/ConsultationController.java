@@ -1,6 +1,7 @@
 
 package tn.esprit.controllers;
 
+import javafx.application.Platform;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -27,7 +28,9 @@ import tn.esprit.entities.Prescription;
 import tn.esprit.entities.FicheMedicale;
 import tn.esprit.entities.RendezVous;
 import tn.esprit.entities.User;
+import tn.esprit.services.DialogflowAssistantService;
 import tn.esprit.services.HuggingFaceUrgencyService;
+import tn.esprit.services.SpeechToTextService;
 import tn.esprit.services.FicheMedicaleService;
 import tn.esprit.services.PrescriptionService;
 import tn.esprit.services.RendezVousService;
@@ -35,20 +38,28 @@ import tn.esprit.services.UserService;
 import tn.esprit.tools.SessionManager;
 
 import java.net.URL;
+import javax.sound.sampled.LineUnavailableException;
+import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.text.Normalizer;
 import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.ResourceBundle;
+import java.util.concurrent.CompletableFuture;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javafx.util.Duration;
 
 public class ConsultationController implements Initializable {
@@ -92,11 +103,29 @@ public class ConsultationController implements Initializable {
     @FXML
     private VBox myBookingsPage;
     @FXML
+    private VBox myRecordsPage;
+    @FXML
+    private VBox aiAssistantPage;
+    @FXML
     private Button bookingPageBtn;
     @FXML
     private Button myBookingsPageBtn;
-@FXML
+    @FXML
     private Button myRecordsPageBtn;
+    @FXML
+    private Button aiAssistantPageBtn;
+    @FXML
+    private VBox aiConversationHistory;
+    @FXML
+    private TextField aiMessageInput;
+    @FXML
+    private Label aiAssistantStatusLabel;
+    @FXML
+    private Button aiSendMessageButton;
+    @FXML
+    private Button aiVoiceMessageButton;
+    @FXML
+    private Label aiRecordingIndicator;
 
     @FXML
     private Label monthYearLabel;
@@ -123,8 +152,6 @@ public class ConsultationController implements Initializable {
     private TextField myRecordsSearchField;
     @FXML
     private ComboBox<String> myRecordsSortComboBox;
-    @FXML
-    private VBox myRecordsPage;
     @FXML
     private TableView<FicheMedicale> myRecordsTable;
     @FXML
@@ -201,6 +228,11 @@ public class ConsultationController implements Initializable {
     private final FicheMedicaleService ficheMedicaleService = new FicheMedicaleService();
     private final PrescriptionService prescriptionService = new PrescriptionService();
     private final HuggingFaceUrgencyService urgencyService = new HuggingFaceUrgencyService();
+    private final DialogflowAssistantService dialogflowAssistantService = new DialogflowAssistantService();
+    private final SpeechToTextService speechToTextService = new SpeechToTextService();
+    private volatile boolean isRecordingAudio = false;
+    private Timeline recordingAutoStopTimeline;
+    private static final int RECORDING_AUTO_STOP_SECONDS = 15;
 
     private LocalDate currentWeekStart;
     private LocalDateTime selectedDateTime;
@@ -209,6 +241,8 @@ public class ConsultationController implements Initializable {
     private final DateTimeFormatter weekRangeFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.ENGLISH);
     private final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("EEE dd MMM yyyy 'at' HH:mm", Locale.ENGLISH);
     private final DateTimeFormatter modifyDateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+    private static final Pattern ISO_DATE_TIME_EMBEDDED_PATTERN = Pattern.compile("(\\d{4}-\\d{2}-\\d{2}[T ]\\d{2}:\\d{2}(?::\\d{2})?(?:Z|[+-]\\d{2}:\\d{2})?)");
+    private static final Pattern DATE_TIME_AM_PM_PATTERN = Pattern.compile("(?i)(\\d{4}-\\d{2}-\\d{2})\\s+(\\d{1,2})(?::(\\d{2}))?\\s*([ap]m)\\b");
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -307,6 +341,7 @@ public class ConsultationController implements Initializable {
         refreshCalendar();
         loadDoctorCards();
         validateAllBookingInputs();
+        initializeAiAssistantConversation();
     }
 
     @FXML
@@ -321,6 +356,104 @@ public class ConsultationController implements Initializable {
     @FXML
     private void handleShowMyRecords(ActionEvent event) {
         showMyRecordsPage();
+    }
+
+    @FXML
+    private void handleShowAiAssistantPage(ActionEvent event) {
+        showAiAssistantPage();
+    }
+
+    @FXML
+    private void handleSendAiMessage(ActionEvent event) {
+        sendAiMessageFromComposer();
+    }
+
+    @FXML
+    private void handleAiVoiceMessage(ActionEvent event) {
+        // Toggle recording: first press starts, second press stops and transcribes
+        if (!isRecordingAudio) {
+            try {
+                speechToTextService.startRecording();
+                isRecordingAudio = true;
+                setAiAssistantStatus("Recording... click again to stop");
+                if (aiVoiceMessageButton != null) {
+                    aiVoiceMessageButton.setText("Stop");
+                }
+                if (aiRecordingIndicator != null) {
+                    aiRecordingIndicator.setVisible(true);
+                }
+
+                // schedule auto-stop
+                if (recordingAutoStopTimeline != null) {
+                    recordingAutoStopTimeline.stop();
+                }
+                recordingAutoStopTimeline = new Timeline(new KeyFrame(javafx.util.Duration.seconds(RECORDING_AUTO_STOP_SECONDS), e -> stopRecordingFromAuto()));
+                recordingAutoStopTimeline.setCycleCount(1);
+                recordingAutoStopTimeline.play();
+            } catch (LineUnavailableException ex) {
+                showError("Audio error", "Microphone is unavailable: " + ex.getMessage());
+            }
+            return;
+        }
+
+        // stop recording and transcribe asynchronously
+        // manual stop
+        if (recordingAutoStopTimeline != null) {
+            recordingAutoStopTimeline.stop();
+            recordingAutoStopTimeline = null;
+        }
+        isRecordingAudio = false;
+        setAiAssistantStatus("Processing audio...");
+        if (aiVoiceMessageButton != null) {
+            aiVoiceMessageButton.setText("Voice");
+        }
+        if (aiRecordingIndicator != null) {
+            aiRecordingIndicator.setVisible(false);
+        }
+
+        CompletableFuture.supplyAsync(() -> {
+            try {
+                return speechToTextService.stopRecordingAndTranscribe();
+            } catch (IOException | InterruptedException ex) {
+                throw new RuntimeException(ex);
+            }
+        }).whenComplete((transcript, throwable) -> Platform.runLater(() -> {
+            if (throwable != null) {
+                setAiAssistantStatus("Audio processing failed");
+                appendAiAssistantMessage("Voice transcription failed: " + throwable.getMessage(), false);
+                return;
+            }
+
+            if (transcript == null || transcript.isBlank()) {
+                setAiAssistantStatus("No speech detected");
+                appendAiAssistantMessage("I could not detect speech. Try again.", false);
+                return;
+            }
+
+            setAiAssistantStatus("You: " + (transcript.length() > 40 ? transcript.substring(0, 40) + "..." : transcript));
+            appendAiAssistantMessage(transcript, true);
+            // send transcript to Dialogflow and handle reply
+            setAiAssistantControlsDisabled(true);
+            setAiAssistantStatus("Sending to Dialogflow...");
+            CompletableFuture.supplyAsync(() -> dialogflowAssistantService.detectIntent(transcript, buildDialogflowSessionId()))
+                    .whenComplete((reply, ex) -> Platform.runLater(() -> {
+                        setAiAssistantControlsDisabled(false);
+                        if (ex != null) {
+                            setAiAssistantStatus("Dialogflow unavailable");
+                            appendAiAssistantMessage("I could not reach Dialogflow. Check the service account path and project ID.", false);
+                            showError("Dialogflow error", ex.getMessage());
+                            return;
+                        }
+                        handleDialogflowReply(transcript, reply);
+                    }));
+        }));
+    }
+
+    private void stopRecordingFromAuto() {
+        // called on JavaFX thread by timeline
+        if (!isRecordingAudio) return;
+        // reuse existing stop flow
+        handleAiVoiceMessage(new ActionEvent());
     }
 
     @FXML
@@ -345,49 +478,11 @@ public class ConsultationController implements Initializable {
     private void handleConfirmAppointment(ActionEvent event) {
         try {
             int patientId = requireSessionPatientId();
-
-            if (!validateAllBookingInputs()) {
-                throw new IllegalArgumentException("Please fix the highlighted fields before confirming the appointment.");
-            }
-
             int idStaff = parseRequiredInt(doctorField1, "Doctor/Staff ID");
-
-            if (selectedDateTime == null) {
-                throw new IllegalArgumentException("Please select a date and time slot from the calendar.");
-            }
-
             String mode = modeComboBox != null ? modeComboBox.getValue() : null;
-            if (mode == null || mode.isBlank()) {
-                throw new IllegalArgumentException("Please choose a booking mode.");
-            }
-
             String motif = motifArea != null ? motifArea.getText() : null;
-            if (motif == null || motif.isBlank()) {
-                throw new IllegalArgumentException("Please enter a motif.");
-            }
-            motif = motif.trim();
-            String urgencyLevel = determineUrgencyLevel(motif);
 
-            if (selectedDateTime.isBefore(LocalDateTime.now())) {
-                throw new IllegalArgumentException("The appointment date/time must be in the future.");
-            }
-
-            if (hasDuplicateRendezVous(null, Timestamp.valueOf(selectedDateTime), patientId, idStaff, mode, motif)) {
-                throw new IllegalArgumentException("A booking with the same date/time, doctor, mode and motif already exists.");
-            }
-
-            RendezVous rendezVous = new RendezVous(
-                    Timestamp.valueOf(selectedDateTime),
-                    "Demande",
-                    mode,
-                    motif,
-                    new Timestamp(System.currentTimeMillis()),
-                        patientId,
-                    idStaff,
-                    urgencyLevel
-            );
-
-            rendezVousService.ajouter(rendezVous);
+            saveAppointment(patientId, idStaff, selectedDateTime, mode, motif);
             reloadReservedSlotsForSelectedDoctor();
             showInfo("Success", "Appointment saved successfully.");
             loadMyBookings();
@@ -478,70 +573,568 @@ public class ConsultationController implements Initializable {
         hideModifyForm();
     }
 
-    private void showBookingPage() {
-        bookingPage.setVisible(true);
-        bookingPage.setManaged(true);
-        myBookingsPage.setVisible(false);
-        myBookingsPage.setManaged(false);
-
-        bookingPageBtn.getStyleClass().remove("page-nav-button");
-        if (!bookingPageBtn.getStyleClass().contains("page-nav-button-active")) {
-            bookingPageBtn.getStyleClass().add("page-nav-button-active");
+    private void saveAppointment(int patientId, int idStaff, LocalDateTime dateTime, String mode, String motif) {
+        if (dateTime == null) {
+            throw new IllegalArgumentException("Please select a date and time slot from the calendar.");
         }
-        myBookingsPageBtn.getStyleClass().remove("page-nav-button-active");
-        if (!myBookingsPageBtn.getStyleClass().contains("page-nav-button")) {
-            myBookingsPageBtn.getStyleClass().add("page-nav-button");
+        if (mode == null || mode.isBlank()) {
+            throw new IllegalArgumentException("Please choose a booking mode.");
+        }
+        if (motif == null || motif.isBlank()) {
+            throw new IllegalArgumentException("Please enter a motif.");
+        }
+
+        String cleanedMode = mode.trim();
+        String cleanedMotif = motif.trim();
+
+        if (!validateAllBookingInputs()) {
+            throw new IllegalArgumentException("Please fix the highlighted fields before confirming the appointment.");
+        }
+
+        if (dateTime.isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("The appointment date/time must be in the future.");
+        }
+
+        if (hasDuplicateRendezVous(null, Timestamp.valueOf(dateTime), patientId, idStaff, cleanedMode, cleanedMotif)) {
+            throw new IllegalArgumentException("A booking with the same date/time, doctor, mode and motif already exists.");
+        }
+
+        String urgencyLevel = determineUrgencyLevel(cleanedMotif);
+        RendezVous rendezVous = new RendezVous(
+                Timestamp.valueOf(dateTime),
+                "Demande",
+                cleanedMode,
+                cleanedMotif,
+                new Timestamp(System.currentTimeMillis()),
+                patientId,
+                idStaff,
+                urgencyLevel
+        );
+
+        rendezVousService.ajouter(rendezVous);
+    }
+
+    private void initializeAiAssistantConversation() {
+        if (aiConversationHistory == null || !aiConversationHistory.getChildren().isEmpty()) {
+            return;
+        }
+
+        appendAiAssistantMessage("Welcome. Type a RendezVous phrase or use the booking intent, and Dialogflow will extract the fields.", false);
+        appendAiAssistantMessage("Example: I want to book a Presentiel appointment with Doctor Ahmed Chrigui for 11 October 2024 at 8 am.", false);
+        setAiAssistantStatus("Ready for Dialogflow intent detection");
+    }
+
+    private void sendAiMessageFromComposer() {
+        if (aiMessageInput == null) {
+            return;
+        }
+
+        String userMessage = aiMessageInput.getText() == null ? "" : aiMessageInput.getText().trim();
+        if (userMessage.isBlank()) {
+            showInfo("AI Assistant", "Type a message first.");
+            return;
+        }
+
+        appendAiAssistantMessage(userMessage, true);
+        aiMessageInput.clear();
+        setAiAssistantStatus("Sending to Dialogflow...");
+        setAiAssistantControlsDisabled(true);
+
+        CompletableFuture
+                .supplyAsync(() -> dialogflowAssistantService.detectIntent(userMessage, buildDialogflowSessionId()))
+                .whenComplete((reply, throwable) -> Platform.runLater(() -> {
+                    setAiAssistantControlsDisabled(false);
+
+                    if (throwable != null) {
+                        setAiAssistantStatus("Dialogflow unavailable");
+                        appendAiAssistantMessage("I could not reach Dialogflow. Check the service account path and project ID.", false);
+                        showError("Dialogflow error", throwable.getMessage());
+                        return;
+                    }
+
+                    handleDialogflowReply(userMessage, reply);
+                }));
+    }
+
+    private void handleDialogflowReply(String userMessage, DialogflowAssistantService.DialogflowReply reply) {
+        if (reply == null) {
+            setAiAssistantStatus("No Dialogflow reply");
+            appendAiAssistantMessage("Dialogflow returned an empty response.", false);
+            return;
+        }
+
+        String intentName = reply.intentName();
+        if (intentName != null && !intentName.isBlank()) {
+            setAiAssistantStatus("Intent detected: " + intentName);
+        } else {
+            setAiAssistantStatus("Dialogflow reply received");
+        }
+
+        String fulfillmentText = reply.fulfillmentText();
+        if (fulfillmentText != null && !fulfillmentText.isBlank()) {
+            appendAiAssistantMessage(fulfillmentText, false);
+        }
+
+        if ("RendezVous".equalsIgnoreCase(intentName)) {
+            processRendezVousIntent(userMessage, reply.parameters());
+        } else if ("SayHello".equalsIgnoreCase(intentName)) {
+            handleSayHelloIntent();
+        } else if ("RemindUpcomingRendezVous".equalsIgnoreCase(intentName)) {
+            handleRemindUpcomingRendezVousIntent();
+        } else if ((fulfillmentText == null || fulfillmentText.isBlank()) && intentName != null && !intentName.isBlank()) {
+            appendAiAssistantMessage("Intent detected: " + intentName + ".", false);
         }
     }
 
-    private void showMyBookingsPage() {
-        bookingPage.setVisible(false);
-        bookingPage.setManaged(false);
-        myBookingsPage.setVisible(true);
-        myBookingsPage.setManaged(true);
-        if (myRecordsPage != null) {
-            myRecordsPage.setVisible(false);
-            myRecordsPage.setManaged(false);
+    private void handleSayHelloIntent() {
+        appendAiAssistantMessage("Hello. I can help you book an appointment or remind you of your upcoming rendez-vous.", false);
+    }
+
+    private void handleRemindUpcomingRendezVousIntent() {
+        Integer patientId = resolveSessionPatientId();
+        if (patientId == null || patientId <= 0) {
+            appendAiAssistantMessage("I could not find your active session. Please log in again to fetch your upcoming appointments.", false);
+            return;
         }
 
-        bookingPageBtn.getStyleClass().remove("page-nav-button-active");
-        if (!bookingPageBtn.getStyleClass().contains("page-nav-button")) {
-            bookingPageBtn.getStyleClass().add("page-nav-button");
+        List<RendezVous> allAppointments = rendezVousService.recuperer();
+        List<RendezVous> upcomingAppointments = new ArrayList<>();
+        LocalDateTime now = LocalDateTime.now();
+
+        for (RendezVous appointment : allAppointments) {
+            if (appointment == null || appointment.getDatetime() == null) {
+                continue;
+            }
+            if (appointment.getIdPatient() != patientId) {
+                continue;
+            }
+
+            LocalDateTime appointmentDateTime = appointment.getDatetime().toLocalDateTime();
+            if (appointmentDateTime.isBefore(now)) {
+                continue;
+            }
+
+            upcomingAppointments.add(appointment);
         }
-        myBookingsPageBtn.getStyleClass().remove("page-nav-button");
-        if (!myBookingsPageBtn.getStyleClass().contains("page-nav-button-active")) {
-            myBookingsPageBtn.getStyleClass().add("page-nav-button-active");
+
+        upcomingAppointments.sort(Comparator.comparing(rdv -> rdv.getDatetime().toLocalDateTime()));
+
+        if (upcomingAppointments.isEmpty()) {
+            appendAiAssistantMessage("You have no upcoming appointments.", false);
+            return;
         }
+
+        StringBuilder message = new StringBuilder("Here are your upcoming appointments:\n");
+        int limit = Math.min(3, upcomingAppointments.size());
+        for (int i = 0; i < limit; i++) {
+            RendezVous rdv = upcomingAppointments.get(i);
+            String dateText = dateTimeFormatter.format(rdv.getDatetime().toLocalDateTime());
+            String mode = valueOrDash(rdv.getMode());
+            String status = valueOrDash(rdv.getStatut());
+            message.append("- ").append(dateText)
+                    .append(" | mode: ").append(mode)
+                    .append(" | status: ").append(status)
+                    .append("\n");
+        }
+
+        if (upcomingAppointments.size() > limit) {
+            message.append("And ").append(upcomingAppointments.size() - limit).append(" more...");
+        }
+
+        appendAiAssistantMessage(message.toString().trim(), false);
+    }
+
+    private void processRendezVousIntent(String userMessage, Map<String, String> parameters) {
+        Map<String, String> safeParameters = parameters == null ? Map.of() : parameters;
+
+        String extractedMode = normalizeMode(safeParameters.get("mode"));
+        String extractedPerson = firstNonBlank(safeParameters.get("person"), safeParameters.get("doctor"), safeParameters.get("staff"));
+        String extractedMotif = firstNonBlank(safeParameters.get("motif"), safeParameters.get("reason"), userMessage);
+        String extractedDateTime = firstNonBlank(
+            safeParameters.get("date-time"),
+            safeParameters.get("date_time"),
+            safeParameters.get("datetime"),
+            findDateTimeValueFromAnyParameter(safeParameters)
+        );
+
+        if (extractedMode != null && modeComboBox != null) {
+            modeComboBox.setValue(extractedMode);
+            updateModeSummary();
+        }
+
+        if (extractedPerson != null) {
+            Integer staffId = resolveDialogflowStaffId(extractedPerson);
+            if (staffId != null && doctorField1 != null) {
+                doctorField1.setText(String.valueOf(staffId));
+                selectedDoctorId = staffId;
+                validateDoctorStaffField();
+            }
+        }
+
+        LocalDateTime parsedDateTime = parseDialogflowDateTime(extractedDateTime);
+        if (parsedDateTime == null && !safeParameters.isEmpty()) {
+            parsedDateTime = parseDialogflowDateTime(findDateTimeValueFromAnyParameter(safeParameters));
+        }
+
+        if (parsedDateTime != null) {
+            applyAiSelectedDateTime(parsedDateTime);
+        }
+
+        if (extractedMotif != null && motifArea != null) {
+            motifArea.setText(extractedMotif.trim());
+            validateMotif();
+        }
+
+        if (canAutoBookRendezVous()) {
+            try {
+                confirmAppointmentFromAi();
+                appendAiAssistantMessage("Your rendez-vous request was booked from the Dialogflow intent.", false);
+                setAiAssistantStatus("RendezVous booked");
+            } catch (IllegalArgumentException ex) {
+                appendAiAssistantMessage(ex.getMessage(), false);
+                setAiAssistantStatus("More details needed");
+            } catch (Exception ex) {
+                appendAiAssistantMessage("I detected the intent, but booking failed: " + ex.getMessage(), false);
+                setAiAssistantStatus("Booking failed");
+            }
+            return;
+        }
+
+        List<String> missingFields = new ArrayList<>();
+        if (doctorField1 == null || doctorField1.getText() == null || doctorField1.getText().isBlank()) {
+            missingFields.add("doctor");
+        }
+        if (modeComboBox == null || modeComboBox.getValue() == null || modeComboBox.getValue().isBlank()) {
+            missingFields.add("mode");
+        }
+        if (selectedDateTime == null) {
+            missingFields.add("date/time");
+        }
+        if (motifArea == null || motifArea.getText() == null || motifArea.getText().isBlank()) {
+            missingFields.add("motif");
+        }
+
+        if (missingFields.isEmpty()) {
+            appendAiAssistantMessage("The intent was detected. I filled the form, but one of the values is still invalid.", false);
+        } else {
+            appendAiAssistantMessage("I detected RendezVous and filled what I could. Still missing: " + String.join(", ", missingFields) + ".", false);
+        }
+    }
+
+    private void confirmAppointmentFromAi() {
+        int patientId = requireSessionPatientId();
+        int idStaff = parseRequiredInt(doctorField1, "Doctor/Staff ID");
+        String mode = modeComboBox != null ? modeComboBox.getValue() : null;
+        String motif = "Reservé par IA";
+        if (motifArea != null) {
+            motifArea.setText(motif);
+            validateMotif();
+        }
+        saveAppointment(patientId, idStaff, selectedDateTime, mode, motif);
+        reloadReservedSlotsForSelectedDoctor();
+        loadMyBookings();
+    }
+
+    private void appendAiAssistantMessage(String message, boolean fromUser) {
+        if (aiConversationHistory == null || message == null || message.isBlank()) {
+            return;
+        }
+
+        HBox row = new HBox(12);
+        row.getStyleClass().add(fromUser ? "ai-message-row-user" : "ai-message-row-ai");
+
+        VBox messageColumn = new VBox(4);
+        messageColumn.setFillWidth(true);
+        HBox.setHgrow(messageColumn, Priority.ALWAYS);
+
+        Label nameLabel = new Label(fromUser ? "You" : "AI Assistant");
+        nameLabel.getStyleClass().add("ai-message-name");
+        if (fromUser) {
+            nameLabel.getStyleClass().add("ai-message-name-user");
+        }
+
+        Label bubble = new Label(message);
+        bubble.setWrapText(true);
+        bubble.getStyleClass().addAll("ai-bubble", fromUser ? "ai-bubble-user" : "ai-bubble-ai");
+        bubble.setMaxWidth(640);
+
+        if (fromUser) {
+            messageColumn.setAlignment(javafx.geometry.Pos.TOP_RIGHT);
+            messageColumn.getChildren().addAll(nameLabel, bubble);
+            row.setAlignment(javafx.geometry.Pos.TOP_RIGHT);
+            row.getChildren().addAll(messageColumn, createAiAvatar("Me", true));
+        } else {
+            messageColumn.getChildren().addAll(nameLabel, bubble);
+            row.setAlignment(javafx.geometry.Pos.TOP_LEFT);
+            row.getChildren().addAll(createAiAvatar("AI", false), messageColumn);
+        }
+
+        aiConversationHistory.getChildren().add(row);
+    }
+
+    private VBox createAiAvatar(String text, boolean userAvatar) {
+        Label avatarLabel = new Label(text);
+        avatarLabel.getStyleClass().add("ai-avatar-text");
+
+        VBox avatar = new VBox(avatarLabel);
+        avatar.getStyleClass().addAll("ai-avatar", userAvatar ? "ai-avatar-user" : "ai-avatar-ai");
+        avatar.setMinSize(42, 42);
+        avatar.setPrefSize(42, 42);
+        avatar.setMaxSize(42, 42);
+        avatar.setAlignment(javafx.geometry.Pos.CENTER);
+        return avatar;
+    }
+
+    private void setAiAssistantStatus(String message) {
+        if (aiAssistantStatusLabel != null) {
+            aiAssistantStatusLabel.setText(message);
+        }
+    }
+
+    private void setAiAssistantControlsDisabled(boolean disabled) {
+        if (aiSendMessageButton != null) {
+            aiSendMessageButton.setDisable(disabled);
+        }
+        if (aiVoiceMessageButton != null) {
+            aiVoiceMessageButton.setDisable(disabled);
+        }
+        if (aiMessageInput != null) {
+            aiMessageInput.setDisable(disabled);
+        }
+    }
+
+    private void applyAiSelectedDateTime(LocalDateTime dateTime) {
+        selectedDateTime = dateTime;
+
+        if (selectedDateLabel != null) {
+            selectedDateLabel.setText(dateTime.format(DateTimeFormatter.ofPattern("EEE dd MMM yyyy", Locale.ENGLISH)));
+        }
+        if (selectedSlotLabel != null) {
+            selectedSlotLabel.setText(dateTime.format(DateTimeFormatter.ofPattern("HH:mm", Locale.ENGLISH)));
+        }
+
+        validateAppointmentSelection();
+    }
+
+    private boolean canAutoBookRendezVous() {
+        return doctorField1 != null && doctorField1.getText() != null && !doctorField1.getText().isBlank()
+                && modeComboBox != null && modeComboBox.getValue() != null && !modeComboBox.getValue().isBlank()
+                && selectedDateTime != null
+                && motifArea != null && motifArea.getText() != null && !motifArea.getText().isBlank();
+    }
+
+    private LocalDateTime parseDialogflowDateTime(String rawValue) {
+        if (rawValue == null || rawValue.isBlank()) {
+            return null;
+        }
+
+        String trimmed = rawValue.trim();
+
+        // Dialogflow can return nested JSON-like values. Extract an ISO token when embedded.
+        Matcher embeddedMatcher = ISO_DATE_TIME_EMBEDDED_PATTERN.matcher(trimmed);
+        if (embeddedMatcher.find()) {
+            trimmed = embeddedMatcher.group(1).replace(' ', 'T');
+        }
+
+        // Support natural forms like: 2026-04-28 10am / 2026-04-28 10:30 pm
+        Matcher amPmMatcher = DATE_TIME_AM_PM_PATTERN.matcher(trimmed);
+        if (amPmMatcher.find()) {
+            try {
+                LocalDate date = LocalDate.parse(amPmMatcher.group(1));
+                int hour = Integer.parseInt(amPmMatcher.group(2));
+                int minute = amPmMatcher.group(3) == null ? 0 : Integer.parseInt(amPmMatcher.group(3));
+                String amPm = amPmMatcher.group(4).toLowerCase(Locale.ROOT);
+
+                if (hour < 1 || hour > 12 || minute < 0 || minute > 59) {
+                    return null;
+                }
+
+                int hour24 = hour % 12;
+                if ("pm".equals(amPm)) {
+                    hour24 += 12;
+                }
+
+                return date.atTime(hour24, minute);
+            } catch (DateTimeParseException | NumberFormatException ignored) {
+            }
+        }
+
+        try {
+            return OffsetDateTime.parse(trimmed).toLocalDateTime();
+        } catch (DateTimeParseException ignored) {
+        }
+
+        try {
+            return LocalDateTime.parse(trimmed, modifyDateTimeFormatter);
+        } catch (DateTimeParseException ignored) {
+        }
+
+        try {
+            return LocalDateTime.parse(trimmed);
+        } catch (DateTimeParseException ignored) {
+            return null;
+        }
+    }
+
+    private String findDateTimeValueFromAnyParameter(Map<String, String> parameters) {
+        if (parameters == null || parameters.isEmpty()) {
+            return null;
+        }
+
+        for (Map.Entry<String, String> entry : parameters.entrySet()) {
+            String key = entry.getKey();
+            String value = entry.getValue();
+            if (key == null || value == null || value.isBlank()) {
+                continue;
+            }
+
+            String normalizedKey = normalizeSearchText(key);
+            if (!normalizedKey.contains("date") && !normalizedKey.contains("time")) {
+                continue;
+            }
+
+            if (parseDialogflowDateTime(value) != null) {
+                return value;
+            }
+        }
+
+        return null;
+    }
+
+    private String normalizeMode(String modeValue) {
+        if (modeValue == null || modeValue.isBlank()) {
+            return null;
+        }
+
+        String normalized = normalizeSearchText(modeValue);
+        if (normalized.contains("present") || normalized.contains("onsite") || normalized.contains("in person")) {
+            return "Présentiel";
+        }
+        if (normalized.contains("distanc") || normalized.contains("remote") || normalized.contains("online") || normalized.contains("virtual")) {
+            return "Distanciel";
+        }
+        return modeValue.trim();
+    }
+
+    private Integer resolveDialogflowStaffId(String personValue) {
+        if (personValue == null || personValue.isBlank()) {
+            return null;
+        }
+
+        String trimmed = personValue.trim();
+        try {
+            int parsedId = Integer.parseInt(trimmed);
+            return userService.findById(parsedId) == null ? null : parsedId;
+        } catch (NumberFormatException ignored) {
+        }
+
+        String normalizedCandidate = normalizeSearchText(trimmed);
+        List<User> doctors = userService.getStaffByRoleAndType("STAFF", "RESP_PATIENTS");
+        for (User doctor : doctors) {
+            String displayName = buildDoctorDisplayName(doctor);
+            String normalizedDisplayName = normalizeSearchText(displayName);
+            String normalizedRawName = normalizeSearchText((doctor.getPrenom() == null ? "" : doctor.getPrenom()) + " " + (doctor.getNom() == null ? "" : doctor.getNom()));
+            if (normalizedDisplayName.contains(normalizedCandidate)
+                    || normalizedRawName.contains(normalizedCandidate)
+                    || normalizedCandidate.contains(normalizedRawName)) {
+                return doctor.getId();
+            }
+        }
+
+        return null;
+    }
+
+    private String firstNonBlank(String... values) {
+        if (values == null) {
+            return null;
+        }
+
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value.trim();
+            }
+        }
+        return null;
+    }
+
+    private String normalizeSearchText(String value) {
+        if (value == null) {
+            return "";
+        }
+
+        String normalized = Normalizer.normalize(value, Normalizer.Form.NFD);
+        normalized = normalized.replaceAll("\\p{M}+", "");
+        return normalized.toLowerCase(Locale.ROOT).trim();
+    }
+
+    private String buildDialogflowSessionId() {
+        Integer patientId = resolveSessionPatientId();
+        if (patientId == null || patientId <= 0) {
+            return "consultation-guest";
+        }
+        return "consultation-" + patientId;
+    }
+
+    private void showBookingPage() {
+        setVisiblePage(bookingPage);
+        updatePageNavigationState(bookingPageBtn);
+    }
+
+    private void showMyBookingsPage() {
+        setVisiblePage(myBookingsPage);
+        updatePageNavigationState(myBookingsPageBtn);
 
         loadMyBookings();
     }
 
     private void showMyRecordsPage() {
-        bookingPage.setVisible(false);
-        bookingPage.setManaged(false);
-        myBookingsPage.setVisible(false);
-        myBookingsPage.setManaged(false);
-        if (myRecordsPage != null) {
-            myRecordsPage.setVisible(true);
-            myRecordsPage.setManaged(true);
-        }
-
-        bookingPageBtn.getStyleClass().remove("page-nav-button-active");
-        if (!bookingPageBtn.getStyleClass().contains("page-nav-button")) {
-            bookingPageBtn.getStyleClass().add("page-nav-button");
-        }
-        myBookingsPageBtn.getStyleClass().remove("page-nav-button-active");
-        if (!myBookingsPageBtn.getStyleClass().contains("page-nav-button")) {
-            myBookingsPageBtn.getStyleClass().add("page-nav-button");
-        }
-        if (myRecordsPageBtn != null) {
-            myRecordsPageBtn.getStyleClass().remove("page-nav-button");
-            if (!myRecordsPageBtn.getStyleClass().contains("page-nav-button-active")) {
-                myRecordsPageBtn.getStyleClass().add("page-nav-button-active");
-            }
-        }
+        setVisiblePage(myRecordsPage);
+        updatePageNavigationState(myRecordsPageBtn);
 
         applyMyRecordsFilterAndSort();
+    }
+
+    private void showAiAssistantPage() {
+        setVisiblePage(aiAssistantPage);
+        updatePageNavigationState(aiAssistantPageBtn);
+    }
+
+    private void setVisiblePage(VBox visiblePage) {
+        if (bookingPage != null) {
+            boolean isVisible = bookingPage == visiblePage;
+            bookingPage.setVisible(isVisible);
+            bookingPage.setManaged(isVisible);
+        }
+        if (myBookingsPage != null) {
+            boolean isVisible = myBookingsPage == visiblePage;
+            myBookingsPage.setVisible(isVisible);
+            myBookingsPage.setManaged(isVisible);
+        }
+        if (myRecordsPage != null) {
+            boolean isVisible = myRecordsPage == visiblePage;
+            myRecordsPage.setVisible(isVisible);
+            myRecordsPage.setManaged(isVisible);
+        }
+        if (aiAssistantPage != null) {
+            boolean isVisible = aiAssistantPage == visiblePage;
+            aiAssistantPage.setVisible(isVisible);
+            aiAssistantPage.setManaged(isVisible);
+        }
+    }
+
+    private void updatePageNavigationState(Button activeButton) {
+        Button[] pageButtons = {bookingPageBtn, myBookingsPageBtn, myRecordsPageBtn, aiAssistantPageBtn};
+        for (Button button : pageButtons) {
+            if (button == null) {
+                continue;
+            }
+            boolean isActive = button == activeButton;
+            button.getStyleClass().remove(isActive ? "page-nav-button" : "page-nav-button-active");
+            String targetStyle = isActive ? "page-nav-button-active" : "page-nav-button";
+            if (!button.getStyleClass().contains(targetStyle)) {
+                button.getStyleClass().add(targetStyle);
+            }
+        }
     }
 
     private void refreshCalendar() {

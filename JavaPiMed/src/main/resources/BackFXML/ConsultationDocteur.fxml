@@ -46,7 +46,7 @@
 
         <HBox alignment="CENTER_LEFT" spacing="10" styleClass="sidebar-item">
             <Label text="↪" styleClass="sidebar-item-icon"/>
-            <Label text="Déconnexion" styleClass="sidebar-item-text"/>
+            <Label text="Déconnexion" styleClass="sidebar-item-text" />
         </HBox>
     </VBox>
 

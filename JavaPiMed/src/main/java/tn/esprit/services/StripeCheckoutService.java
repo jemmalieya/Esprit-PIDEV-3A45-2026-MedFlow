@@ -35,7 +35,7 @@ public class StripeCheckoutService {
                             .setQuantity((long) cp.getQuantite_commandee())
                             .setPriceData(
                                     SessionCreateParams.LineItem.PriceData.builder()
-                                            .setCurrency("eur") // ou usd, ou autre supportée
+                                            .setCurrency("usd") // USD (Stripe supporte l'USD, TND nécessite une configuration compte)
                                             .setUnitAmount((long) Math.round(p.getPrix_produit() * 100))
                                             .setProductData(
                                                     SessionCreateParams.LineItem.PriceData.ProductData.builder()

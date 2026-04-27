@@ -92,6 +92,23 @@ public class CommandeController {
     @FXML private Label livraisonStatutLabel;
     @FXML private Label livraisonDistanceLabel;
     @FXML private Label livraisonDureeLabel;
+    @FXML private Label lblUserInitiales;
+    @FXML private Label lblUserNom;
+    @FXML private Label lblUserRole;
+    @FXML private Label miniClientNomLabel;
+    @FXML private Label miniClientAdresseLabel;
+
+    @FXML private StackPane stepDot2;
+    @FXML private StackPane stepDot3;
+    @FXML private StackPane stepDot4;
+
+    @FXML private Label stepLabel2;
+    @FXML private Label stepLabel3;
+    @FXML private Label stepLabel4;
+
+    @FXML private Region stepLine12;
+    @FXML private Region stepLine23;
+    @FXML private Region stepLine34;
     @FXML
     private ImageView livraisonMapImageView;
     private Pane markerOverlayPane;
@@ -569,38 +586,184 @@ public class CommandeController {
         Commande commande = commandeSelectionneeFront;
         if (commande == null) return;
 
-        if (lblNumCommande != null) lblNumCommande.setText("Commande #" + commande.getId_commande());
-        if (lblDateCommande != null) lblDateCommande.setText("📅  " + commande.getDate_creation_commande());
+        if (lblNumCommande != null) {
+            lblNumCommande.setText("Commande #" + commande.getId_commande());
+        }
 
-        String statut = commande.getStatut_commande();
+        if (lblDateCommande != null) {
+            lblDateCommande.setText("📅  " + String.valueOf(commande.getDate_creation_commande()));
+        }
+
+        String statut = safe(commande.getStatut_commande());
+
         if (lblStatutPill != null) {
             lblStatutPill.setText(normalizeStatut(statut).toUpperCase());
-            lblStatutPill.getStyleClass().setAll("badge-detail", getBadgeClass(statut));
+            lblStatutPill.getStyleClass().removeAll(
+                    "badge-confirmed", "badge-cours", "badge-attente",
+                    "badge-livraison", "badge-finalise", "badge-default"
+            );
+            lblStatutPill.getStyleClass().addAll("badge-detail", getBadgeClass(statut));
+        }
+
+        // =========================
+        // PRODUITS
+        // =========================
+        List<CommandeProduit> produits = commande.getCommande_produits();
+        if (produits == null) {
+            produits = new ArrayList<>();
         }
 
         if (produitsContainer != null) {
             produitsContainer.getChildren().clear();
-            List<CommandeProduit> produits = commande.getCommande_produits();
-            if (produits == null) produits = new ArrayList<>();
-
-            if (lblNbProduits != null) lblNbProduits.setText(produits.size() + " article(s)");
-
             for (CommandeProduit cp : produits) {
                 produitsContainer.getChildren().add(buildFrontProductRow(cp));
             }
         }
 
+        if (lblNbProduits != null) {
+            lblNbProduits.setText(produits.size() + " article(s)");
+        }
+
         double montant = commande.getMontant_total_cents() / 100.0;
-        if (lblTotal != null) lblTotal.setText(String.format("%.2f Dt", montant));
 
-        if (resumeNum != null) resumeNum.setText("#" + commande.getId_commande());
-        if (resumeDate != null) resumeDate.setText(String.valueOf(commande.getDate_creation_commande()));
-        if (resumeArticles != null) resumeArticles.setText(String.valueOf(
-                commande.getCommande_produits() == null ? 0 : commande.getCommande_produits().size()
-        ));
-        if (resumeTotal != null) resumeTotal.setText(String.format("%.2f Dt", montant));
+        if (lblTotal != null) {
+            lblTotal.setText(String.format("%.2f Dt", montant));
+        }
+
+        if (resumeNum != null) {
+            resumeNum.setText("#" + commande.getId_commande());
+        }
+
+        if (resumeDate != null) {
+            resumeDate.setText(String.valueOf(commande.getDate_creation_commande()));
+        }
+
+        if (resumeArticles != null) {
+            resumeArticles.setText(String.valueOf(produits.size()));
+        }
+
+        if (resumeTotal != null) {
+            resumeTotal.setText(String.format("%.2f Dt", montant));
+        }
+
+        // =========================
+        // CLIENT
+        // =========================
+        remplirInfosClientFront(commande);
+
+        // =========================
+        // PETITS CARDS A DROITE
+        // =========================
+        if (statMontantLabel != null) {
+            statMontantLabel.setText(String.format("%.2f Dt", montant));
+        }
+
+        if (statNbProduitsLabel != null) {
+            statNbProduitsLabel.setText(String.valueOf(produits.size()));
+        }
+
+        if (statStatutLabel != null) {
+            statStatutLabel.setText(normalizeStatut(statut));
+        }
+
+        if (produitsTotalBadge != null) {
+            produitsTotalBadge.setText(String.format("Total : %.2f Dt", montant));
+        }
+
+        if (heroSubtitleLabel != null) {
+            heroSubtitleLabel.setText(produits.size() + " produit(s) · " + normalizeStatut(statut));
+        }
+
+        if (clientDateCommandeLabel != null && commande.getDate_creation_commande() != null) {
+            clientDateCommandeLabel.setText(commande.getDate_creation_commande().toString());
+        }
+
+        // =========================
+        // STEPPER
+        // =========================
+        updateCommandeStepper(statut);
     }
+    private void remplirInfosClientFront(Commande commande) {
+        if (commande == null) return;
 
+        User user = commande.getUser();
+
+        String nomComplet = "Client inconnu";
+        String adresse = "Adresse non disponible";
+        String telephone = "—";
+        String ville = "—";
+        String note = "Aucune instruction particulière.";
+        String initiales = "??";
+
+        if (user != null) {
+            String prenom = safe(user.getPrenom());
+            String nom = safe(user.getNom());
+
+            String full = (prenom + " " + nom).trim();
+            if (!full.isEmpty()) {
+                nomComplet = full;
+            }
+
+            if (!safe(user.getAdresseUser()).isBlank()) {
+                adresse = user.getAdresseUser().trim();
+            }
+
+            if (!safe(user.getTelephoneUser()).isBlank()) {
+                telephone = user.getTelephoneUser().trim();
+            }
+
+
+
+            initiales = buildInitiales(prenom, nom);
+        }
+
+        if (lblUserInitiales != null) {
+            lblUserInitiales.setText(initiales);
+        }
+
+        if (lblUserNom != null) {
+            lblUserNom.setText(nomComplet);
+        }
+
+        if (lblUserRole != null) {
+            lblUserRole.setText("Client");
+        }
+
+        if (lblAdresse != null) {
+            lblAdresse.setText(adresse);
+        }
+
+        if (lblVille != null) {
+            lblVille.setText(ville);
+        }
+
+        if (lblTelephone != null) {
+            lblTelephone.setText(telephone);
+        }
+
+        if (lblNote != null) {
+            lblNote.setText(note);
+        }
+
+        // petite partie à droite
+        if (miniClientNomLabel != null) {
+            miniClientNomLabel.setText(nomComplet);
+        }
+
+        if (miniClientAdresseLabel != null) {
+            miniClientAdresseLabel.setText(adresse);
+        }
+    }
+    private String buildInitiales(String prenom, String nom) {
+        String p = safe(prenom).trim();
+        String n = safe(nom).trim();
+
+        String i1 = p.isEmpty() ? "" : p.substring(0, 1).toUpperCase();
+        String i2 = n.isEmpty() ? "" : n.substring(0, 1).toUpperCase();
+
+        String result = (i1 + i2).trim();
+        return result.isEmpty() ? "??" : result;
+    }
     private HBox buildFrontProductRow(CommandeProduit cp) {
         HBox row = new HBox(0);
         row.setAlignment(Pos.CENTER_LEFT);
@@ -3314,5 +3477,108 @@ public class CommandeController {
     }
 
 
+    private void updateCommandeStepper(String statut) {
+        String s = safe(statut).toLowerCase();
 
+        resetStepperState();
+
+        // étape 1 = toujours validée si on est dans détail commande
+        if (stepLine12 != null) {
+            stepLine12.getStyleClass().setAll("step-line-done");
+        }
+
+        if (s.contains("cours")) {
+            setStepActive(stepDot2, stepLabel2);
+            setStepPending(stepDot3, stepLabel3);
+            setStepPending(stepDot4, stepLabel4);
+
+            if (stepLine23 != null) stepLine23.getStyleClass().setAll("step-line-pending");
+            if (stepLine34 != null) stepLine34.getStyleClass().setAll("step-line-pending");
+        }
+        else if (s.contains("livraison")) {
+            setStepDone(stepDot2, stepLabel2, "✓");
+            setStepActive(stepDot3, stepLabel3);
+            setStepPending(stepDot4, stepLabel4);
+
+            if (stepLine23 != null) stepLine23.getStyleClass().setAll("step-line-done");
+            if (stepLine34 != null) stepLine34.getStyleClass().setAll("step-line-pending");
+        }
+        else if (s.contains("final")) {
+            setStepDone(stepDot2, stepLabel2, "✓");
+            setStepDone(stepDot3, stepLabel3, "✓");
+            setStepDone(stepDot4, stepLabel4, "✓");
+
+            if (stepLine23 != null) stepLine23.getStyleClass().setAll("step-line-done");
+            if (stepLine34 != null) stepLine34.getStyleClass().setAll("step-line-done");
+        }
+        else {
+            setStepPending(stepDot2, stepLabel2);
+            setStepPending(stepDot3, stepLabel3);
+            setStepPending(stepDot4, stepLabel4);
+
+            if (stepLine23 != null) stepLine23.getStyleClass().setAll("step-line-pending");
+            if (stepLine34 != null) stepLine34.getStyleClass().setAll("step-line-pending");
+        }
+    }
+    private void resetStepperState() {
+        resetStep(stepDot2, stepLabel2);
+        resetStep(stepDot3, stepLabel3);
+        resetStep(stepDot4, stepLabel4);
+    }
+
+    private void resetStep(StackPane dot, Label label) {
+        if (dot != null) {
+            dot.getStyleClass().removeAll("step-dot-active", "step-dot-done", "step-dot-pending");
+            dot.getStyleClass().add("step-dot-pending");
+            if (!dot.getChildren().isEmpty() && dot.getChildren().get(0) instanceof Label l) {
+                if ("✓".equals(l.getText())) {
+                    if (dot == stepDot2) l.setText("2");
+                    else if (dot == stepDot3) l.setText("3");
+                    else if (dot == stepDot4) l.setText("4");
+                }
+            }
+        }
+
+        if (label != null) {
+            label.getStyleClass().removeAll("step-label-active", "step-label-done", "step-label-pending");
+            label.getStyleClass().add("step-label-pending");
+        }
+    }
+
+    private void setStepActive(StackPane dot, Label label) {
+        if (dot != null) {
+            dot.getStyleClass().removeAll("step-dot-done", "step-dot-pending");
+            dot.getStyleClass().add("step-dot-active");
+        }
+        if (label != null) {
+            label.getStyleClass().removeAll("step-label-done", "step-label-pending");
+            label.getStyleClass().add("step-label-active");
+        }
+    }
+
+    private void setStepPending(StackPane dot, Label label) {
+        if (dot != null) {
+            dot.getStyleClass().removeAll("step-dot-done", "step-dot-active");
+            dot.getStyleClass().add("step-dot-pending");
+        }
+        if (label != null) {
+            label.getStyleClass().removeAll("step-label-done", "step-label-active");
+            label.getStyleClass().add("step-label-pending");
+        }
+    }
+
+    private void setStepDone(StackPane dot, Label label, String text) {
+        if (dot != null) {
+            dot.getStyleClass().removeAll("step-dot-active", "step-dot-pending");
+            dot.getStyleClass().add("step-dot-done");
+
+            if (!dot.getChildren().isEmpty() && dot.getChildren().get(0) instanceof Label l) {
+                l.setText(text);
+            }
+        }
+        if (label != null) {
+            label.getStyleClass().removeAll("step-label-active", "step-label-pending");
+            label.getStyleClass().add("step-label-done");
+        }
+    }
 }

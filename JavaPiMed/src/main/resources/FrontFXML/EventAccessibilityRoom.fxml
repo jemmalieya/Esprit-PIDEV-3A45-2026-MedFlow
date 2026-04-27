@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Priority?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            prefWidth="1500.0"
+            prefHeight="920.0"
+            fx:controller="tn.esprit.controllers.EventAccessibilityRoomController"
+            style="-fx-background-color: linear-gradient(to bottom right, #f4fbff, #eef3f8);">
+
+    <top>
+        <VBox spacing="14.0" style="-fx-padding: 24; -fx-background-color: white; -fx-border-color: rgba(13,105,132,0.08); -fx-border-width: 0 0 1 0;">
+            <children>
+                <HBox alignment="CENTER_LEFT" spacing="16.0">
+                    <children>
+                        <VBox spacing="6.0">
+                            <children>
+                                <Label text="Salle d'accessibilite live"
+                                       style="-fx-font-size: 28px; -fx-font-weight: 800; -fx-text-fill: #14313f;"/>
+                                <Label fx:id="eventTitleLabel"
+                                       text="Evenement"
+                                       style="-fx-font-size: 18px; -fx-font-weight: 700; -fx-text-fill: #0f728c;"/>
+                                <Label fx:id="eventMetaLabel"
+                                       text="Meta"
+                                       style="-fx-text-fill: #54707d; -fx-font-size: 13px;"/>
+                            </children>
+                        </VBox>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Button text="Retour evenement"
+                                onAction="#backToEventDetail"
+                                style="-fx-background-color: #eef4f8; -fx-text-fill: #123748; -fx-font-weight: 700; -fx-background-radius: 14; -fx-padding: 12 18;"/>
+                    </children>
+                </HBox>
+                <Label fx:id="roomStatusLabel"
+                       text="Salle en preparation"
+                       wrapText="true"
+                       style="-fx-background-color: #eafaf5; -fx-text-fill: #166b55; -fx-padding: 10 14; -fx-background-radius: 14; -fx-font-weight: 700;"/>
+            </children>
+        </VBox>
+    </top>
+
+    <center>
+        <HBox spacing="18.0" style="-fx-padding: 18;">
+            <children>
+                <VBox spacing="16.0" HBox.hgrow="ALWAYS">
+                    <children>
+                        <VBox spacing="18.0" style="-fx-background-color: white; -fx-background-radius: 24; -fx-padding: 24; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.06), 18, 0.2, 0, 6);">
+                            <children>
+                                <Label text="Salle video professionnelle"
+                                       style="-fx-font-size: 28px; -fx-font-weight: 800; -fx-text-fill: #14313f;"/>
+                                <Label text="Rejoignez directement l'appel video depuis MedFlow. Si la camera ou le micro bloquent encore sur votre poste, vous gardez le bouton de secours pour ouvrir la meme reunion dans le navigateur."
+                                       wrapText="true"
+                                       style="-fx-text-fill: #56707b; -fx-font-size: 14px;"/>
+                                <StackPane style="-fx-background-color: #f7fbfd; -fx-background-radius: 22; -fx-padding: 12; -fx-border-color: rgba(14,143,176,0.14); -fx-border-radius: 22;">
+                                    <children>
+                                        <StackPane fx:id="roomBrowserHost" prefWidth="980.0" prefHeight="580.0"/>
+                                    </children>
+                                </StackPane>
+                                <VBox spacing="12.0"
+                                      style="-fx-background-color: linear-gradient(to right, #e7f8ff, #eefbf5); -fx-background-radius: 22; -fx-padding: 20; -fx-border-color: rgba(14,143,176,0.16); -fx-border-radius: 22;">
+                                    <children>
+                                        <Label text="Lien d'appel video"
+                                               style="-fx-font-size: 16px; -fx-font-weight: 800; -fx-text-fill: #0f728c;"/>
+                                        <TextField fx:id="roomUrlInput"
+                                                   promptText="https://..."
+                                                   style="-fx-background-radius: 16; -fx-padding: 14; -fx-font-size: 14px;"/>
+                                        <Label fx:id="roomUrlLabel"
+                                               text="https://meet.jit.si/..."
+                                               wrapText="true"
+                                               style="-fx-background-color: rgba(255,255,255,0.92); -fx-background-radius: 16; -fx-padding: 14; -fx-text-fill: #163848; -fx-font-size: 14px; -fx-font-weight: 700;"/>
+                                        <HBox spacing="12.0">
+                                            <children>
+                                                <Button text="Enregistrer le lien"
+                                                        onAction="#saveRoomLink"
+                                                        style="-fx-background-color: #22a66f; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: 800; -fx-background-radius: 16; -fx-padding: 14 20;"/>
+                                                <Button text="Rejoindre l'appel"
+                                                        onAction="#launchRoom"
+                                                        style="-fx-background-color: linear-gradient(to right, #0e8fb0, #0a7894); -fx-text-fill: white; -fx-font-size: 15px; -fx-font-weight: 800; -fx-background-radius: 16; -fx-padding: 14 22;"/>
+                                                <Button text="Ouvrir dans le navigateur"
+                                                        onAction="#openInBrowser"
+                                                        style="-fx-background-color: #153946; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: 700; -fx-background-radius: 16; -fx-padding: 14 20;"/>
+                                                <Button text="Copier le lien"
+                                                        onAction="#copyRoomLink"
+                                                        style="-fx-background-color: #eef4f8; -fx-text-fill: #163848; -fx-font-size: 14px; -fx-font-weight: 700; -fx-background-radius: 16; -fx-padding: 14 20;"/>
+                                                <Button text="Sous-titres live"
+                                                        onAction="#openCaptionAssistant"
+                                                        style="-fx-background-color: linear-gradient(to right, #22a66f, #15855a); -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: 800; -fx-background-radius: 16; -fx-padding: 14 20;"/>
+                                            </children>
+                                        </HBox>
+                                    </children>
+                                </VBox>
+                                <HBox spacing="14.0">
+                                    <children>
+                                        <VBox spacing="8.0" HBox.hgrow="ALWAYS"
+                                              style="-fx-background-color: #f8fbfd; -fx-background-radius: 18; -fx-padding: 18;">
+                                            <children>
+                                                <Label text="Mode pro"
+                                                       style="-fx-font-size: 16px; -fx-font-weight: 800; -fx-text-fill: #14313f;"/>
+                                                <Label text="Appel video dans l'application, gestion des liens dans MedFlow et transcription sauvegardee comme ressource evenement."
+                                                       wrapText="true"
+                                                       style="-fx-text-fill: #56707b; -fx-font-size: 13px;"/>
+                                            </children>
+                                        </VBox>
+                                        <VBox spacing="8.0" HBox.hgrow="ALWAYS"
+                                              style="-fx-background-color: #f8fbfd; -fx-background-radius: 18; -fx-padding: 18;">
+                                            <children>
+                                                <Label text="Pourquoi cette version ?"
+                                                       style="-fx-font-size: 16px; -fx-font-weight: 800; -fx-text-fill: #14313f;"/>
+                                                <Label text="Elle garde vraiment la salle dans l'application. Le premier lancement peut telecharger Chromium embarque sur la machine, puis les lancements suivants seront plus rapides."
+                                                       wrapText="true"
+                                                       style="-fx-text-fill: #56707b; -fx-font-size: 13px;"/>
+                                            </children>
+                                        </VBox>
+                                    </children>
+                                </HBox>
+                            </children>
+                        </VBox>
+                    </children>
+                </VBox>
+
+                <VBox spacing="16.0" prefWidth="390.0">
+                    <children>
+                        <VBox spacing="12.0" style="-fx-background-color: white; -fx-background-radius: 24; -fx-padding: 18; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 16, 0.18, 0, 4);">
+                            <children>
+                                <Label text="Reponses rapides"
+                                       style="-fx-font-size: 18px; -fx-font-weight: 800; -fx-text-fill: #14313f;"/>
+                                <FlowPane hgap="10.0" vgap="10.0">
+                                    <children>
+                                        <Button text="Bonjour" onAction="#appendQuickPhraseBonjour" style="-fx-background-radius: 999; -fx-background-color: #eef9ff; -fx-text-fill: #0e6077; -fx-font-weight: 700;"/>
+                                        <Button text="Oui" onAction="#appendQuickPhraseOui" style="-fx-background-radius: 999; -fx-background-color: #eef9ff; -fx-text-fill: #0e6077; -fx-font-weight: 700;"/>
+                                        <Button text="Non" onAction="#appendQuickPhraseNon" style="-fx-background-radius: 999; -fx-background-color: #eef9ff; -fx-text-fill: #0e6077; -fx-font-weight: 700;"/>
+                                        <Button text="Repeter" onAction="#appendQuickPhraseRepeat" style="-fx-background-radius: 999; -fx-background-color: #eef9ff; -fx-text-fill: #0e6077; -fx-font-weight: 700;"/>
+                                        <Button text="Besoin d'aide" onAction="#appendQuickPhraseHelp" style="-fx-background-radius: 999; -fx-background-color: #fff3e8; -fx-text-fill: #9a4b00; -fx-font-weight: 700;"/>
+                                    </children>
+                                </FlowPane>
+                            </children>
+                        </VBox>
+
+                        <VBox spacing="12.0" style="-fx-background-color: white; -fx-background-radius: 24; -fx-padding: 18; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 16, 0.18, 0, 4);">
+                            <children>
+                                <Label text="Transcription / notes live"
+                                       style="-fx-font-size: 18px; -fx-font-weight: 800; -fx-text-fill: #14313f;"/>
+                                <Label text="Utilisez cette zone pour les sous-titres manuels, les notes ou l'aide textuelle pendant l'appel."
+                                       wrapText="true"
+                                       style="-fx-text-fill: #56707b; -fx-font-size: 13px;"/>
+                                <TextArea fx:id="transcriptArea"
+                                          prefRowCount="14"
+                                          wrapText="true"
+                                          style="-fx-background-radius: 18; -fx-border-radius: 18;"/>
+                                <HBox spacing="10.0">
+                                    <children>
+                                        <Button text="Coller depuis le presse-papiers"
+                                                onAction="#pasteClipboardToTranscript"
+                                                style="-fx-background-color: #153946; -fx-text-fill: white; -fx-font-weight: 700; -fx-background-radius: 14; -fx-padding: 10 16;"/>
+                                        <Button text="Vider"
+                                                onAction="#clearTranscript"
+                                                style="-fx-background-color: #f0f4f6; -fx-text-fill: #163848; -fx-font-weight: 700; -fx-background-radius: 14; -fx-padding: 10 16;"/>
+                                        <Region HBox.hgrow="ALWAYS"/>
+                                        <Button text="Enregistrer dans Ressource"
+                                                onAction="#saveTranscript"
+                                                style="-fx-background-color: #22a66f; -fx-text-fill: white; -fx-font-weight: 800; -fx-background-radius: 14; -fx-padding: 10 16;"/>
+                                    </children>
+                                </HBox>
+                            </children>
+                        </VBox>
+
+                        <VBox spacing="12.0" style="-fx-background-color: white; -fx-background-radius: 24; -fx-padding: 18; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 16, 0.18, 0, 4);">
+                            <children>
+                                <Label text="Ressources accessibilite"
+                                       style="-fx-font-size: 18px; -fx-font-weight: 800; -fx-text-fill: #14313f;"/>
+                                <FlowPane fx:id="resourcesFlow" hgap="10.0" vgap="10.0" prefWrapLength="340.0"/>
+                            </children>
+                        </VBox>
+                    </children>
+                </VBox>
+            </children>
+        </HBox>
+    </center>
+
+</BorderPane>

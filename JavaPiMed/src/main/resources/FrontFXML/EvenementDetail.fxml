@@ -152,6 +152,24 @@
                                           prefWrapLength="780"/>
                             </VBox>
 
+                            <VBox spacing="12" styleClass="booking-card">
+                                <HBox spacing="10" alignment="CENTER_LEFT">
+                                    <Label text="Accessibilite live" styleClass="card-title"/>
+                                    <Region HBox.hgrow="ALWAYS"/>
+                                    <Button text="Rejoindre l'appel video"
+                                            onAction="#ouvrirSalleAccessibilite"
+                                            styleClass="confirm-button"/>
+                                </HBox>
+                                <Label fx:id="accessibilityStatusLabel"
+                                       text="Salle live, transcription et liens d'assistance."
+                                       wrapText="true"
+                                       style="-fx-text-fill: #4d6d78; -fx-font-size: 14px;"/>
+                                <FlowPane fx:id="accessibilityResourcesContainer"
+                                          hgap="10"
+                                          vgap="10"
+                                          prefWrapLength="780"/>
+                            </VBox>
+
                             <VBox spacing="12" styleClass="event-map-card">
                                 <HBox spacing="10" alignment="CENTER_LEFT">
                                     <Label text="Carte et accès" styleClass="card-title"/>
@@ -231,11 +249,11 @@
                             </VBox>
 
                             <HBox spacing="12">
+                                <Region HBox.hgrow="ALWAYS"/>
+
                                 <Button text="Retour"
                                         onAction="#retourVersListeFrontFixe"
                                         styleClass="cancel-button"/>
-
-                                <Region HBox.hgrow="ALWAYS"/>
 
                                 <Button text="Participer"
                                         onAction="#ouvrirFormulaireParticipation"

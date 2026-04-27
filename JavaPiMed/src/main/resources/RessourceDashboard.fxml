@@ -152,7 +152,11 @@
                             <HBox spacing="12.0" alignment="CENTER_RIGHT">
                                 <children>
                                     <Label text="Filtres" styleClass="pill-label"/>
+                                    <ComboBox fx:id="categoryFilterCombo" promptText="Categorie" styleClass="sort-combo"/>
                                     <ComboBox fx:id="sortCombo" styleClass="sort-combo"/>
+                                    <Button text="Accessibilite"
+                                            onAction="#showAccessibilityOnly"
+                                            styleClass="white-btn"/>
                                 </children>
                             </HBox>
                         </children>
@@ -199,6 +203,15 @@
                             </StackPane>
                             <Label fx:id="stockResourcesLabel" text="0" styleClass="stat-number"/>
                             <Label text="Stock / Materiel" styleClass="stat-text"/>
+                        </children>
+                    </VBox>
+                    <VBox spacing="16.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
+                        <children>
+                            <StackPane prefWidth="46.0" prefHeight="46.0" styleClass="stat-badge green-badge">
+                                <children><Label text="&#127911;" styleClass="stat-emoji"/></children>
+                            </StackPane>
+                            <Label fx:id="accessibilityResourcesLabel" text="0" styleClass="stat-number"/>
+                            <Label text="Accessibilite" styleClass="stat-text"/>
                         </children>
                     </VBox>
                     <VBox spacing="16.0" styleClass="stat-card" HBox.hgrow="ALWAYS">

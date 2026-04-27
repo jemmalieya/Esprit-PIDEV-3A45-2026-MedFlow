@@ -29,7 +29,9 @@ import javafx.stage.Popup;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import tn.esprit.entities.Evenement;
+import tn.esprit.entities.Ressource;
 import tn.esprit.entities.User;
+import tn.esprit.services.AccessibilityRoomService;
 import tn.esprit.services.AiCancellationCareService;
 import tn.esprit.services.AiEventIntelligenceService;
 import tn.esprit.services.CloudinaryEventUploadService;
@@ -190,6 +192,7 @@ public class EvenementController {
     private final DashboardBIServiceEvenement dashboardService = new DashboardBIServiceEvenement();
     private final EvenementPDFService pdfService = new EvenementPDFService();
     private final EventLocationService eventLocationService = new EventLocationService();
+    private final AccessibilityRoomService accessibilityRoomService = new AccessibilityRoomService();
 
     private static Evenement evenementAModifier;
     private static Evenement evenementSelectionneAiBack;
@@ -253,6 +256,8 @@ public class EvenementController {
     @FXML private Label weatherHumidityLabel;
     @FXML private Label weatherWindLabel;
     @FXML private FlowPane aiFrontRecommendationsContainer;
+    @FXML private FlowPane accessibilityResourcesContainer;
+    @FXML private Label accessibilityStatusLabel;
     @FXML private Label aiFrontStatusLabel;
     @FXML private FlowPane participationsContainer;
     @FXML private Label participationSummaryLabel;
@@ -1437,7 +1442,7 @@ public class EvenementController {
         if (brouillonsLabel != null) brouillonsLabel.setText(String.valueOf(brouillons));
         if (archivesLabel != null) archivesLabel.setText(String.valueOf(archives));
         if (inventoryCountLabel != null) {
-            inventoryCountLabel.setText(total + " evenement(s) | " + demandesEnAttente + " demande(s) en attente");
+            inventoryCountLabel.setText(total + " evenement(s) | " + demandesEnAttente + " participant(s) en liste d'attente");
         }
         updateParticipationAlert(demandesEnAttente);
     }
@@ -1452,10 +1457,10 @@ public class EvenementController {
         if (!hasPending) return;
 
         if (participationAlertCountLabel != null) {
-            participationAlertCountLabel.setText(demandesEnAttente + " demande(s) de participation en attente");
+            participationAlertCountLabel.setText(demandesEnAttente + " participant(s) en liste d'attente");
         }
         if (participationAlertMessageLabel != null) {
-            participationAlertMessageLabel.setText("Des participants attendent une decision. Ouvrez la liste pour accepter, refuser ou remettre une demande en attente.");
+            participationAlertMessageLabel.setText("Les nouvelles demandes sont acceptees automatiquement tant qu'il reste des places. Utilisez la liste pour refuser ou replacer un participant en liste d'attente.");
         }
     }
 
@@ -1481,7 +1486,7 @@ public class EvenementController {
                 .toList();
 
         if (eventsWithPending.isEmpty()) {
-            showAlert(Alert.AlertType.INFORMATION, "Demandes", "Aucune demande de participation en attente.");
+            showAlert(Alert.AlertType.INFORMATION, "Demandes", "Aucun participant en liste d'attente.");
             updateParticipationAlert(0);
             return;
         }
@@ -1505,10 +1510,10 @@ public class EvenementController {
         VBox content = new VBox(14);
         content.getStyleClass().add("participation-modal-card");
 
-        Label title = new Label("Evenements avec demandes en attente");
+        Label title = new Label("Evenements avec liste d'attente");
         title.setStyle("-fx-text-fill: #123c69; -fx-font-size: 24px; -fx-font-weight: 900;");
 
-        Label subtitle = new Label("Choisissez un evenement pour traiter ses demandes de participation.");
+        Label subtitle = new Label("Choisissez un evenement pour gerer les participants en liste d'attente.");
         subtitle.setWrapText(true);
         subtitle.setStyle("-fx-text-fill: #e6f9ff; -fx-font-size: 13px; -fx-font-weight: 600;");
 
@@ -1522,7 +1527,7 @@ public class EvenementController {
             VBox info = new VBox(3);
             Label name = new Label(valueOrDash(ev.getTitre_event()));
             name.setStyle("-fx-text-fill: #153946; -fx-font-size: 16px; -fx-font-weight: 800;");
-            Label meta = new Label(valueOrDash(ev.getVille_event()) + " | " + pending + " demande(s) en attente");
+            Label meta = new Label(valueOrDash(ev.getVille_event()) + " | " + pending + " participant(s) en liste d'attente");
             meta.setStyle("-fx-text-fill: #4d6d78; -fx-font-size: 12px; -fx-font-weight: 700;");
             info.getChildren().addAll(name, meta);
 
@@ -1676,7 +1681,7 @@ public class EvenementController {
         Label title = new Label(valueOrDash(ev.getTitre_event()));
         title.setWrapText(true);
         title.setStyle("-fx-text-fill: white; -fx-font-size: 26px; -fx-font-weight: 900;");
-        Label subtitle = new Label("Traitez les demandes, ajoutez un motif de refus si besoin, puis le participant recoit la decision par SMS.");
+        Label subtitle = new Label("Les participants sont acceptes automatiquement tant qu'il reste des places. Utilisez cette vue pour refuser une demande ou replacer quelqu'un en liste d'attente.");
         subtitle.setWrapText(true);
         subtitle.setStyle("-fx-text-fill: #e6f9ff; -fx-font-size: 13px; -fx-font-weight: 600;");
         titleBox.getChildren().addAll(overline, title, subtitle);
@@ -1686,7 +1691,7 @@ public class EvenementController {
         header.getChildren().addAll(titleBox, headerSpacer);
 
         HBox stats = new HBox(10,
-                createDemandStatChip("En attente", pending, "#e8f6ff", "#087ea4"),
+                createDemandStatChip("Liste d'attente", pending, "#e8f6ff", "#087ea4"),
                 createDemandStatChip("Acceptees", accepted, "#eafff4", "#15803d"),
                 createDemandStatChip("Refusees", refused, "#fff1f2", "#be123c")
         );
@@ -1732,7 +1737,7 @@ public class EvenementController {
         nameRow.setAlignment(Pos.CENTER_LEFT);
         Label name = new Label(demande.getDisplayName());
         name.setStyle("-fx-text-fill: #153946; -fx-font-size: 17px; -fx-font-weight: 900;");
-        Label status = new Label(demande.getStatusLabel());
+        Label status = new Label(getParticipationStatusLabel(demande.getStatus()));
         status.setStyle(getStatusChipStyle(demande.getStatus()));
         nameRow.getChildren().addAll(name, status);
 
@@ -1752,6 +1757,7 @@ public class EvenementController {
 
         Button acceptBtn = new Button("Accepter");
         acceptBtn.setStyle("-fx-background-color: linear-gradient(to right, #08a6c8, #1f64d8); -fx-text-fill: white; -fx-background-radius: 14; -fx-padding: 10 18; -fx-font-weight: 900; -fx-cursor: hand; -fx-effect: dropshadow(gaussian, rgba(31,100,216,0.22), 10, 0.12, 0, 3);");
+        styleParticipationActionButton(acceptBtn, 132);
         acceptBtn.setOnAction(e -> {
             dialog.close();
             traiterDecisionParticipation(ev, demande, ParticipationDemande.STATUS_ACCEPTED);
@@ -1759,26 +1765,45 @@ public class EvenementController {
 
         Button refuseBtn = new Button("Refuser");
         refuseBtn.setStyle("-fx-background-color: white; -fx-text-fill: #be123c; -fx-border-color: #fecdd3; -fx-border-radius: 14; -fx-background-radius: 14; -fx-padding: 10 18; -fx-font-weight: 900; -fx-cursor: hand;");
+        styleParticipationActionButton(refuseBtn, 132);
         refuseBtn.setOnAction(e -> {
             dialog.close();
             traiterDecisionParticipation(ev, demande, ParticipationDemande.STATUS_REFUSED);
         });
 
-        Button pendingBtn = new Button("Attente");
+        Button pendingBtn = new Button("Liste d'attente");
         pendingBtn.setStyle("-fx-background-color: #e8f6ff; -fx-text-fill: #087ea4; -fx-border-color: #9ddff0; -fx-border-radius: 14; -fx-background-radius: 14; -fx-padding: 10 18; -fx-font-weight: 900; -fx-cursor: hand;");
+        styleParticipationActionButton(pendingBtn, 160);
         pendingBtn.setOnAction(e -> {
             dialog.close();
-            traiterDecisionParticipation(ev, demande, ParticipationDemande.STATUS_PENDING);
+            traiterDecisionParticipation(ev, demande, ParticipationDemande.STATUS_WAITING);
         });
 
-        HBox actions = new HBox(8, acceptBtn, refuseBtn, pendingBtn);
+        Button smsBtn = new Button("Envoyer SMS");
+        smsBtn.setStyle("-fx-background-color: #f5f3ff; -fx-text-fill: #5b21b6; -fx-border-color: #d8ccff; -fx-border-radius: 14; -fx-background-radius: 14; -fx-padding: 10 18; -fx-font-weight: 900; -fx-cursor: hand;");
+        styleParticipationActionButton(smsBtn, 148);
+        smsBtn.setOnAction(e -> {
+            dialog.close();
+            envoyerSmsDecision(ev, demande);
+            afficherDemandesParticipation(ev);
+        });
+
+        FlowPane actions = new FlowPane(8, 8, acceptBtn, refuseBtn, pendingBtn, smsBtn);
         actions.setAlignment(Pos.CENTER_RIGHT);
+        actions.setPrefWrapLength(320);
 
         HBox row = new HBox(16, info, actions);
         HBox.setHgrow(info, Priority.ALWAYS);
         row.setAlignment(Pos.CENTER_LEFT);
         row.setStyle("-fx-background-color: white; -fx-background-radius: 18; -fx-border-color: #d5ebf7; -fx-border-radius: 18; -fx-padding: 16; -fx-effect: dropshadow(gaussian, rgba(15,90,170,0.07), 10, 0.12, 0, 2);");
         return row;
+    }
+
+    private void styleParticipationActionButton(Button button, double minWidth) {
+        button.setMinWidth(minWidth);
+        button.setPrefWidth(minWidth);
+        button.setMaxWidth(Double.MAX_VALUE);
+        button.setWrapText(false);
     }
 
     private String getStatusChipStyle(String status) {
@@ -1788,7 +1813,23 @@ public class EvenementController {
         if (ParticipationDemande.STATUS_REFUSED.equals(status)) {
             return "-fx-background-color: #fff1f2; -fx-text-fill: #be123c; -fx-background-radius: 999; -fx-padding: 5 11; -fx-font-size: 11px; -fx-font-weight: 900;";
         }
+        if (ParticipationDemande.STATUS_WAITING.equals(status)) {
+            return "-fx-background-color: #fff7e8; -fx-text-fill: #b45309; -fx-background-radius: 999; -fx-padding: 5 11; -fx-font-size: 11px; -fx-font-weight: 900;";
+        }
         return "-fx-background-color: #e8f6ff; -fx-text-fill: #087ea4; -fx-background-radius: 999; -fx-padding: 5 11; -fx-font-size: 11px; -fx-font-weight: 900;";
+    }
+
+    private String getParticipationStatusLabel(String status) {
+        if (ParticipationDemande.STATUS_ACCEPTED.equals(status)) {
+            return "Acceptee";
+        }
+        if (ParticipationDemande.STATUS_REFUSED.equals(status)) {
+            return "Refusee";
+        }
+        if (ParticipationDemande.STATUS_WAITING.equals(status) || ParticipationDemande.STATUS_PENDING.equals(status)) {
+            return "Liste d'attente";
+        }
+        return "Statut inconnu";
     }
 
     private String demanderDecisionParticipation(ParticipationDemande demande, String status) {
@@ -1808,7 +1849,7 @@ public class EvenementController {
                 ? "Accepter la demande"
                 : ParticipationDemande.STATUS_REFUSED.equals(status)
                 ? "Refuser la demande"
-                : "Remettre en attente";
+                : "Placer en liste d'attente";
 
         Label overline = new Label("DECISION ADMINISTRATIVE");
         overline.setStyle("-fx-text-fill: #dff9ff; -fx-font-size: 11px; -fx-font-weight: 900;");
@@ -1830,10 +1871,10 @@ public class EvenementController {
         noteArea.setStyle("-fx-background-color: white; -fx-background-radius: 14; -fx-border-color: #bce6f1; -fx-border-radius: 14; -fx-font-size: 13px;");
 
         Label helper = new Label(ParticipationDemande.STATUS_ACCEPTED.equals(status)
-                ? "Un ticket sera genere si besoin et un SMS sera envoye au participant."
+                ? "Un ticket sera genere si une place est disponible. Aucun SMS n'est envoye automatiquement."
                 : ParticipationDemande.STATUS_REFUSED.equals(status)
-                ? "Le motif sera conserve avec la demande et inclus dans le SMS si vous le renseignez."
-                : "La demande restera visible dans les demandes en attente.");
+                ? "Le motif sera conserve avec la demande. Aucun SMS n'est envoye automatiquement."
+                : "La demande restera sur la liste d'attente.");
         helper.setWrapText(true);
         helper.setStyle("-fx-text-fill: #5c7280; -fx-font-size: 12px; -fx-font-weight: 600;");
 
@@ -1867,10 +1908,12 @@ public class EvenementController {
             }
             updateStats();
 
-            if (ParticipationDemande.STATUS_ACCEPTED.equals(status) || ParticipationDemande.STATUS_REFUSED.equals(status)) {
-                envoyerSmsDecision(ev, updated);
+            if (ParticipationDemande.STATUS_ACCEPTED.equals(status)) {
+                showParticipationBackOfficeMessage("Decision enregistree", "La demande est acceptee. Aucun SMS n'a ete envoye automatiquement. Utilisez le bouton Envoyer SMS si besoin.");
+            } else if (ParticipationDemande.STATUS_REFUSED.equals(status)) {
+                showParticipationBackOfficeMessage("Decision enregistree", "La demande est refusee. Aucun SMS n'a ete envoye automatiquement. Utilisez le bouton Envoyer SMS si besoin.");
             } else {
-                showParticipationBackOfficeMessage("Decision enregistree", "La demande est remise en attente.");
+                showParticipationBackOfficeMessage("Decision enregistree", "La demande est placee sur la liste d'attente.");
             }
 
             afficherDemandesParticipation(ev);
@@ -1880,6 +1923,15 @@ public class EvenementController {
     }
 
     private void envoyerSmsDecision(Evenement ev, ParticipationDemande demande) {
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setTitle("Envoyer SMS");
+        confirm.setHeaderText(null);
+        confirm.setContentText("Envoyer un SMS manuel a " + demande.getDisplayName() + " pour le statut actuel ?");
+        Optional<ButtonType> confirmResult = confirm.showAndWait();
+        if (confirmResult.isEmpty() || confirmResult.get() != ButtonType.OK) {
+            return;
+        }
+
         String recipient = participationService.normalizeTunisianPhone(demande.getTelephone());
         if (recipient.isBlank()) {
             showParticipationBackOfficeMessage("Decision enregistree", "Telephone introuvable. SMS non envoye.");
@@ -2588,6 +2640,10 @@ public class EvenementController {
         }
     }
 
+    public static Evenement getEvenementSelectionneFront() {
+        return evenementSelectionneFront;
+    }
+
     private void chargerDetailFrontIfExists() {
         if (titreDetailLabel == null || evenementSelectionneFront == null) return;
 
@@ -2636,6 +2692,68 @@ public class EvenementController {
 
         chargerCarteEtMeteo(ev);
         chargerRecommandationsFrontAi(ev);
+        chargerAccessibiliteFront(ev);
+    }
+
+    private void chargerAccessibiliteFront(Evenement ev) {
+        if (accessibilityStatusLabel != null) {
+            accessibilityStatusLabel.setText(accessibilityRoomService.hasConfiguredRoomLink(ev)
+                    ? "Lien d'appel video configure, transcription et liens d'assistance rattaches aux ressources."
+                    : "Aucun lien d'appel video configure pour cet evenement.");
+        }
+
+        if (accessibilityResourcesContainer == null) {
+            return;
+        }
+
+        accessibilityRoomService.ensureRoomResource(ev);
+        List<Ressource> resources = accessibilityRoomService.getAccessibilityResources(ev.getId());
+
+        accessibilityResourcesContainer.getChildren().clear();
+
+        if (resources.isEmpty()) {
+            Label empty = new Label("Aucune ressource accessibilite pour cet evenement.");
+            empty.setStyle("-fx-text-fill: #5b7280; -fx-font-size: 13px;");
+            accessibilityResourcesContainer.getChildren().add(empty);
+            return;
+        }
+
+        for (Ressource resource : resources) {
+            Label chip = new Label(valueOrDash(resource.getNom_ressource()) + " | " + valueOrDash(resource.getType_ressource()));
+            chip.setStyle(
+                    "-fx-background-color: #eef9ff;" +
+                            "-fx-background-radius: 999;" +
+                            "-fx-padding: 8 14;" +
+                            "-fx-text-fill: #0e6077;" +
+                            "-fx-font-weight: 700;"
+            );
+            accessibilityResourcesContainer.getChildren().add(chip);
+        }
+    }
+
+    @FXML
+    private void ouvrirSalleAccessibilite() {
+        if (evenementSelectionneFront == null) {
+            showAlert(Alert.AlertType.ERROR, "Accessibilite", "Aucun evenement n'est selectionne.");
+            return;
+        }
+
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/FrontFXML/EventAccessibilityRoom.fxml"));
+            Parent root = loader.load();
+
+            Stage stage = resolveCurrentStage();
+            if (stage == null) {
+                throw new IllegalStateException("Fenetre actuelle introuvable.");
+            }
+
+            stage.setScene(new Scene(root, 1500, 920));
+            stage.setTitle("Salle d'accessibilite");
+            stage.show();
+        } catch (Exception e) {
+            e.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Accessibilite", "Impossible d'ouvrir la salle : " + e.getMessage());
+        }
     }
 
     private void chargerCarteEtMeteo(Evenement ev) {
@@ -3090,7 +3208,7 @@ public class EvenementController {
 
         HBox top = new HBox(10);
         top.setAlignment(Pos.CENTER_LEFT);
-        Label status = new Label(demande.getStatusLabel());
+        Label status = new Label(getParticipationStatusLabel(demande.getStatus()));
         status.setStyle(getStatusChipStyle(demande.getStatus()));
         Label type = new Label(valueOrDash(ev.getType_event()));
         type.getStyleClass().add("participation-type-chip");
@@ -3487,7 +3605,7 @@ public class EvenementController {
         question.setWrapText(true);
         question.getStyleClass().add("participation-request-title");
 
-        Label subtitle = new Label(valueOrDash(evenementSelectionneFront.getTitre_event()) + " | Votre demande sera examinee par l equipe evenement.");
+        Label subtitle = new Label(valueOrDash(evenementSelectionneFront.getTitre_event()) + " | Votre participation sera acceptee automatiquement s'il reste des places.");
         subtitle.setWrapText(true);
         subtitle.getStyleClass().add("participation-request-subtitle");
 
@@ -3540,10 +3658,6 @@ public class EvenementController {
         }
 
         String phone = participationService.normalizeTunisianPhone(telField.getText());
-        if (phone.isBlank()) {
-            showAlert(Alert.AlertType.ERROR, "Telephone requis", "Le telephone est obligatoire pour recevoir la decision par SMS.");
-            return;
-        }
 
         ParticipationDemande demande = new ParticipationDemande();
         demande.setUserId(user.getId());
@@ -3554,12 +3668,20 @@ public class EvenementController {
         demande.setMotif(safeValue(motifArea.getText()).trim());
 
         try {
-            participationService.ajouterDemande(evenementSelectionneFront, demande);
-            showParticipationNotice(
-                    "Demande envoyee",
-                    "Votre demande est en attente de validation.",
-                    "Vous recevrez la decision apres traitement par l equipe evenement."
-            );
+            ParticipationDemande created = participationService.ajouterDemande(evenementSelectionneFront, demande);
+            if (ParticipationDemande.STATUS_ACCEPTED.equals(created.getStatus())) {
+                showParticipationNotice(
+                        "Participation acceptee",
+                        "Votre participation est acceptee automatiquement.",
+                        "Une place etait disponible pour cet evenement."
+                );
+            } else {
+                showParticipationNotice(
+                        "Liste d'attente",
+                        "La capacite maximale est atteinte.",
+                        "Votre demande a ete ajoutee a la liste d'attente."
+                );
+            }
         } catch (SQLException e) {
             showAlert(Alert.AlertType.ERROR, "Erreur", "Impossible d'enregistrer la demande : " + e.getMessage());
         }

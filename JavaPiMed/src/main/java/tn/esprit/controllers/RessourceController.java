@@ -45,10 +45,12 @@ public class RessourceController {
     @FXML private Label fileResourcesLabel;
     @FXML private Label linkResourcesLabel;
     @FXML private Label stockResourcesLabel;
+    @FXML private Label accessibilityResourcesLabel;
     @FXML private Label historiqueResourcesLabel;
     @FXML private Label inventoryCountLabel;
     @FXML private TextField searchField;
     @FXML private ComboBox<String> sortCombo;
+    @FXML private ComboBox<String> categoryFilterCombo;
 
     @FXML private TableView<Ressource> ressourceTable;
     @FXML private TableColumn<Ressource, String> eventCol;
@@ -906,12 +908,25 @@ public class RessourceController {
         ));
 
         sortCombo.setOnAction(e -> applySort());
+
+        if (categoryFilterCombo != null) {
+            categoryFilterCombo.setItems(FXCollections.observableArrayList(
+                    "Toutes categories",
+                    "Accessibilite",
+                    "Document",
+                    "Materiel",
+                    "Stock"
+            ));
+            categoryFilterCombo.setValue("Toutes categories");
+            categoryFilterCombo.setOnAction(e -> applyFilters());
+        }
     }
 
     private void loadData() {
         masterList.setAll(ressourceService.recuperer());
         filteredList = new FilteredList<>(masterList, r -> true);
         ressourceTable.setItems(filteredList);
+        applyFilters();
 
         if (inventoryCountLabel != null) {
             inventoryCountLabel.setText(masterList.size() + " ressource(s) dans votre espace");
@@ -922,19 +937,42 @@ public class RessourceController {
         if (searchField == null) return;
 
         searchField.textProperty().addListener((o, a, b) -> {
-            String keyword = normalize(b);
-
-            filteredList.setPredicate(r ->
-                    keyword.isEmpty()
-                            || normalize(r.getNom_ressource()).contains(keyword)
-                            || normalize(r.getCategorie_ressource()).contains(keyword)
-                            || normalize(r.getType_ressource()).contains(keyword)
-                            || normalize(getEventTitle(r)).contains(keyword)
-                            || normalize(r.getFournisseur_ressource()).contains(keyword)
-            );
-
-            updateStats();
+            applyFilters();
         });
+    }
+
+    private void applyFilters() {
+        if (filteredList == null) return;
+
+        String keyword = normalize(searchField == null ? "" : searchField.getText());
+        String category = categoryFilterCombo == null ? "Toutes categories" : text(categoryFilterCombo.getValue());
+        String normalizedCategory = normalize(category);
+
+        filteredList.setPredicate(r -> {
+            boolean matchesKeyword = keyword.isEmpty()
+                    || normalize(r.getNom_ressource()).contains(keyword)
+                    || normalize(r.getCategorie_ressource()).contains(keyword)
+                    || normalize(r.getType_ressource()).contains(keyword)
+                    || normalize(getEventTitle(r)).contains(keyword)
+                    || normalize(r.getFournisseur_ressource()).contains(keyword)
+                    || normalize(r.getNotes_ressource()).contains(keyword);
+
+            boolean matchesCategory = normalizedCategory.isBlank()
+                    || normalizedCategory.equals("toutes categories")
+                    || normalize(r.getCategorie_ressource()).contains(normalizedCategory);
+
+            return matchesKeyword && matchesCategory;
+        });
+
+        updateStats();
+    }
+
+    @FXML
+    private void showAccessibilityOnly() {
+        if (categoryFilterCombo != null) {
+            categoryFilterCombo.setValue("Accessibilite");
+        }
+        applyFilters();
     }
 
     private void applySort() {
@@ -982,6 +1020,12 @@ public class RessourceController {
         if (stockResourcesLabel != null) {
             stockResourcesLabel.setText(String.valueOf(
                     filteredList.stream().filter(r -> "stock_item".equalsIgnoreCase(text(r.getType_ressource()))).count()
+            ));
+        }
+
+        if (accessibilityResourcesLabel != null) {
+            accessibilityResourcesLabel.setText(String.valueOf(
+                    filteredList.stream().filter(r -> normalize(r.getCategorie_ressource()).contains("accessibilite")).count()
             ));
         }
 

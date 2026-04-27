@@ -21,6 +21,13 @@ import tn.esprit.tools.SessionManager;
 import tn.esprit.entities.User;
 import java.time.LocalDateTime;
 
+import tn.esprit.services.AudioRecorderServiceReclamation;
+import tn.esprit.services.GroqSpeechToTextServiceReclamation;
+import tn.esprit.services.GroqTranslationServiceReclamation;
+import tn.esprit.services.VoiceTranslationResult;
+
+import java.io.File;
+
 public class ReclamationController {
 
     // ===== FORM =====
@@ -34,6 +41,16 @@ public class ReclamationController {
     @FXML private Label errContenu;
     @FXML private Label errDescription;
     @FXML private Label errType;
+
+    @FXML private Label lblVoiceStatus;
+    private final AudioRecorderServiceReclamation audioRecorderService = new AudioRecorderServiceReclamation();
+    private final GroqSpeechToTextServiceReclamation speechService = new GroqSpeechToTextServiceReclamation();
+    private final GroqTranslationServiceReclamation translationService = new GroqTranslationServiceReclamation();
+
+    private String contenuOriginalVoice;
+    private String descriptionOriginalVoice;
+    private String langueContenuVoice;
+    private String langueDescriptionVoice;
 
 
     private final ReclamationService reclamationService = new ReclamationService();
@@ -67,6 +84,80 @@ public class ReclamationController {
             }
         });
 
+    }
+
+    @FXML
+    private void dicterContenu() {
+        dicterEtTraduire(true);
+    }
+
+    @FXML
+    private void dicterDescription() {
+        dicterEtTraduire(false);
+    }
+
+    private void dicterEtTraduire(boolean isContenu) {
+
+        showMessage("🎤 Parlez maintenant pendant 7 secondes...", "#0f766e");
+
+        if (lblVoiceStatus != null) {
+            lblVoiceStatus.setText("🎤 Enregistrement en cours...");
+            lblVoiceStatus.setStyle("-fx-text-fill: #0f766e; -fx-font-weight: bold;");
+        }
+
+        new Thread(() -> {
+            File audioFile = null;
+
+            try {
+                audioFile = audioRecorderService.enregistrerWavPendant(7);
+
+                String texteOriginal = speechService.transcrire(audioFile);
+
+                VoiceTranslationResult result =
+                        translationService.traduireVersFrancais(texteOriginal);
+
+                Platform.runLater(() -> {
+
+                    if (isContenu) {
+                        tfContenu.setText(result.getTexteFrancais());
+                        contenuOriginalVoice = result.getTexteOriginal();
+                        langueContenuVoice = result.getLangueSource();
+                    } else {
+                        taDescription.setText(result.getTexteFrancais());
+                        descriptionOriginalVoice = result.getTexteOriginal();
+                        langueDescriptionVoice = result.getLangueSource();
+                    }
+
+                    showMessage("✅ Voix détectée et traduite en français", "green");
+
+                    if (lblVoiceStatus != null) {
+                        lblVoiceStatus.setText(
+                                "Texte original : " + result.getTexteOriginal()
+                                        + "\nLangue : " + result.getLangueSource()
+                                        + "\nTraduction : " + result.getTexteFrancais()
+                        );
+                        lblVoiceStatus.setStyle("-fx-text-fill: green; -fx-font-weight: bold;");
+                    }
+                });
+
+            } catch (Exception e) {
+                e.printStackTrace();
+
+                Platform.runLater(() -> {
+                    showMessage("❌ Erreur API voix : " + e.getMessage(), "red");
+
+                    if (lblVoiceStatus != null) {
+                        lblVoiceStatus.setText("Erreur : " + e.getMessage());
+                        lblVoiceStatus.setStyle("-fx-text-fill: red; -fx-font-weight: bold;");
+                    }
+                });
+
+            } finally {
+                if (audioFile != null && audioFile.exists()) {
+                    audioFile.delete();
+                }
+            }
+        }).start();
     }
 
     // ===== AJOUT =====

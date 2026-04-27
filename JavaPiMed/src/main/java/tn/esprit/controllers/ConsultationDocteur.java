@@ -1547,11 +1547,13 @@ public class ConsultationDocteur {
                 todayRendezVous.add(rendezVous);
             }
 
-            if ("high".equalsIgnoreCase(nullSafe(rendezVous.getUrgency_level()))) {
+            String statut = nullSafe(rendezVous.getStatut());
+            if ("high".equalsIgnoreCase(nullSafe(rendezVous.getUrgency_level()))
+                    && ("Demande".equalsIgnoreCase(statut) || "Confirmé".equalsIgnoreCase(statut))) {
                 highUrgencyRendezVous.add(rendezVous);
             }
 
-            if ("Demande".equalsIgnoreCase(nullSafe(rendezVous.getStatut()))) {
+            if ("Demande".equalsIgnoreCase(statut)) {
                 pendingDemandes.add(rendezVous);
             }
         }

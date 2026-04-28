@@ -73,6 +73,11 @@ public class ProduitController {
     private List<Produit> currentFilteredList = new ArrayList<>();
     private HBox paginationBar = null;
     // AJOUT / MODIF
+    // AJOUT Cloudinary : service d'upload image
+    private CloudinaryProduitService cloudinaryService;
+
+    // Pour savoir si un upload est en cours (évite double-clic)
+    private volatile boolean uploadEnCours = false;
     @FXML private Button btnAjouterProduit;
     @FXML private Button btnModifierProduit;
     @FXML private Button btnResetProduit;
@@ -182,6 +187,7 @@ public class ProduitController {
         initDashboardIfExists();
         initModifierPageIfExists();
         initPharmacieIfExists();
+        initCloudinary();
         initDashboardBIIfExists();
         if (suggestionsFlow != null) {
             buildAssistantSuggestions();
@@ -190,7 +196,16 @@ public class ProduitController {
 
 
     }
-
+    private void initCloudinary() {
+        try {
+            cloudinaryService = new CloudinaryProduitService();
+            System.out.println("[Cloudinary] Service initialisé avec succès.");
+        } catch (IllegalStateException e) {
+            // Variables d'env manquantes → on désactive silencieusement
+            cloudinaryService = null;
+            System.err.println("[Cloudinary] DÉSACTIVÉ — variables manquantes : " + e.getMessage());
+        }
+    }
     private void initAjoutPageIfExists() {
         if (cbCategorieProduit != null && cbCategorieProduit.getItems().isEmpty()) {
             cbCategorieProduit.getItems().addAll("Médicament", "Parapharmacie", "Matériel");
@@ -564,7 +579,7 @@ public class ProduitController {
             row.getStyleClass().add("product-row-even");
         }
 
-        // IMAGE
+        // ── IMAGE ──────────────────────────────────────────────────────────
         StackPane imageBox = new StackPane();
         imageBox.setPrefWidth(90);
         imageBox.setMinWidth(90);
@@ -575,26 +590,14 @@ public class ProduitController {
         thumb.getStyleClass().add("row-image-box");
         thumb.setPrefSize(52, 52);
 
-        String imagePath = safe(p.getImage_produit());
-        if (!imagePath.isEmpty()) {
-            try {
-                File file = new File(imagePath);
-                if (file.exists()) {
-                    ImageView imageView = new ImageView(new Image(file.toURI().toString()));
-                    imageView.setFitWidth(45);
-                    imageView.setFitHeight(45);
-                    imageView.setPreserveRatio(true);
-                    thumb.getChildren().add(imageView);
-                } else {
-                    Label imgIcon = new Label("🖼");
-                    imgIcon.getStyleClass().add("row-image-icon");
-                    thumb.getChildren().add(imgIcon);
-                }
-            } catch (Exception e) {
-                Label imgIcon = new Label("🖼");
-                imgIcon.getStyleClass().add("row-image-icon");
-                thumb.getChildren().add(imgIcon);
-            }
+        // ★ CORRECTION CLOUDINARY : utilise chargerImage() au lieu de new File()
+        Image img = chargerImage(safe(p.getImage_produit()));
+        if (img != null) {
+            ImageView imageView = new ImageView(img);
+            imageView.setFitWidth(45);
+            imageView.setFitHeight(45);
+            imageView.setPreserveRatio(true);
+            thumb.getChildren().add(imageView);
         } else {
             Label imgIcon = new Label("🖼");
             imgIcon.getStyleClass().add("row-image-icon");
@@ -603,19 +606,19 @@ public class ProduitController {
 
         imageBox.getChildren().add(thumb);
 
-        // NOM
+        // ── NOM ────────────────────────────────────────────────────────────
         Label nomLabel = new Label(safe(p.getNom_produit()));
         nomLabel.getStyleClass().add("row-main-text");
         nomLabel.setWrapText(true);
         nomLabel.setMaxWidth(160);
         VBox nomBox = wrapProduitCell(nomLabel, 180, Pos.CENTER_LEFT);
 
-        // PRIX
+        // ── PRIX ───────────────────────────────────────────────────────────
         Label prixLabel = new Label(String.format("%.2f Dt", p.getPrix_produit()));
         prixLabel.getStyleClass().add("row-price-text");
         VBox prixBox = wrapProduitCell(prixLabel, 120, Pos.CENTER_LEFT);
 
-        // QUANTITE
+        // ── QUANTITE ───────────────────────────────────────────────────────
         Label qteLabel = new Label(String.valueOf(p.getQuantite_produit()));
         if (p.getQuantite_produit() <= 0) {
             qteLabel.getStyleClass().add("qty-badge-red");
@@ -626,15 +629,14 @@ public class ProduitController {
         }
         VBox qteBox = wrapProduitCell(qteLabel, 120, Pos.CENTER_LEFT);
 
-        // CATEGORIE
+        // ── CATEGORIE ──────────────────────────────────────────────────────
         Label catLabel = new Label(safe(p.getCategorie_produit()));
         catLabel.getStyleClass().add("category-badge");
         VBox catBox = wrapProduitCell(catLabel, 160, Pos.CENTER_LEFT);
 
-        // STATUT
+        // ── STATUT ─────────────────────────────────────────────────────────
         Label statutLabel = new Label(safe(p.getStatus_produit()));
         String statut = safe(p.getStatus_produit()).toLowerCase(Locale.ROOT);
-
         if (statut.contains("disponible")) {
             statutLabel.getStyleClass().add("statut-badge-disponible");
         } else if (statut.contains("rupture")) {
@@ -642,17 +644,16 @@ public class ProduitController {
         } else {
             statutLabel.getStyleClass().add("statut-badge-indisponible");
         }
-
         VBox statutBox = wrapProduitCell(statutLabel, 150, Pos.CENTER_LEFT);
 
-        // DESCRIPTION
+        // ── DESCRIPTION ────────────────────────────────────────────────────
         Label descLabel = new Label(shortText(safe(p.getDescription_produit()), 45));
         descLabel.getStyleClass().add("row-description-text");
         descLabel.setWrapText(true);
         descLabel.setMaxWidth(240);
         VBox descBox = wrapProduitCell(descLabel, 260, Pos.CENTER_LEFT);
 
-        // ACTIONS
+        // ── ACTIONS ────────────────────────────────────────────────────────
         Button editBtn = new Button("✏");
         editBtn.getStyleClass().add("action-blue-btn");
         editBtn.setOnAction(e -> ouvrirPageModifier(p));
@@ -666,18 +667,14 @@ public class ProduitController {
         VBox actionsWrap = wrapProduitCell(actionsContent, 130, Pos.CENTER_LEFT);
 
         row.getChildren().addAll(
-                imageBox,
-                nomBox,
-                prixBox,
-                qteBox,
-                catBox,
-                statutBox,
-                descBox,
-                actionsWrap
+                imageBox, nomBox, prixBox, qteBox, catBox, statutBox, descBox, actionsWrap
         );
 
         return row;
     }
+
+
+
     private VBox wrapProduitCell(Node node, double width, Pos alignment) {
         VBox box = new VBox(node);
         box.setAlignment(alignment);
@@ -1048,12 +1045,13 @@ public class ProduitController {
         card.setMaxWidth(256);
         card.setSpacing(0);
 
-        // ── Zone image ──────────────────────────────────────────────────
+        // ── Zone image ──────────────────────────────────────────────────────
         StackPane imageBox = new StackPane();
         imageBox.getStyleClass().add("card-image-box");
         imageBox.setPrefHeight(150);
 
-        boolean isRupture = safe(produit.getStatus_produit()).toLowerCase(Locale.ROOT).contains("rupture");
+        boolean isRupture = safe(produit.getStatus_produit())
+                .toLowerCase(Locale.ROOT).contains("rupture");
 
         // Badge rupture
         Label ruptureBadge = new Label();
@@ -1070,40 +1068,29 @@ public class ProduitController {
         StackPane.setAlignment(priceBadge, Pos.TOP_RIGHT);
         StackPane.setMargin(priceBadge, new Insets(8, 8, 0, 0));
 
-        // Image ou placeholder
-        String imgPath = safe(produit.getImage_produit());
-        if (!imgPath.isEmpty()) {
-            try {
-                File file = new File(imgPath);
-                if (file.exists()) {
-                    ImageView iv = new ImageView(new Image(file.toURI().toString()));
-                    iv.setFitWidth(110);
-                    iv.setFitHeight(110);
-                    iv.setPreserveRatio(true);
-                    imageBox.getChildren().add(iv);
-                } else {
-                    imageBox.getChildren().add(makePlaceholderIcon());
-                }
-            } catch (Exception e) {
-                imageBox.getChildren().add(makePlaceholderIcon());
-            }
+        // ★ CORRECTION CLOUDINARY : utilise chargerImage() au lieu de new File()
+        Image img = chargerImage(safe(produit.getImage_produit()));
+        if (img != null) {
+            ImageView iv = new ImageView(img);
+            iv.setFitWidth(110);
+            iv.setFitHeight(110);
+            iv.setPreserveRatio(true);
+            imageBox.getChildren().add(iv);
         } else {
             imageBox.getChildren().add(makePlaceholderIcon());
         }
         imageBox.getChildren().addAll(ruptureBadge, priceBadge);
 
-        // ── Corps de la carte ───────────────────────────────────────────
+        // ── Corps de la carte ────────────────────────────────────────────────
         VBox content = new VBox(8);
         content.getStyleClass().add("card-content");
         content.setPadding(new Insets(12, 14, 12, 14));
 
-        // Nom produit
         Label nom = new Label(safe(produit.getNom_produit()));
         nom.getStyleClass().add("product-name");
         nom.setWrapText(true);
         nom.setMaxWidth(228);
 
-        // Catégorie + stock
         HBox metaRow = new HBox(8);
         metaRow.setAlignment(Pos.CENTER_LEFT);
 
@@ -1116,12 +1103,9 @@ public class ProduitController {
 
         metaRow.getChildren().addAll(categLabel, stockLabel);
 
-        // Statut
         Label statutLabel = new Label(safe(produit.getStatus_produit()));
         String statutLow = safe(produit.getStatus_produit()).toLowerCase(Locale.ROOT);
-        if (statutLow.contains("rupture")) {
-            statutLabel.getStyleClass().add("status-chip-ko");
-        } else if (statutLow.contains("indisponible")) {
+        if (statutLow.contains("rupture") || statutLow.contains("indisponible")) {
             statutLabel.getStyleClass().add("status-chip-ko");
         } else {
             statutLabel.getStyleClass().add("status-chip-ok");
@@ -1129,12 +1113,11 @@ public class ProduitController {
 
         content.getChildren().addAll(nom, metaRow, statutLabel);
 
-        // ── Footer : +/- quantité + boutons ────────────────────────────
+        // ── Footer : quantité + boutons ──────────────────────────────────────
         HBox footer = new HBox(8);
         footer.getStyleClass().add("card-footer");
         footer.setAlignment(Pos.CENTER_LEFT);
 
-        // Quantité courante (état local à la carte)
         final int[] qty = {1};
 
         Label qtyLabel = new Label("Qté :");
@@ -1149,12 +1132,10 @@ public class ProduitController {
         Button plusBtn = new Button("+");
         plusBtn.getStyleClass().add("qty-plus-btn");
 
-        // Spacer
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        // Bouton Ajouter
-        Button addBtn = new Button("Ajouter");
+        Button addBtn  = new Button("Ajouter");
         Button infoBtn = new Button("ℹ");
         infoBtn.getStyleClass().add("icon-btn");
         infoBtn.setOnAction(e -> showProduitDetailsPopup(produit));
@@ -1628,21 +1609,122 @@ public class ProduitController {
 
     @FXML
     void choisirImage(ActionEvent event) {
+
+        // Empêcher double-clic pendant un upload en cours
+        if (uploadEnCours) {
+            showAlert(Alert.AlertType.WARNING, "Upload en cours",
+                    "Veuillez attendre la fin de l'upload précédent.");
+            return;
+        }
+
         FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Choisir une image");
+        fileChooser.setTitle("Choisir une image produit");
         fileChooser.getExtensionFilters().addAll(
-                new FileChooser.ExtensionFilter("Images (*.jpg, *.png, *.jpeg, *.webp)", "*.jpg", "*.png", "*.jpeg", "*.webp")
+                new FileChooser.ExtensionFilter(
+                        "Images (*.jpg, *.png, *.jpeg, *.webp)",
+                        "*.jpg", "*.png", "*.jpeg", "*.webp")
         );
 
         File fichier = fileChooser.showOpenDialog(btnUploadProduit.getScene().getWindow());
 
-        if (fichier != null) {
+        if (fichier == null) {
+            // L'utilisateur a annulé → on ne touche à rien
+            return;
+        }
+
+        // ── CAS 1 : Cloudinary disponible → upload cloud ─────────────────
+        if (cloudinaryService != null) {
+
+            // Feedback visuel immédiat
+            uploadEnCours = true;
+            btnUploadProduit.setDisable(true);
+            btnUploadProduit.setText("⏳ Upload...");
+            lblImageProduit.setText("Upload en cours, veuillez patienter...");
+
+            // Upload dans un thread séparé (ne bloque pas l'UI)
+            Thread uploadThread = new Thread(() -> {
+
+                String urlCloudinary = null;
+                String erreurMessage = null;
+
+                try {
+                    System.out.println("[Cloudinary] Upload démarré : " + fichier.getName());
+                    urlCloudinary = cloudinaryService.uploadImageProduit(fichier);
+                    System.out.println("[Cloudinary] URL reçue : " + urlCloudinary);
+
+                } catch (Exception e) {
+                    erreurMessage = e.getMessage();
+                    System.err.println("[Cloudinary] Erreur upload : " + erreurMessage);
+                }
+
+                // Retour sur le thread JavaFX pour mettre à jour l'UI
+                final String urlFinal    = urlCloudinary;
+                final String erreurFinal = erreurMessage;
+
+                Platform.runLater(() -> {
+
+                    uploadEnCours = false;
+                    btnUploadProduit.setDisable(false);
+                    btnUploadProduit.setText("📁 Choisir image");
+
+                    if (urlFinal != null && !urlFinal.isBlank()) {
+                        // ✅ Upload réussi
+                        imagePath = urlFinal;
+                        // Pour la validation, on passe le nom du fichier
+                        // (la validation vérifie l'extension, pas l'URL)
+                        lblImageProduit.setText(fichier.getName());
+                        validateImage(fichier.getName());
+                        System.out.println("[Cloudinary] imagePath = " + imagePath);
+
+                    } else {
+                        // ❌ Échec upload → fallback chemin local
+                        imagePath = fichier.getAbsolutePath();
+                        lblImageProduit.setText(fichier.getName() + " (local)");
+                        validateImage(fichier.getName());
+
+                        showAlert(Alert.AlertType.WARNING,
+                                "Upload Cloudinary échoué",
+                                "L'image sera sauvegardée en local.\n" +
+                                        "Cause : " + (erreurFinal != null ? erreurFinal : "inconnue"));
+                    }
+                });
+
+            }, "cloudinary-upload-thread");
+
+            uploadThread.setDaemon(true);
+            uploadThread.start();
+
+        } else {
+            // ── CAS 2 : Cloudinary désactivé → chemin local (comportement original)
             imagePath = fichier.getAbsolutePath();
             lblImageProduit.setText(fichier.getName());
-        } else {
-            lblImageProduit.setText("Aucun fichier choisi");
+            validateImage(fichier.getName());
+            System.out.println("[Cloudinary] Mode local. imagePath = " + imagePath);
         }
     }
+    private Image chargerImage(String imgPath) {
+        if (imgPath == null || imgPath.isBlank()) {
+            return null;
+        }
+        try {
+            if (imgPath.startsWith("http://") || imgPath.startsWith("https://")) {
+                // ── URL Cloudinary : chargement asynchrone (ne bloque pas l'UI)
+                return new Image(imgPath, true);
+            } else {
+                // ── Chemin local
+                File file = new File(imgPath);
+                if (file.exists()) {
+                    return new Image(file.toURI().toString());
+                }
+                System.err.println("[chargerImage] Fichier local introuvable : " + imgPath);
+                return null;
+            }
+        } catch (Exception e) {
+            System.err.println("[chargerImage] Erreur : " + imgPath + " → " + e.getMessage());
+            return null;
+        }
+    }
+
 
     @FXML
     void retourProduit(ActionEvent event) {
@@ -2555,37 +2637,27 @@ public class ProduitController {
             content.setAlignment(Pos.TOP_CENTER);
             content.getStyleClass().add("product-details-popup");
 
+            // ── Image ──────────────────────────────────────────────────────
             StackPane imageWrapper = new StackPane();
             imageWrapper.setPrefSize(220, 180);
             imageWrapper.getStyleClass().add("product-image-container");
 
-            String imgPath = safe(p.getImage_produit());
-            if (!imgPath.isEmpty()) {
-                try {
-                    File file = new File(imgPath);
-                    if (file.exists()) {
-                        ImageView imageView = new ImageView(new Image(file.toURI().toString()));
-                        imageView.setFitWidth(150);
-                        imageView.setFitHeight(150);
-                        imageView.setPreserveRatio(true);
-                        imageView.getStyleClass().add("popup-product-image");
-                        imageWrapper.getChildren().add(imageView);
-                    } else {
-                        Label placeholder = new Label("🖼");
-                        placeholder.getStyleClass().add("image-placeholder");
-                        imageWrapper.getChildren().add(placeholder);
-                    }
-                } catch (Exception e) {
-                    Label placeholder = new Label("🖼");
-                    placeholder.getStyleClass().add("image-placeholder");
-                    imageWrapper.getChildren().add(placeholder);
-                }
+            // ★ CORRECTION CLOUDINARY : utilise chargerImage() au lieu de new File()
+            Image img = chargerImage(safe(p.getImage_produit()));
+            if (img != null) {
+                ImageView imageView = new ImageView(img);
+                imageView.setFitWidth(150);
+                imageView.setFitHeight(150);
+                imageView.setPreserveRatio(true);
+                imageView.getStyleClass().add("popup-product-image");
+                imageWrapper.getChildren().add(imageView);
             } else {
                 Label placeholder = new Label("🖼");
                 placeholder.getStyleClass().add("image-placeholder");
                 imageWrapper.getChildren().add(placeholder);
             }
 
+            // ── Badges prix / stock ────────────────────────────────────────
             HBox badgesRow = new HBox(10);
             badgesRow.setAlignment(Pos.CENTER);
 
@@ -2597,6 +2669,7 @@ public class ProduitController {
 
             badgesRow.getChildren().addAll(prixBadge, stockBadge);
 
+            // ── Nom + bouton voix ──────────────────────────────────────────
             Label nameLabel = new Label(safe(p.getNom_produit()));
             nameLabel.getStyleClass().add("product-name-popup");
             nameLabel.setWrapText(true);
@@ -2612,17 +2685,19 @@ public class ProduitController {
             HBox.setHgrow(nameLabel, Priority.ALWAYS);
             titleRow.getChildren().addAll(nameLabel, voiceBtn);
 
+            // ── Tags catégorie + statut ────────────────────────────────────
             HBox tagsRow = new HBox(10);
             tagsRow.setAlignment(Pos.CENTER);
 
             Label categorieTag = new Label("🏷 " + safe(p.getCategorie_produit()));
             categorieTag.getStyleClass().add("popup-category-tag");
 
-            Label statusTag = new Label(getStatutIcon(p.getStatus_produit()) + " " + safe(p.getStatus_produit()));
-            String statut = safe(p.getStatus_produit()).toLowerCase(Locale.ROOT);
-            if (statut.contains("rupture")) {
+            Label statusTag = new Label(getStatutIcon(p.getStatus_produit())
+                    + " " + safe(p.getStatus_produit()));
+            String statutLow = safe(p.getStatus_produit()).toLowerCase(Locale.ROOT);
+            if (statutLow.contains("rupture")) {
                 statusTag.getStyleClass().add("popup-status-ko");
-            } else if (statut.contains("indisponible")) {
+            } else if (statutLow.contains("indisponible")) {
                 statusTag.getStyleClass().add("popup-status-warn");
             } else {
                 statusTag.getStyleClass().add("popup-status-ok");
@@ -2630,17 +2705,18 @@ public class ProduitController {
 
             tagsRow.getChildren().addAll(categorieTag, statusTag);
 
+            // ── Détails ────────────────────────────────────────────────────
             VBox detailsCard = new VBox(10);
             detailsCard.getStyleClass().add("popup-details-card");
-
             detailsCard.getChildren().addAll(
-                    createInfoRow("Nom", safe(p.getNom_produit())),
-                    createInfoRow("Catégorie", safe(p.getCategorie_produit())),
-                    createInfoRow("Prix", formatPrix(p.getPrix_produit())),
-                    createInfoRow("Quantité", String.valueOf(p.getQuantite_produit())),
-                    createInfoRow("Statut", safe(p.getStatus_produit()))
+                    createInfoRow("Nom",        safe(p.getNom_produit())),
+                    createInfoRow("Catégorie",  safe(p.getCategorie_produit())),
+                    createInfoRow("Prix",       formatPrix(p.getPrix_produit())),
+                    createInfoRow("Quantité",   String.valueOf(p.getQuantite_produit())),
+                    createInfoRow("Statut",     safe(p.getStatus_produit()))
             );
 
+            // ── Description ────────────────────────────────────────────────
             VBox descCard = new VBox(8);
             descCard.getStyleClass().add("popup-description-card");
 
@@ -2658,12 +2734,7 @@ public class ProduitController {
             descCard.getChildren().addAll(descTitle, descText);
 
             content.getChildren().addAll(
-                    imageWrapper,
-                    badgesRow,
-                    titleRow,
-                    tagsRow,
-                    detailsCard,
-                    descCard
+                    imageWrapper, badgesRow, titleRow, tagsRow, detailsCard, descCard
             );
 
             dialogPane.setContent(content);
@@ -2680,9 +2751,11 @@ public class ProduitController {
 
         } catch (Exception e) {
             e.printStackTrace();
-            showAlert(Alert.AlertType.ERROR, "Erreur popup", "Impossible d'afficher les détails : " + e.getMessage());
+            showAlert(Alert.AlertType.ERROR, "Erreur popup",
+                    "Impossible d'afficher les détails : " + e.getMessage());
         }
     }
+
 
     private void lireDetailsProduit(Produit produit) {
         if (produit == null) return;
@@ -3098,22 +3171,38 @@ public class ProduitController {
         return card;
     }
 
+
     private ImageView buildThumbnailImageView(String imagePath, double width, double height) {
-        String path = imagePath == null ? "" : imagePath.trim();
+
+        String path = (imagePath == null) ? "" : imagePath.trim();
         if (path.isEmpty()) {
             return null;
         }
 
         try {
-            File file = new File(path);
-            if (!file.exists()) {
+            String cacheKey = path + "|" + (int) width + "x" + (int) height;
+
+            Image image = thumbnailImageCache.computeIfAbsent(cacheKey, k -> {
+
+                if (path.startsWith("http://") || path.startsWith("https://")) {
+                    // ── URL Cloudinary ──────────────────────────────────
+                    System.out.println("[Thumbnail] Chargement URL : " + path);
+                    return new Image(path, width, height, true, true, true);
+
+                } else {
+                    // ── Chemin local ────────────────────────────────────
+                    File file = new File(path);
+                    if (!file.exists()) {
+                        System.err.println("[Thumbnail] Fichier introuvable : " + path);
+                        return null;
+                    }
+                    return new Image(file.toURI().toString(), width, height, true, true, true);
+                }
+            });
+
+            if (image == null) {
                 return null;
             }
-
-            String uri = file.toURI().toString();
-            String cacheKey = uri + "|" + (int) width + "x" + (int) height;
-            Image image = thumbnailImageCache.computeIfAbsent(cacheKey,
-                    k -> new Image(uri, width, height, true, true, true));
 
             ImageView view = new ImageView(image);
             view.setFitWidth(width);
@@ -3121,7 +3210,9 @@ public class ProduitController {
             view.setPreserveRatio(true);
             view.setSmooth(true);
             return view;
-        } catch (Exception ignored) {
+
+        } catch (Exception e) {
+            System.err.println("[Thumbnail] Exception : " + path + " → " + e.getMessage());
             return null;
         }
     }
@@ -3533,7 +3624,7 @@ public class ProduitController {
                         + "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.04), 4, 0, 0, 1);"
         );
 
-        // Miniature image
+        // ── Miniature image ─────────────────────────────────────────────────
         StackPane thumb = new StackPane();
         thumb.setPrefSize(44, 44);
         thumb.setMinSize(44, 44);
@@ -3541,26 +3632,20 @@ public class ProduitController {
                 "-fx-background-color: #f0f4fa; -fx-background-radius: 10px; "
                         + "-fx-border-color: #dde4f0; -fx-border-radius: 10px;"
         );
-        String imgPath = safe(p.getImage_produit());
-        if (!imgPath.isEmpty()) {
-            try {
-                File f = new File(imgPath);
-                if (f.exists()) {
-                    ImageView iv = new ImageView(new Image(f.toURI().toString()));
-                    iv.setFitWidth(36); iv.setFitHeight(36);
-                    iv.setPreserveRatio(true);
-                    thumb.getChildren().add(iv);
-                } else {
-                    thumb.getChildren().add(new Label("🖼"));
-                }
-            } catch (Exception ex) {
-                thumb.getChildren().add(new Label("🖼"));
-            }
+
+        // ★ CORRECTION CLOUDINARY : utilise chargerImage() au lieu de new File()
+        Image img = chargerImage(safe(p.getImage_produit()));
+        if (img != null) {
+            ImageView iv = new ImageView(img);
+            iv.setFitWidth(36);
+            iv.setFitHeight(36);
+            iv.setPreserveRatio(true);
+            thumb.getChildren().add(iv);
         } else {
             thumb.getChildren().add(new Label("🖼"));
         }
 
-        // Infos produit
+        // ── Infos produit ───────────────────────────────────────────────────
         VBox infos = new VBox(3);
         HBox.setHgrow(infos, Priority.ALWAYS);
 
@@ -3583,7 +3668,7 @@ public class ProduitController {
         meta.getChildren().addAll(cat, prix);
         infos.getChildren().addAll(nom, meta);
 
-        // Badge quantité
+        // ── Badge quantité ──────────────────────────────────────────────────
         Label qtyBadge = new Label("📦 " + p.getQuantite_produit());
         qtyBadge.setStyle(
                 "-fx-background-color: " + accentColor + "22; "
@@ -3593,7 +3678,7 @@ public class ProduitController {
                         + "-fx-border-color: " + accentColor + "55; -fx-border-radius: 999px;"
         );
 
-        // Badge statut
+        // ── Badge statut ────────────────────────────────────────────────────
         Label statutBadge = new Label(safe(p.getStatus_produit()));
         String statut = safe(p.getStatus_produit()).toLowerCase(Locale.ROOT);
         if (statut.contains("rupture")) {

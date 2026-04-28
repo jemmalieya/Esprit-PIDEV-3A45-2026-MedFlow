@@ -377,18 +377,11 @@ public class CommandeController {
         StackPane imgWrap = new StackPane();
 
         try {
-            String path = cp.getProduit().getImage_produit();
-            if (path != null && !path.isEmpty()) {
-                File file = new File(path);
-                if (file.exists()) {
-                    ImageView img = new ImageView(new Image(file.toURI().toString()));
-                    img.setFitWidth(52);
-                    img.setFitHeight(52);
-                    img.setPreserveRatio(false);
-                    imgWrap.getStyleClass().add("product-img-wrap");
-                    imgWrap.getChildren().add(img);
-                    return imgWrap;
-                }
+            ImageView img = buildCommandeProductImageView(cp == null ? null : cp.getProduit() == null ? null : cp.getProduit().getImage_produit(), 52, 52);
+            if (img != null) {
+                imgWrap.getStyleClass().add("product-img-wrap");
+                imgWrap.getChildren().add(img);
+                return imgWrap;
             }
         } catch (Exception ignored) {
         }
@@ -774,20 +767,10 @@ public class CommandeController {
         thumb.setMaxSize(52, 52);
 
         try {
-            String path = cp.getProduit().getImage_produit();
-            if (path != null && !path.isEmpty()) {
-                File f = new File(path);
-                if (f.exists()) {
-                    ImageView iv = new ImageView(new Image(f.toURI().toString()));
-                    iv.setFitWidth(46);
-                    iv.setFitHeight(46);
-                    iv.setPreserveRatio(false);
-                    thumb.getStyleClass().add("product-img-wrap");
-                    thumb.getChildren().add(iv);
-                } else {
-                    thumb.getStyleClass().add("product-img-placeholder");
-                    thumb.getChildren().add(new Label("🖼"));
-                }
+            ImageView iv = buildCommandeProductImageView(cp == null ? null : cp.getProduit() == null ? null : cp.getProduit().getImage_produit(), 46, 46);
+            if (iv != null) {
+                thumb.getStyleClass().add("product-img-wrap");
+                thumb.getChildren().add(iv);
             } else {
                 thumb.getStyleClass().add("product-img-placeholder");
                 thumb.getChildren().add(new Label("🖼"));
@@ -846,6 +829,7 @@ public class CommandeController {
             scene.getStylesheets().addAll(lblNumCommande.getScene().getStylesheets());
 
             stage.setScene(scene);
+            stage.setTitle("Détail commande");
             stage.show();
 
         } catch (Exception ex) {
@@ -866,6 +850,7 @@ public class CommandeController {
             scene.getStylesheets().addAll(lblNumCommande.getScene().getStylesheets());
 
             stage.setScene(scene);
+            stage.setTitle("Pharmacie");
             stage.show();
 
         } catch (Exception ex) {
@@ -1270,12 +1255,8 @@ public class CommandeController {
             imgBox.getStyleClass().add("mini-image-box");
 
             try {
-                String path = cp.getProduit().getImage_produit();
-                if (path != null && !path.isEmpty() && new File(path).exists()) {
-                    ImageView iv = new ImageView(new Image(new File(path).toURI().toString()));
-                    iv.setFitWidth(42);
-                    iv.setFitHeight(42);
-                    iv.setPreserveRatio(true);
+                ImageView iv = buildCommandeProductImageView(cp == null ? null : cp.getProduit() == null ? null : cp.getProduit().getImage_produit(), 42, 42);
+                if (iv != null) {
                     imgBox.getChildren().add(iv);
                 } else {
                     imgBox.getChildren().add(new Label("🖼"));
@@ -1621,6 +1602,8 @@ public class CommandeController {
             if (user != null) {
                 String prenom = user.getPrenom() != null ? user.getPrenom() : "";
                 String nom = user.getNom() != null ? user.getNom() : "";
+                String mail = user.getEmailUser() != null ? user.getEmailUser() : "-";
+
                 String full = (prenom + " " + nom).trim();
                 if (!full.isEmpty()) clientNom = full;
                 if (user.getEmailUser() != null && !user.getEmailUser().isBlank()) {
@@ -2974,7 +2957,12 @@ public class CommandeController {
                     applySuiviStatus("Statut : Livraison terminée", "finished");
                 }
                 showCommandeToast("Livraison terminée", "commande-toast-success", "✅");
-                Platform.runLater(() -> showTimedInfoAlert("Livraison", "Livraison terminée.", 2.0));
+                Platform.runLater(() -> showToastOnStage(
+                        null,
+                        "Livraison terminée.",
+                        "commande-toast-success",
+                        "✅"
+                ));
             }
         }));
 
@@ -3581,4 +3569,42 @@ public class CommandeController {
             label.getStyleClass().add("step-label-done");
         }
     }
+
+    private ImageView buildCommandeProductImageView(String imagePath, double width, double height) {
+        String path = imagePath == null ? "" : imagePath.trim();
+        if (path.isEmpty()) return null;
+
+        try {
+            String source;
+            if (path.startsWith("http://") || path.startsWith("https://")) {
+                // ── URL Cloudinary
+                source = path;
+            } else {
+                // ── Chemin local
+                File file = new File(path);
+                if (!file.exists()) {
+                    System.err.println("[CommandeImg] Fichier introuvable : " + path);
+                    return null;
+                }
+                source = file.toURI().toString();
+            }
+
+            // true = chargement asynchrone
+            Image image = new Image(source, width, height, true, true, true);
+
+            // Ne pas bloquer sur isError() pour le chargement async,
+            // JavaFX affichera un placeholder si l'URL est invalide.
+            ImageView view = new ImageView(image);
+            view.setFitWidth(width);
+            view.setFitHeight(height);
+            view.setPreserveRatio(true);
+            view.setSmooth(true);
+            return view;
+
+        } catch (Exception e) {
+            System.err.println("[CommandeImg] Erreur : " + path + " → " + e.getMessage());
+            return null;
+        }
+    }
 }
+

@@ -112,7 +112,7 @@
                                             <TextField fx:id="profileLastNameField" prefHeight="40" styleClass="modern-text-field"/>
                                             <Label fx:id="profileLastNameErrorLabel" text="" styleClass="field-error" visible="false" managed="false" wrapText="true"/>
 
-                                            <Label text="Adresse" styleClass="field-label"/>
+                                             <Label text="Adresse *" styleClass="field-label"/>
                                             <TextField fx:id="profileAddressField" prefHeight="40" styleClass="modern-text-field"/>
                                             <Label fx:id="profileAddressErrorLabel" text="" styleClass="field-error" visible="false" managed="false" wrapText="true"/>
 

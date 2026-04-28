@@ -1,12 +1,15 @@
 package tn.esprit.controllers;
 
 import javafx.event.ActionEvent;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
+import javafx.concurrent.Task;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.fxml.FXML;
+import javafx.geometry.Point2D;
 import javafx.scene.SnapshotParameters;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
@@ -23,11 +26,21 @@ import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.chart.BarChart;
 import javafx.scene.chart.PieChart;
 import javafx.scene.chart.XYChart;
+import javafx.scene.image.ImageView;
 import javafx.scene.image.WritableImage;
 import javafx.scene.input.KeyCode;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.shape.Circle;
+import javafx.scene.shape.Line;
+import javafx.scene.shape.Rectangle;
+import javafx.scene.shape.Polyline;
+import javafx.scene.web.WebEngine;
+import javafx.scene.web.WebView;
+import javafx.scene.paint.Color;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.stage.FileChooser;
 import javafx.stage.Window;
@@ -40,19 +53,36 @@ import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import tn.esprit.entities.FicheMedicale;
 import tn.esprit.entities.Prescription;
 import tn.esprit.entities.RendezVous;
+import tn.esprit.entities.User;
+import tn.esprit.services.BrevoEmailService;
 import tn.esprit.services.FicheMedicaleService;
+import tn.esprit.services.HandTrackingService;
 import tn.esprit.services.PrescriptionService;
+import tn.esprit.services.PrescriptionSuggestionService;
 import tn.esprit.services.RendezVousService;
+import tn.esprit.services.UserService;
 import tn.esprit.tools.MyDataBase;
+import tn.esprit.tools.SessionManager;
+import com.github.sarxos.webcam.Webcam;
+import com.github.sarxos.webcam.WebcamResolution;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.io.File;
 import java.io.IOException;
+import java.awt.Desktop;
+import java.awt.Dimension;
 import java.awt.image.BufferedImage;
+import java.net.URI;
+import java.net.URLEncoder;
 import javax.imageio.ImageIO;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -65,10 +95,14 @@ import java.util.Set;
 
 public class ConsultationDocteur {
 
-    private static final int SESSION_DOCTOR_ID = 143;
+    private Integer sessionDoctorId;
     private final RendezVousService rendezVousService = new RendezVousService();
     private final FicheMedicaleService ficheMedicaleService = new FicheMedicaleService();
     private final PrescriptionService prescriptionService = new PrescriptionService();
+    private final UserService userService = new UserService();
+    private final BrevoEmailService brevoEmailService = new BrevoEmailService();
+    private final PrescriptionSuggestionService prescriptionSuggestionService = new PrescriptionSuggestionService();
+    private List<PrescriptionSuggestionService.PrescriptionSuggestion> currentSuggestions = new ArrayList<>();
 
     // FXML fields mapped to UI components
     @FXML
@@ -100,6 +134,9 @@ public class ConsultationDocteur {
 
     @FXML
     private VBox pageOneContainer;
+
+    @FXML
+    private VBox homePageContainer;
 
     @FXML
     private VBox consultationPageContainer;
@@ -137,15 +174,55 @@ public class ConsultationDocteur {
     @FXML
     private Label selectedRendezVousIdLabel;
     @FXML
+    private StackPane signatureCameraContainer;
+    @FXML
+    private Button captureSignatureButton;
+    @FXML
+    private Button clearSignatureButton;
+    @FXML
+    private Label signatureStatusLabel;
+    @FXML
+    private ImageView signaturePreviewImageView;
+    @FXML
+    private Label signaturePreviewPlaceholderLabel;
+    @FXML
     private Label consultationStartTimeLabel;
     @FXML
     private Label consultationEndTimeLabel;
     @FXML
     private Button saveFicheButton;
     @FXML
+    private Button suggestionsButton;
+    @FXML
     private Label consultationDurationLabel;
     @FXML
     private Label consultationTimerLabel;
+    @FXML
+    private Label consultationModeBadgeLabel;
+    @FXML
+    private VBox distancielCallCard;
+    @FXML
+    private Label jitsiStatusLabel;
+    @FXML
+    private StackPane jitsiWebContainer;
+    @FXML
+    private Label jitsiRoomUrlLabel;
+    @FXML
+    private Button joinCallButton;
+    @FXML
+    private Button leaveCallButton;
+    @FXML
+    private Label homeWelcomeLabel;
+    @FXML
+    private Label homeTodayDateLabel;
+    @FXML
+    private Label homeTodayCountLabel;
+    @FXML
+    private VBox todayCalendarContainer;
+    @FXML
+    private VBox highUrgencyContainer;
+    @FXML
+    private VBox pendingDemandesContainer;
 
     // Detail panel fields
     @FXML
@@ -276,10 +353,30 @@ public class ConsultationDocteur {
     private boolean ficheEditMode;
     private boolean prescriptionsEditMode;
     private List<Prescription> prescriptionsSnapshot = new ArrayList<>();
+    private boolean distancielConsultationActive;
+    private String activeJitsiRoomName;
+    private WebView jitsiWebView;
+    private boolean jitsiEmbedInitializationAttempted;
+    private boolean jitsiEmbedSupported;
+    private Webcam signatureWebcam;
+    private Thread signatureCameraThread;
+    private ImageView signatureCameraView;
+    private Label signatureOverlayStatusLabel;
+    private Pane signatureLandmarkLayer;
+    private Pane signatureDrawingLayer;
+    private Polyline activeSignatureStroke;
+    private WritableImage capturedSignatureImage;
+    private HandTrackingService handTrackingService;
+    private Point2D lastSignaturePoint;
+    private boolean lastPinchActive;
+    private boolean signatureDrawn;
+    private String lastSignatureStatusMessage;
 
     // Initialize method to set up the combo box options
     @FXML
     public void initialize() {
+        sessionDoctorId = resolveSessionDoctorId();
+
         if (sortComboBox != null) {
             sortComboBox.getItems().addAll(
                     "Date ASC",
@@ -315,15 +412,18 @@ public class ConsultationDocteur {
         setSaveButtonEnabled(false);
 
         if (doctorField != null) {
-            doctorField.setText("Dr. John Doe");
+            doctorField.setText(resolveSessionDoctorDisplayName());
         }
         if (doctorField1 != null) {
-            doctorField1.setText("12345");
+            doctorField1.setText(sessionDoctorId == null ? "" : String.valueOf(sessionDoctorId));
         }
 
         // Fiche Medicale form listeners
         if (diagnosticField != null) {
-            diagnosticField.textProperty().addListener((obs, oldValue, newValue) -> validateDiagnosticField());
+            diagnosticField.textProperty().addListener((obs, oldValue, newValue) -> {
+                validateDiagnosticField();
+                suggestPrescriptionsFromDiagnostic(newValue);
+            });
         }
 
         if (observationsField != null) {
@@ -333,6 +433,7 @@ public class ConsultationDocteur {
         if (resultatsExamensField != null) {
             resultatsExamensField.textProperty().addListener((obs, oldValue, newValue) -> validateResultatsExamensField());
         }
+        initializeSignatureCaptureUi();
 
         // Detail panel fiche edit listeners
         if (detailDiagnosticEditArea != null) {
@@ -368,8 +469,10 @@ public class ConsultationDocteur {
         }
 
         updateConsultationTimingLabels(null, null, null, "00:00:00");
+        configureConsultationModeUi(false, null);
 
-        showPage(1);
+        refreshHomeDashboard();
+        showPage(0);
     }
 
     // Handle doctor selection
@@ -415,6 +518,7 @@ public class ConsultationDocteur {
         boolean diagnosticValid = validateDiagnosticField();
         boolean observationsValid = validateObservationsField();
         boolean resultatsValid = validateResultatsExamensField();
+        validateSignatureCapture();
         return diagnosticValid && observationsValid && resultatsValid;
     }
 
@@ -489,7 +593,6 @@ public class ConsultationDocteur {
         if (resultatsError != null) {
             errors.add("- Exam results: " + resultatsError);
         }
-
         if (errors.isEmpty()) {
             return "";
         }
@@ -503,6 +606,17 @@ public class ConsultationDocteur {
             return false;
         }
         applyValidationState(diagnosticField, diagnosticValidationLabel, true, "Diagnostic is valid.");
+        return true;
+    }
+
+    private boolean validateSignatureCapture() {
+        if (capturedSignatureImage != null) {
+            updateSignatureStatus("Signature captured and ready to save.");
+        } else if (signatureDrawn) {
+            updateSignatureStatus("Signature drawn. Click capture to attach it, or save without signature.");
+        } else {
+            updateSignatureStatus("Aucune signature capturee. Vous pouvez enregistrer la fiche sans signature.");
+        }
         return true;
     }
 
@@ -624,8 +738,7 @@ public class ConsultationDocteur {
     // Handle booking page navigation
     @FXML
     private void handleShowBookingPage(ActionEvent event) {
-        // Logic to switch to booking page (if needed)
-        System.out.println("Navigating to booking page...");
+        showPage(0);
     }
 
     // Handle other actions like canceling, etc.
@@ -1007,10 +1120,20 @@ public class ConsultationDocteur {
     }
 
     private void loadDoctorRendezVous() {
-        List<RendezVous> list = rendezVousService.recupererParStaffId(SESSION_DOCTOR_ID);
+        Integer doctorId = resolveSessionDoctorId();
+        if (doctorId == null || doctorId <= 0) {
+            allDoctorRendezVous.clear();
+            doctorRendezVous.clear();
+            refreshStatsData();
+            refreshHomeDashboard();
+            return;
+        }
+
+        List<RendezVous> list = rendezVousService.recupererParStaffId(doctorId);
         allDoctorRendezVous.setAll(list);
         applySearchAndSort();
         refreshStatsData();
+        refreshHomeDashboard();
     }
 
     private void applySearchAndSort() {
@@ -1082,6 +1205,43 @@ public class ConsultationDocteur {
         return value == null ? "-" : value;
     }
 
+    private Integer resolveSessionDoctorId() {
+        User currentUser = SessionManager.getCurrentUser();
+        if (currentUser == null || currentUser.getId() <= 0) {
+            return null;
+        }
+        sessionDoctorId = currentUser.getId();
+        return sessionDoctorId;
+    }
+
+    private int requireSessionDoctorId() {
+        Integer doctorId = resolveSessionDoctorId();
+        if (doctorId == null || doctorId <= 0) {
+            throw new IllegalStateException("No logged-in doctor found. Please log in again.");
+        }
+        return doctorId;
+    }
+
+    private String resolveSessionDoctorDisplayName() {
+        User currentUser = SessionManager.getCurrentUser();
+        if (currentUser == null) {
+            return "No logged-in doctor";
+        }
+
+        String firstName = currentUser.getPrenom() == null ? "" : currentUser.getPrenom().trim();
+        String lastName = currentUser.getNom() == null ? "" : currentUser.getNom().trim();
+        String fullName = (firstName + " " + lastName).trim();
+        if (!fullName.isBlank()) {
+            return "Dr. " + fullName;
+        }
+
+        if (currentUser.getId() > 0) {
+            return "Dr. #" + currentUser.getId();
+        }
+
+        return "No logged-in doctor";
+    }
+
     private void confirmRendezVous(RendezVous rendezVous) {
         if (rendezVous == null) {
             return;
@@ -1091,26 +1251,89 @@ public class ConsultationDocteur {
         rendezVousService.modifier(rendezVous);
         eventTable.refresh();
         refreshStatsData();
+        refreshHomeDashboard();
+        sendConfirmationEmailAsync(rendezVous);
+    }
+
+    private void sendConfirmationEmailAsync(RendezVous rendezVous) {
+        User patient = userService.findById(rendezVous.getIdPatient());
+        if (patient == null) {
+            showWarning("Email non envoyé", "Le rendez-vous est confirmé, mais le patient associé est introuvable.");
+            return;
+        }
+
+        if (patient.getEmailUser() == null || patient.getEmailUser().isBlank()) {
+            showWarning("Email non envoyé", "Le rendez-vous est confirmé, mais le patient n'a pas d'adresse email.");
+            return;
+        }
+
+        if (!brevoEmailService.isConfigured()) {
+            showWarning(
+                    "Brevo non configuré",
+                    "Le rendez-vous est confirmé, mais l'email n'a pas été envoyé.\n\n" + brevoEmailService.getMissingConfigurationMessage()
+            );
+            return;
+        }
+
+        User doctor = SessionManager.getCurrentUser();
+        Task<Void> emailTask = new Task<>() {
+            @Override
+            protected Void call() throws Exception {
+                brevoEmailService.sendAppointmentConfirmedEmail(patient, rendezVous, doctor);
+                return null;
+            }
+        };
+
+        emailTask.setOnFailed(event -> {
+            Throwable error = emailTask.getException();
+            Platform.runLater(() -> showWarning(
+                    "Email non envoyé",
+                    "Le rendez-vous est confirmé, mais Brevo a échoué à envoyer l'email.\n\n"
+                            + (error == null ? "Erreur inconnue." : error.getMessage())
+            ));
+        });
+
+        Thread emailThread = new Thread(emailTask, "brevo-confirmation-email");
+        emailThread.setDaemon(true);
+        emailThread.start();
     }
 
     private void startConsultation(RendezVous rendezVous) {
         if (rendezVous == null) {
-            return;
-        }
+                return;
+            }
 
+        stopSignatureCamera();
+        resetCapturedSignature();
         selectedRendezVousId = rendezVous.getId();
         consultationStartTime = Timestamp.valueOf(LocalDateTime.now());
+        boolean isDistanciel = "Distanciel".equalsIgnoreCase(nullSafe(rendezVous.getMode()));
+        configureConsultationModeUi(isDistanciel, rendezVous);
         updateSelectedRendezVousLabel();
         updateConsultationTimingLabels(consultationStartTime, null, null, "00:00:00");
         setSaveButtonEnabled(true);
         startConsultationTimer();
+        startSignatureCamera();
         showPage(2);
+
+        if (isDistanciel) {
+            startJitsiCall(rendezVous);
+            sendDistancielCallLinkEmailAsync(rendezVous);
+        } else {
+            stopJitsiCall();
+        }
     }
 
     private void showPage(int page) {
+        boolean showHomePage = page == 0;
         boolean showPageOne = page == 1;
         boolean showConsultationPage = page == 2;
         boolean showStatsPage = page == 3;
+
+        if (homePageContainer != null) {
+            homePageContainer.setVisible(showHomePage);
+            homePageContainer.setManaged(showHomePage);
+        }
 
         if (pageOneContainer != null) {
             pageOneContainer.setVisible(showPageOne);
@@ -1127,13 +1350,362 @@ public class ConsultationDocteur {
             statsPageContainer.setManaged(showStatsPage);
         }
 
+        if (!showConsultationPage) {
+            stopJitsiCall();
+            stopSignatureCamera();
+            clearSignatureCanvas();
+            resetCapturedSignature();
+            configureConsultationModeUi(false, null);
+        }
+
         updatePageButtons(page);
     }
 
+    @FXML
+    private void handleJoinDistancielCall(ActionEvent event) {
+        if (!distancielConsultationActive) {
+            showError("Mode invalide", "L'appel vidéo est disponible uniquement pour les consultations en mode Distanciel.");
+            return;
+        }
+
+        RendezVous rendezVous = findSelectedRendezVous();
+        if (rendezVous == null) {
+            showError("Rendez-vous introuvable", "Impossible de retrouver le rendez-vous sélectionné pour démarrer l'appel vidéo.");
+            return;
+        }
+
+        startJitsiCall(rendezVous);
+    }
+
+    @FXML
+    private void handleLeaveDistancielCall(ActionEvent event) {
+        stopJitsiCall();
+    }
+
+    private void configureConsultationModeUi(boolean isDistanciel, RendezVous rendezVous) {
+        distancielConsultationActive = isDistanciel;
+
+        String modeText;
+        if (rendezVous == null) {
+            modeText = "Mode: -";
+        } else {
+            modeText = "Mode: " + nullSafe(rendezVous.getMode());
+        }
+
+        if (consultationModeBadgeLabel != null) {
+            consultationModeBadgeLabel.setText(modeText);
+        }
+
+        if (distancielCallCard != null) {
+            distancielCallCard.setVisible(isDistanciel);
+            distancielCallCard.setManaged(isDistanciel);
+        }
+
+        if (joinCallButton != null) {
+            joinCallButton.setDisable(!isDistanciel);
+        }
+        if (leaveCallButton != null) {
+            leaveCallButton.setDisable(true);
+        }
+
+        if (jitsiStatusLabel != null) {
+            if (isDistanciel) {
+                jitsiStatusLabel.setText("Video call ready. Click Join Call to connect.");
+            } else {
+                jitsiStatusLabel.setText("Video call is available only for Distanciel consultations.");
+            }
+        }
+        if (jitsiRoomUrlLabel != null) {
+            jitsiRoomUrlLabel.setText("Room URL: -");
+        }
+
+        if (jitsiWebContainer != null && !isDistanciel) {
+            jitsiWebContainer.getChildren().clear();
+        }
+    }
+
+    private void startJitsiCall(RendezVous rendezVous) {
+        if (rendezVous == null) {
+            return;
+        }
+
+        activeJitsiRoomName = buildJitsiRoomName(rendezVous);
+        String url = buildJitsiUrl(activeJitsiRoomName);
+
+        if (jitsiRoomUrlLabel != null) {
+            jitsiRoomUrlLabel.setText("Room URL: " + url);
+        }
+
+        if (ensureEmbeddedJitsiView()) {
+            WebEngine engine = jitsiWebView.getEngine();
+            engine.load(url);
+            if (jitsiStatusLabel != null) {
+                jitsiStatusLabel.setText("Embedded call started for room: " + activeJitsiRoomName);
+            }
+        } else {
+            openJitsiInBrowser(url);
+            if (jitsiStatusLabel != null) {
+                jitsiStatusLabel.setText("Embedded call unavailable on this runtime. Opened in browser for room: " + activeJitsiRoomName);
+            }
+        }
+
+        if (leaveCallButton != null) {
+            leaveCallButton.setDisable(false);
+        }
+    }
+
+    private void sendDistancielCallLinkEmailAsync(RendezVous rendezVous) {
+        User patient = userService.findById(rendezVous.getIdPatient());
+        if (patient == null) {
+            showWarning("Email non envoyé", "L'appel a démarré, mais le patient associé est introuvable.");
+            return;
+        }
+
+        if (patient.getEmailUser() == null || patient.getEmailUser().isBlank()) {
+            showWarning("Email non envoyé", "L'appel a démarré, mais le patient n'a pas d'adresse email.");
+            return;
+        }
+
+        if (!brevoEmailService.isConfigured()) {
+            showWarning(
+                    "Brevo non configuré",
+                    "L'appel a démarré, mais l'email contenant le lien Jitsi n'a pas été envoyé.\n\n"
+                            + brevoEmailService.getMissingConfigurationMessage()
+            );
+            return;
+        }
+
+        String jitsiUrl = buildJitsiUrl(activeJitsiRoomName);
+        User doctor = SessionManager.getCurrentUser();
+
+        Task<Void> emailTask = new Task<>() {
+            @Override
+            protected Void call() throws Exception {
+                brevoEmailService.sendDistancielCallLinkEmail(patient, rendezVous, doctor, jitsiUrl);
+                return null;
+            }
+        };
+
+        emailTask.setOnFailed(event -> {
+            Throwable error = emailTask.getException();
+            Platform.runLater(() -> showWarning(
+                    "Email non envoyé",
+                    "L'appel a démarré, mais Brevo a échoué à envoyer le lien Jitsi.\n\n"
+                            + (error == null ? "Erreur inconnue." : error.getMessage())
+            ));
+        });
+
+        Thread emailThread = new Thread(emailTask, "brevo-jitsi-link-email");
+        emailThread.setDaemon(true);
+        emailThread.start();
+    }
+
+    private void stopJitsiCall() {
+        if (jitsiWebView != null) {
+            jitsiWebView.getEngine().loadContent("<html><body style='font-family:Segoe UI,Arial;padding:16px;color:#334155;'>Video call is not active.</body></html>");
+        }
+
+        activeJitsiRoomName = null;
+
+        if (jitsiStatusLabel != null) {
+            jitsiStatusLabel.setText("Video call marked as ended.");
+        }
+        if (jitsiRoomUrlLabel != null) {
+            jitsiRoomUrlLabel.setText("Room URL: -");
+        }
+        if (leaveCallButton != null) {
+            leaveCallButton.setDisable(true);
+        }
+    }
+
+    private String buildJitsiRoomName(RendezVous rendezVous) {
+        int doctorId = resolveSessionDoctorId() == null ? 0 : resolveSessionDoctorId();
+        return "MedFlow-RDV-" + rendezVous.getId() + "-DOC-" + doctorId;
+    }
+
+    private String buildJitsiUrl(String roomName) {
+        String safeRoom = roomName == null ? "MedFlow-Consultation" : roomName;
+        String displayName = resolveSessionDoctorDisplayName();
+        String encodedName = encodeFragmentValue(displayName);
+        return "https://meet.jit.si/" + safeRoom + "#config.prejoinPageEnabled=false&userInfo.displayName=" + encodedName;
+    }
+
+    private String encodeFragmentValue(String value) {
+        if (value == null) {
+            return "";
+        }
+        // URLEncoder is form-style (+ for spaces); convert to %20 for URL fragment safety.
+        return URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20");
+    }
+
+    private boolean ensureEmbeddedJitsiView() {
+        if (jitsiEmbedInitializationAttempted) {
+            return jitsiEmbedSupported;
+        }
+
+        jitsiEmbedInitializationAttempted = true;
+        if (jitsiWebContainer == null) {
+            jitsiEmbedSupported = false;
+            return false;
+        }
+
+        try {
+            jitsiWebView = new WebView();
+            jitsiWebView.setContextMenuEnabled(true);
+            jitsiWebContainer.getChildren().setAll(jitsiWebView);
+            jitsiEmbedSupported = true;
+        } catch (Throwable ex) {
+            jitsiEmbedSupported = false;
+            if (jitsiStatusLabel != null) {
+                jitsiStatusLabel.setText("Embedded video failed to initialize. Browser fallback will be used.");
+            }
+        }
+
+        return jitsiEmbedSupported;
+    }
+
+    private void openJitsiInBrowser(String url) {
+        try {
+            if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                Desktop.getDesktop().browse(URI.create(url));
+            } else {
+                showError("Browser unavailable", "Cannot open browser automatically on this environment.\nOpen this URL manually:\n" + url);
+            }
+        } catch (IOException ex) {
+            showError("Jitsi launch failed", "Failed to open Jitsi call in browser: " + ex.getMessage());
+        }
+    }
+
     private void updatePageButtons(int page) {
+        setButtonActive(bookingPageBtn, page == 0);
         setButtonActive(pageOneBtn, page == 1);
         setButtonActive(consultationPageBtn, page == 2);
         setButtonActive(statsPageBtn, page == 3);
+    }
+
+    private void refreshHomeDashboard() {
+        if (homeWelcomeLabel != null) {
+            homeWelcomeLabel.setText("Bienvenue, " + resolveSessionDoctorDisplayName());
+        }
+        if (homeTodayDateLabel != null) {
+            homeTodayDateLabel.setText("Aujourd'hui: " + LocalDate.now());
+        }
+
+        List<RendezVous> todayRendezVous = new ArrayList<>();
+        List<RendezVous> highUrgencyRendezVous = new ArrayList<>();
+        List<RendezVous> pendingDemandes = new ArrayList<>();
+
+        LocalDate today = LocalDate.now();
+        for (RendezVous rendezVous : allDoctorRendezVous) {
+            if (rendezVous == null) {
+                continue;
+            }
+
+            if (rendezVous.getDatetime() != null && rendezVous.getDatetime().toLocalDateTime().toLocalDate().equals(today)) {
+                todayRendezVous.add(rendezVous);
+            }
+
+            String statut = nullSafe(rendezVous.getStatut());
+            if ("high".equalsIgnoreCase(nullSafe(rendezVous.getUrgency_level()))
+                    && ("Demande".equalsIgnoreCase(statut) || "Confirmé".equalsIgnoreCase(statut))) {
+                highUrgencyRendezVous.add(rendezVous);
+            }
+
+            if ("Demande".equalsIgnoreCase(statut)) {
+                pendingDemandes.add(rendezVous);
+            }
+        }
+
+        Comparator<RendezVous> byDateAsc = Comparator.comparing(
+                RendezVous::getDatetime,
+                Comparator.nullsLast(Comparator.naturalOrder())
+        );
+        todayRendezVous.sort(byDateAsc);
+        highUrgencyRendezVous.sort(byDateAsc);
+        pendingDemandes.sort(byDateAsc);
+
+        if (homeTodayCountLabel != null) {
+            homeTodayCountLabel.setText(todayRendezVous.size() + " rendez-vous aujourd'hui");
+        }
+
+        populateHomeList(todayCalendarContainer, todayRendezVous, true, true, "Aucun rendez-vous pour aujourd'hui.");
+        populateHomeList(highUrgencyContainer, highUrgencyRendezVous, true, true, "Aucun rendez-vous HIGH pour le moment.");
+        populateHomeList(pendingDemandesContainer, pendingDemandes, true, false, "Aucune demande en attente.");
+    }
+
+    private void populateHomeList(
+            VBox container,
+            List<RendezVous> rendezVousList,
+            boolean includeConfirm,
+            boolean includeStart,
+            String emptyMessage
+    ) {
+        if (container == null) {
+            return;
+        }
+
+        container.getChildren().clear();
+        if (rendezVousList == null || rendezVousList.isEmpty()) {
+            Label emptyLabel = new Label(emptyMessage);
+            emptyLabel.getStyleClass().add("home-empty-label");
+            container.getChildren().add(emptyLabel);
+            return;
+        }
+
+        for (RendezVous rendezVous : rendezVousList) {
+            container.getChildren().add(buildHomeRendezVousCard(rendezVous, includeConfirm, includeStart));
+        }
+    }
+
+    private VBox buildHomeRendezVousCard(RendezVous rendezVous, boolean includeConfirm, boolean includeStart) {
+        Label idLabel = new Label("#" + rendezVous.getId());
+        idLabel.getStyleClass().addAll("home-chip", "home-chip-id");
+
+        String dateText = rendezVous.getDatetime() == null ? "-" : rendezVous.getDatetime().toLocalDateTime().toLocalTime().toString();
+        if (dateText.length() > 5) {
+            dateText = dateText.substring(0, 5);
+        }
+        Label timeLabel = new Label(dateText);
+        timeLabel.getStyleClass().addAll("home-chip", "home-chip-time");
+
+        Label statusLabel = new Label(nullSafe(rendezVous.getStatut()));
+        statusLabel.getStyleClass().addAll("home-chip", "home-chip-status");
+
+        Label urgencyLabel = new Label("Urgence: " + nullSafe(rendezVous.getUrgency_level()));
+        urgencyLabel.getStyleClass().addAll("home-chip", "home-chip-urgency");
+
+        Label modeLabel = new Label("Mode: " + nullSafe(rendezVous.getMode()));
+        modeLabel.getStyleClass().add("home-meta");
+
+        Label patientLabel = new Label("Patient ID: " + rendezVous.getIdPatient());
+        patientLabel.getStyleClass().add("home-meta");
+
+        Label motifLabel = new Label("Motif: " + nullSafe(rendezVous.getMotif()));
+        motifLabel.getStyleClass().add("home-motif");
+        motifLabel.setWrapText(true);
+
+        HBox chipsRow = new HBox(8, idLabel, timeLabel, statusLabel, urgencyLabel);
+        HBox metaRow = new HBox(16, modeLabel, patientLabel);
+
+        HBox actionRow = new HBox(8);
+        if (includeConfirm) {
+            Button confirmButton = new Button("Confirm");
+            confirmButton.getStyleClass().add("action-confirm-button");
+            confirmButton.setDisable(!"Demande".equalsIgnoreCase(nullSafe(rendezVous.getStatut())));
+            confirmButton.setOnAction(event -> confirmRendezVous(rendezVous));
+            actionRow.getChildren().add(confirmButton);
+        }
+        if (includeStart) {
+            Button startButton = new Button("Start");
+            startButton.getStyleClass().add("action-start-button");
+            startButton.setDisable(!"Confirmé".equalsIgnoreCase(nullSafe(rendezVous.getStatut())));
+            startButton.setOnAction(event -> startConsultation(rendezVous));
+            actionRow.getChildren().add(startButton);
+        }
+
+        VBox card = new VBox(8, chipsRow, metaRow, motifLabel, actionRow);
+        card.getStyleClass().add("home-rdv-card");
+        return card;
     }
 
     private void refreshStatsData() {
@@ -1287,13 +1859,27 @@ public class ConsultationDocteur {
         }
 
         button.getStyleClass().remove("page-nav-button-active");
-        if (active && !button.getStyleClass().contains("page-nav-button-active")) {
-            button.getStyleClass().add("page-nav-button-active");
+        button.getStyleClass().remove("sidebar-link-active");
+
+        if (active) {
+            if (button.getStyleClass().contains("sidebar-link")) {
+                button.getStyleClass().add("sidebar-link-active");
+            } else if (!button.getStyleClass().contains("page-nav-button-active")) {
+                button.getStyleClass().add("page-nav-button-active");
+            }
         }
     }
 
     @FXML
     private void handleSaveFicheMedicale(ActionEvent event) {
+        int doctorId;
+        try {
+            doctorId = requireSessionDoctorId();
+        } catch (IllegalStateException ex) {
+            showError("Session expirée", ex.getMessage());
+            return;
+        }
+
         if (selectedRendezVousId == null) {
             showError("Selection requise", "Cliquez sur Start dans la colonne ACTIONS pour choisir le rendez-vous lie a cette fiche.");
             return;
@@ -1330,6 +1916,16 @@ public class ConsultationDocteur {
             return;
         }
 
+        String savedSignaturePath = null;
+        if (capturedSignatureImage != null) {
+            try {
+                savedSignaturePath = persistCapturedSignature(selectedRendezVousId, doctorId, endTime);
+            } catch (IOException ex) {
+            showError("Erreur signature", "Impossible d'enregistrer la signature capturée: " + ex.getMessage());
+            return;
+        }
+        }
+
         Connection connection = MyDataBase.getInstance().getCnx();
         boolean previousAutoCommit = true;
 
@@ -1346,7 +1942,7 @@ public class ConsultationDocteur {
             fiche.setEnd_time(endTime);
             fiche.setDuree_minutes(durationMinutes);
             fiche.setCreated_at(endTime);
-            fiche.setSignature("Dr-" + SESSION_DOCTOR_ID);
+            fiche.setSignature(savedSignaturePath);
 
             int ficheMedicaleId = ficheMedicaleService.ajouter(fiche, connection);
             if (ficheMedicaleId <= 0) {
@@ -1401,6 +1997,7 @@ public class ConsultationDocteur {
         updateConsultationTimingLabels(null, null, null, "00:00:00");
         setSaveButtonEnabled(false);
         clearFicheForm();
+        stopSignatureCamera();
         showPage(1);
     }
 
@@ -1418,6 +2015,40 @@ public class ConsultationDocteur {
         if (prescriptionRowsContainer != null) {
             prescriptionRowsContainer.getChildren().clear();
         }
+        resetCapturedSignature();
+    }
+
+    @FXML
+    private void handleCaptureSignature(ActionEvent event) {
+        if (signatureDrawingLayer == null) {
+            if (signatureStatusLabel != null) {
+                signatureStatusLabel.setText("Signature area is not ready.");
+            }
+            return;
+        }
+        if (!signatureDrawn) {
+            if (signatureStatusLabel != null) {
+                signatureStatusLabel.setText("Draw the signature first, then click capture.");
+            }
+            return;
+        }
+
+        capturedSignatureImage = snapshotSignatureDrawing(true);
+        WritableImage previewImage = snapshotSignatureDrawing(false);
+        if (capturedSignatureImage == null || previewImage == null) {
+            capturedSignatureImage = null;
+            refreshSignaturePreview(null);
+            updateSignatureStatus("Impossible de capturer la signature. Dessinez a nouveau puis reessayez.");
+            return;
+        }
+        refreshSignaturePreview(previewImage);
+        updateSignatureStatus("Signature captured. It will be saved with the fiche medicale.");
+    }
+
+    @FXML
+    private void handleClearSignature(ActionEvent event) {
+        clearSignatureCanvas();
+        resetCapturedSignature();
     }
 
     private List<Prescription> buildPrescriptionRows(Timestamp createdAt) {
@@ -1481,6 +2112,423 @@ public class ConsultationDocteur {
 
     private String text(TextField field) {
         return field == null || field.getText() == null ? "" : field.getText().trim();
+    }
+
+    private void initializeSignatureCaptureUi() {
+        initializeHandTrackingService();
+        if (signatureStatusLabel != null) {
+            signatureStatusLabel.setText(handTrackingService == null
+                    ? "Hand tracking models are unavailable. Reload Maven dependencies and restart the app."
+                    : "The camera will open here when the consultation starts.");
+        }
+        if (captureSignatureButton != null) {
+            captureSignatureButton.setDisable(false);
+        }
+        if (clearSignatureButton != null) {
+            clearSignatureButton.setDisable(false);
+        }
+        refreshSignaturePreview(null);
+        ensureSignatureCaptureView();
+    }
+
+    private void ensureSignatureCaptureView() {
+        if (signatureCameraContainer == null || signatureCameraView != null) {
+            return;
+        }
+
+        signatureCameraView = new ImageView();
+        signatureCameraView.setPreserveRatio(false);
+        signatureCameraView.setSmooth(true);
+        signatureCameraView.setScaleX(-1);
+        signatureCameraView.fitWidthProperty().bind(signatureCameraContainer.widthProperty());
+        signatureCameraView.fitHeightProperty().bind(signatureCameraContainer.heightProperty());
+        signatureCameraView.setManaged(false);
+
+        Rectangle clip = new Rectangle();
+        clip.widthProperty().bind(signatureCameraContainer.widthProperty());
+        clip.heightProperty().bind(signatureCameraContainer.heightProperty());
+        signatureCameraContainer.setClip(clip);
+
+        signatureDrawingLayer = new Pane();
+        signatureDrawingLayer.setPickOnBounds(true);
+        signatureDrawingLayer.setManaged(false);
+        signatureDrawingLayer.prefWidthProperty().bind(signatureCameraContainer.widthProperty());
+        signatureDrawingLayer.prefHeightProperty().bind(signatureCameraContainer.heightProperty());
+        signatureDrawingLayer.minWidthProperty().bind(signatureCameraContainer.widthProperty());
+        signatureDrawingLayer.minHeightProperty().bind(signatureCameraContainer.heightProperty());
+        signatureDrawingLayer.maxWidthProperty().bind(signatureCameraContainer.widthProperty());
+        signatureDrawingLayer.maxHeightProperty().bind(signatureCameraContainer.heightProperty());
+        signatureLandmarkLayer = new Pane();
+        signatureLandmarkLayer.setMouseTransparent(true);
+        signatureLandmarkLayer.setManaged(false);
+        signatureLandmarkLayer.prefWidthProperty().bind(signatureCameraContainer.widthProperty());
+        signatureLandmarkLayer.prefHeightProperty().bind(signatureCameraContainer.heightProperty());
+        signatureLandmarkLayer.minWidthProperty().bind(signatureCameraContainer.widthProperty());
+        signatureLandmarkLayer.minHeightProperty().bind(signatureCameraContainer.heightProperty());
+        signatureLandmarkLayer.maxWidthProperty().bind(signatureCameraContainer.widthProperty());
+        signatureLandmarkLayer.maxHeightProperty().bind(signatureCameraContainer.heightProperty());
+        signatureOverlayStatusLabel = new Label("Signature camera pending...");
+        signatureOverlayStatusLabel.setMouseTransparent(true);
+        signatureOverlayStatusLabel.setManaged(false);
+        signatureOverlayStatusLabel.setWrapText(true);
+        signatureOverlayStatusLabel.setMaxWidth(260);
+        signatureOverlayStatusLabel.setStyle("-fx-background-color: rgba(15,23,42,0.78); -fx-text-fill: white; -fx-padding: 8 10 8 10; -fx-background-radius: 10; -fx-font-size: 12;");
+        StackPane.setAlignment(signatureOverlayStatusLabel, javafx.geometry.Pos.TOP_LEFT);
+        StackPane.setMargin(signatureOverlayStatusLabel, new javafx.geometry.Insets(10, 10, 10, 10));
+
+        signatureCameraContainer.getChildren().setAll(signatureCameraView, signatureLandmarkLayer, signatureDrawingLayer, signatureOverlayStatusLabel);
+    }
+
+    private void startSignatureCamera() {
+        ensureSignatureCaptureView();
+        if (signatureCameraView == null || signatureWebcam != null) {
+            return;
+        }
+
+        try {
+            signatureWebcam = Webcam.getDefault();
+            if (signatureWebcam == null) {
+                if (signatureStatusLabel != null) {
+                    signatureStatusLabel.setText("No webcam was found on this machine.");
+                }
+                return;
+            }
+
+            Dimension size = WebcamResolution.VGA.getSize();
+            signatureWebcam.setViewSize(size);
+            signatureWebcam.open(true);
+
+            signatureCameraThread = new Thread(() -> {
+                while (signatureWebcam != null && signatureWebcam.isOpen()) {
+                    BufferedImage frame = signatureWebcam.getImage();
+                    if (frame != null) {
+                        HandTrackingService.HandTrackingResult trackingResult;
+                        try {
+                            trackingResult = handTrackingService == null
+                                    ? HandTrackingService.HandTrackingResult.empty(frame.getWidth(), frame.getHeight(), "Hand tracking service unavailable")
+                                    : handTrackingService.track(frame);
+                        } catch (Exception ex) {
+                            Platform.runLater(() -> {
+                                if (signatureStatusLabel != null) {
+                                    signatureStatusLabel.setText("Hand tracking error: " + ex.getClass().getSimpleName() + " - " + ex.getMessage());
+                                }
+                            });
+                            ex.printStackTrace();
+                            trackingResult = HandTrackingService.HandTrackingResult.empty(frame.getWidth(), frame.getHeight(), "Tracking exception");
+                        }
+                        final HandTrackingService.HandTrackingResult finalTrackingResult = trackingResult;
+                        final WritableImage fxImage = SwingFXUtils.toFXImage(frame, null);
+                        Platform.runLater(() -> {
+                            if (signatureCameraView != null) {
+                                signatureCameraView.setImage(fxImage);
+                            }
+                            updateHandTrackingOverlay(finalTrackingResult);
+                        });
+                    }
+
+                    try {
+                        Thread.sleep(45);
+                    } catch (InterruptedException ex) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                }
+            }, "signature-camera-feed");
+            signatureCameraThread.setDaemon(true);
+            signatureCameraThread.start();
+
+            if (signatureStatusLabel != null) {
+                updateSignatureStatus(handTrackingService == null
+                        ? "Camera opened, but hand tracking is unavailable."
+                        : "Camera opened. Move your hand into frame and pinch thumb with index finger to sign.");
+            }
+        } catch (Exception ex) {
+            updateSignatureStatus("Unable to open the webcam: " + ex.getMessage());
+            stopSignatureCamera();
+        }
+    }
+
+    private void stopSignatureCamera() {
+        if (signatureCameraThread != null) {
+            signatureCameraThread.interrupt();
+            signatureCameraThread = null;
+        }
+
+        if (signatureWebcam != null) {
+            try {
+                signatureWebcam.close();
+            } catch (Exception ignored) {
+            }
+            signatureWebcam = null;
+        }
+
+        if (signatureCameraView != null) {
+            signatureCameraView.setImage(null);
+        }
+        if (signatureLandmarkLayer != null) {
+            signatureLandmarkLayer.getChildren().clear();
+        }
+        activeSignatureStroke = null;
+        lastSignaturePoint = null;
+        lastPinchActive = false;
+    }
+
+    private void clearSignatureCanvas() {
+        if (signatureDrawingLayer != null) {
+            signatureDrawingLayer.getChildren().clear();
+        }
+        activeSignatureStroke = null;
+        lastSignaturePoint = null;
+        lastPinchActive = false;
+        signatureDrawn = false;
+    }
+
+    private void resetCapturedSignature() {
+        capturedSignatureImage = null;
+        refreshSignaturePreview(null);
+        updateSignatureStatus(signatureDrawn
+                ? "Signature drawn. Click capture to attach it, or save without signature."
+                : "Aucune signature capturee. Vous pouvez enregistrer la fiche sans signature.");
+    }
+
+    private void refreshSignaturePreview(WritableImage previewImage) {
+        if (signaturePreviewImageView != null) {
+            signaturePreviewImageView.setImage(previewImage);
+        }
+        if (signaturePreviewPlaceholderLabel != null) {
+            boolean showPlaceholder = previewImage == null;
+            signaturePreviewPlaceholderLabel.setVisible(showPlaceholder);
+            signaturePreviewPlaceholderLabel.setManaged(showPlaceholder);
+        }
+    }
+
+    private WritableImage snapshotSignatureDrawing(boolean transparentBackground) {
+        if (signatureDrawingLayer == null) {
+            return null;
+        }
+
+        double width = Math.max(
+                1.0,
+                signatureCameraContainer != null ? signatureCameraContainer.getWidth() : 0.0
+        );
+        double height = Math.max(
+                1.0,
+                signatureCameraContainer != null ? signatureCameraContainer.getHeight() : 0.0
+        );
+
+        if (signatureDrawingLayer.getChildren().isEmpty()) {
+            return null;
+        }
+
+        Pane snapshotPane = new Pane();
+        snapshotPane.setPrefSize(width, height);
+        snapshotPane.setMinSize(width, height);
+        snapshotPane.setMaxSize(width, height);
+        snapshotPane.setManaged(false);
+
+        if (!transparentBackground) {
+            Rectangle background = new Rectangle(width, height);
+            background.setFill(Color.web("#f8fafc"));
+            background.setArcWidth(18);
+            background.setArcHeight(18);
+            snapshotPane.getChildren().add(background);
+        }
+
+        for (javafx.scene.Node node : signatureDrawingLayer.getChildren()) {
+            if (node instanceof Polyline polyline) {
+                Polyline clone = new Polyline();
+                clone.getPoints().setAll(polyline.getPoints());
+                clone.setStroke(polyline.getStroke());
+                clone.setStrokeWidth(polyline.getStrokeWidth());
+                clone.setStrokeLineCap(polyline.getStrokeLineCap());
+                clone.setStrokeLineJoin(polyline.getStrokeLineJoin());
+                clone.setFill(Color.TRANSPARENT);
+                snapshotPane.getChildren().add(clone);
+            }
+        }
+
+        snapshotPane.resize(width, height);
+        snapshotPane.applyCss();
+        snapshotPane.layout();
+
+        SnapshotParameters parameters = new SnapshotParameters();
+        parameters.setFill(transparentBackground ? Color.TRANSPARENT : Color.web("#f8fafc"));
+        WritableImage image = new WritableImage(
+                Math.max(1, (int) Math.round(width)),
+                Math.max(1, (int) Math.round(height))
+        );
+        snapshotPane.snapshot(parameters, image);
+        return image;
+    }
+
+    private void initializeHandTrackingService() {
+        if (handTrackingService != null) {
+            return;
+        }
+
+        try {
+            Path palmModelPath = resolveHandModelPath("palm_detection_mediapipe_2023feb.onnx");
+            Path handPoseModelPath = resolveHandModelPath("handpose_estimation_mediapipe_2023feb.onnx");
+            handTrackingService = new HandTrackingService(palmModelPath, handPoseModelPath);
+        } catch (Exception ex) {
+            handTrackingService = null;
+            updateSignatureStatus("Unable to initialize hand tracking: " + ex.getMessage());
+        }
+    }
+
+    private Path resolveHandModelPath(String fileName) {
+        Path[] candidates = {
+                Path.of("models", "hand", fileName),
+                Path.of("JavaPiMed", "models", "hand", fileName)
+        };
+        for (Path candidate : candidates) {
+            if (Files.exists(candidate)) {
+                return candidate;
+            }
+        }
+        return candidates[0];
+    }
+
+    private void updateHandTrackingOverlay(HandTrackingService.HandTrackingResult result) {
+        renderHandLandmarks(result);
+        updateSignatureStrokeFromPinch(result);
+    }
+
+    private void renderHandLandmarks(HandTrackingService.HandTrackingResult result) {
+        if (signatureLandmarkLayer == null) {
+            return;
+        }
+
+        signatureLandmarkLayer.getChildren().clear();
+        if (result == null || !result.handDetected() || handTrackingService == null) {
+            return;
+        }
+
+        List<javafx.scene.Node> nodes = new ArrayList<>();
+        List<HandTrackingService.NormalizedLandmark> landmarks = result.landmarks();
+        for (int[] connection : handTrackingService.getHandConnections()) {
+            if (connection[0] >= landmarks.size() || connection[1] >= landmarks.size()) {
+                continue;
+            }
+            Point2D start = mapNormalizedPoint(landmarks.get(connection[0]), result.imageWidth(), result.imageHeight());
+            Point2D end = mapNormalizedPoint(landmarks.get(connection[1]), result.imageWidth(), result.imageHeight());
+            Line line = new Line(start.getX(), start.getY(), end.getX(), end.getY());
+            line.setStroke(Color.web("#38bdf8"));
+            line.setStrokeWidth(1.6);
+            nodes.add(line);
+        }
+
+        for (int i = 0; i < landmarks.size(); i++) {
+            Point2D point = mapNormalizedPoint(landmarks.get(i), result.imageWidth(), result.imageHeight());
+            Circle circle = new Circle(point.getX(), point.getY(), i == 8 ? 5.0 : 3.3);
+            circle.setFill(i == 8 ? Color.web("#f97316") : Color.web("#f8fafc"));
+            circle.setStroke(Color.web("#0f172a"));
+            circle.setStrokeWidth(1.0);
+            nodes.add(circle);
+        }
+
+        signatureLandmarkLayer.getChildren().setAll(nodes);
+    }
+
+    private void updateSignatureStrokeFromPinch(HandTrackingService.HandTrackingResult result) {
+        if (result == null || !result.handDetected()) {
+            activeSignatureStroke = null;
+            lastSignaturePoint = null;
+            lastPinchActive = false;
+            if (capturedSignatureImage == null) {
+                updateSignatureStatus(result != null && result.statusMessage() != null
+                        ? result.statusMessage()
+                        : "No hand detected yet. Show one open hand clearly inside the frame.");
+            }
+            return;
+        }
+
+        if (!result.pinchActive() || result.penTip() == null) {
+            activeSignatureStroke = null;
+            lastSignaturePoint = null;
+            lastPinchActive = false;
+            if (capturedSignatureImage == null) {
+                updateSignatureStatus(result.statusMessage() != null
+                        ? result.statusMessage() + ". Pinch thumb and index finger to draw."
+                        : "Hand detected. Pinch thumb and index finger to draw the signature.");
+            }
+            return;
+        }
+
+        Point2D currentPoint = mapNormalizedPoint(result.penTip(), result.imageWidth(), result.imageHeight());
+        if (activeSignatureStroke == null || !lastPinchActive) {
+            activeSignatureStroke = createSignatureStroke();
+            activeSignatureStroke.getPoints().addAll(currentPoint.getX(), currentPoint.getY());
+            if (signatureDrawingLayer != null) {
+                signatureDrawingLayer.getChildren().add(activeSignatureStroke);
+            }
+        } else if (lastSignaturePoint == null || lastSignaturePoint.distance(currentPoint) >= 2.0) {
+            activeSignatureStroke.getPoints().addAll(currentPoint.getX(), currentPoint.getY());
+        }
+
+        lastSignaturePoint = currentPoint;
+        lastPinchActive = true;
+        signatureDrawn = true;
+        capturedSignatureImage = null;
+        refreshSignaturePreview(null);
+        updateSignatureStatus("Pinch detected. Drawing signature...");
+    }
+
+    private Polyline createSignatureStroke() {
+        Polyline stroke = new Polyline();
+        stroke.setStroke(Color.web("#111827"));
+        stroke.setStrokeWidth(3.5);
+        stroke.setStrokeLineCap(javafx.scene.shape.StrokeLineCap.ROUND);
+        stroke.setStrokeLineJoin(javafx.scene.shape.StrokeLineJoin.ROUND);
+        stroke.setFill(Color.TRANSPARENT);
+        return stroke;
+    }
+
+    private Point2D mapNormalizedPoint(HandTrackingService.NormalizedLandmark landmark, int imageWidth, int imageHeight) {
+        double containerWidth = signatureCameraContainer == null ? 0.0 : signatureCameraContainer.getWidth();
+        double containerHeight = signatureCameraContainer == null ? 0.0 : signatureCameraContainer.getHeight();
+        if (containerWidth <= 0 || containerHeight <= 0 || imageWidth <= 0 || imageHeight <= 0) {
+            return new Point2D(0, 0);
+        }
+        return new Point2D(
+                (1.0 - landmark.x()) * containerWidth,
+                landmark.y() * containerHeight
+        );
+    }
+
+    private void updateSignatureStatus(String message) {
+        if (message == null || message.isBlank()) {
+            return;
+        }
+        if (message.equals(lastSignatureStatusMessage)) {
+            return;
+        }
+        lastSignatureStatusMessage = message;
+        if (signatureStatusLabel != null) {
+            signatureStatusLabel.setText(message);
+        }
+        if (signatureOverlayStatusLabel != null) {
+            signatureOverlayStatusLabel.setText(message);
+        }
+    }
+
+    private String persistCapturedSignature(Integer rendezVousId, int doctorId, Timestamp timestamp) throws IOException {
+        if (capturedSignatureImage == null) {
+            throw new IOException("No captured signature image is available.");
+        }
+        Path signatureDirectory = Path.of(System.getProperty("user.home"), "MedFlow", "signatures");
+        Files.createDirectories(signatureDirectory);
+
+        String fileName = String.format(
+                "fiche-signature-rdv-%d-doc-%d-%d.png",
+                rendezVousId == null ? 0 : rendezVousId,
+                doctorId,
+                timestamp == null ? System.currentTimeMillis() : timestamp.getTime()
+        );
+        Path signaturePath = signatureDirectory.resolve(fileName);
+        BufferedImage bufferedImage = SwingFXUtils.fromFXImage(capturedSignatureImage, null);
+        ImageIO.write(bufferedImage, "png", signaturePath.toFile());
+        return signaturePath.toAbsolutePath().toString();
     }
 
     private static class PrescriptionRowControls {
@@ -1588,6 +2636,14 @@ public class ConsultationDocteur {
 
     private void showInfo(String title, String message) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+
+    private void showWarning(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.WARNING);
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);
@@ -2295,5 +3351,123 @@ public class ConsultationDocteur {
 
     private String normalizeKeyPart(String value) {
         return value == null ? "" : value.trim().toLowerCase();
+    }
+
+    private void suggestPrescriptionsFromDiagnostic(String diagnostic) {
+        if (diagnostic == null || diagnostic.isBlank()) {
+            currentSuggestions.clear();
+            return;
+        }
+
+        Task<List<PrescriptionSuggestionService.PrescriptionSuggestion>> task = new Task<List<PrescriptionSuggestionService.PrescriptionSuggestion>>() {
+            @Override
+            protected List<PrescriptionSuggestionService.PrescriptionSuggestion> call() {
+                return prescriptionSuggestionService.suggestPrescriptions(diagnostic);
+            }
+
+            @Override
+            protected void succeeded() {
+                List<PrescriptionSuggestionService.PrescriptionSuggestion> suggestions = getValue();
+                if (suggestions != null && !suggestions.isEmpty()) {
+                    currentSuggestions = suggestions;
+                    showSuggestionsButton();
+                }
+            }
+
+            @Override
+            protected void failed() {
+                currentSuggestions.clear();
+            }
+        };
+
+        new Thread(task).setDaemon(true);
+        new Thread(task).start();
+    }
+
+    private void showSuggestionsButton() {
+        Platform.runLater(() -> {
+            if (suggestionsButton != null && !currentSuggestions.isEmpty()) {
+                suggestionsButton.setVisible(true);
+                suggestionsButton.setManaged(true);
+                String suggestionText = String.join(" | ", 
+                    currentSuggestions.stream()
+                        .map(s -> s.nom_medicament)
+                        .limit(3)
+                        .toArray(String[]::new)
+                );
+                suggestionsButton.setText("💡 Apply Suggestions (" + currentSuggestions.size() + ")");
+                System.out.println("Suggested prescriptions: " + suggestionText);
+            } else if (suggestionsButton != null) {
+                suggestionsButton.setVisible(false);
+                suggestionsButton.setManaged(false);
+            }
+        });
+    }
+
+    public void handleApplySuggestions() {
+        if (currentSuggestions.isEmpty() || prescriptionRowsContainer == null) {
+            return;
+        }
+
+        for (PrescriptionSuggestionService.PrescriptionSuggestion suggestion : currentSuggestions) {
+            addSuggestedPrescription(suggestion);
+        }
+
+        currentSuggestions.clear();
+    }
+
+    private void addSuggestedPrescription(PrescriptionSuggestionService.PrescriptionSuggestion suggestion) {
+        if (prescriptionRowsContainer == null) {
+            return;
+        }
+
+        TextField nomField = new TextField();
+        nomField.setText(suggestion.nom_medicament);
+        nomField.getStyleClass().add("fiche-input");
+        nomField.setPrefWidth(170);
+
+        TextField doseField = new TextField();
+        doseField.setText(suggestion.dose);
+        doseField.getStyleClass().add("fiche-input");
+        doseField.setPrefWidth(120);
+
+        TextField frequenceField = new TextField();
+        frequenceField.setText(suggestion.frequence);
+        frequenceField.getStyleClass().add("fiche-input");
+        frequenceField.setPrefWidth(135);
+
+        TextField dureeField = new TextField();
+        dureeField.setText("7");
+        dureeField.getStyleClass().add("fiche-input");
+        dureeField.setPrefWidth(130);
+
+        TextField instructionsField = new TextField();
+        instructionsField.setText(suggestion.instructions);
+        instructionsField.getStyleClass().add("fiche-input");
+        instructionsField.setPrefWidth(180);
+
+        Button deleteButton = new Button("x");
+        deleteButton.setStyle("-fx-background-color: #ef4444; -fx-text-fill: white; -fx-font-weight: 700; -fx-background-radius: 6; -fx-min-width: 30; -fx-min-height: 30;");
+
+        HBox row = new HBox(8, nomField, doseField, frequenceField, dureeField, instructionsField, deleteButton);
+        row.setStyle("-fx-background-color: #f8fafc; -fx-border-color: #e2e8f0; -fx-border-radius: 10; -fx-background-radius: 10; -fx-padding: 8;");
+
+        PrescriptionRowControls controls = new PrescriptionRowControls(row, nomField, doseField, frequenceField, dureeField, instructionsField);
+
+        nomField.textProperty().addListener((obs, old, newVal) -> validatePrescriptions());
+        doseField.textProperty().addListener((obs, old, newVal) -> validatePrescriptions());
+        frequenceField.textProperty().addListener((obs, old, newVal) -> validatePrescriptions());
+        dureeField.textProperty().addListener((obs, old, newVal) -> validatePrescriptions());
+        instructionsField.textProperty().addListener((obs, old, newVal) -> validatePrescriptions());
+
+        deleteButton.setOnAction(e -> {
+            prescriptionRows.remove(controls);
+            prescriptionRowsContainer.getChildren().remove(row);
+            validatePrescriptions();
+        });
+
+        prescriptionRows.add(controls);
+        prescriptionRowsContainer.getChildren().add(row);
+        validatePrescriptions();
     }
 }

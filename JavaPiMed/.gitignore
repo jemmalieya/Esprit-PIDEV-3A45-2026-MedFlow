@@ -42,3 +42,10 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+### Local secrets ###
+src/main/resources/brevo.properties
+src/main/resources/hf.properties
+src/main/resources/Keys/medflow-ai-assistant-d37b0bde49a5.json
+src/main/resources/dialogflow.properties
+models/

@@ -13,6 +13,7 @@
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <junit.jupiter.version>5.10.2</junit.jupiter.version>
+        <javafx.version>21.0.7</javafx.version>
         <jcefmaven.version>143.0.14</jcefmaven.version>
     </properties>
     <dependencies>
@@ -26,12 +27,14 @@
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-fxml</artifactId>
+            <version>${javafx.version}</version>
             <version>20.0.2</version>
             <classifier>win</classifier>
         </dependency>
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
+            <version>${javafx.version}</version>
             <version>20.0.2</version>
             <classifier>win</classifier>
         </dependency>
@@ -44,9 +47,17 @@
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-swing</artifactId>
+            <version>${javafx.version}</version>
             <version>20.0.2</version>
             <classifier>win</classifier>
         </dependency>
+        <!-- wael zedtha jdida -->
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-web</artifactId>
+            <version>${javafx.version}</version>
+        </dependency>
+
         <dependency>
             <groupId>org.apache.pdfbox</groupId>
             <artifactId>pdfbox</artifactId>
@@ -83,6 +94,7 @@
             <artifactId>openpdf</artifactId>
             <version>1.3.39</version>
         </dependency>
+                <dependency>
 
 
 
@@ -91,6 +103,16 @@
             <artifactId>itextpdf</artifactId>
             <version>5.5.13.3</version>
         </dependency>
+        <!-- Vosk for offline speech-to-text (free, lightweight, no API costs) -->
+        <dependency>
+                    <groupId>com.alphacephei</groupId>
+                    <artifactId>vosk</artifactId>
+                    <version>0.3.45</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.sarxos</groupId>
+            <artifactId>webcam-capture</artifactId>
+            <version>0.3.12</version>
 
         <dependency>
 
@@ -108,6 +130,17 @@
             <artifactId>slf4j-simple</artifactId>
             <version>1.7.36</version>
         </dependency>
+        <dependency>
+            <groupId>org.openpnp</groupId>
+            <artifactId>opencv</artifactId>
+            <version>4.9.0-0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.microsoft.onnxruntime</groupId>
+            <artifactId>onnxruntime</artifactId>
+            <version>1.18.0</version>
+        </dependency>
+        
 
         <!-- JSON parsing léger - déjà peut-être présent -->
 
@@ -215,6 +248,20 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.2.5</version>
+            </plugin>
+            <plugin>
+                <groupId>org.openjfx</groupId>
+                <artifactId>javafx-maven-plugin</artifactId>
+                <version>0.0.8</version>
+                <configuration>
+                    <mainClass>tn.esprit.mains.MainFx</mainClass>
+                    <options>
+                        <option>--add-modules=javafx.controls,javafx.fxml,javafx.web,javafx.swing,jdk.httpserver</option>
+                        <option>--add-exports=javafx.graphics/com.sun.javafx.sg.prism=ALL-UNNAMED</option>
+                        <option>--add-opens=javafx.graphics/com.sun.javafx.sg.prism=ALL-UNNAMED</option>
+                        <option>--enable-native-access=ALL-UNNAMED</option>
+                    </options>
+                </configuration>
             </plugin>
         </plugins>
     </build>

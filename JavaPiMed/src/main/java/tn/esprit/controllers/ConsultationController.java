@@ -1,6 +1,7 @@
 
 package tn.esprit.controllers;
 
+import javafx.application.Platform;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -23,35 +24,66 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import javafx.stage.FileChooser;
+import javafx.stage.Window;
+import com.itextpdf.text.BaseColor;
+import com.itextpdf.text.Chunk;
+import com.itextpdf.text.Document;
+import com.itextpdf.text.DocumentException;
+import com.itextpdf.text.Element;
+import com.itextpdf.text.Font;
+import com.itextpdf.text.PageSize;
+import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.Phrase;
+import com.itextpdf.text.Rectangle;
+import com.itextpdf.text.pdf.PdfPCell;
+import com.itextpdf.text.pdf.PdfPTable;
+import com.itextpdf.text.pdf.PdfWriter;
 import tn.esprit.entities.Prescription;
 import tn.esprit.entities.FicheMedicale;
 import tn.esprit.entities.RendezVous;
 import tn.esprit.entities.User;
+import tn.esprit.services.DialogflowAssistantService;
+import tn.esprit.services.HuggingFaceUrgencyService;
+import tn.esprit.services.SpeechToTextService;
+import tn.esprit.services.TextToSpeechService;
 import tn.esprit.services.FicheMedicaleService;
 import tn.esprit.services.PrescriptionService;
 import tn.esprit.services.RendezVousService;
 import tn.esprit.services.UserService;
+import tn.esprit.tools.SessionManager;
 
 import java.net.URL;
+import javax.sound.sampled.LineUnavailableException;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.text.Normalizer;
 import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.ResourceBundle;
+import java.util.concurrent.CompletableFuture;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import javafx.util.Duration;
 
 public class ConsultationController implements Initializable {
-
-    private static final int SESSION_PATIENT_ID = 13;
+    private Integer sessionPatientId;
 
     @FXML
     private TextField doctorField;
@@ -91,11 +123,31 @@ public class ConsultationController implements Initializable {
     @FXML
     private VBox myBookingsPage;
     @FXML
+    private VBox myRecordsPage;
+    @FXML
+    private VBox aiAssistantPage;
+    @FXML
     private Button bookingPageBtn;
     @FXML
     private Button myBookingsPageBtn;
-@FXML
+    @FXML
     private Button myRecordsPageBtn;
+    @FXML
+    private Button aiAssistantPageBtn;
+    @FXML
+    private VBox aiConversationHistory;
+    @FXML
+    private TextField aiMessageInput;
+    @FXML
+    private Label aiAssistantStatusLabel;
+    @FXML
+    private Button aiSendMessageButton;
+    @FXML
+    private Button aiVoiceMessageButton;
+    @FXML
+    private Button aiVoiceOutputToggleButton;
+    @FXML
+    private Label aiRecordingIndicator;
 
     @FXML
     private Label monthYearLabel;
@@ -123,8 +175,6 @@ public class ConsultationController implements Initializable {
     @FXML
     private ComboBox<String> myRecordsSortComboBox;
     @FXML
-    private VBox myRecordsPage;
-    @FXML
     private TableView<FicheMedicale> myRecordsTable;
     @FXML
     private TableColumn<FicheMedicale, Number> recordColId;
@@ -145,6 +195,8 @@ public class ConsultationController implements Initializable {
     @FXML
     private TableColumn<FicheMedicale, Void> recordColActions;
     @FXML
+    private TableColumn<FicheMedicale, Void> recordColDownloadPdf;
+    @FXML
     private VBox recordDetailsPanel;
     @FXML
     private Label recordDetailsSummaryLabel;
@@ -160,6 +212,8 @@ public class ConsultationController implements Initializable {
     private TableColumn<Prescription, String> recordPrescriptionFrequenceColumn;
     @FXML
     private TableColumn<Prescription, String> recordPrescriptionInstructionsColumn;
+    @FXML
+    private TableColumn<Prescription, Void> recordPrescriptionDownloadColumn;
     @FXML
     private TableColumn<RendezVous, Number> colId;
     @FXML
@@ -194,11 +248,20 @@ public class ConsultationController implements Initializable {
     private final ObservableList<FicheMedicale> myRecordsData = FXCollections.observableArrayList();
     private final ObservableList<Prescription> recordPrescriptionsData = FXCollections.observableArrayList();
     private final HashMap<Integer, Boolean> expandedRecordState = new HashMap<>();
+    private FicheMedicale selectedRecordForPrescriptions;
     private final Set<LocalDateTime> selectedDoctorReservedSlots = new HashSet<>();
     private final RendezVousService rendezVousService = new RendezVousService();
     private final UserService userService = new UserService();
     private final FicheMedicaleService ficheMedicaleService = new FicheMedicaleService();
     private final PrescriptionService prescriptionService = new PrescriptionService();
+    private final HuggingFaceUrgencyService urgencyService = new HuggingFaceUrgencyService();
+    private final DialogflowAssistantService dialogflowAssistantService = new DialogflowAssistantService();
+    private final SpeechToTextService speechToTextService = new SpeechToTextService();
+    private final TextToSpeechService textToSpeechService = new TextToSpeechService();
+    private boolean aiVoiceOutputEnabled = true;
+    private volatile boolean isRecordingAudio = false;
+    private Timeline recordingAutoStopTimeline;
+    private static final int RECORDING_AUTO_STOP_SECONDS = 15;
 
     private LocalDate currentWeekStart;
     private LocalDateTime selectedDateTime;
@@ -207,9 +270,13 @@ public class ConsultationController implements Initializable {
     private final DateTimeFormatter weekRangeFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.ENGLISH);
     private final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("EEE dd MMM yyyy 'at' HH:mm", Locale.ENGLISH);
     private final DateTimeFormatter modifyDateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+    private static final Pattern ISO_DATE_TIME_EMBEDDED_PATTERN = Pattern.compile("(\\d{4}-\\d{2}-\\d{2}[T ]\\d{2}:\\d{2}(?::\\d{2})?(?:Z|[+-]\\d{2}:\\d{2})?)");
+    private static final Pattern DATE_TIME_AM_PM_PATTERN = Pattern.compile("(?i)(\\d{4}-\\d{2}-\\d{2})\\s+(\\d{1,2})(?::(\\d{2}))?\\s*([ap]m)\\b");
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        sessionPatientId = resolveSessionPatientId();
+
         if (modeComboBox != null) {
             modeComboBox.setItems(FXCollections.observableArrayList("Distanciel", "Présentiel"));
         }
@@ -218,11 +285,11 @@ public class ConsultationController implements Initializable {
         }
 
         if (patientIdField != null) {
-            patientIdField.setText(String.valueOf(SESSION_PATIENT_ID));
+            patientIdField.setText(sessionPatientId == null ? "" : String.valueOf(sessionPatientId));
             patientIdField.setEditable(false);
         }
         if (modifyPatientIdField != null) {
-            modifyPatientIdField.setText(String.valueOf(SESSION_PATIENT_ID));
+            modifyPatientIdField.setText(sessionPatientId == null ? "" : String.valueOf(sessionPatientId));
             modifyPatientIdField.setEditable(false);
         }
 
@@ -303,6 +370,8 @@ public class ConsultationController implements Initializable {
         refreshCalendar();
         loadDoctorCards();
         validateAllBookingInputs();
+        initializeAiAssistantConversation();
+        updateAiVoiceOutputToggleButton();
     }
 
     @FXML
@@ -317,6 +386,110 @@ public class ConsultationController implements Initializable {
     @FXML
     private void handleShowMyRecords(ActionEvent event) {
         showMyRecordsPage();
+    }
+
+    @FXML
+    private void handleShowAiAssistantPage(ActionEvent event) {
+        showAiAssistantPage();
+    }
+
+    @FXML
+    private void handleSendAiMessage(ActionEvent event) {
+        sendAiMessageFromComposer();
+    }
+
+    @FXML
+    private void handleToggleAiVoiceOutput(ActionEvent event) {
+        aiVoiceOutputEnabled = !aiVoiceOutputEnabled;
+        updateAiVoiceOutputToggleButton();
+    }
+
+    @FXML
+    private void handleAiVoiceMessage(ActionEvent event) {
+        // Toggle recording: first press starts, second press stops and transcribes
+        if (!isRecordingAudio) {
+            try {
+                speechToTextService.startRecording();
+                isRecordingAudio = true;
+                setAiAssistantStatus("Recording... click again to stop");
+                if (aiVoiceMessageButton != null) {
+                    aiVoiceMessageButton.setText("Stop");
+                }
+                if (aiRecordingIndicator != null) {
+                    aiRecordingIndicator.setVisible(true);
+                }
+
+                // schedule auto-stop
+                if (recordingAutoStopTimeline != null) {
+                    recordingAutoStopTimeline.stop();
+                }
+                recordingAutoStopTimeline = new Timeline(new KeyFrame(javafx.util.Duration.seconds(RECORDING_AUTO_STOP_SECONDS), e -> stopRecordingFromAuto()));
+                recordingAutoStopTimeline.setCycleCount(1);
+                recordingAutoStopTimeline.play();
+            } catch (LineUnavailableException ex) {
+                showError("Audio error", "Microphone is unavailable: " + ex.getMessage());
+            }
+            return;
+        }
+
+        // stop recording and transcribe asynchronously
+        // manual stop
+        if (recordingAutoStopTimeline != null) {
+            recordingAutoStopTimeline.stop();
+            recordingAutoStopTimeline = null;
+        }
+        isRecordingAudio = false;
+        setAiAssistantStatus("Processing audio...");
+        if (aiVoiceMessageButton != null) {
+            aiVoiceMessageButton.setText("Voice");
+        }
+        if (aiRecordingIndicator != null) {
+            aiRecordingIndicator.setVisible(false);
+        }
+
+        CompletableFuture.supplyAsync(() -> {
+            try {
+                return speechToTextService.stopRecordingAndTranscribe();
+            } catch (Exception ex) {
+                throw new RuntimeException(ex);
+            }
+        }).whenComplete((transcript, throwable) -> Platform.runLater(() -> {
+            if (throwable != null) {
+                setAiAssistantStatus("Audio processing failed");
+                appendAiAssistantMessage("Voice transcription failed. Please try again.", false);
+                return;
+            }
+
+            if (transcript == null || transcript.isBlank()) {
+                setAiAssistantStatus("No speech detected");
+                appendAiAssistantMessage("I could not detect speech. Please try again.", false);
+                return;
+            }
+
+            setAiAssistantStatus("You: " + (transcript.length() > 40 ? transcript.substring(0, 40) + "..." : transcript));
+            appendAiAssistantMessage(transcript, true);
+            // send transcript to Dialogflow and handle reply
+            setAiAssistantControlsDisabled(true);
+            setAiAssistantStatus("Sending to Dialogflow...");
+            CompletableFuture.supplyAsync(() -> dialogflowAssistantService.detectIntent(transcript, buildDialogflowSessionId()))
+                    .whenComplete((reply, ex) -> Platform.runLater(() -> {
+                        setAiAssistantControlsDisabled(false);
+                        if (ex != null) {
+                            setAiAssistantStatus("Dialogflow unavailable");
+                            appendAiAssistantMessage("I could not reach Dialogflow. Check the service account path and project ID.", false);
+                            showError("Dialogflow error", ex.getMessage());
+                            return;
+                        }
+                        handleDialogflowReply(transcript, reply);
+                    }));
+        }));
+    }
+
+    private void stopRecordingFromAuto() {
+        // called on JavaFX thread by timeline
+        if (!isRecordingAudio) return;
+        // reuse existing stop flow
+        handleAiVoiceMessage(new ActionEvent());
     }
 
     @FXML
@@ -340,47 +513,12 @@ public class ConsultationController implements Initializable {
     @FXML
     private void handleConfirmAppointment(ActionEvent event) {
         try {
-            if (!validateAllBookingInputs()) {
-                throw new IllegalArgumentException("Please fix the highlighted fields before confirming the appointment.");
-            }
-
+            int patientId = requireSessionPatientId();
             int idStaff = parseRequiredInt(doctorField1, "Doctor/Staff ID");
-
-            if (selectedDateTime == null) {
-                throw new IllegalArgumentException("Please select a date and time slot from the calendar.");
-            }
-
             String mode = modeComboBox != null ? modeComboBox.getValue() : null;
-            if (mode == null || mode.isBlank()) {
-                throw new IllegalArgumentException("Please choose a booking mode.");
-            }
-
             String motif = motifArea != null ? motifArea.getText() : null;
-            if (motif == null || motif.isBlank()) {
-                throw new IllegalArgumentException("Please enter a motif.");
-            }
-            motif = motif.trim();
 
-            if (selectedDateTime.isBefore(LocalDateTime.now())) {
-                throw new IllegalArgumentException("The appointment date/time must be in the future.");
-            }
-
-            if (hasDuplicateRendezVous(null, Timestamp.valueOf(selectedDateTime), SESSION_PATIENT_ID, idStaff, mode, motif)) {
-                throw new IllegalArgumentException("A booking with the same date/time, doctor, mode and motif already exists.");
-            }
-
-            RendezVous rendezVous = new RendezVous(
-                    Timestamp.valueOf(selectedDateTime),
-                    "Demande",
-                    mode,
-                    motif,
-                    new Timestamp(System.currentTimeMillis()),
-                    SESSION_PATIENT_ID,
-                    idStaff,
-                    null
-            );
-
-            rendezVousService.ajouter(rendezVous);
+            saveAppointment(patientId, idStaff, selectedDateTime, mode, motif);
             reloadReservedSlotsForSelectedDoctor();
             showInfo("Success", "Appointment saved successfully.");
             loadMyBookings();
@@ -394,6 +532,8 @@ public class ConsultationController implements Initializable {
     @FXML
     private void handleConfirmModify(ActionEvent event) {
         try {
+            int patientId = requireSessionPatientId();
+
             if (editingRendezVousId == null) {
                 throw new IllegalArgumentException("No booking selected for modification.");
             }
@@ -414,6 +554,7 @@ public class ConsultationController implements Initializable {
                 throw new IllegalArgumentException("Motif is required.");
             }
             motif = motif.trim();
+            String urgencyLevel = determineUrgencyLevel(motif);
 
             String rawDateTime = modifyDateTimeField != null ? modifyDateTimeField.getText() : null;
             if (rawDateTime == null || rawDateTime.isBlank()) {
@@ -431,7 +572,7 @@ public class ConsultationController implements Initializable {
                 throw new IllegalArgumentException("The appointment date/time must be in the future.");
             }
 
-            if (hasDuplicateRendezVous(editingRendezVousId, Timestamp.valueOf(dateTime), SESSION_PATIENT_ID, idStaff, mode, motif)) {
+            if (hasDuplicateRendezVous(editingRendezVousId, Timestamp.valueOf(dateTime), patientId, idStaff, mode, motif)) {
                 throw new IllegalArgumentException("Another booking with the same date/time, doctor, mode and motif already exists.");
             }
 
@@ -442,9 +583,9 @@ public class ConsultationController implements Initializable {
                     mode,
                     motif,
                     new Timestamp(System.currentTimeMillis()),
-                    SESSION_PATIENT_ID,
+                        patientId,
                     idStaff,
-                    null
+                    urgencyLevel
             );
 
             rendezVousService.modifier(rendezVous);
@@ -468,70 +609,589 @@ public class ConsultationController implements Initializable {
         hideModifyForm();
     }
 
-    private void showBookingPage() {
-        bookingPage.setVisible(true);
-        bookingPage.setManaged(true);
-        myBookingsPage.setVisible(false);
-        myBookingsPage.setManaged(false);
-
-        bookingPageBtn.getStyleClass().remove("page-nav-button");
-        if (!bookingPageBtn.getStyleClass().contains("page-nav-button-active")) {
-            bookingPageBtn.getStyleClass().add("page-nav-button-active");
+    private void saveAppointment(int patientId, int idStaff, LocalDateTime dateTime, String mode, String motif) {
+        if (dateTime == null) {
+            throw new IllegalArgumentException("Please select a date and time slot from the calendar.");
         }
-        myBookingsPageBtn.getStyleClass().remove("page-nav-button-active");
-        if (!myBookingsPageBtn.getStyleClass().contains("page-nav-button")) {
-            myBookingsPageBtn.getStyleClass().add("page-nav-button");
+        if (mode == null || mode.isBlank()) {
+            throw new IllegalArgumentException("Please choose a booking mode.");
+        }
+        if (motif == null || motif.isBlank()) {
+            throw new IllegalArgumentException("Please enter a motif.");
+        }
+
+        String cleanedMode = mode.trim();
+        String cleanedMotif = motif.trim();
+
+        if (!validateAllBookingInputs()) {
+            throw new IllegalArgumentException("Please fix the highlighted fields before confirming the appointment.");
+        }
+
+        if (dateTime.isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("The appointment date/time must be in the future.");
+        }
+
+        if (hasDuplicateRendezVous(null, Timestamp.valueOf(dateTime), patientId, idStaff, cleanedMode, cleanedMotif)) {
+            throw new IllegalArgumentException("A booking with the same date/time, doctor, mode and motif already exists.");
+        }
+
+        String urgencyLevel = determineUrgencyLevel(cleanedMotif);
+        RendezVous rendezVous = new RendezVous(
+                Timestamp.valueOf(dateTime),
+                "Demande",
+                cleanedMode,
+                cleanedMotif,
+                new Timestamp(System.currentTimeMillis()),
+                patientId,
+                idStaff,
+                urgencyLevel
+        );
+
+        rendezVousService.ajouter(rendezVous);
+    }
+
+    private void initializeAiAssistantConversation() {
+        if (aiConversationHistory == null || !aiConversationHistory.getChildren().isEmpty()) {
+            return;
+        }
+
+        appendAiAssistantMessage("Welcome. Type a RendezVous phrase or use the booking intent, and Dialogflow will extract the fields.", false);
+        appendAiAssistantMessage("Example: I want to book a Presentiel appointment with Doctor Ahmed Chrigui for 11 October 2024 at 8 am.", false);
+        setAiAssistantStatus("Ready for Dialogflow intent detection");
+    }
+
+    private void sendAiMessageFromComposer() {
+        if (aiMessageInput == null) {
+            return;
+        }
+
+        String userMessage = aiMessageInput.getText() == null ? "" : aiMessageInput.getText().trim();
+        if (userMessage.isBlank()) {
+            showInfo("AI Assistant", "Type a message first.");
+            return;
+        }
+
+        appendAiAssistantMessage(userMessage, true);
+        aiMessageInput.clear();
+        setAiAssistantStatus("Sending to Dialogflow...");
+        setAiAssistantControlsDisabled(true);
+
+        CompletableFuture
+                .supplyAsync(() -> dialogflowAssistantService.detectIntent(userMessage, buildDialogflowSessionId()))
+                .whenComplete((reply, throwable) -> Platform.runLater(() -> {
+                    setAiAssistantControlsDisabled(false);
+
+                    if (throwable != null) {
+                        setAiAssistantStatus("Dialogflow unavailable");
+                        appendAiAssistantMessage("I could not reach Dialogflow. Check the service account path and project ID.", false);
+                        showError("Dialogflow error", throwable.getMessage());
+                        return;
+                    }
+
+                    handleDialogflowReply(userMessage, reply);
+                }));
+    }
+
+    private void handleDialogflowReply(String userMessage, DialogflowAssistantService.DialogflowReply reply) {
+        if (reply == null) {
+            setAiAssistantStatus("No Dialogflow reply");
+            appendAiAssistantMessage("Dialogflow returned an empty response.", false);
+            return;
+        }
+
+        String intentName = reply.intentName();
+        if (intentName != null && !intentName.isBlank()) {
+            setAiAssistantStatus("Intent detected: " + intentName);
+        } else {
+            setAiAssistantStatus("Dialogflow reply received");
+        }
+
+        String fulfillmentText = reply.fulfillmentText();
+        if (fulfillmentText != null && !fulfillmentText.isBlank()) {
+            appendAiAssistantMessage(fulfillmentText, false);
+        }
+
+        if ("RendezVous".equalsIgnoreCase(intentName)) {
+            processRendezVousIntent(userMessage, reply.parameters());
+        } else if ("SayHello".equalsIgnoreCase(intentName)) {
+            handleSayHelloIntent();
+        } else if ("RemindUpcomingRendezVous".equalsIgnoreCase(intentName)) {
+            handleRemindUpcomingRendezVousIntent();
+        } else if ((fulfillmentText == null || fulfillmentText.isBlank()) && intentName != null && !intentName.isBlank()) {
+            appendAiAssistantMessage("Intent detected: " + intentName + ".", false);
         }
     }
 
-    private void showMyBookingsPage() {
-        bookingPage.setVisible(false);
-        bookingPage.setManaged(false);
-        myBookingsPage.setVisible(true);
-        myBookingsPage.setManaged(true);
-        if (myRecordsPage != null) {
-            myRecordsPage.setVisible(false);
-            myRecordsPage.setManaged(false);
+    private void handleSayHelloIntent() {
+        appendAiAssistantMessage("Hello. I can help you book an appointment or remind you of your upcoming rendez-vous.", false);
+    }
+
+    private void handleRemindUpcomingRendezVousIntent() {
+        Integer patientId = resolveSessionPatientId();
+        if (patientId == null || patientId <= 0) {
+            appendAiAssistantMessage("I could not find your active session. Please log in again to fetch your upcoming appointments.", false);
+            return;
         }
 
-        bookingPageBtn.getStyleClass().remove("page-nav-button-active");
-        if (!bookingPageBtn.getStyleClass().contains("page-nav-button")) {
-            bookingPageBtn.getStyleClass().add("page-nav-button");
+        List<RendezVous> allAppointments = rendezVousService.recuperer();
+        List<RendezVous> upcomingAppointments = new ArrayList<>();
+        LocalDateTime now = LocalDateTime.now();
+
+        for (RendezVous appointment : allAppointments) {
+            if (appointment == null || appointment.getDatetime() == null) {
+                continue;
+            }
+            if (appointment.getIdPatient() != patientId) {
+                continue;
+            }
+
+            LocalDateTime appointmentDateTime = appointment.getDatetime().toLocalDateTime();
+            if (appointmentDateTime.isBefore(now)) {
+                continue;
+            }
+
+            upcomingAppointments.add(appointment);
         }
-        myBookingsPageBtn.getStyleClass().remove("page-nav-button");
-        if (!myBookingsPageBtn.getStyleClass().contains("page-nav-button-active")) {
-            myBookingsPageBtn.getStyleClass().add("page-nav-button-active");
+
+        upcomingAppointments.sort(Comparator.comparing(rdv -> rdv.getDatetime().toLocalDateTime()));
+
+        if (upcomingAppointments.isEmpty()) {
+            appendAiAssistantMessage("You have no upcoming appointments.", false);
+            return;
         }
+
+        StringBuilder message = new StringBuilder("Here are your upcoming appointments:\n");
+        int limit = Math.min(3, upcomingAppointments.size());
+        for (int i = 0; i < limit; i++) {
+            RendezVous rdv = upcomingAppointments.get(i);
+            String dateText = dateTimeFormatter.format(rdv.getDatetime().toLocalDateTime());
+            String mode = valueOrDash(rdv.getMode());
+            String status = valueOrDash(rdv.getStatut());
+            message.append("- ").append(dateText)
+                    .append(" | mode: ").append(mode)
+                    .append(" | status: ").append(status)
+                    .append("\n");
+        }
+
+        if (upcomingAppointments.size() > limit) {
+            message.append("And ").append(upcomingAppointments.size() - limit).append(" more...");
+        }
+
+        appendAiAssistantMessage(message.toString().trim(), false);
+    }
+
+    private void processRendezVousIntent(String userMessage, Map<String, String> parameters) {
+        Map<String, String> safeParameters = parameters == null ? Map.of() : parameters;
+
+        String extractedMode = normalizeMode(safeParameters.get("mode"));
+        String extractedPerson = firstNonBlank(safeParameters.get("person"), safeParameters.get("doctor"), safeParameters.get("staff"));
+        String extractedMotif = firstNonBlank(safeParameters.get("motif"), safeParameters.get("reason"), userMessage);
+        String extractedDateTime = firstNonBlank(
+            safeParameters.get("date-time"),
+            safeParameters.get("date_time"),
+            safeParameters.get("datetime"),
+            findDateTimeValueFromAnyParameter(safeParameters)
+        );
+
+        if (extractedMode != null && modeComboBox != null) {
+            modeComboBox.setValue(extractedMode);
+            updateModeSummary();
+        }
+
+        if (extractedPerson != null) {
+            Integer staffId = resolveDialogflowStaffId(extractedPerson);
+            if (staffId != null && doctorField1 != null) {
+                doctorField1.setText(String.valueOf(staffId));
+                selectedDoctorId = staffId;
+                validateDoctorStaffField();
+            }
+        }
+
+        LocalDateTime parsedDateTime = parseDialogflowDateTime(extractedDateTime);
+        if (parsedDateTime == null && !safeParameters.isEmpty()) {
+            parsedDateTime = parseDialogflowDateTime(findDateTimeValueFromAnyParameter(safeParameters));
+        }
+
+        if (parsedDateTime != null) {
+            applyAiSelectedDateTime(parsedDateTime);
+        }
+
+        if (extractedMotif != null && motifArea != null) {
+            motifArea.setText(extractedMotif.trim());
+            validateMotif();
+        }
+
+        if (canAutoBookRendezVous()) {
+            try {
+                confirmAppointmentFromAi();
+                appendAiAssistantMessage("Your rendez-vous request was booked from the Dialogflow intent.", false);
+                setAiAssistantStatus("RendezVous booked");
+            } catch (IllegalArgumentException ex) {
+                appendAiAssistantMessage(ex.getMessage(), false);
+                setAiAssistantStatus("More details needed");
+            } catch (Exception ex) {
+                appendAiAssistantMessage("I detected the intent, but booking failed: " + ex.getMessage(), false);
+                setAiAssistantStatus("Booking failed");
+            }
+            return;
+        }
+
+        List<String> missingFields = new ArrayList<>();
+        if (doctorField1 == null || doctorField1.getText() == null || doctorField1.getText().isBlank()) {
+            missingFields.add("doctor");
+        }
+        if (modeComboBox == null || modeComboBox.getValue() == null || modeComboBox.getValue().isBlank()) {
+            missingFields.add("mode");
+        }
+        if (selectedDateTime == null) {
+            missingFields.add("date/time");
+        }
+        if (motifArea == null || motifArea.getText() == null || motifArea.getText().isBlank()) {
+            missingFields.add("motif");
+        }
+
+        if (missingFields.isEmpty()) {
+            appendAiAssistantMessage("The intent was detected. I filled the form, but one of the values is still invalid.", false);
+        } else {
+            appendAiAssistantMessage("I detected RendezVous and filled what I could. Still missing: " + String.join(", ", missingFields) + ".", false);
+        }
+    }
+
+    private void confirmAppointmentFromAi() {
+        int patientId = requireSessionPatientId();
+        int idStaff = parseRequiredInt(doctorField1, "Doctor/Staff ID");
+        String mode = modeComboBox != null ? modeComboBox.getValue() : null;
+        String motif = "Reservé par IA";
+        if (motifArea != null) {
+            motifArea.setText(motif);
+            validateMotif();
+        }
+        saveAppointment(patientId, idStaff, selectedDateTime, mode, motif);
+        reloadReservedSlotsForSelectedDoctor();
+        loadMyBookings();
+    }
+
+    private void appendAiAssistantMessage(String message, boolean fromUser) {
+        if (aiConversationHistory == null || message == null || message.isBlank()) {
+            return;
+        }
+
+        HBox row = new HBox(12);
+        row.getStyleClass().add(fromUser ? "ai-message-row-user" : "ai-message-row-ai");
+
+        VBox messageColumn = new VBox(4);
+        messageColumn.setFillWidth(true);
+        HBox.setHgrow(messageColumn, Priority.ALWAYS);
+
+        Label nameLabel = new Label(fromUser ? "You" : "AI Assistant");
+        nameLabel.getStyleClass().add("ai-message-name");
+        if (fromUser) {
+            nameLabel.getStyleClass().add("ai-message-name-user");
+        }
+
+        Label bubble = new Label(message);
+        bubble.setWrapText(true);
+        bubble.getStyleClass().addAll("ai-bubble", fromUser ? "ai-bubble-user" : "ai-bubble-ai");
+        bubble.setMaxWidth(640);
+
+        if (fromUser) {
+            messageColumn.setAlignment(javafx.geometry.Pos.TOP_RIGHT);
+            messageColumn.getChildren().addAll(nameLabel, bubble);
+            row.setAlignment(javafx.geometry.Pos.TOP_RIGHT);
+            row.getChildren().addAll(messageColumn, createAiAvatar("Me", true));
+        } else {
+            messageColumn.getChildren().addAll(nameLabel, bubble);
+            row.setAlignment(javafx.geometry.Pos.TOP_LEFT);
+            row.getChildren().addAll(createAiAvatar("AI", false), messageColumn);
+        }
+
+        aiConversationHistory.getChildren().add(row);
+
+        // Speak AI replies aloud.
+        if (!fromUser && aiVoiceOutputEnabled) {
+            textToSpeechService.speakAsync(message);
+        }
+    }
+
+    private void updateAiVoiceOutputToggleButton() {
+        if (aiVoiceOutputToggleButton == null) {
+            return;
+        }
+
+        if (aiVoiceOutputEnabled) {
+            aiVoiceOutputToggleButton.setText("🔊 Voice On");
+            aiVoiceOutputToggleButton.getStyleClass().remove("ai-mini-pill-muted");
+        } else {
+            aiVoiceOutputToggleButton.setText("🔇 Voice Off");
+            if (!aiVoiceOutputToggleButton.getStyleClass().contains("ai-mini-pill-muted")) {
+                aiVoiceOutputToggleButton.getStyleClass().add("ai-mini-pill-muted");
+            }
+        }
+    }
+
+    private VBox createAiAvatar(String text, boolean userAvatar) {
+        Label avatarLabel = new Label(text);
+        avatarLabel.getStyleClass().add("ai-avatar-text");
+
+        VBox avatar = new VBox(avatarLabel);
+        avatar.getStyleClass().addAll("ai-avatar", userAvatar ? "ai-avatar-user" : "ai-avatar-ai");
+        avatar.setMinSize(42, 42);
+        avatar.setPrefSize(42, 42);
+        avatar.setMaxSize(42, 42);
+        avatar.setAlignment(javafx.geometry.Pos.CENTER);
+        return avatar;
+    }
+
+    private void setAiAssistantStatus(String message) {
+        if (aiAssistantStatusLabel != null) {
+            aiAssistantStatusLabel.setText(message);
+        }
+    }
+
+    private void setAiAssistantControlsDisabled(boolean disabled) {
+        if (aiSendMessageButton != null) {
+            aiSendMessageButton.setDisable(disabled);
+        }
+        if (aiVoiceMessageButton != null) {
+            aiVoiceMessageButton.setDisable(disabled);
+        }
+        if (aiMessageInput != null) {
+            aiMessageInput.setDisable(disabled);
+        }
+    }
+
+    private void applyAiSelectedDateTime(LocalDateTime dateTime) {
+        selectedDateTime = dateTime;
+
+        if (selectedDateLabel != null) {
+            selectedDateLabel.setText(dateTime.format(DateTimeFormatter.ofPattern("EEE dd MMM yyyy", Locale.ENGLISH)));
+        }
+        if (selectedSlotLabel != null) {
+            selectedSlotLabel.setText(dateTime.format(DateTimeFormatter.ofPattern("HH:mm", Locale.ENGLISH)));
+        }
+
+        validateAppointmentSelection();
+    }
+
+    private boolean canAutoBookRendezVous() {
+        return doctorField1 != null && doctorField1.getText() != null && !doctorField1.getText().isBlank()
+                && modeComboBox != null && modeComboBox.getValue() != null && !modeComboBox.getValue().isBlank()
+                && selectedDateTime != null
+                && motifArea != null && motifArea.getText() != null && !motifArea.getText().isBlank();
+    }
+
+    private LocalDateTime parseDialogflowDateTime(String rawValue) {
+        if (rawValue == null || rawValue.isBlank()) {
+            return null;
+        }
+
+        String trimmed = rawValue.trim();
+
+        // Dialogflow can return nested JSON-like values. Extract an ISO token when embedded.
+        Matcher embeddedMatcher = ISO_DATE_TIME_EMBEDDED_PATTERN.matcher(trimmed);
+        if (embeddedMatcher.find()) {
+            trimmed = embeddedMatcher.group(1).replace(' ', 'T');
+        }
+
+        // Support natural forms like: 2026-04-28 10am / 2026-04-28 10:30 pm
+        Matcher amPmMatcher = DATE_TIME_AM_PM_PATTERN.matcher(trimmed);
+        if (amPmMatcher.find()) {
+            try {
+                LocalDate date = LocalDate.parse(amPmMatcher.group(1));
+                int hour = Integer.parseInt(amPmMatcher.group(2));
+                int minute = amPmMatcher.group(3) == null ? 0 : Integer.parseInt(amPmMatcher.group(3));
+                String amPm = amPmMatcher.group(4).toLowerCase(Locale.ROOT);
+
+                if (hour < 1 || hour > 12 || minute < 0 || minute > 59) {
+                    return null;
+                }
+
+                int hour24 = hour % 12;
+                if ("pm".equals(amPm)) {
+                    hour24 += 12;
+                }
+
+                return date.atTime(hour24, minute);
+            } catch (DateTimeParseException | NumberFormatException ignored) {
+            }
+        }
+
+        try {
+            return OffsetDateTime.parse(trimmed).toLocalDateTime();
+        } catch (DateTimeParseException ignored) {
+        }
+
+        try {
+            return LocalDateTime.parse(trimmed, modifyDateTimeFormatter);
+        } catch (DateTimeParseException ignored) {
+        }
+
+        try {
+            return LocalDateTime.parse(trimmed);
+        } catch (DateTimeParseException ignored) {
+            return null;
+        }
+    }
+
+    private String findDateTimeValueFromAnyParameter(Map<String, String> parameters) {
+        if (parameters == null || parameters.isEmpty()) {
+            return null;
+        }
+
+        for (Map.Entry<String, String> entry : parameters.entrySet()) {
+            String key = entry.getKey();
+            String value = entry.getValue();
+            if (key == null || value == null || value.isBlank()) {
+                continue;
+            }
+
+            String normalizedKey = normalizeSearchText(key);
+            if (!normalizedKey.contains("date") && !normalizedKey.contains("time")) {
+                continue;
+            }
+
+            if (parseDialogflowDateTime(value) != null) {
+                return value;
+            }
+        }
+
+        return null;
+    }
+
+    private String normalizeMode(String modeValue) {
+        if (modeValue == null || modeValue.isBlank()) {
+            return null;
+        }
+
+        String normalized = normalizeSearchText(modeValue);
+        if (normalized.contains("present") || normalized.contains("onsite") || normalized.contains("in person")) {
+            return "Présentiel";
+        }
+        if (normalized.contains("distanc") || normalized.contains("remote") || normalized.contains("online") || normalized.contains("virtual")) {
+            return "Distanciel";
+        }
+        return modeValue.trim();
+    }
+
+    private Integer resolveDialogflowStaffId(String personValue) {
+        if (personValue == null || personValue.isBlank()) {
+            return null;
+        }
+
+        String trimmed = personValue.trim();
+        try {
+            int parsedId = Integer.parseInt(trimmed);
+            return userService.findById(parsedId) == null ? null : parsedId;
+        } catch (NumberFormatException ignored) {
+        }
+
+        String normalizedCandidate = normalizeSearchText(trimmed);
+        List<User> doctors = userService.getStaffByRoleAndType("STAFF", "RESP_PATIENTS");
+        for (User doctor : doctors) {
+            String displayName = buildDoctorDisplayName(doctor);
+            String normalizedDisplayName = normalizeSearchText(displayName);
+            String normalizedRawName = normalizeSearchText((doctor.getPrenom() == null ? "" : doctor.getPrenom()) + " " + (doctor.getNom() == null ? "" : doctor.getNom()));
+            if (normalizedDisplayName.contains(normalizedCandidate)
+                    || normalizedRawName.contains(normalizedCandidate)
+                    || normalizedCandidate.contains(normalizedRawName)) {
+                return doctor.getId();
+            }
+        }
+
+        return null;
+    }
+
+    private String firstNonBlank(String... values) {
+        if (values == null) {
+            return null;
+        }
+
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value.trim();
+            }
+        }
+        return null;
+    }
+
+    private String normalizeSearchText(String value) {
+        if (value == null) {
+            return "";
+        }
+
+        String normalized = Normalizer.normalize(value, Normalizer.Form.NFD);
+        normalized = normalized.replaceAll("\\p{M}+", "");
+        return normalized.toLowerCase(Locale.ROOT).trim();
+    }
+
+    private String buildDialogflowSessionId() {
+        Integer patientId = resolveSessionPatientId();
+        if (patientId == null || patientId <= 0) {
+            return "consultation-guest";
+        }
+        return "consultation-" + patientId;
+    }
+
+    private void showBookingPage() {
+        setVisiblePage(bookingPage);
+        updatePageNavigationState(bookingPageBtn);
+    }
+
+    private void showMyBookingsPage() {
+        setVisiblePage(myBookingsPage);
+        updatePageNavigationState(myBookingsPageBtn);
 
         loadMyBookings();
     }
 
     private void showMyRecordsPage() {
-        bookingPage.setVisible(false);
-        bookingPage.setManaged(false);
-        myBookingsPage.setVisible(false);
-        myBookingsPage.setManaged(false);
-        if (myRecordsPage != null) {
-            myRecordsPage.setVisible(true);
-            myRecordsPage.setManaged(true);
-        }
-
-        bookingPageBtn.getStyleClass().remove("page-nav-button-active");
-        if (!bookingPageBtn.getStyleClass().contains("page-nav-button")) {
-            bookingPageBtn.getStyleClass().add("page-nav-button");
-        }
-        myBookingsPageBtn.getStyleClass().remove("page-nav-button-active");
-        if (!myBookingsPageBtn.getStyleClass().contains("page-nav-button")) {
-            myBookingsPageBtn.getStyleClass().add("page-nav-button");
-        }
-        if (myRecordsPageBtn != null) {
-            myRecordsPageBtn.getStyleClass().remove("page-nav-button");
-            if (!myRecordsPageBtn.getStyleClass().contains("page-nav-button-active")) {
-                myRecordsPageBtn.getStyleClass().add("page-nav-button-active");
-            }
-        }
+        setVisiblePage(myRecordsPage);
+        updatePageNavigationState(myRecordsPageBtn);
 
         applyMyRecordsFilterAndSort();
+    }
+
+    private void showAiAssistantPage() {
+        setVisiblePage(aiAssistantPage);
+        updatePageNavigationState(aiAssistantPageBtn);
+    }
+
+    private void setVisiblePage(VBox visiblePage) {
+        if (bookingPage != null) {
+            boolean isVisible = bookingPage == visiblePage;
+            bookingPage.setVisible(isVisible);
+            bookingPage.setManaged(isVisible);
+        }
+        if (myBookingsPage != null) {
+            boolean isVisible = myBookingsPage == visiblePage;
+            myBookingsPage.setVisible(isVisible);
+            myBookingsPage.setManaged(isVisible);
+        }
+        if (myRecordsPage != null) {
+            boolean isVisible = myRecordsPage == visiblePage;
+            myRecordsPage.setVisible(isVisible);
+            myRecordsPage.setManaged(isVisible);
+        }
+        if (aiAssistantPage != null) {
+            boolean isVisible = aiAssistantPage == visiblePage;
+            aiAssistantPage.setVisible(isVisible);
+            aiAssistantPage.setManaged(isVisible);
+        }
+    }
+
+    private void updatePageNavigationState(Button activeButton) {
+        Button[] pageButtons = {bookingPageBtn, myBookingsPageBtn, myRecordsPageBtn, aiAssistantPageBtn};
+        for (Button button : pageButtons) {
+            if (button == null) {
+                continue;
+            }
+            boolean isActive = button == activeButton;
+            button.getStyleClass().remove(isActive ? "page-nav-button" : "page-nav-button-active");
+            String targetStyle = isActive ? "page-nav-button-active" : "page-nav-button";
+            if (!button.getStyleClass().contains(targetStyle)) {
+                button.getStyleClass().add(targetStyle);
+            }
+        }
     }
 
     private void refreshCalendar() {
@@ -827,7 +1487,16 @@ public class ConsultationController implements Initializable {
             @Override
             protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
-                setGraphic(empty ? null : box);
+                if (empty) {
+                    setGraphic(null);
+                    return;
+                }
+
+                RendezVous rdv = getTableView().getItems().get(getIndex());
+                boolean canEditOrDelete = rdv != null && "Demande".equalsIgnoreCase(valueOrDash(rdv.getStatut()));
+                modifyBtn.setDisable(!canEditOrDelete);
+                deleteBtn.setDisable(!canEditOrDelete);
+                setGraphic(box);
             }
         });
 
@@ -839,8 +1508,17 @@ public class ConsultationController implements Initializable {
         if (myBookingsTable == null) {
             return;
         }
+
+        Integer patientId = resolveSessionPatientId();
+        if (patientId == null || patientId <= 0) {
+            allMyBookingsData.clear();
+            myBookingsData.clear();
+            loadMyRecords();
+            return;
+        }
+
         List<RendezVous> all = rendezVousService.recuperer();
-        allMyBookingsData.setAll(all.stream().filter(r -> r.getIdPatient() == SESSION_PATIENT_ID).toList());
+        allMyBookingsData.setAll(all.stream().filter(r -> r.getIdPatient() == patientId).toList());
         applyMyBookingsFilterAndSort();
         loadMyRecords();
     }
@@ -892,6 +1570,26 @@ public class ConsultationController implements Initializable {
             }
         });
 
+        if (recordColDownloadPdf != null) {
+            recordColDownloadPdf.setCellFactory(col -> new TableCell<>() {
+                private final Button downloadBtn = new Button("Download PDF");
+
+                {
+                    downloadBtn.getStyleClass().add("table-modify-button");
+                    downloadBtn.setOnAction(e -> {
+                        FicheMedicale ficheMedicale = getTableView().getItems().get(getIndex());
+                        downloadMedicalRecordPdf(ficheMedicale);
+                    });
+                }
+
+                @Override
+                protected void updateItem(Void item, boolean empty) {
+                    super.updateItem(item, empty);
+                    setGraphic(empty ? null : downloadBtn);
+                }
+            });
+        }
+
         myRecordsTable.setItems(myRecordsData);
         myRecordsTable.setPlaceholder(new Label("No medical records found for this patient."));
     }
@@ -906,6 +1604,25 @@ public class ConsultationController implements Initializable {
         recordPrescriptionDoseColumn.setCellValueFactory(data -> new SimpleStringProperty(valueOrDash(data.getValue().getDose())));
         recordPrescriptionFrequenceColumn.setCellValueFactory(data -> new SimpleStringProperty(valueOrDash(data.getValue().getFrequence())));
         recordPrescriptionInstructionsColumn.setCellValueFactory(data -> new SimpleStringProperty(valueOrDash(data.getValue().getInstructions())));
+        if (recordPrescriptionDownloadColumn != null) {
+            recordPrescriptionDownloadColumn.setCellFactory(col -> new TableCell<>() {
+                private final Button downloadBtn = new Button("Download PDF");
+
+                {
+                    downloadBtn.getStyleClass().add("table-modify-button");
+                    downloadBtn.setOnAction(e -> {
+                        Prescription prescription = getTableView().getItems().get(getIndex());
+                        downloadPrescriptionPdf(prescription, selectedRecordForPrescriptions);
+                    });
+                }
+
+                @Override
+                protected void updateItem(Void item, boolean empty) {
+                    super.updateItem(item, empty);
+                    setGraphic(empty ? null : downloadBtn);
+                }
+            });
+        }
         recordPrescriptionsTable.setPlaceholder(new Label("No prescriptions found."));
     }
 
@@ -937,6 +1654,7 @@ public class ConsultationController implements Initializable {
             return;
         }
 
+        selectedRecordForPrescriptions = ficheMedicale;
         List<Prescription> prescriptions = prescriptionService.getByFicheMedicaleId(ficheMedicale.getId());
         recordPrescriptionsData.setAll(prescriptions);
 
@@ -989,6 +1707,7 @@ public class ConsultationController implements Initializable {
                 new KeyFrame(Duration.millis(180), e -> {
                     recordDetailsPanel.setVisible(false);
                     recordDetailsPanel.setManaged(false);
+                    selectedRecordForPrescriptions = null;
                     recordPrescriptionsData.clear();
                 })
         );
@@ -1147,7 +1866,8 @@ public class ConsultationController implements Initializable {
         editingRendezVousId = rdv.getId();
 
         if (modifyPatientIdField != null) {
-            modifyPatientIdField.setText(String.valueOf(SESSION_PATIENT_ID));
+            Integer patientId = resolveSessionPatientId();
+            modifyPatientIdField.setText(patientId == null ? "" : String.valueOf(patientId));
         }
         if (modifyStaffIdField != null) {
             modifyStaffIdField.setText(String.valueOf(rdv.getIdStaff()));
@@ -1229,8 +1949,31 @@ public class ConsultationController implements Initializable {
             return true;
         }
 
-        applyValidationState(patientIdField, patientIdValidationLabel, true, "Patient ID loaded: " + SESSION_PATIENT_ID + ".");
+        Integer patientId = resolveSessionPatientId();
+        if (patientId == null || patientId <= 0) {
+            applyValidationState(patientIdField, patientIdValidationLabel, false, "No logged-in user found. Please log in again.");
+            return false;
+        }
+
+        applyValidationState(patientIdField, patientIdValidationLabel, true, "Patient ID loaded: " + patientId + ".");
         return true;
+    }
+
+    private Integer resolveSessionPatientId() {
+        User currentUser = SessionManager.getCurrentUser();
+        if (currentUser == null || currentUser.getId() <= 0) {
+            return null;
+        }
+        sessionPatientId = currentUser.getId();
+        return sessionPatientId;
+    }
+
+    private int requireSessionPatientId() {
+        Integer patientId = resolveSessionPatientId();
+        if (patientId == null || patientId <= 0) {
+            throw new IllegalArgumentException("No logged-in user found. Please log in again.");
+        }
+        return patientId;
     }
 
     private boolean validateDoctorStaffField() {
@@ -1376,8 +2119,333 @@ public class ConsultationController implements Initializable {
         return a.trim().equalsIgnoreCase(b.trim());
     }
 
+    private void downloadMedicalRecordPdf(FicheMedicale ficheMedicale) {
+        if (ficheMedicale == null) {
+            showError("Export PDF", "No medical record is selected.");
+            return;
+        }
+
+        File target = choosePdfDestination(
+                "Save medical record PDF",
+                String.format("fiche-medicale-%d.pdf", ficheMedicale.getId())
+        );
+        if (target == null) {
+            return;
+        }
+
+        try {
+            exportMedicalRecordPdf(target, ficheMedicale);
+            showInfo("Export PDF", "Medical record PDF saved successfully.");
+        } catch (Exception ex) {
+            showError("Export PDF", "Unable to generate the medical record PDF: " + ex.getMessage());
+        }
+    }
+
+    private void downloadPrescriptionPdf(Prescription prescription, FicheMedicale ficheMedicale) {
+        if (prescription == null) {
+            showError("Export PDF", "No prescription is selected.");
+            return;
+        }
+
+        FicheMedicale resolvedFiche = ficheMedicale != null ? ficheMedicale : findMedicalRecordById(prescription.getFiche_medicale_id());
+        File target = choosePdfDestination(
+                "Save prescription PDF",
+                String.format("prescription-%d.pdf", prescription.getId())
+        );
+        if (target == null) {
+            return;
+        }
+
+        try {
+            exportPrescriptionPdf(target, prescription, resolvedFiche);
+            showInfo("Export PDF", "Prescription PDF saved successfully.");
+        } catch (Exception ex) {
+            showError("Export PDF", "Unable to generate the prescription PDF: " + ex.getMessage());
+        }
+    }
+
+    private File choosePdfDestination(String title, String suggestedFileName) {
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle(title);
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PDF", "*.pdf"));
+        chooser.setInitialFileName(suggestedFileName);
+        Window window = myRecordsTable != null && myRecordsTable.getScene() != null
+                ? myRecordsTable.getScene().getWindow()
+                : null;
+        return chooser.showSaveDialog(window);
+    }
+
+    private void exportMedicalRecordPdf(File target, FicheMedicale ficheMedicale) throws IOException, DocumentException {
+        RendezVous rendezVous = resolveRendezVousForRecord(ficheMedicale);
+        User patient = resolvePatientForRecord(rendezVous);
+        User doctor = resolveDoctorForRecord(rendezVous);
+
+        try (FileOutputStream outputStream = new FileOutputStream(target)) {
+            Document document = new Document(PageSize.A4, 36, 36, 42, 42);
+            PdfWriter.getInstance(document, outputStream);
+            document.open();
+
+            Font titleFont = new Font(Font.FontFamily.HELVETICA, 22, Font.BOLD, BaseColor.WHITE);
+            Font subTitleFont = new Font(Font.FontFamily.HELVETICA, 10, Font.NORMAL, new BaseColor(224, 242, 254));
+            Font sectionTitleFont = new Font(Font.FontFamily.HELVETICA, 12, Font.BOLD, new BaseColor(15, 23, 42));
+            Font labelFont = new Font(Font.FontFamily.HELVETICA, 10, Font.BOLD, new BaseColor(51, 65, 85));
+            Font valueFont = new Font(Font.FontFamily.HELVETICA, 10, Font.NORMAL, BaseColor.BLACK);
+            Font mutedFont = new Font(Font.FontFamily.HELVETICA, 10, Font.NORMAL, new BaseColor(100, 116, 139));
+
+            addPdfHeader(document, "Fiche Medicale", "MedFlow medical record export", titleFont, subTitleFont, new BaseColor(14, 116, 144));
+
+            PdfPTable summary = new PdfPTable(new float[]{1f, 1f});
+            summary.setWidthPercentage(100f);
+            summary.setSpacingAfter(14f);
+            summary.addCell(createInfoCell("Patient", formatUserName(patient), labelFont, valueFont));
+            summary.addCell(createInfoCell("Doctor", formatDoctorName(doctor, rendezVous), labelFont, valueFont));
+            summary.addCell(createInfoCell("Rendez-vous", rendezVous == null ? "-" : "#" + rendezVous.getId(), labelFont, valueFont));
+            summary.addCell(createInfoCell("Date", formatTimestampForPdf(recordTimestampForSort(ficheMedicale)), labelFont, valueFont));
+            summary.addCell(createInfoCell("Mode", rendezVous == null ? "-" : valueOrDash(rendezVous.getMode()), labelFont, valueFont));
+            summary.addCell(createInfoCell("Duration", ficheMedicale.getDuree_minutes() == null ? "-" : ficheMedicale.getDuree_minutes() + " min", labelFont, valueFont));
+            document.add(summary);
+
+            addTextSection(document, "Diagnostic", valueOrDash(ficheMedicale.getDiagnostic()), sectionTitleFont, valueFont);
+            addTextSection(document, "Observations", valueOrDash(ficheMedicale.getObservations()), sectionTitleFont, valueFont);
+            addTextSection(document, "Resultats des examens", valueOrDash(ficheMedicale.getResultats_examens()), sectionTitleFont, valueFont);
+            if (rendezVous != null) {
+                addTextSection(document, "Motif de consultation", valueOrDash(rendezVous.getMotif()), sectionTitleFont, valueFont);
+            }
+
+            addSignatureSection(document, ficheMedicale.getSignature(), sectionTitleFont, valueFont, mutedFont);
+            document.close();
+        }
+    }
+
+    private void exportPrescriptionPdf(File target, Prescription prescription, FicheMedicale ficheMedicale) throws IOException, DocumentException {
+        RendezVous rendezVous = ficheMedicale == null ? null : resolveRendezVousForRecord(ficheMedicale);
+        User patient = resolvePatientForRecord(rendezVous);
+        User doctor = resolveDoctorForRecord(rendezVous);
+
+        try (FileOutputStream outputStream = new FileOutputStream(target)) {
+            Document document = new Document(PageSize.A4, 36, 36, 42, 42);
+            PdfWriter.getInstance(document, outputStream);
+            document.open();
+
+            Font titleFont = new Font(Font.FontFamily.HELVETICA, 22, Font.BOLD, BaseColor.WHITE);
+            Font subTitleFont = new Font(Font.FontFamily.HELVETICA, 10, Font.NORMAL, new BaseColor(237, 247, 237));
+            Font sectionTitleFont = new Font(Font.FontFamily.HELVETICA, 12, Font.BOLD, new BaseColor(15, 23, 42));
+            Font labelFont = new Font(Font.FontFamily.HELVETICA, 10, Font.BOLD, new BaseColor(51, 65, 85));
+            Font valueFont = new Font(Font.FontFamily.HELVETICA, 10, Font.NORMAL, BaseColor.BLACK);
+
+            addPdfHeader(document, "Prescription", "MedFlow prescription export", titleFont, subTitleFont, new BaseColor(22, 101, 52));
+
+            PdfPTable summary = new PdfPTable(new float[]{1f, 1f});
+            summary.setWidthPercentage(100f);
+            summary.setSpacingAfter(14f);
+            summary.addCell(createInfoCell("Patient", formatUserName(patient), labelFont, valueFont));
+            summary.addCell(createInfoCell("Doctor", formatDoctorName(doctor, rendezVous), labelFont, valueFont));
+            summary.addCell(createInfoCell("Prescription ID", "#" + prescription.getId(), labelFont, valueFont));
+            summary.addCell(createInfoCell("Fiche medicale", ficheMedicale == null ? "-" : "#" + ficheMedicale.getId(), labelFont, valueFont));
+            summary.addCell(createInfoCell("Rendez-vous", rendezVous == null ? "-" : "#" + rendezVous.getId(), labelFont, valueFont));
+            summary.addCell(createInfoCell("Date", formatTimestampForPdf(prescription.getCreated_at()), labelFont, valueFont));
+            document.add(summary);
+
+            PdfPTable medicationTable = new PdfPTable(new float[]{1.2f, 1f, 1f, 0.9f});
+            medicationTable.setWidthPercentage(100f);
+            medicationTable.setSpacingAfter(16f);
+            addTableHeader(medicationTable, "Medicament");
+            addTableHeader(medicationTable, "Dose");
+            addTableHeader(medicationTable, "Frequence");
+            addTableHeader(medicationTable, "Duree");
+            addTableValue(medicationTable, valueOrDash(prescription.getNom_medicament()));
+            addTableValue(medicationTable, valueOrDash(prescription.getDose()));
+            addTableValue(medicationTable, valueOrDash(prescription.getFrequence()));
+            addTableValue(medicationTable, prescription.getDuree() <= 0 ? "-" : prescription.getDuree() + " j");
+            document.add(medicationTable);
+
+            addTextSection(document, "Instructions", valueOrDash(prescription.getInstructions()), sectionTitleFont, valueFont);
+            if (ficheMedicale != null) {
+                addTextSection(document, "Diagnostic associe", valueOrDash(ficheMedicale.getDiagnostic()), sectionTitleFont, valueFont);
+            }
+
+            document.close();
+        }
+    }
+
+    private void addPdfHeader(Document document, String title, String subtitle, Font titleFont, Font subtitleFont, BaseColor accentColor) throws DocumentException {
+        PdfPTable header = new PdfPTable(1);
+        header.setWidthPercentage(100f);
+        header.setSpacingAfter(16f);
+
+        PdfPCell cell = new PdfPCell();
+        cell.setBackgroundColor(accentColor);
+        cell.setBorder(Rectangle.NO_BORDER);
+        cell.setPaddingTop(16f);
+        cell.setPaddingRight(18f);
+        cell.setPaddingBottom(16f);
+        cell.setPaddingLeft(18f);
+
+        Paragraph titleParagraph = new Paragraph(title, titleFont);
+        titleParagraph.setSpacingAfter(4f);
+        cell.addElement(titleParagraph);
+        cell.addElement(new Paragraph(subtitle, subtitleFont));
+        header.addCell(cell);
+        document.add(header);
+    }
+
+    private PdfPCell createInfoCell(String label, String value, Font labelFont, Font valueFont) {
+        PdfPCell cell = new PdfPCell();
+        cell.setPadding(12f);
+        cell.setBorderColor(new BaseColor(226, 232, 240));
+        cell.setBackgroundColor(new BaseColor(248, 250, 252));
+        Paragraph paragraph = new Paragraph();
+        paragraph.add(new Chunk(label + "\n", labelFont));
+        paragraph.add(new Chunk(valueOrDash(value), valueFont));
+        cell.addElement(paragraph);
+        return cell;
+    }
+
+    private void addTextSection(Document document, String title, String content, Font sectionTitleFont, Font valueFont) throws DocumentException {
+        PdfPTable section = new PdfPTable(1);
+        section.setWidthPercentage(100f);
+        section.setSpacingAfter(12f);
+
+        PdfPCell cell = new PdfPCell();
+        cell.setPadding(14f);
+        cell.setBorderColor(new BaseColor(226, 232, 240));
+        cell.setBackgroundColor(BaseColor.WHITE);
+
+        Paragraph heading = new Paragraph(title, sectionTitleFont);
+        heading.setSpacingAfter(8f);
+        cell.addElement(heading);
+        cell.addElement(new Paragraph(valueOrDash(content), valueFont));
+        section.addCell(cell);
+        document.add(section);
+    }
+
+    private void addSignatureSection(Document document, String signaturePath, Font sectionTitleFont, Font valueFont, Font mutedFont) throws DocumentException, IOException {
+        PdfPTable section = new PdfPTable(1);
+        section.setWidthPercentage(100f);
+        section.setSpacingAfter(8f);
+
+        PdfPCell cell = new PdfPCell();
+        cell.setPadding(14f);
+        cell.setBorderColor(new BaseColor(226, 232, 240));
+        cell.setBackgroundColor(BaseColor.WHITE);
+
+        Paragraph heading = new Paragraph("Signature du docteur", sectionTitleFont);
+        heading.setSpacingAfter(10f);
+        cell.addElement(heading);
+
+        if (signaturePath != null && !signaturePath.isBlank() && Files.exists(Path.of(signaturePath))) {
+            com.itextpdf.text.Image signatureImage = com.itextpdf.text.Image.getInstance(signaturePath);
+            signatureImage.scaleToFit(180f, 90f);
+            signatureImage.setAlignment(Element.ALIGN_LEFT);
+            cell.addElement(signatureImage);
+        } else {
+            cell.addElement(new Paragraph("Aucune signature jointe a cette fiche medicale.", mutedFont));
+        }
+
+        section.addCell(cell);
+        document.add(section);
+    }
+
+    private void addTableHeader(PdfPTable table, String text) {
+        Font font = new Font(Font.FontFamily.HELVETICA, 10, Font.BOLD, BaseColor.WHITE);
+        PdfPCell cell = new PdfPCell(new Phrase(text, font));
+        cell.setBackgroundColor(new BaseColor(30, 41, 59));
+        cell.setPadding(10f);
+        cell.setBorderColor(new BaseColor(30, 41, 59));
+        table.addCell(cell);
+    }
+
+    private void addTableValue(PdfPTable table, String text) {
+        Font font = new Font(Font.FontFamily.HELVETICA, 10, Font.NORMAL, BaseColor.BLACK);
+        PdfPCell cell = new PdfPCell(new Phrase(valueOrDash(text), font));
+        cell.setPadding(10f);
+        cell.setBorderColor(new BaseColor(226, 232, 240));
+        cell.setBackgroundColor(new BaseColor(248, 250, 252));
+        table.addCell(cell);
+    }
+
+    private FicheMedicale findMedicalRecordById(int ficheMedicaleId) {
+        for (FicheMedicale ficheMedicale : myRecordsData) {
+            if (ficheMedicale != null && ficheMedicale.getId() == ficheMedicaleId) {
+                return ficheMedicale;
+            }
+        }
+        return null;
+    }
+
+    private RendezVous resolveRendezVousForRecord(FicheMedicale ficheMedicale) {
+        Integer rendezVousId = ficheMedicale == null ? null : ficheMedicale.getRendez_vous_id();
+        if (rendezVousId == null) {
+            return null;
+        }
+
+        for (RendezVous rendezVous : allMyBookingsData) {
+            if (rendezVous != null && rendezVous.getId() == rendezVousId) {
+                return rendezVous;
+            }
+        }
+        return null;
+    }
+
+    private User resolvePatientForRecord(RendezVous rendezVous) {
+        User currentUser = SessionManager.getCurrentUser();
+        if (rendezVous == null) {
+            return currentUser;
+        }
+        if (currentUser != null && currentUser.getId() == rendezVous.getIdPatient()) {
+            return currentUser;
+        }
+        return userService.findById(rendezVous.getIdPatient());
+    }
+
+    private User resolveDoctorForRecord(RendezVous rendezVous) {
+        if (rendezVous == null || rendezVous.getIdStaff() <= 0) {
+            return null;
+        }
+        return userService.findById(rendezVous.getIdStaff());
+    }
+
+    private String formatUserName(User user) {
+        if (user == null) {
+            return "-";
+        }
+        String firstName = user.getPrenom() == null ? "" : user.getPrenom().trim();
+        String lastName = user.getNom() == null ? "" : user.getNom().trim();
+        String fullName = (firstName + " " + lastName).trim();
+        if (!fullName.isBlank()) {
+            return fullName;
+        }
+        return user.getId() > 0 ? "User #" + user.getId() : "-";
+    }
+
+    private String formatDoctorName(User doctor, RendezVous rendezVous) {
+        if (doctor != null) {
+            String name = formatUserName(doctor);
+            return name.equals("-") ? name : "Dr. " + name;
+        }
+        if (rendezVous != null && rendezVous.getIdStaff() > 0) {
+            return "Dr. #" + rendezVous.getIdStaff();
+        }
+        return "-";
+    }
+
+    private String formatTimestampForPdf(Timestamp timestamp) {
+        if (timestamp == null) {
+            return "-";
+        }
+        return dateTimeFormatter.format(timestamp.toLocalDateTime());
+    }
+
     private String valueOrDash(String value) {
         return value == null || value.isBlank() ? "-" : value;
+    }
+
+    private String determineUrgencyLevel(String motif) {
+        String urgencyLevel = urgencyService.classifyUrgencyLevel(motif);
+        if (urgencyLevel == null || urgencyLevel.isBlank()) {
+            return "mid";
+        }
+        return urgencyLevel;
     }
 
     private void showInfo(String title, String message) {

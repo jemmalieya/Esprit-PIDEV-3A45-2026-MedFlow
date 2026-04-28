@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Priority?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="tn.esprit.controllers.CommandeController"
+            stylesheets="@../CSS/checkout.css,@../CSS/booking.css"
+            prefWidth="1400.0" prefHeight="820.0">
+
+    <left>
+        <fx:include source="Sidebar.fxml"/>
+    </left>
+
+    <center>
+        <ScrollPane fitToWidth="true"
+                    hbarPolicy="NEVER"
+                    vbarPolicy="AS_NEEDED">
+            <content>
+                <VBox spacing="22" styleClass="panier-main">
+                    <padding>
+                        <Insets top="24" right="28" bottom="24" left="28"/>
+                    </padding>
+
+                    <!-- HEADER -->
+                    <VBox spacing="8">
+                        <Label text="💳 Paiement de la commande"
+                               styleClass="panier-title"/>
+                        <Label text="Vérifiez votre panier avant de procéder au paiement sécurisé."
+                               styleClass="panier-subtitle"/>
+                    </VBox>
+
+                    <!-- LISTE PRODUITS -->
+                    <VBox styleClass="checkout-card" spacing="16">
+                        <Label text="🛍 Détails de la commande"
+                               styleClass="checkout-summary-title"/>
+
+                        <VBox fx:id="checkoutProduitsContainer"
+                              spacing="12"
+                              styleClass="checkout-items-box"/>
+                    </VBox>
+
+                    <!-- RESUME + CONDITIONS -->
+                    <VBox styleClass="checkout-summary-box">
+
+                        <Label text="🧾 Résumé paiement"
+                               styleClass="checkout-summary-title"/>
+
+                        <HBox alignment="CENTER_LEFT">
+                            <children>
+                                <Label text="Sous-total"
+                                       styleClass="resume-label"/>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Label fx:id="checkoutTotalLabel"
+                                       text="0.00 Dt"
+                                       styleClass="resume-total-price"/>
+                            </children>
+                        </HBox>
+
+                        <Label text="🔒 Paiement sécurisé avec Stripe"
+                               styleClass="security-chip"/>
+
+                        <VBox spacing="10" styleClass="terms-box">
+                            <HBox spacing="12" alignment="CENTER_LEFT">
+                                <children>
+                                    <CheckBox fx:id="termsCheckBox"
+                                              text="J’accepte les termes et conditions"/>
+
+                                    <Button text="📄 Voir les conditions"
+                                            onAction="#afficherConditionsStripe"
+                                            styleClass="conditions-btn"/>
+                                </children>
+                            </HBox>
+                        </VBox>
+
+                        <HBox spacing="12">
+                            <children>
+                                <Button text="← Retour panier"
+                                        onAction="#retourPanierDepuisCheckout"
+                                        styleClass="back-btn"/>
+
+                                <Button fx:id="btnPayerStripe"
+                                        text="💳 Payer maintenant"
+                                        onAction="#payerAvecStripe"
+                                        disable="true"
+                                        styleClass="pay-btn"/>
+                            </children>
+                        </HBox>
+
+                        <VBox fx:id="stripePaymentBox"
+                              spacing="10"
+                              visible="false"
+                              managed="false"
+                              styleClass="stripe-payment-box">
+                            <children>
+                                <Label text="🌐 Paiement Stripe dans l'application"
+                                       styleClass="checkout-summary-title"/>
+                                <Label fx:id="stripeWebHintLabel"
+                                       text="Le formulaire Stripe s'ouvrira ici après le clic sur payer."
+                                       wrapText="true"
+                                       styleClass="panier-subtitle"/>
+                                <StackPane fx:id="stripeWebContainer"
+                                           prefHeight="620.0"
+                                           styleClass="stripe-webview"/>
+                            </children>
+                        </VBox>
+
+                    </VBox>
+
+                </VBox>
+            </content>
+        </ScrollPane>
+    </center>
+</BorderPane>

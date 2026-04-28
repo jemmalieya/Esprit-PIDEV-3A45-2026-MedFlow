@@ -42,6 +42,7 @@ import tn.esprit.services.HuggingFaceCareAiClient;
 import tn.esprit.services.TwilioSmsServiceEvent;
 import tn.esprit.services.DashboardBIServiceEvenement;
 import tn.esprit.services.EvenementService;
+import tn.esprit.services.EventNotificationService;
 import tn.esprit.services.EventLocationService;
 import tn.esprit.services.GroqEventAiClient;
 import tn.esprit.services.ParticipationDemandeService;
@@ -57,8 +58,10 @@ import java.net.URL;
 import java.sql.Date;
 import java.sql.SQLException;
 import java.time.DayOfWeek;
-import java.time.format.TextStyle;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.TextStyle;
 import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -202,6 +205,8 @@ public class EvenementController {
     private final EvenementPDFService pdfService = new EvenementPDFService();
     private final EventLocationService eventLocationService = new EventLocationService();
     private final AccessibilityRoomService accessibilityRoomService = new AccessibilityRoomService();
+    private final EventNotificationService eventNotificationService = new EventNotificationService();
+    private static final DateTimeFormatter NOTIFICATION_TS = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     private static Evenement evenementAModifier;
     private static Evenement evenementSelectionneAiBack;
@@ -274,6 +279,9 @@ public class EvenementController {
     @FXML private Label aiFrontStatusLabel;
     @FXML private FlowPane participationsContainer;
     @FXML private Label participationSummaryLabel;
+    @FXML private VBox notificationsContainer;
+    @FXML private Label notificationSummaryLabel;
+    @FXML private Label notificationBadgeLabel;
     @FXML private VBox eventUpdateToast;
     private EventLocationService.EventLocation currentEventLocation;
     private int currentMapZoom = 16;
@@ -297,8 +305,11 @@ public class EvenementController {
         initFiltres();
         chargerDetailFrontIfExists();
         initMesParticipationsIfExists();
+        initNotificationsIfExists();
+        updateNotificationBadge();
         initDashboardBIIfExists();
         initAiBackPageIfExists();
+        ensureOnlineStatusOptions();
 
         try {
             DashboardBIServiceEvenement.DashboardData data =
@@ -318,6 +329,15 @@ public class EvenementController {
 
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    private void ensureOnlineStatusOptions() {
+        if (getStatutCombo() != null && !getStatutCombo().getItems().contains("En ligne")) {
+            getStatutCombo().getItems().add("En ligne");
+        }
+        if (filterStatutCombo != null && !filterStatutCombo.getItems().contains("En ligne")) {
+            filterStatutCombo.getItems().add("En ligne");
         }
     }
 
@@ -1175,6 +1195,7 @@ public class EvenementController {
         }
 
         try {
+            String previousStatus = safeValue(evenementAModifier.getStatut_event());
             Date dateDebut = Date.valueOf(getDateDebutPicker().getValue());
 
             boolean existe = evenementService.evenementExisteDejaPourModification(
@@ -1205,6 +1226,13 @@ public class EvenementController {
             }
 
             showAlert(Alert.AlertType.INFORMATION, "Succès", "Événement modifié avec succès.");
+            if (eventNotificationService.shouldNotifyOnline(previousStatus, evenementAModifier.getStatut_event())) {
+                eventNotificationService.createOnlineNotifications(
+                        evenementAModifier,
+                        participationService.getDemandes(evenementAModifier)
+                );
+            }
+
             evenementAModifier = null;
             retourListeEvenements(event);
 
@@ -1693,7 +1721,7 @@ public class EvenementController {
 
         for (Evenement e : masterList) {
             String statut = safeValue(e.getStatut_event()).toLowerCase(Locale.ROOT);
-            if (statut.contains("publi")) publies++;
+            if (statut.contains("publi") || statut.contains("ligne")) publies++;
             else if (statut.contains("brouillon")) brouillons++;
             else archives++;
         }
@@ -3331,6 +3359,80 @@ public class EvenementController {
         }
     }
 
+    @FXML
+    private void ouvrirNotificationsEvenement() {
+        User user = SessionManager.getCurrentUser();
+        if (user == null) {
+            showAlert(Alert.AlertType.WARNING, "Connexion requise", "Connectez-vous pour voir vos notifications.");
+            return;
+        }
+
+        try {
+            Parent root = FXMLLoader.load(getClass().getResource("/FrontFXML/EventNotifications.fxml"));
+            Stage stage = resolveCurrentStage();
+            if (stage != null) {
+                stage.setScene(new Scene(root, 1400, 820));
+                stage.setTitle("Notifications evenement");
+                stage.show();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Erreur", "Impossible d'ouvrir vos notifications : " + e.getMessage());
+        }
+    }
+
+    private void initNotificationsIfExists() {
+        if (notificationsContainer == null) return;
+
+        User user = SessionManager.getCurrentUser();
+        notificationsContainer.getChildren().clear();
+        if (user == null) {
+            if (notificationSummaryLabel != null) {
+                notificationSummaryLabel.setText("Connectez-vous pour consulter vos notifications.");
+            }
+            notificationsContainer.getChildren().add(createEmptyNotificationCard("Connexion requise"));
+            return;
+        }
+
+        List<EventNotificationService.NotificationItem> notifications = eventNotificationService.getNotificationsForUser(user.getId());
+        int unread = eventNotificationService.countUnreadForUser(user.getId());
+
+        if (notificationSummaryLabel != null) {
+            notificationSummaryLabel.setText(notifications.size() + " notification(s) | " + unread + " non lue(s)");
+        }
+
+        if (notifications.isEmpty()) {
+            notificationsContainer.getChildren().add(createEmptyNotificationCard("Aucune notification pour le moment."));
+            return;
+        }
+
+        for (EventNotificationService.NotificationItem notification : notifications) {
+            notificationsContainer.getChildren().add(createNotificationCard(notification));
+        }
+    }
+
+    private void updateNotificationBadge() {
+        if (notificationBadgeLabel == null) return;
+
+        User user = SessionManager.getCurrentUser();
+        if (user == null) {
+            notificationBadgeLabel.setVisible(false);
+            notificationBadgeLabel.setManaged(false);
+            return;
+        }
+
+        int unread = eventNotificationService.countUnreadForUser(user.getId());
+        if (unread <= 0) {
+            notificationBadgeLabel.setVisible(false);
+            notificationBadgeLabel.setManaged(false);
+            return;
+        }
+
+        notificationBadgeLabel.setText(unread > 99 ? "99+" : String.valueOf(unread));
+        notificationBadgeLabel.setVisible(true);
+        notificationBadgeLabel.setManaged(true);
+    }
+
     private void updateFrontCancellationToast() {
         if (eventUpdateToast == null) return;
 
@@ -3475,6 +3577,58 @@ public class EvenementController {
         title.getStyleClass().add("participation-front-title");
         card.getChildren().add(title);
         return card;
+    }
+
+    private VBox createEmptyNotificationCard(String message) {
+        VBox card = new VBox(10);
+        card.setPrefWidth(760);
+        card.getStyleClass().add("notification-history-card");
+        Label title = new Label(message);
+        title.setWrapText(true);
+        title.getStyleClass().add("notification-history-title");
+        card.getChildren().add(title);
+        return card;
+    }
+
+    private VBox createNotificationCard(EventNotificationService.NotificationItem notification) {
+        VBox card = new VBox(10);
+        card.getStyleClass().add(notification.read() ? "notification-history-card" : "notification-history-card-unread");
+
+        HBox header = new HBox(10);
+        header.setAlignment(Pos.CENTER_LEFT);
+
+        Label title = new Label(valueOrDash(notification.title()));
+        title.getStyleClass().add("notification-history-title");
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Label badge = new Label(notification.read() ? "Lu" : "Nouveau");
+        badge.getStyleClass().add(notification.read() ? "notification-read-badge" : "notification-unread-badge");
+
+        header.getChildren().addAll(title, spacer, badge);
+
+        Label message = new Label(valueOrDash(notification.message()));
+        message.setWrapText(true);
+        message.getStyleClass().add("notification-history-message");
+
+        Label timestamp = new Label(formatNotificationTimestamp(notification.createdAt()));
+        timestamp.getStyleClass().add("notification-history-time");
+
+        card.getChildren().addAll(header, message, timestamp);
+        return card;
+    }
+
+    @FXML
+    private void marquerNotificationsLues() {
+        User user = SessionManager.getCurrentUser();
+        if (user == null) {
+            showAlert(Alert.AlertType.WARNING, "Connexion requise", "Connectez-vous pour gerer vos notifications.");
+            return;
+        }
+        eventNotificationService.markAllAsRead(user.getId());
+        initNotificationsIfExists();
+        updateNotificationBadge();
     }
 
     private VBox createParticipationCard(Evenement ev, ParticipationDemande demande, User user, List<Evenement> allEvents) {
@@ -4381,7 +4535,11 @@ public class EvenementController {
     private boolean isVisibleOnFront(Evenement evenement) {
         String statut = safeValue(evenement.getStatut_event()).toLowerCase(Locale.ROOT);
         String visibilite = safeValue(evenement.getVisibilite_event()).toLowerCase(Locale.ROOT);
-        return statut.contains("publi") && visibilite.contains("public");
+        return (statut.contains("publi") || statut.contains("ligne")) && visibilite.contains("public");
+    }
+
+    private String formatNotificationTimestamp(LocalDateTime createdAt) {
+        return createdAt == null ? "Date inconnue" : createdAt.format(NOTIFICATION_TS);
     }
 
     private String safeValue(String value) {

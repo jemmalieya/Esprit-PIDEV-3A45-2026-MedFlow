@@ -7,6 +7,7 @@
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 <?import java.net.URL?>
 
@@ -58,9 +59,26 @@
                                    wrapText="true"
                                    styleClass="event-update-toast-message"/>
                         </VBox>
-                        <Button text="Mes participations"
-                                onAction="#ouvrirMesParticipations"
-                                styleClass="event-my-participations-button"/>
+                        <VBox spacing="10" alignment="CENTER_RIGHT" styleClass="event-front-actions">
+                            <StackPane alignment="TOP_RIGHT" styleClass="event-front-button-shell">
+                                <Button text="Notifications"
+                                        onAction="#ouvrirNotificationsEvenement"
+                                        wrapText="true"
+                                        minWidth="190.0"
+                                        styleClass="event-front-secondary-button"/>
+                                <Label fx:id="notificationBadgeLabel"
+                                       text="0"
+                                       visible="false"
+                                       managed="false"
+                                       styleClass="event-front-notification-badge"
+                                       StackPane.alignment="TOP_RIGHT"/>
+                            </StackPane>
+                            <Button text="Mes participations"
+                                    onAction="#ouvrirMesParticipations"
+                                    wrapText="true"
+                                    minWidth="190.0"
+                                    styleClass="event-front-primary-button"/>
+                        </VBox>
                     </HBox>
 
                     <!-- TITLE -->

@@ -27,6 +27,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
+
 import javafx.stage.Stage;
 import tn.esprit.entities.Post;
 import tn.esprit.services.PostService;
@@ -59,13 +60,25 @@ import tn.esprit.entities.User;
 import tn.esprit.services.CommentaireService;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.ButtonBar;
+import javafx.scene.control.Separator;
+import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.TextArea;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 
+import javafx.scene.control.ContentDisplay;
+import javafx.geometry.Bounds;
+import javafx.scene.control.Tooltip;
+import javafx.stage.Popup;
 
 import tn.esprit.tools.SessionManager;
+import javafx.scene.control.ScrollPane;
+
+import javafx.scene.layout.StackPane;
+
+import tn.esprit.services.ReactionService;
+
 public class BlogController {
 
     @FXML
@@ -85,11 +98,20 @@ public class BlogController {
     @FXML private ComboBox<String> sortBox;
     @FXML private TextField searchField;
 
+    @FXML
+    private Label notificationBadgeLabel;
+
+    @FXML
+    private Button notificationButton;
+
     private List<Post> allPosts = null;
 
     private final PostService postService = new PostService();
 
     private final CommentaireService commentaireService = new CommentaireService();
+
+    private final ReactionService reactionService = new ReactionService();
+    private Popup reactionPopup;
 
 
     @FXML
@@ -107,6 +129,8 @@ public class BlogController {
             }
 
             loadPosts();
+            updateNotificationBadge();
+            javafx.application.Platform.runLater(this::showAutoModerationNotificationIfNeeded);
         }
 
         // Page BlogStats.fxml
@@ -116,7 +140,7 @@ public class BlogController {
     }
 
     private void loadPosts() {
-        allPosts = new PostService().getAllPosts();
+        allPosts = new PostService().getApprovedPosts();
         List<Post> posts = new java.util.ArrayList<>(allPosts);
 
         // Filtrage par recherche en temps réel
@@ -251,6 +275,14 @@ public class BlogController {
         Button deleteBtn = new Button("Delete");
         deleteBtn.getStyleClass().add("small-delete-btn");
 
+        boolean isOwner = isPostOwner(post);
+
+        editBtn.setVisible(isOwner);
+        editBtn.setManaged(isOwner);
+
+        deleteBtn.setVisible(isOwner);
+        deleteBtn.setManaged(isOwner);
+
         actions.getChildren().addAll(editBtn, deleteBtn);
         contentBox.getChildren().addAll(category, title, summary, meta, actions);
         topSection.getChildren().addAll(imageView, contentBox);
@@ -264,8 +296,14 @@ public class BlogController {
         footer.setAlignment(Pos.CENTER_LEFT);
         footer.getStyleClass().add("post-row-footer");
 
-        Label reactionLabel = new Label("👍 " + post.getNbr_reactions() + " reaction(s)");
+        Label reactionLabel = new Label(buildReactionLabel(post.getId()));
         reactionLabel.getStyleClass().add("footer-meta");
+        reactionLabel.setStyle("-fx-cursor: hand;");
+
+        reactionLabel.setOnMouseClicked(e -> {
+            e.consume();
+            showReactionPopup(post, reactionLabel);
+        });
 
         Label commentLabel = new Label("💬 " + post.getNbr_commentaires() + " commentaire(s)");
         commentLabel.getStyleClass().add("footer-meta");
@@ -281,11 +319,31 @@ public class BlogController {
 
         editBtn.setOnAction(e -> {
             e.consume();
+
+            if (!isPostOwner(post)) {
+                Alert alert = new Alert(Alert.AlertType.WARNING);
+                alert.setTitle("Accès refusé");
+                alert.setHeaderText(null);
+                alert.setContentText("Vous ne pouvez modifier que vos propres posts.");
+                alert.showAndWait();
+                return;
+            }
+
             openEditPost(post);
         });
 
         deleteBtn.setOnAction(e -> {
             e.consume();
+
+            if (!isPostOwner(post)) {
+                Alert alert = new Alert(Alert.AlertType.WARNING);
+                alert.setTitle("Accès refusé");
+                alert.setHeaderText(null);
+                alert.setContentText("Vous ne pouvez supprimer que vos propres posts.");
+                alert.showAndWait();
+                return;
+            }
+
             deletePost(post);
         });
 
@@ -326,11 +384,7 @@ public class BlogController {
 
             String contenu = commentInput.getText() == null ? "" : commentInput.getText().trim();
             if (contenu.isEmpty()) {
-                Alert alert = new Alert(Alert.AlertType.WARNING);
-                alert.setTitle("Commentaire");
-                alert.setHeaderText(null);
-                alert.setContentText("Le commentaire ne peut pas être vide.");
-                alert.showAndWait();
+                showShortCommentBlockedPopup("Veuillez écrire un commentaire avant d’envoyer.");
                 return;
             }
 
@@ -362,10 +416,18 @@ public class BlogController {
                 commentaire.setModeration_label(null);
                 commentaire.setModerated_at(null);
 
-                commentaireService.ajouter(commentaire);
+                boolean success = commentaireService.ajouter(commentaire);
+
+                if (!success) {
+                    showShortCommentBlockedPopup("Votre commentaire ne respecte pas les règles de la communauté.");
+                    return;
+                }
                 commentInput.clear();
 
                 refreshCommentsList(post, commentsListBox, commentLabel);
+
+            } catch (IllegalArgumentException ex) {
+                showShortCommentBlockedPopup(ex.getMessage());
 
             } catch (Exception ex) {
                 ex.printStackTrace();
@@ -512,9 +574,43 @@ public class BlogController {
         result.ifPresent(newText -> {
             String value = newText == null ? "" : newText.trim();
             if (!value.isEmpty()) {
+
+                Commentaire testCommentaire = new Commentaire();
+
+                Post p = new Post();
+                p.setId(post.getId());
+                testCommentaire.setPost(p);
+
+                testCommentaire.setUser(commentaire.getUser());
+                testCommentaire.setContenu(value);
+                testCommentaire.setDate_creation(commentaire.getDate_creation());
+                testCommentaire.setEst_anonyme(commentaire.isEst_anonyme());
+                testCommentaire.setParametres_confidentialite(commentaire.getParametres_confidentialite());
+                testCommentaire.setStatus("visible");
+                testCommentaire.setModeration_score(null);
+                testCommentaire.setModeration_label(null);
+                testCommentaire.setModerated_at(null);
+
+                boolean accepted = commentaireService.commentaireAccepteParModeration(testCommentaire);
+
+                if (!accepted) {
+                    showShortCommentBlockedPopup("Votre commentaire ne respecte pas les règles de la communauté.");
+                    return;
+                }
+
                 commentaire.setContenu(value);
-                commentaireService.modifier(commentaire);
-                refreshCommentsList(post, commentsListBox, commentLabel);
+                commentaire.setStatus(testCommentaire.getStatus());
+                commentaire.setModeration_score(testCommentaire.getModeration_score());
+                commentaire.setModeration_label(testCommentaire.getModeration_label());
+                commentaire.setModerated_at(testCommentaire.getModerated_at());
+
+                try {
+                    commentaireService.modifier(commentaire);
+                    refreshCommentsList(post, commentsListBox, commentLabel);
+
+                } catch (IllegalArgumentException ex) {
+                    showShortCommentBlockedPopup(ex.getMessage());
+                }
             }
         });
     }
@@ -647,15 +743,7 @@ public class BlogController {
         String date = formatDate(post);
         String localisation = safeText(post.getLocalisation()).isBlank() ? "Tunis" : post.getLocalisation();
 
-        String auteur = "MedFlow Admin";
-        try {
-            if (post.getUser() != null
-                    && post.getUser().getNom() != null
-                    && !post.getUser().getNom().trim().isEmpty()) {
-                auteur = post.getUser().getNom().trim();
-            }
-        } catch (Exception ignored) {
-        }
+        String auteur = getPostAuthorName(post);
 
         return date + " · " + localisation + " · " + auteur;
     }
@@ -1075,7 +1163,1050 @@ public class BlogController {
     }
 
     @FXML
+    private void showMyPendingPostsPopup() {
+        try {
+            User currentUser = SessionManager.getCurrentUser();
+
+            if (currentUser == null) {
+                Alert alert = new Alert(Alert.AlertType.WARNING);
+                alert.setTitle("Session expirée");
+                alert.setHeaderText(null);
+                alert.setContentText("Veuillez vous reconnecter pour voir vos posts en attente.");
+                alert.showAndWait();
+                return;
+            }
+
+            List<Post> pendingPosts = postService.getPendingPostsByUser(currentUser.getId());
+
+            Dialog<Void> dialog = new Dialog<>();
+            dialog.setTitle("Mes posts en attente");
+            dialog.setHeaderText(null);
+
+            ButtonType closeButton = new ButtonType("Fermer", ButtonBar.ButtonData.CANCEL_CLOSE);
+            dialog.getDialogPane().getButtonTypes().add(closeButton);
+
+            VBox root = new VBox(18);
+            root.setPrefWidth(760);
+            root.setPrefHeight(560);
+            root.setStyle("-fx-background-color: #f5f8fc; -fx-padding: 0;");
+
+            HBox header = new HBox(16);
+            header.setAlignment(Pos.CENTER_LEFT);
+            header.setStyle(
+                    "-fx-background-color: linear-gradient(to right, #0891b2, #3b82f6);" +
+                            "-fx-padding: 24;" +
+                            "-fx-background-radius: 14 14 0 0;"
+            );
+
+            StackPane iconBox = new StackPane();
+            iconBox.setPrefSize(64, 64);
+            iconBox.setStyle(
+                    "-fx-background-color: rgba(255,255,255,0.20);" +
+                            "-fx-background-radius: 18;" +
+                            "-fx-border-color: rgba(255,255,255,0.30);" +
+                            "-fx-border-radius: 18;"
+            );
+
+            Label icon = new Label("⏳");
+            icon.setStyle("-fx-font-size: 30px;");
+            iconBox.getChildren().add(icon);
+
+            VBox titleBox = new VBox(6);
+
+            Label title = new Label("Mes posts en attente");
+            title.setStyle("-fx-text-fill: white; -fx-font-size: 28px; -fx-font-weight: bold;");
+
+            Label subtitle = new Label(pendingPosts.size() + " post(s) non encore validé(s)");
+            subtitle.setStyle("-fx-text-fill: rgba(255,255,255,0.90); -fx-font-size: 15px;");
+
+            titleBox.getChildren().addAll(title, subtitle);
+            header.getChildren().addAll(iconBox, titleBox);
+
+            VBox listBox = new VBox(14);
+            listBox.setPadding(new Insets(20));
+
+            if (pendingPosts.isEmpty()) {
+                VBox emptyBox = new VBox(10);
+                emptyBox.setAlignment(Pos.CENTER);
+                emptyBox.setPrefHeight(320);
+                emptyBox.setStyle(
+                        "-fx-background-color: white;" +
+                                "-fx-background-radius: 16;" +
+                                "-fx-border-color: #e5e7eb;" +
+                                "-fx-border-radius: 16;" +
+                                "-fx-padding: 30;"
+                );
+
+                Label emptyIcon = new Label("✅");
+                emptyIcon.setStyle("-fx-font-size: 42px;");
+
+                Label emptyTitle = new Label("Aucun post en attente");
+                emptyTitle.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #111827;");
+
+                Label emptyText = new Label("Tous vos posts ont déjà été traités par l’administrateur.");
+                emptyText.setStyle("-fx-font-size: 14px; -fx-text-fill: #6b7280;");
+
+                emptyBox.getChildren().addAll(emptyIcon, emptyTitle, emptyText);
+                listBox.getChildren().add(emptyBox);
+
+            } else {
+                for (Post post : pendingPosts) {
+                    VBox card = new VBox(10);
+                    card.setStyle(
+                            "-fx-background-color: white;" +
+                                    "-fx-padding: 18;" +
+                                    "-fx-background-radius: 16;" +
+                                    "-fx-border-color: #dbeafe;" +
+                                    "-fx-border-radius: 16;" +
+                                    "-fx-effect: dropshadow(gaussian, rgba(15,23,42,0.08), 12, 0, 0, 4);"
+                    );
+
+                    HBox top = new HBox(10);
+                    top.setAlignment(Pos.CENTER_LEFT);
+
+                    Label postTitle = new Label(safeText(post.getTitre()));
+                    postTitle.setStyle("-fx-font-size: 19px; -fx-font-weight: bold; -fx-text-fill: #111827;");
+                    postTitle.setWrapText(true);
+
+                    Region spacer = new Region();
+                    HBox.setHgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
+
+                    Label badge = new Label("En attente");
+                    badge.setStyle(
+                            "-fx-background-color: #fef3c7;" +
+                                    "-fx-text-fill: #d97706;" +
+                                    "-fx-font-weight: bold;" +
+                                    "-fx-padding: 6 12;" +
+                                    "-fx-background-radius: 999;"
+                    );
+
+                    top.getChildren().addAll(postTitle, spacer, badge);
+
+                    Label category = new Label("Catégorie : " + safeText(post.getCategorie()));
+                    category.setStyle("-fx-text-fill: #2563eb; -fx-font-weight: bold;");
+
+                    Label content = new Label(getShortContent(post.getContenu(), 220));
+                    content.setWrapText(true);
+                    content.setStyle("-fx-text-fill: #374151; -fx-font-size: 14px;");
+
+                    Label date = new Label(post.getDate_creation() != null ? "Créé le : " + post.getDate_creation() : "");
+                    date.setStyle("-fx-text-fill: #6b7280; -fx-font-size: 12px;");
+
+                    card.getChildren().addAll(top, category, content, date);
+                    listBox.getChildren().add(card);
+                }
+            }
+
+            ScrollPane scrollPane = new ScrollPane(listBox);
+            scrollPane.setFitToWidth(true);
+            scrollPane.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
+            scrollPane.setPrefHeight(450);
+
+            root.getChildren().addAll(header, scrollPane);
+
+            dialog.getDialogPane().setContent(root);
+            dialog.getDialogPane().setStyle("-fx-background-color: #f5f8fc; -fx-padding: 0;");
+            dialog.getDialogPane().getScene().getWindow().setOnCloseRequest(e -> dialog.close());
+
+            Button close = (Button) dialog.getDialogPane().lookupButton(closeButton);
+            close.setStyle(
+                    "-fx-background-color: #0891b2;" +
+                            "-fx-text-fill: white;" +
+                            "-fx-font-weight: bold;" +
+                            "-fx-background-radius: 10;" +
+                            "-fx-padding: 8 18;"
+            );
+
+            dialog.showAndWait();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Erreur");
+            alert.setHeaderText(null);
+            alert.setContentText("Impossible de charger vos posts en attente.");
+            alert.showAndWait();
+        }
+    }
+    @FXML
+    private void openPendingPostsAdminPage() {
+        navigateTo("/PendingPostsAdmin.fxml", "MedFlow - Validation des posts");
+    }
+    @FXML
     private void backToReponses() {
         navigateTo("/reponse.fxml", "MedFlow - Gestion des réclamations");
     }
+
+    private String getPostAuthorName(Post post) {
+        if (post == null || post.isEst_anonyme()) {
+            return "Anonyme";
+        }
+
+        try {
+            if (post.getUser() != null) {
+                String prenom = post.getUser().getPrenom() != null ? post.getUser().getPrenom().trim() : "";
+                String nom = post.getUser().getNom() != null ? post.getUser().getNom().trim() : "";
+
+                String fullName = (prenom + " " + nom).trim();
+
+                if (!fullName.isEmpty()) {
+                    return fullName;
+                }
+            }
+        } catch (Exception ignored) {
+        }
+
+        return "Utilisateur";
+    }
+
+    private boolean isPostOwner(Post post) {
+        try {
+            User currentUser = SessionManager.getCurrentUser();
+
+            return currentUser != null
+                    && post != null
+                    && post.getUser() != null
+                    && post.getUser().getId() == currentUser.getId();
+
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private void updateNotificationBadge() {
+        try {
+            User currentUser = SessionManager.getCurrentUser();
+
+            if (currentUser == null || notificationBadgeLabel == null) {
+                return;
+            }
+
+            int count = postService.countUnseenModerationNotificationsByUser(currentUser.getId());
+
+            notificationBadgeLabel.setText(String.valueOf(count));
+
+            boolean hasNotifications = count > 0;
+            notificationBadgeLabel.setVisible(hasNotifications);
+            notificationBadgeLabel.setManaged(hasNotifications);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @FXML
+    private void showModerationNotificationsPopup() {
+        showModerationNotificationsPopup(false);
+    }
+
+    private void showModerationNotificationsPopup(boolean autoOpen) {
+        try {
+            User currentUser = SessionManager.getCurrentUser();
+
+            if (currentUser == null) {
+                Alert alert = new Alert(Alert.AlertType.WARNING);
+                alert.setTitle("Session expirée");
+                alert.setHeaderText(null);
+                alert.setContentText("Veuillez vous reconnecter pour voir vos notifications.");
+                alert.showAndWait();
+                return;
+            }
+
+            List<Post> notifications = postService.getUnseenModerationNotificationsByUser(currentUser.getId());
+
+            if (notifications.isEmpty()) {
+                if (!autoOpen) {
+                    Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                    alert.setTitle("Notifications");
+                    alert.setHeaderText(null);
+                    alert.setContentText("Vous n’avez aucune nouvelle notification.");
+                    alert.showAndWait();
+                }
+                updateNotificationBadge();
+                return;
+            }
+
+            Dialog<Void> dialog = new Dialog<>();
+            dialog.setTitle("Notifications MedFlow");
+            dialog.setHeaderText(null);
+
+            ButtonType closeButton = new ButtonType("Fermer", ButtonBar.ButtonData.CANCEL_CLOSE);
+            ButtonType markAsReadButton = new ButtonType("Marquer comme lu", ButtonBar.ButtonData.OK_DONE);
+
+            dialog.getDialogPane().getButtonTypes().addAll(markAsReadButton, closeButton);
+
+            VBox root = new VBox(18);
+            root.setPrefWidth(780);
+            root.setPrefHeight(560);
+            root.setStyle("-fx-background-color: #f5f8fc; -fx-padding: 0;");
+
+            HBox header = new HBox(16);
+            header.setAlignment(Pos.CENTER_LEFT);
+            header.setStyle(
+                    "-fx-background-color: linear-gradient(to right, #0891b2, #2563eb);" +
+                            "-fx-padding: 24;" +
+                            "-fx-background-radius: 14 14 0 0;"
+            );
+
+            StackPane iconBox = new StackPane();
+            iconBox.setPrefSize(64, 64);
+            iconBox.setStyle(
+                    "-fx-background-color: rgba(255,255,255,0.22);" +
+                            "-fx-background-radius: 18;" +
+                            "-fx-border-color: rgba(255,255,255,0.35);" +
+                            "-fx-border-radius: 18;"
+            );
+
+            Label icon = new Label("🔔");
+            icon.setStyle("-fx-font-size: 32px;");
+            iconBox.getChildren().add(icon);
+
+            VBox titleBox = new VBox(6);
+
+            Label title = new Label("Notifications de modération");
+            title.setStyle("-fx-text-fill: white; -fx-font-size: 27px; -fx-font-weight: bold;");
+
+            Label subtitle = new Label(notifications.size() + " nouvelle(s) notification(s)");
+            subtitle.setStyle("-fx-text-fill: rgba(255,255,255,0.90); -fx-font-size: 15px;");
+
+            titleBox.getChildren().addAll(title, subtitle);
+            header.getChildren().addAll(iconBox, titleBox);
+
+            VBox listBox = new VBox(14);
+            listBox.setPadding(new Insets(20));
+
+            for (Post post : notifications) {
+                boolean approved = "approved".equalsIgnoreCase(post.getModeration_status());
+
+                VBox card = new VBox(10);
+                card.setStyle(
+                        "-fx-background-color: white;" +
+                                "-fx-padding: 18;" +
+                                "-fx-background-radius: 16;" +
+                                "-fx-border-color: " + (approved ? "#bbf7d0;" : "#fecaca;") +
+                                "-fx-border-radius: 16;" +
+                                "-fx-effect: dropshadow(gaussian, rgba(15,23,42,0.08), 12, 0, 0, 4);"
+                );
+
+                HBox top = new HBox(10);
+                top.setAlignment(Pos.CENTER_LEFT);
+
+                Label statusIcon = new Label(approved ? "✅" : "❌");
+                statusIcon.setStyle("-fx-font-size: 24px;");
+
+                Label postTitle = new Label(safeText(post.getTitre()));
+                postTitle.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #111827;");
+                postTitle.setWrapText(true);
+
+                Region spacer = new Region();
+                HBox.setHgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
+
+                Label badge = new Label(approved ? "Approuvé" : "Refusé");
+                badge.setStyle(
+                        "-fx-background-color: " + (approved ? "#dcfce7;" : "#fee2e2;") +
+                                "-fx-text-fill: " + (approved ? "#15803d;" : "#b91c1c;") +
+                                "-fx-font-weight: bold;" +
+                                "-fx-padding: 6 12;" +
+                                "-fx-background-radius: 999;"
+                );
+
+                top.getChildren().addAll(statusIcon, postTitle, spacer, badge);
+
+                Label message = new Label(safeText(post.getModeration_message()));
+                message.setWrapText(true);
+                message.setStyle("-fx-text-fill: #374151; -fx-font-size: 14px;");
+
+                Label date = new Label(post.getDate_modification() != null
+                        ? "Traité le : " + post.getDate_modification()
+                        : "Notification récente");
+                date.setStyle("-fx-text-fill: #6b7280; -fx-font-size: 12px;");
+
+                card.getChildren().addAll(top, message, date);
+                listBox.getChildren().add(card);
+            }
+
+            ScrollPane scrollPane = new ScrollPane(listBox);
+            scrollPane.setFitToWidth(true);
+            scrollPane.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
+            scrollPane.setPrefHeight(450);
+
+            root.getChildren().addAll(header, scrollPane);
+
+            dialog.getDialogPane().setContent(root);
+            dialog.getDialogPane().setStyle("-fx-background-color: #f5f8fc; -fx-padding: 0;");
+
+            Button markBtn = (Button) dialog.getDialogPane().lookupButton(markAsReadButton);
+            markBtn.setStyle(
+                    "-fx-background-color: #0891b2;" +
+                            "-fx-text-fill: white;" +
+                            "-fx-font-weight: bold;" +
+                            "-fx-background-radius: 10;" +
+                            "-fx-padding: 8 18;"
+            );
+
+            Button closeBtn = (Button) dialog.getDialogPane().lookupButton(closeButton);
+            closeBtn.setStyle(
+                    "-fx-background-color: #e5e7eb;" +
+                            "-fx-text-fill: #111827;" +
+                            "-fx-font-weight: bold;" +
+                            "-fx-background-radius: 10;" +
+                            "-fx-padding: 8 18;"
+            );
+
+            dialog.setResultConverter(button -> {
+                if (button == markAsReadButton) {
+                    postService.markAllModerationNotificationsAsSeen(currentUser.getId());
+                    updateNotificationBadge();
+                }
+                return null;
+            });
+
+            dialog.showAndWait();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Erreur");
+            alert.setHeaderText(null);
+            alert.setContentText("Impossible de charger vos notifications.");
+            alert.showAndWait();
+        }
+    }
+
+    private void showAutoModerationNotificationIfNeeded() {
+        try {
+            User currentUser = SessionManager.getCurrentUser();
+
+            if (currentUser == null) {
+                return;
+            }
+
+            int count = postService.countUnseenModerationNotificationsByUser(currentUser.getId());
+
+            if (count > 0) {
+                showSystemTrayNotification(
+                        "MedFlow Blog",
+                        "Vous avez " + count + " nouvelle(s) notification(s) de modération."
+                );
+
+                showModerationNotificationsPopup(true);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void showSystemTrayNotification(String title, String message) {
+        try {
+            if (!java.awt.SystemTray.isSupported()) {
+                return;
+            }
+
+            java.awt.SystemTray tray = java.awt.SystemTray.getSystemTray();
+
+            java.awt.Image image = java.awt.Toolkit.getDefaultToolkit().createImage("");
+
+            java.awt.TrayIcon trayIcon = new java.awt.TrayIcon(image, "MedFlow");
+            trayIcon.setImageAutoSize(true);
+            trayIcon.setToolTip("MedFlow Notification");
+
+            tray.add(trayIcon);
+            trayIcon.displayMessage(title, message, java.awt.TrayIcon.MessageType.INFO);
+
+            new Thread(() -> {
+                try {
+                    Thread.sleep(5000);
+                    tray.remove(trayIcon);
+                } catch (Exception ignored) {
+                }
+            }).start();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    private void showModernCommentRefusedAlert() {
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("Commentaire refusé");
+        dialog.setHeaderText(null);
+
+        ButtonType closeButton = new ButtonType("Compris", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().add(closeButton);
+
+        VBox root = new VBox(18);
+        root.setAlignment(Pos.CENTER);
+        root.setPadding(new Insets(0));
+        root.setPrefWidth(520);
+        root.setStyle(
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 22;" +
+                        "-fx-border-radius: 22;"
+        );
+
+        HBox header = new HBox(16);
+        header.setAlignment(Pos.CENTER_LEFT);
+        header.setPadding(new Insets(24));
+        header.setStyle(
+                "-fx-background-color: linear-gradient(to right, #ef4444, #f97316);" +
+                        "-fx-background-radius: 22 22 0 0;"
+        );
+
+        StackPane iconBox = new StackPane();
+        iconBox.setPrefSize(62, 62);
+        iconBox.setStyle(
+                "-fx-background-color: rgba(255,255,255,0.22);" +
+                        "-fx-background-radius: 18;" +
+                        "-fx-border-color: rgba(255,255,255,0.35);" +
+                        "-fx-border-radius: 18;"
+        );
+
+        Label icon = new Label("⚠");
+        icon.setStyle(
+                "-fx-text-fill: white;" +
+                        "-fx-font-size: 34px;" +
+                        "-fx-font-weight: bold;"
+        );
+        iconBox.getChildren().add(icon);
+
+        VBox titleBox = new VBox(5);
+
+        Label title = new Label("Commentaire refusé");
+        title.setStyle(
+                "-fx-text-fill: white;" +
+                        "-fx-font-size: 25px;" +
+                        "-fx-font-weight: bold;"
+        );
+
+        Label subtitle = new Label("Votre commentaire n’a pas été publié");
+        subtitle.setStyle(
+                "-fx-text-fill: rgba(255,255,255,0.90);" +
+                        "-fx-font-size: 14px;"
+        );
+
+        titleBox.getChildren().addAll(title, subtitle);
+        header.getChildren().addAll(iconBox, titleBox);
+
+        VBox contentBox = new VBox(12);
+        contentBox.setPadding(new Insets(24, 28, 10, 28));
+        contentBox.setAlignment(Pos.CENTER_LEFT);
+
+        Label message = new Label(
+                "Le commentaire peut contenir un contenu inapproprié ou ne respecte pas les règles de la communauté."
+        );
+        message.setWrapText(true);
+        message.setStyle(
+                "-fx-text-fill: #374151;" +
+                        "-fx-font-size: 15px;" +
+                        "-fx-line-spacing: 4px;"
+        );
+
+        Label advice = new Label(
+                "Essayez de reformuler votre commentaire avec un langage plus respectueux."
+        );
+        advice.setWrapText(true);
+        advice.setStyle(
+                "-fx-background-color: #fff7ed;" +
+                        "-fx-text-fill: #c2410c;" +
+                        "-fx-font-size: 13px;" +
+                        "-fx-padding: 12 14;" +
+                        "-fx-background-radius: 12;"
+        );
+
+        contentBox.getChildren().addAll(message, advice);
+
+        root.getChildren().addAll(header, contentBox);
+
+        dialog.getDialogPane().setContent(root);
+        dialog.getDialogPane().setStyle(
+                "-fx-background-color: transparent;" +
+                        "-fx-padding: 0;"
+        );
+
+        Button closeBtn = (Button) dialog.getDialogPane().lookupButton(closeButton);
+        closeBtn.setText("Compris");
+        closeBtn.setStyle(
+                "-fx-background-color: linear-gradient(to right, #ef4444, #f97316);" +
+                        "-fx-text-fill: white;" +
+                        "-fx-font-weight: bold;" +
+                        "-fx-font-size: 14px;" +
+                        "-fx-background-radius: 12;" +
+                        "-fx-padding: 10 28;" +
+                        "-fx-cursor: hand;"
+        );
+
+        dialog.showAndWait();
+    }
+
+
+    private void showShortCommentBlockedPopup(String messageText) {
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("Commentaire bloqué");
+        dialog.setHeaderText(null);
+
+        ButtonType closeButton = new ButtonType("Compris", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().add(closeButton);
+
+        VBox root = new VBox(14);
+        root.setAlignment(Pos.CENTER_LEFT);
+        root.setPadding(new Insets(22));
+        root.setPrefWidth(430);
+        root.setStyle(
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 18;" +
+                        "-fx-border-color: #fecaca;" +
+                        "-fx-border-radius: 18;" +
+                        "-fx-border-width: 1;"
+        );
+
+        HBox top = new HBox(12);
+        top.setAlignment(Pos.CENTER_LEFT);
+
+        StackPane iconBox = new StackPane();
+        iconBox.setPrefSize(46, 46);
+        iconBox.setStyle(
+                "-fx-background-color: #fee2e2;" +
+                        "-fx-background-radius: 14;"
+        );
+
+        Label icon = new Label("!");
+        icon.setStyle(
+                "-fx-text-fill: #dc2626;" +
+                        "-fx-font-size: 26px;" +
+                        "-fx-font-weight: bold;"
+        );
+
+        iconBox.getChildren().add(icon);
+
+        VBox textBox = new VBox(4);
+
+        Label title = new Label("Commentaire bloqué");
+        title.setStyle(
+                "-fx-text-fill: #111827;" +
+                        "-fx-font-size: 18px;" +
+                        "-fx-font-weight: bold;"
+        );
+
+        Label subtitle = new Label("Votre commentaire n’a pas été publié.");
+        subtitle.setStyle(
+                "-fx-text-fill: #6b7280;" +
+                        "-fx-font-size: 13px;"
+        );
+
+        textBox.getChildren().addAll(title, subtitle);
+        top.getChildren().addAll(iconBox, textBox);
+
+        Label message = new Label(messageText == null || messageText.isBlank()
+                ? "Veuillez modifier votre commentaire puis réessayer."
+                : messageText);
+        message.setWrapText(true);
+        message.setStyle(
+                "-fx-text-fill: #374151;" +
+                        "-fx-font-size: 14px;" +
+                        "-fx-background-color: #fff7ed;" +
+                        "-fx-padding: 12 14;" +
+                        "-fx-background-radius: 12;"
+        );
+
+        root.getChildren().addAll(top, message);
+
+        dialog.getDialogPane().setContent(root);
+        dialog.getDialogPane().setStyle(
+                "-fx-background-color: transparent;" +
+                        "-fx-padding: 0;"
+        );
+
+        Button closeBtn = (Button) dialog.getDialogPane().lookupButton(closeButton);
+        closeBtn.setStyle(
+                "-fx-background-color: #dc2626;" +
+                        "-fx-text-fill: white;" +
+                        "-fx-font-weight: bold;" +
+                        "-fx-background-radius: 10;" +
+                        "-fx-padding: 8 22;" +
+                        "-fx-cursor: hand;"
+        );
+
+        dialog.showAndWait();
+    }
+
+    private String buildReactionLabel(int postId) {
+        int count = reactionService.countReactionsByPost(postId);
+        return "👍 " + count + " reaction(s)";
+    }
+
+    private void showReactionPopup(Post post, Label reactionLabel) {
+        try {
+            User currentUser = SessionManager.getCurrentUser();
+
+            if (currentUser == null) {
+                Alert alert = new Alert(Alert.AlertType.WARNING);
+                alert.setTitle("Session expirée");
+                alert.setHeaderText(null);
+                alert.setContentText("Veuillez vous reconnecter pour réagir à ce post.");
+                alert.showAndWait();
+                return;
+            }
+
+            if (reactionPopup != null && reactionPopup.isShowing()) {
+                reactionPopup.hide();
+            }
+
+            reactionPopup = new Popup();
+            reactionPopup.setAutoHide(true);
+            reactionPopup.setHideOnEscape(true);
+            reactionPopup.setAutoFix(true);
+
+            HBox reactionsBox = new HBox(8);
+            reactionsBox.setAlignment(Pos.CENTER);
+            reactionsBox.setPadding(new Insets(8, 10, 8, 10));
+            reactionsBox.setStyle(
+                    "-fx-background-color: white;" +
+                            "-fx-background-radius: 30;" +
+                            "-fx-border-color: #d8dadf;" +
+                            "-fx-border-radius: 30;" +
+                            "-fx-border-width: 1;" +
+                            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.22), 18, 0.2, 0, 5);"
+            );
+
+            String currentReaction = reactionService.getUserReactionType(post.getId(), currentUser.getId());
+
+            reactionsBox.getChildren().addAll(
+                    createReactionBubble("like", post, reactionLabel, currentReaction),
+                    createReactionBubble("love", post, reactionLabel, currentReaction),
+                    createReactionBubble("haha", post, reactionLabel, currentReaction),
+                    createReactionBubble("wow", post, reactionLabel, currentReaction),
+                    createReactionBubble("sad", post, reactionLabel, currentReaction),
+                    createReactionBubble("angry", post, reactionLabel, currentReaction)
+            );
+
+            reactionPopup.getContent().add(reactionsBox);
+
+            Bounds bounds = reactionLabel.localToScreen(reactionLabel.getBoundsInLocal());
+
+            if (bounds != null) {
+                double popupX = bounds.getMinX();
+                double popupY = bounds.getMinY() - 68;
+
+                reactionPopup.show(reactionLabel, popupX, popupY);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Erreur");
+            alert.setHeaderText(null);
+            alert.setContentText("Impossible d'ouvrir les réactions.");
+            alert.showAndWait();
+        }
+    }
+
+    private Button createReactionButton(String emoji,
+                                        String type,
+                                        String labelText,
+                                        int count,
+                                        Post post,
+                                        Label reactionLabel,
+                                        Dialog<Void> dialog,
+                                        String currentReaction) {
+
+        Label emojiLabel = new Label(emoji);
+        emojiLabel.setStyle(
+                "-fx-font-family: 'Segoe UI Emoji';" +
+                        "-fx-font-size: 28px;"
+        );
+
+        Label textLabel = new Label(labelText);
+        textLabel.setStyle(
+                "-fx-font-size: 12px;" +
+                        "-fx-font-weight: bold;" +
+                        "-fx-text-fill: #1c1e21;"
+        );
+
+        Label countLabel = new Label(String.valueOf(count));
+        countLabel.setStyle(
+                "-fx-font-size: 11px;" +
+                        "-fx-text-fill: #65676b;"
+        );
+
+        VBox content = new VBox(6, emojiLabel, textLabel, countLabel);
+        content.setAlignment(Pos.CENTER);
+
+        Button button = new Button();
+        button.setGraphic(content);
+        button.setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
+        button.setMinWidth(95);
+        button.setPrefWidth(95);
+        button.setMinHeight(110);
+        button.setPrefHeight(110);
+
+        boolean isSelected = currentReaction != null && currentReaction.equalsIgnoreCase(type);
+        styleReactionButton(button, isSelected);
+
+        button.setOnMouseEntered(e -> {
+            button.setScaleX(1.06);
+            button.setScaleY(1.06);
+
+            if (!isSelected) {
+                button.setStyle(
+                        "-fx-background-color: #f0f2f5;" +
+                                "-fx-background-radius: 18;" +
+                                "-fx-border-color: #cfd3d8;" +
+                                "-fx-border-radius: 18;" +
+                                "-fx-border-width: 1;" +
+                                "-fx-cursor: hand;"
+                );
+            }
+        });
+
+        button.setOnMouseExited(e -> {
+            button.setScaleX(1);
+            button.setScaleY(1);
+            styleReactionButton(button, isSelected);
+        });
+
+        button.setOnAction(e -> {
+            try {
+                User currentUser = SessionManager.getCurrentUser();
+
+                if (currentUser == null) {
+                    dialog.close();
+
+                    Alert alert = new Alert(Alert.AlertType.WARNING);
+                    alert.setTitle("Session expirée");
+                    alert.setHeaderText(null);
+                    alert.setContentText("Veuillez vous reconnecter pour réagir à ce post.");
+                    alert.showAndWait();
+                    return;
+                }
+
+                boolean success = reactionService.toggleReaction(
+                        post.getId(),
+                        currentUser.getId(),
+                        type
+                );
+
+                if (success) {
+                    reactionLabel.setText(buildReactionLabel(post.getId()));
+                    dialog.close();
+                } else {
+                    Alert alert = new Alert(Alert.AlertType.ERROR);
+                    alert.setTitle("Réaction");
+                    alert.setHeaderText(null);
+                    alert.setContentText("La réaction n’a pas pu être enregistrée.");
+                    alert.showAndWait();
+                }
+
+            } catch (Exception ex) {
+                ex.printStackTrace();
+
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Erreur");
+                alert.setHeaderText(null);
+                alert.setContentText("Impossible d'enregistrer la réaction.");
+                alert.showAndWait();
+            }
+        });
+
+        return button;
+    }
+
+    private String getReactionEmoji(String type) {
+        if (type == null) {
+            return "👍";
+        }
+
+        switch (type.toLowerCase()) {
+            case "love":
+                return "❤️";
+            case "haha":
+                return "😂";
+            case "wow":
+                return "😮";
+            case "sad":
+                return "😢";
+            case "angry":
+                return "😡";
+            case "like":
+            default:
+                return "👍";
+        }
+    }
+
+    private String getReactionName(String type) {
+        if (type == null) {
+            return "J’aime";
+        }
+
+        switch (type.toLowerCase()) {
+            case "love":
+                return "Love";
+            case "haha":
+                return "Haha";
+            case "wow":
+                return "Wow";
+            case "sad":
+                return "Triste";
+            case "angry":
+                return "Grrr";
+            case "like":
+            default:
+                return "J’aime";
+        }
+    }
+
+    private void styleReactionButton(Button button, boolean selected) {
+        if (selected) {
+            button.setStyle(
+                    "-fx-background-color: #e7f3ff;" +
+                            "-fx-background-radius: 18;" +
+                            "-fx-border-color: #1877f2;" +
+                            "-fx-border-radius: 18;" +
+                            "-fx-border-width: 2;" +
+                            "-fx-cursor: hand;"
+            );
+        } else {
+            button.setStyle(
+                    "-fx-background-color: white;" +
+                            "-fx-background-radius: 18;" +
+                            "-fx-border-color: #e4e6eb;" +
+                            "-fx-border-radius: 18;" +
+                            "-fx-border-width: 1;" +
+                            "-fx-cursor: hand;"
+            );
+        }
+    }
+    private StackPane createReactionBubble(String type, Post post, Label reactionLabel, String currentReaction) {
+        Node iconNode = loadReactionIconNode(type);
+
+        StackPane bubble = new StackPane(iconNode);
+        bubble.setPrefSize(48, 48);
+        bubble.setMinSize(48, 48);
+        bubble.setMaxSize(48, 48);
+
+        boolean selected = currentReaction != null && currentReaction.equalsIgnoreCase(type);
+
+        applyReactionBubbleStyle(bubble, selected, false);
+
+        bubble.setOnMouseEntered(e -> {
+            bubble.setScaleX(1.22);
+            bubble.setScaleY(1.22);
+            applyReactionBubbleStyle(bubble, selected, true);
+        });
+
+        bubble.setOnMouseExited(e -> {
+            bubble.setScaleX(1.0);
+            bubble.setScaleY(1.0);
+            applyReactionBubbleStyle(bubble, selected, false);
+        });
+
+        bubble.setOnMouseClicked(e -> {
+            try {
+                User currentUser = SessionManager.getCurrentUser();
+
+                if (currentUser == null) {
+                    if (reactionPopup != null) {
+                        reactionPopup.hide();
+                    }
+
+                    Alert alert = new Alert(Alert.AlertType.WARNING);
+                    alert.setTitle("Session expirée");
+                    alert.setHeaderText(null);
+                    alert.setContentText("Veuillez vous reconnecter pour réagir à ce post.");
+                    alert.showAndWait();
+                    return;
+                }
+
+                boolean success = reactionService.toggleReaction(
+                        post.getId(),
+                        currentUser.getId(),
+                        type
+                );
+
+                if (success) {
+                    reactionLabel.setText(buildReactionLabel(post.getId()));
+
+                    if (reactionPopup != null) {
+                        reactionPopup.hide();
+                    }
+                } else {
+                    Alert alert = new Alert(Alert.AlertType.ERROR);
+                    alert.setTitle("Réaction");
+                    alert.setHeaderText(null);
+                    alert.setContentText("La réaction n’a pas pu être enregistrée.");
+                    alert.showAndWait();
+                }
+
+            } catch (Exception ex) {
+                ex.printStackTrace();
+
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Erreur");
+                alert.setHeaderText(null);
+                alert.setContentText("Impossible d'enregistrer la réaction.");
+                alert.showAndWait();
+            }
+        });
+
+        Tooltip.install(bubble, new Tooltip(getReactionName(type)));
+
+        return bubble;
+    }
+    private Node loadReactionIconNode(String type) {
+        String path = "/images/reactions/" + type.toLowerCase() + ".png";
+
+        try {
+            Image image = new Image(getClass().getResourceAsStream(path));
+
+            ImageView imageView = new ImageView(image);
+            imageView.setFitWidth(38);
+            imageView.setFitHeight(38);
+            imageView.setPreserveRatio(true);
+            imageView.setSmooth(true);
+
+            return imageView;
+
+        } catch (Exception e) {
+            Label fallback = new Label(getReactionEmoji(type));
+            fallback.setStyle(
+                    "-fx-font-family: 'Segoe UI Emoji';" +
+                            "-fx-font-size: 28px;"
+            );
+            return fallback;
+        }
+    }
+
+    private void applyReactionBubbleStyle(StackPane bubble, boolean selected, boolean hover) {
+        if (selected) {
+            bubble.setStyle(
+                    "-fx-background-color: #e7f3ff;" +
+                            "-fx-background-radius: 24;" +
+                            "-fx-border-color: #1877f2;" +
+                            "-fx-border-radius: 24;" +
+                            "-fx-border-width: 2;" +
+                            "-fx-cursor: hand;"
+            );
+        } else if (hover) {
+            bubble.setStyle(
+                    "-fx-background-color: #f0f2f5;" +
+                            "-fx-background-radius: 24;" +
+                            "-fx-border-color: transparent;" +
+                            "-fx-border-radius: 24;" +
+                            "-fx-border-width: 0;" +
+                            "-fx-cursor: hand;"
+            );
+        } else {
+            bubble.setStyle(
+                    "-fx-background-color: white;" +
+                            "-fx-background-radius: 24;" +
+                            "-fx-border-color: transparent;" +
+                            "-fx-border-radius: 24;" +
+                            "-fx-border-width: 0;" +
+                            "-fx-cursor: hand;"
+            );
+        }
+    }
+
 }

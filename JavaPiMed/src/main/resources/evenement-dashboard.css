@@ -537,3 +537,390 @@
 .cancel-btn:hover {
     -fx-background-color: #d5dfe8;
 }
+
+/* =========================================================
+   TABLE BACK-OFFICE RÉCLAMATIONS - MODERNE
+   ========================================================= */
+
+.admin-table-card {
+    -fx-background-color: white;
+    -fx-background-radius: 28;
+    -fx-border-radius: 28;
+    -fx-border-color: rgba(96, 165, 250, 0.20);
+    -fx-border-width: 1;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.16), 26, 0.18, 0, 10);
+}
+
+.admin-table-top {
+    -fx-background-color: linear-gradient(to right, #f0fdfa, #eff6ff);
+    -fx-background-radius: 20;
+    -fx-border-radius: 20;
+    -fx-border-color: #bfdbfe;
+    -fx-padding: 14 18;
+}
+
+.admin-table-title {
+    -fx-font-size: 21px;
+    -fx-font-weight: 900;
+    -fx-text-fill: #0f172a;
+}
+
+.admin-table-subtitle {
+    -fx-font-size: 13px;
+    -fx-text-fill: #64748b;
+}
+
+.admin-table-chip {
+    -fx-background-color: linear-gradient(to right, #06b6d4, #2563eb);
+    -fx-text-fill: white;
+    -fx-font-size: 12px;
+    -fx-font-weight: 900;
+    -fx-padding: 8 14;
+    -fx-background-radius: 999;
+}
+
+/* TABLEVIEW */
+.admin-reclamation-table {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-table-cell-border-color: transparent;
+    -fx-padding: 0;
+}
+
+.admin-reclamation-table .column-header-background {
+    -fx-background-color: linear-gradient(to right, #0891b2, #2563eb);
+    -fx-background-radius: 18 18 0 0;
+    -fx-padding: 0 0 2 0;
+}
+
+.admin-reclamation-table .column-header {
+    -fx-background-color: transparent;
+    -fx-size: 48px;
+    -fx-border-color: transparent;
+}
+
+.admin-reclamation-table .column-header .label {
+    -fx-text-fill: white;
+    -fx-font-weight: 900;
+    -fx-font-size: 13px;
+    -fx-alignment: CENTER;
+}
+
+.admin-reclamation-table .filler {
+    -fx-background-color: transparent;
+}
+
+.admin-reclamation-table .table-row-cell {
+    -fx-background-color: white;
+    -fx-cell-size: 54px;
+    -fx-border-color: transparent transparent #e2e8f0 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.admin-reclamation-table .table-row-cell:odd {
+    -fx-background-color: #f8fafc;
+}
+
+.admin-reclamation-table .table-row-cell:hover {
+    -fx-background-color: #e0f2fe;
+}
+
+.admin-reclamation-table .table-row-cell:selected {
+    -fx-background-color: #dbeafe;
+}
+
+.admin-reclamation-table .table-cell {
+    -fx-text-fill: #0f172a;
+    -fx-font-size: 13px;
+    -fx-padding: 8 10;
+    -fx-alignment: CENTER_LEFT;
+    -fx-border-color: transparent;
+}
+
+/* DESCRIPTION PLUS LISIBLE */
+.admin-reclamation-table .table-cell {
+    -fx-wrap-text: true;
+}
+
+/* BOUTON RÉPONDRE DANS LA TABLE */
+.admin-reclamation-table .button {
+    -fx-background-color: linear-gradient(to right, #f59e0b, #f97316);
+    -fx-text-fill: white;
+    -fx-font-weight: 900;
+    -fx-font-size: 12px;
+    -fx-background-radius: 999;
+    -fx-padding: 8 16;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(249, 115, 22, 0.25), 10, 0.2, 0, 3);
+}
+
+.admin-reclamation-table .button:hover {
+    -fx-background-color: linear-gradient(to right, #d97706, #ea580c);
+    -fx-scale-x: 1.03;
+    -fx-scale-y: 1.03;
+}
+
+/* SCROLLBARS */
+.admin-reclamation-table .scroll-bar:vertical {
+    -fx-background-color: transparent;
+}
+
+.admin-reclamation-table .scroll-bar:vertical .thumb {
+    -fx-background-color: #38bdf8;
+    -fx-background-radius: 999;
+}
+
+.admin-reclamation-table .scroll-bar:horizontal {
+    -fx-background-color: transparent;
+}
+
+.admin-reclamation-table .scroll-bar:horizontal .thumb {
+    -fx-background-color: #38bdf8;
+    -fx-background-radius: 999;
+}
+
+/* PLACEHOLDER */
+.admin-reclamation-table .placeholder {
+    -fx-background-color: #f8fafc;
+}
+
+/* =========================================================
+   MISE EN VALEUR TABLEAU + COMPACT HEADER/STATS
+   ========================================================= */
+
+/* ---------- Hero plus compact ---------- */
+
+.compact-hero-card {
+    -fx-background-radius: 30;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.14), 20, 0.16, 0, 7);
+}
+
+.compact-hero-icon-box {
+    -fx-background-radius: 20;
+}
+
+.compact-hero-icon {
+    -fx-font-size: 30px;
+}
+
+.compact-hero-title {
+    -fx-font-size: 31px;
+    -fx-font-weight: 900;
+}
+
+.compact-hero-subtitle {
+    -fx-font-size: 15px;
+}
+
+.compact-admin-badge {
+    -fx-font-size: 13px;
+    -fx-padding: 6 13;
+}
+
+.compact-white-btn {
+    -fx-padding: 14 24;
+    -fx-font-size: 15px;
+}
+
+/* ---------- Bloc recherche plus compact ---------- */
+
+.compact-list-header-card {
+    -fx-background-radius: 26;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.12), 18, 0.14, 0, 6);
+}
+
+.compact-list-icon {
+    -fx-font-size: 28px;
+}
+
+.compact-list-title {
+    -fx-font-size: 28px;
+    -fx-font-weight: 900;
+}
+
+.compact-search-input {
+    -fx-padding: 13 18;
+    -fx-font-size: 14px;
+    -fx-background-radius: 18;
+}
+
+/* ---------- Cartes statistiques compactes ---------- */
+
+.stats-row-compact {
+    -fx-padding: 0;
+}
+
+.compact-stat-card {
+    -fx-padding: 12 18 12 18;
+    -fx-background-radius: 22;
+    -fx-border-radius: 22;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.08), 14, 0.14, 0, 4);
+}
+
+.compact-stat-card:hover {
+    -fx-translate-y: -2;
+    -fx-effect: dropshadow(gaussian, rgba(37, 99, 235, 0.16), 18, 0.18, 0, 6);
+}
+
+.compact-badge {
+    -fx-background-radius: 12;
+}
+
+.compact-stat-emoji {
+    -fx-font-size: 15px;
+}
+
+.compact-stat-number {
+    -fx-font-size: 24px;
+    -fx-font-weight: 900;
+    -fx-text-fill: #2563eb;
+}
+
+.compact-stat-text {
+    -fx-font-size: 12px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #46638f;
+}
+
+/* ---------- Tableau mis en avant ---------- */
+
+.table-feature-card {
+    -fx-background-color: white;
+    -fx-background-radius: 30;
+    -fx-border-radius: 30;
+    -fx-border-color: rgba(37, 99, 235, 0.22);
+    -fx-border-width: 1.4;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.20), 34, 0.22, 0, 12);
+}
+
+.table-feature-top {
+    -fx-background-color: linear-gradient(to right, #ecfeff, #eff6ff);
+    -fx-background-radius: 20;
+    -fx-border-radius: 20;
+    -fx-border-color: #bfdbfe;
+    -fx-padding: 14 18;
+}
+
+.admin-table-title {
+    -fx-font-size: 22px;
+    -fx-font-weight: 900;
+    -fx-text-fill: #0f172a;
+}
+
+.admin-table-subtitle {
+    -fx-font-size: 13px;
+    -fx-text-fill: #64748b;
+}
+
+.admin-table-chip {
+    -fx-background-color: linear-gradient(to right, #06b6d4, #2563eb);
+    -fx-text-fill: white;
+    -fx-font-size: 12px;
+    -fx-font-weight: 900;
+    -fx-padding: 8 14;
+    -fx-background-radius: 999;
+}
+
+/* ---------- TableView moderne ---------- */
+
+.table-feature-view {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-table-cell-border-color: transparent;
+    -fx-padding: 0;
+}
+
+.table-feature-view .column-header-background {
+    -fx-background-color: linear-gradient(to right, #0891b2, #2563eb);
+    -fx-background-radius: 20 20 0 0;
+    -fx-padding: 0 0 2 0;
+}
+
+.table-feature-view .column-header {
+    -fx-background-color: transparent;
+    -fx-size: 50px;
+    -fx-border-color: transparent;
+}
+
+.table-feature-view .column-header .label {
+    -fx-text-fill: white;
+    -fx-font-weight: 900;
+    -fx-font-size: 13px;
+    -fx-alignment: CENTER;
+}
+
+.table-feature-view .filler {
+    -fx-background-color: transparent;
+}
+
+.table-feature-view .table-row-cell {
+    -fx-background-color: white;
+    -fx-cell-size: 56px;
+    -fx-border-color: transparent transparent #e2e8f0 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.table-feature-view .table-row-cell:odd {
+    -fx-background-color: #f8fafc;
+}
+
+.table-feature-view .table-row-cell:hover {
+    -fx-background-color: #e0f2fe;
+}
+
+.table-feature-view .table-row-cell:selected {
+    -fx-background-color: #dbeafe;
+}
+
+.table-feature-view .table-cell {
+    -fx-text-fill: #0f172a;
+    -fx-font-size: 13px;
+    -fx-padding: 8 12;
+    -fx-alignment: CENTER_LEFT;
+    -fx-border-color: transparent;
+}
+
+/* ---------- Bouton répondre dans le tableau ---------- */
+
+.table-feature-view .button {
+    -fx-background-color: linear-gradient(to right, #f59e0b, #f97316);
+    -fx-text-fill: white;
+    -fx-font-weight: 900;
+    -fx-font-size: 12px;
+    -fx-background-radius: 999;
+    -fx-padding: 8 17;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(249, 115, 22, 0.25), 10, 0.2, 0, 3);
+}
+
+.table-feature-view .button:hover {
+    -fx-background-color: linear-gradient(to right, #d97706, #ea580c);
+    -fx-scale-x: 1.03;
+    -fx-scale-y: 1.03;
+}
+
+/* ---------- Scrollbar propre ---------- */
+
+.table-feature-view .scroll-bar:vertical {
+    -fx-background-color: transparent;
+}
+
+.table-feature-view .scroll-bar:vertical .thumb {
+    -fx-background-color: #38bdf8;
+    -fx-background-radius: 999;
+}
+
+.table-feature-view .scroll-bar:horizontal {
+    -fx-background-color: transparent;
+}
+
+.table-feature-view .scroll-bar:horizontal .thumb {
+    -fx-background-color: #38bdf8;
+    -fx-background-radius: 999;
+}
+
+/* ---------- Placeholder tableau vide ---------- */
+
+.table-feature-view .placeholder {
+    -fx-background-color: #f8fafc;
+}

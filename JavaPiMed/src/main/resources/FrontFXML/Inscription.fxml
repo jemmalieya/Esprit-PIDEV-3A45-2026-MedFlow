@@ -211,7 +211,7 @@
                         <Separator/>
 
                         <Label text="Pièces justificatives" styleClass="staff-section-title"/>
-                        <Label text="Formats acceptés : PDF / JPG / PNG. Les 4 premières pièces sont obligatoires pour une demande staff."
+                        <Label text="Format accepté : PDF / DOC / DOCX pour le CV. JPG / PNG pour l'identité et le diplôme. Les 3 premiers documents (CV, identité, diplôme) sont obligatoires."
                                styleClass="upload-helper-text" wrapText="true"/>
 
                         <GridPane hgap="14.0" vgap="8.0" styleClass="signup-grid">
@@ -238,8 +238,8 @@
                                    text="" visible="false" wrapText="true"
                                    GridPane.columnIndex="1" GridPane.rowIndex="2"/>
 
-                            <Label text="ATTESTATION PROFESSIONNELLE *" styleClass="signup-field-label" GridPane.columnIndex="0" GridPane.rowIndex="3"/>
-                            <Label text="PHOTO PROFESSIONNELLE *" styleClass="signup-field-label" GridPane.columnIndex="1" GridPane.rowIndex="3"/>
+                            <Label text="CV (PDF/DOC/DOCX) *" styleClass="signup-field-label" GridPane.columnIndex="0" GridPane.rowIndex="3"/>
+                            <Label text="PHOTO PROFESSIONNELLE (OPTIONNEL)" styleClass="signup-field-label" GridPane.columnIndex="1" GridPane.rowIndex="3"/>
 
                             <HBox spacing="10.0" alignment="CENTER_LEFT" GridPane.columnIndex="0" GridPane.rowIndex="4">
                                 <Button text="Choisir..." onAction="#handleSelectOrderProof" styleClass="upload-select-button"/>

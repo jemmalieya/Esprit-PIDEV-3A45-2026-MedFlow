@@ -10,6 +10,7 @@ import com.lowagie.text.Phrase;
 import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
+import javafx.application.Platform;
 import javafx.animation.Interpolator;
 import javafx.animation.RotateTransition;
 import javafx.beans.binding.Bindings;
@@ -17,9 +18,11 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
+import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -28,13 +31,20 @@ import javafx.scene.chart.PieChart;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.Separator;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToolBar;
 import javafx.scene.layout.HBox;
@@ -46,8 +56,11 @@ import javafx.util.Duration;
 import tn.esprit.entities.User;
 import tn.esprit.services.EmailService;
 import tn.esprit.services.UserService;
+import tn.esprit.services.StaffRequestAIAnalysisService;
+import tn.esprit.services.DecisionPdfService;
 import tn.esprit.tools.SessionManager;
 
+import java.awt.Desktop;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.time.LocalDate;
@@ -105,12 +118,17 @@ public class UserController {
     @FXML private TableColumn<User, String> staffReqTypeCol;
     @FXML private TableColumn<User, String> staffReqRequestedAtCol;
     @FXML private TableColumn<User, String> staffReqReasonCol;
+    @FXML private TableColumn<User, Void> staffReqActionsCol;
     @FXML private Label staffRequestsCountLabel;
     @FXML private Label staffRequestHintLabel;
 
     @FXML private VBox submenuVBox;
     @FXML private Label userArrow;
     @FXML private Button voirTousUsersBtn;
+    @FXML private Button navUsersBtn;
+    @FXML private Button navStaffRequestsBtn;
+    @FXML private VBox usersPageContainer;
+    @FXML private VBox staffPageContainer;
     @FXML private Button prevStatsPageBtn;
     @FXML private Button nextStatsPageBtn;
     @FXML private HBox statsPageOne;
@@ -165,6 +183,7 @@ public class UserController {
             configureStatsBook();
             configureSearch();
             updateStats();
+            switchDashboardPage(true);
         } else if (roleDonutChart != null) {
             // AdminStatsDashboard.fxml
             List<User> users = userService.recuperer();
@@ -320,7 +339,7 @@ public class UserController {
     private void addActionsColumn() {
         actionsCol.setCellFactory(col -> new TableCell<>() {
             private final Button banBtn    = new Button();
-            private final Button deleteBtn = new Button("🗑");
+            private final Button deleteBtn = new Button("🗑 Supprimer");
             private final ToolBar toolBar  = new ToolBar(banBtn, deleteBtn);
 
             {
@@ -345,6 +364,12 @@ public class UserController {
                         boolean updated = userService.updateStatutCompte(user.getId(), nextStatus);
                         if (updated) {
                             user.setStatutCompte(nextStatus);
+                            if (!banned) {
+                                String adminName = resolveAdminSignatureName();
+                                String reason = "Decision administrative";
+                                byte[] pdf = DecisionPdfService.buildAccountBanPdf(user, reason, adminName);
+                                EmailService.sendAccountBanEmail(user, reason, pdf, buildDecisionPdfName("ban", user));
+                            }
                             applySort();
                             userTable.refresh();
                             updateStats();
@@ -380,7 +405,7 @@ public class UserController {
                     return;
                 }
                 User user = getTableView().getItems().get(getIndex());
-                banBtn.setText(isBanned(user) ? "🔓" : "🚫");
+                banBtn.setText(isBanned(user) ? "🔓 Debloquer" : "🚫 Bloquer");
                 setGraphic(toolBar);
             }
         });
@@ -428,9 +453,58 @@ public class UserController {
             });
         }
 
+        // ── Per-row actions column ─────────────────────────────────────────
+        if (staffReqActionsCol != null) {
+            staffReqActionsCol.setCellFactory(col -> new TableCell<>() {
+                private final Button detailsBtn = new Button("👁 Voir Détails");
+                private final Button approveBtn = new Button("✅");
+                private final Button rejectBtn  = new Button("❌");
+                private final HBox   hbox       = new HBox(6, detailsBtn, approveBtn, rejectBtn);
+
+                {
+                    detailsBtn.getStyleClass().add("staff-details-btn");
+                    approveBtn.getStyleClass().add("staff-approve-btn");
+                    rejectBtn.getStyleClass().add("staff-reject-btn");
+                    hbox.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+                    detailsBtn.setOnAction(e -> {
+                        User u = getTableView().getItems().get(getIndex());
+                        openStaffDetails(u);
+                    });
+                    approveBtn.setOnAction(e -> {
+                        User u = getTableView().getItems().get(getIndex());
+                        doReviewStaffRequest(u, true);
+                    });
+                    rejectBtn.setOnAction(e -> {
+                        User u = getTableView().getItems().get(getIndex());
+                        doReviewStaffRequest(u, false);
+                    });
+                }
+
+                @Override
+                protected void updateItem(Void item, boolean empty) {
+                    super.updateItem(item, empty);
+                    setGraphic(empty ? null : hbox);
+                }
+            });
+            staffReqActionsCol.setCellValueFactory(p -> javafx.beans.binding.Bindings.createObjectBinding(() -> null));
+        }
+
         staffRequestTable.setItems(pendingStaffRequests);
         staffRequestTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         staffRequestTable.setPlaceholder(new Label("Aucune demande staff en attente"));
+        staffRequestTable.getSelectionModel().selectedItemProperty().addListener((obs, oldUser, selectedUser) -> {
+            if (staffRequestHintLabel == null) {
+                return;
+            }
+            if (selectedUser == null) {
+                staffRequestHintLabel.setText("Sélectionnez une demande pour valider, refuser ou voir les pièces.");
+                return;
+            }
+            int count = extractStaffDocuments(selectedUser).size();
+            staffRequestHintLabel.setText(count == 0
+                    ? "Aucune pièce détectée pour cette demande."
+                    : count + " pièce(s) détectée(s). Cliquez sur \"Voir Détails\".");
+        });
     }
 
     private void loadPendingStaffRequests() {
@@ -455,6 +529,54 @@ public class UserController {
     }
 
     @FXML
+    private void onViewStaffDocuments(ActionEvent event) {
+        if (staffRequestTable == null) {
+            return;
+        }
+        User selected = staffRequestTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            showError("Demandes staff", "Veuillez sélectionner une demande d'abord.");
+            return;
+        }
+        openStaffDetails(selected);
+    }
+
+    private List<String> extractStaffDocuments(User user) {
+        List<String> paths = new ArrayList<>();
+        addDocumentPath(paths, user.getStaffRequestProofPath());
+        addSerializedDocumentPaths(paths, user.getStaffDocuments());
+        return paths;
+    }
+
+    private void addSerializedDocumentPaths(List<String> paths, String rawDocuments) {
+        if (rawDocuments == null || rawDocuments.isBlank()) {
+            return;
+        }
+        String normalized = rawDocuments
+                .replace("[", "")
+                .replace("]", "")
+                .replace("\"", "")
+                .replace("\r", "\n");
+        String[] tokens = normalized.split("\\s*;\\s*|\\s*,\\s*|\\n+");
+        for (String token : tokens) {
+            addDocumentPath(paths, token);
+        }
+    }
+
+    private void addDocumentPath(List<String> paths, String value) {
+        if (value == null) {
+            return;
+        }
+        String cleaned = value.trim();
+        if (cleaned.isEmpty()) {
+            return;
+        }
+        if (!paths.contains(cleaned)) {
+            paths.add(cleaned);
+        }
+    }
+
+    @FXML
     private void onApproveStaffRequest(ActionEvent event) {
         reviewSelectedStaffRequest(true);
     }
@@ -465,15 +587,17 @@ public class UserController {
     }
 
     private void reviewSelectedStaffRequest(boolean approve) {
-        if (staffRequestTable == null) {
-            return;
-        }
+        if (staffRequestTable == null) return;
         User selected = staffRequestTable.getSelectionModel().getSelectedItem();
         if (selected == null) {
             showError("Demandes staff", "Veuillez sélectionner une demande d'abord.");
             return;
         }
+        doReviewStaffRequest(selected, approve);
+    }
 
+    /** Action partagée entre les boutons globaux et les boutons par ligne. */
+    private void doReviewStaffRequest(User selected, boolean approve) {
         String actionLabel = approve ? "approuver" : "refuser";
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
         confirm.setTitle("Validation demande staff");
@@ -481,15 +605,11 @@ public class UserController {
         confirm.setContentText("Confirmer l'action : " + actionLabel + " la demande de "
                 + safe(selected.getNom()) + " " + safe(selected.getPrenom()) + " ?");
         Optional<ButtonType> result = confirm.showAndWait();
-        if (result.isEmpty() || result.get() != ButtonType.OK) {
-            return;
-        }
+        if (result.isEmpty() || result.get() != ButtonType.OK) return;
 
         Integer reviewerId = null;
         User current = SessionManager.getCurrentUser();
-        if (current != null && current.getId() > 0) {
-            reviewerId = current.getId();
-        }
+        if (current != null && current.getId() > 0) reviewerId = current.getId();
 
         boolean ok = userService.reviewStaffRequest(selected.getId(), approve, reviewerId);
         if (!ok) {
@@ -497,15 +617,19 @@ public class UserController {
             return;
         }
 
-        // ── Envoi d'email de notification ────────────────────────────────────
         try {
             if (approve) {
-                EmailService.sendStaffApprovalEmail(selected);
+                String adminName = resolveAdminSignatureName();
+                String reason = resolveStaffDecisionReason(selected);
+                byte[] pdf = DecisionPdfService.buildStaffApprovalPdf(selected, adminName, reason);
+                EmailService.sendStaffApprovalEmail(selected, pdf, buildDecisionPdfName("approbation_staff", selected));
             } else {
-                EmailService.sendStaffRejectionEmail(selected);
+                String adminName = resolveAdminSignatureName();
+                String reason = resolveStaffDecisionReason(selected);
+                byte[] pdf = DecisionPdfService.buildStaffRejectionPdf(selected, adminName, reason);
+                EmailService.sendStaffRejectionEmail(selected, pdf, buildDecisionPdfName("refus_staff", selected));
             }
         } catch (Exception emailEx) {
-            // Ne pas bloquer le flux si l'email échoue
             System.err.println("[UserController] Erreur envoi email staff : " + emailEx.getMessage());
         }
 
@@ -513,6 +637,437 @@ public class UserController {
         applySort();
         updateStats();
         loadPendingStaffRequests();
+    }
+
+    /** Ouvre un écran de révision staff directement depuis UserController (sans contrôleur dédié). */
+    private void openStaffDetails(User user) {
+        showStaffReviewDialog(user);
+    }
+
+    private void showStaffReviewDialog(User selected) {
+        try {
+            Dialog<ButtonType> dialog = new Dialog<>();
+            dialog.setTitle("Révision demande staff");
+            dialog.setHeaderText(null);
+            dialog.getDialogPane().setPrefSize(1160, 760);
+            dialog.getDialogPane().getStyleClass().add("staff-review-dialog");
+
+            // Force loading CSS on DialogPane (scene styles are not always inherited by JavaFX dialogs).
+            if (getClass().getResource("/admin-dashboard.css") != null) {
+                String css = getClass().getResource("/admin-dashboard.css").toExternalForm();
+                if (!dialog.getDialogPane().getStylesheets().contains(css)) {
+                    dialog.getDialogPane().getStylesheets().add(css);
+                }
+            }
+            if (getClass().getResource("/evenement-dashboard.css") != null) {
+                String css = getClass().getResource("/evenement-dashboard.css").toExternalForm();
+                if (!dialog.getDialogPane().getStylesheets().contains(css)) {
+                    dialog.getDialogPane().getStylesheets().add(css);
+                }
+            }
+
+            String fullName = (safe(selected.getNom()) + " " + safe(selected.getPrenom())).trim();
+            if (fullName.isBlank()) {
+                fullName = "Candidat #" + selected.getId();
+            }
+
+            Label avatar = new Label(buildUserInitials(selected));
+            avatar.getStyleClass().add("staff-review-avatar");
+            avatar.setMinSize(36, 36);
+            avatar.setPrefSize(36, 36);
+            avatar.setAlignment(Pos.CENTER);
+            Label name = new Label(fullName);
+            name.getStyleClass().add("staff-review-name");
+            Label meta = new Label("Type: " + safe(selected.getTypeStaff()) + "  |  Email: " + safe(selected.getEmailUser()));
+            meta.getStyleClass().add("staff-review-meta");
+            VBox textHead = new VBox(2, name, meta);
+            HBox header = new HBox(10, avatar, textHead);
+            header.setAlignment(Pos.CENTER_LEFT);
+            header.getStyleClass().add("staff-review-header");
+            dialog.getDialogPane().setHeader(header);
+
+            ButtonType approveType = new ButtonType("Approuver", ButtonBar.ButtonData.YES);
+            ButtonType rejectType = new ButtonType("Refuser", ButtonBar.ButtonData.NO);
+            dialog.getDialogPane().getButtonTypes().addAll(approveType, rejectType, ButtonType.CLOSE);
+
+            TabPane tabPane = new TabPane();
+            tabPane.getStyleClass().add("staff-review-tabs");
+            Tab profileTab = new Tab("Profil & Pièces", buildStaffDocumentsPane(selected));
+            profileTab.setClosable(false);
+            Tab analysisTab = new Tab("Fiche de décision", buildStaffAnalysisPane(selected));
+            analysisTab.setClosable(false);
+            tabPane.getTabs().addAll(profileTab, analysisTab);
+            dialog.getDialogPane().setContent(tabPane);
+
+            Optional<ButtonType> decision = dialog.showAndWait();
+            if (decision.isPresent() && decision.get() == approveType) {
+                doReviewStaffRequest(selected, true);
+            } else if (decision.isPresent() && decision.get() == rejectType) {
+                doReviewStaffRequest(selected, false);
+            }
+        } catch (Exception e) {
+            showError("Navigation", "Impossible d'ouvrir les détails de cette demande.");
+            e.printStackTrace();
+        }
+    }
+
+    private VBox buildStaffDocumentsPane(User selected) {
+        VBox wrapper = new VBox(12);
+        wrapper.getStyleClass().add("staff-review-pane");
+
+        Label title = new Label("Pièces et informations saisies");
+        title.getStyleClass().add("staff-review-section-title");
+
+        VBox info = new VBox(6,
+                buildInfoRow("ID", String.valueOf(selected.getId())),
+                buildInfoRow("Type staff", safe(selected.getTypeStaff())),
+                buildInfoRow("Email", safe(selected.getEmailUser())),
+                buildInfoRow("Téléphone", safe(selected.getTelephoneUser())),
+                buildInfoRow("CIN", safe(selected.getCin())),
+                buildInfoRow("Motif", safe(selected.getStaffRequestReason()))
+        );
+        info.getStyleClass().add("staff-review-card");
+
+        VBox docsBox = new VBox(6);
+        docsBox.getStyleClass().add("staff-review-card");
+        List<String> paths = extractStaffDocuments(selected);
+        Label docsTitle = new Label("Documents détectés: " + paths.size());
+        docsTitle.getStyleClass().add("staff-review-section-title");
+        docsBox.getChildren().add(docsTitle);
+
+        if (paths.isEmpty()) {
+            docsBox.getChildren().add(new Label("Aucun document détecté."));
+        } else {
+            int index = 1;
+            for (String path : paths) {
+                File file = new File(path);
+                Label name = new Label(index + ". " + (file.getName().isEmpty() ? path : file.getName()));
+                name.setMaxWidth(Double.MAX_VALUE);
+                HBox.setHgrow(name, javafx.scene.layout.Priority.ALWAYS);
+
+                Label status = new Label(file.exists() ? "Disponible" : "Absent");
+                status.getStyleClass().add(file.exists() ? "staff-doc-ok" : "staff-doc-missing");
+                Button openBtn = new Button("Ouvrir");
+                openBtn.getStyleClass().add("slim-dir-btn");
+                openBtn.setDisable(!file.exists());
+                openBtn.setOnAction(e -> openFilePath(path));
+
+                HBox row = new HBox(8, name, status, openBtn);
+                row.setAlignment(Pos.CENTER_LEFT);
+                row.getStyleClass().add("staff-doc-row");
+                docsBox.getChildren().add(row);
+                index++;
+            }
+        }
+
+        ScrollPane docsScroll = new ScrollPane(docsBox);
+        docsScroll.getStyleClass().add("staff-review-scroll");
+        docsScroll.setFitToWidth(true);
+        docsScroll.setPrefHeight(480);
+
+        wrapper.getChildren().addAll(title, info, new Separator(), docsScroll);
+        return wrapper;
+    }
+
+    private VBox buildStaffAnalysisPane(User selected) {
+        VBox wrapper = new VBox(12);
+        wrapper.getStyleClass().add("staff-review-pane");
+
+        Label title = new Label("Fiche de décision RH");
+        title.getStyleClass().add("staff-review-section-title");
+        Label status = new Label("Traitement du dossier...");
+        status.getStyleClass().add("staff-review-status");
+        Label score = new Label("Score: --/100");
+        score.getStyleClass().add("staff-review-chip");
+        Label verdict = new Label("Verdict: --");
+        verdict.getStyleClass().addAll("staff-review-chip", "staff-review-verdict");
+        HBox summary = new HBox(16, status, score, verdict);
+        summary.getStyleClass().add("staff-review-summary");
+        summary.setAlignment(Pos.CENTER_LEFT);
+
+        TextArea recommendationArea = new TextArea("Recommandation administrative...");
+        recommendationArea.setEditable(false);
+        recommendationArea.setWrapText(true);
+        recommendationArea.setPrefRowCount(2);
+        recommendationArea.getStyleClass().add("staff-review-reco");
+
+        TextArea analysisArea = new TextArea("Préparation de l'analyse...");
+        analysisArea.setWrapText(true);
+        analysisArea.setEditable(false);
+        analysisArea.setPrefRowCount(24);
+        analysisArea.getStyleClass().add("staff-review-analysis-area");
+
+        runDeepStaffAnalysis(selected, status, score, verdict, recommendationArea, analysisArea);
+        wrapper.getChildren().addAll(title, summary, recommendationArea, analysisArea);
+        return wrapper;
+    }
+
+    private void runDeepStaffAnalysis(User selected,
+                                      Label status,
+                                      Label score,
+                                      Label verdict,
+                                      TextArea recommendationArea,
+                                      TextArea analysisArea) {
+        Task<StaffRequestAIAnalysisService.DeepStaffAnalysisResult> task = new Task<>() {
+            @Override
+            protected StaffRequestAIAnalysisService.DeepStaffAnalysisResult call() {
+                updateMessage("Vérification des pièces et consolidation du dossier...");
+                StaffRequestAIAnalysisService service = new StaffRequestAIAnalysisService();
+                return service.performDeepAnalysis(selected);
+            }
+        };
+
+        task.messageProperty().addListener((obs, oldValue, message) ->
+                Platform.runLater(() -> status.setText(message)));
+
+        task.setOnSucceeded(evt -> {
+            StaffRequestAIAnalysisService.DeepStaffAnalysisResult result = task.getValue();
+            Platform.runLater(() -> {
+                status.setText("Fiche prête pour décision");
+                score.setText("Score: " + result.confidenceScore + "/100");
+                verdict.setText("Verdict: " + verdictLabelFr(result.verdict));
+                verdict.getStyleClass().removeAll("verdict-approve", "verdict-pending", "verdict-reject");
+                verdict.getStyleClass().add(verdictCssClass(result.verdict));
+                recommendationArea.setText(safe(result.recommendation));
+                analysisArea.setText(buildDeepAnalysisText(result));
+            });
+        });
+
+        task.setOnFailed(evt -> Platform.runLater(() -> {
+            Throwable ex = task.getException();
+            status.setText("Synthèse indisponible");
+            recommendationArea.setText("-");
+            analysisArea.setText("Erreur pendant la préparation de la fiche: " + (ex == null ? "inconnue" : ex.getMessage()));
+        }));
+
+        Thread worker = new Thread(task, "staff-review-deep-analysis");
+        worker.setDaemon(true);
+        worker.start();
+    }
+
+    private String buildDeepAnalysisText(StaffRequestAIAnalysisService.DeepStaffAnalysisResult result) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Résumé du dossier\n");
+        for (String line : summarizeDossierLines(result.cvTextPreview, 5)) {
+            sb.append("- ").append(sanitizeReportText(line)).append("\n");
+        }
+
+        sb.append("\nÉléments vérifiés\n");
+        for (String point : normalizeVerifiedPoints(result.cvKeyPoints)) {
+            sb.append("- ").append(point).append("\n");
+        }
+
+        sb.append("\nContrôles de cohérence\n");
+        for (StaffRequestAIAnalysisService.ComparisonRow row : result.comparisonTable) {
+            sb.append("- ").append(row.field).append(": ")
+                    .append("Saisie=").append(sanitizeReportText(row.userInput))
+                    .append(" | CV=").append(sanitizeReportText(row.cvExtracted))
+                    .append(" | Statut=").append(mapStatusFr(row.status))
+                    .append("\n");
+        }
+
+        sb.append("\nPoints favorables\n");
+        for (String value : result.strengths) {
+            sb.append("- ").append(sanitizeReportText(value)).append("\n");
+        }
+
+        sb.append("\nPoints à clarifier\n");
+        if (result.concerns == null || result.concerns.isEmpty()) {
+            sb.append("- Aucun point bloquant identifié à ce stade.\n");
+        } else {
+            for (String value : result.concerns) {
+                sb.append("- ").append(sanitizeReportText(value)).append("\n");
+            }
+        }
+
+        if (!result.adminQuestions.isEmpty()) {
+            sb.append("\nPoints de vérification complémentaires\n");
+            for (String value : result.adminQuestions) {
+                sb.append("- ").append(sanitizeReportText(value)).append("\n");
+            }
+        }
+        return sb.toString();
+    }
+
+    private List<String> summarizeDossierLines(String text, int maxLines) {
+        List<String> lines = new ArrayList<>();
+        if (text == null || text.isBlank()) {
+            lines.add("Aucune information textuelle exploitable n'a été consolidée.");
+            return lines;
+        }
+
+        String normalized = text.replace("\r", "\n");
+        String first = null;
+        String second = null;
+        for (String raw : normalized.split("\n+")) {
+            String line = raw.replaceAll("\\s+", " ").trim();
+            if (line.isBlank() || line.startsWith("[")) {
+                continue;
+            }
+
+            line = normalizeSpacedCapitalLetters(line);
+            if (line.length() < 6) {
+                continue;
+            }
+
+            if (first == null) {
+                first = line;
+                continue;
+            }
+            if (second == null) {
+                second = line;
+                continue;
+            }
+
+            String shortened = line.length() > 120 ? line.substring(0, 117) + "..." : line;
+            if (!lines.contains(shortened)) {
+                lines.add(shortened);
+            }
+            if (lines.size() >= maxLines) {
+                break;
+            }
+        }
+
+        if (first != null) {
+            String identity = first;
+            if (second != null && second.length() <= 24 && !second.matches(".*\\d.*")) {
+                identity = first + " " + second;
+            }
+            lines.add(0, sanitizeReportText(identity));
+        }
+
+        if (lines.isEmpty()) {
+            lines.add("Les pièces ont été reçues, mais nécessitent une lecture manuelle pour synthèse.");
+        }
+        while (lines.size() > maxLines) {
+            lines.remove(lines.size() - 1);
+        }
+        return lines;
+    }
+
+    private List<String> normalizeVerifiedPoints(List<String> points) {
+        List<String> cleaned = new ArrayList<>();
+        if (points == null) {
+            return cleaned;
+        }
+        for (String point : points) {
+            String value = sanitizeReportText(point)
+                    .replaceAll("\\s+en$", "")
+                    .replaceAll("\\s+de$", "")
+                    .replaceAll("\\s+du$", "")
+                    .trim();
+            if (value.length() < 8) {
+                continue;
+            }
+            if (!cleaned.contains(value)) {
+                cleaned.add(value);
+            }
+            if (cleaned.size() >= 8) {
+                break;
+            }
+        }
+        return cleaned;
+    }
+
+    private String normalizeSpacedCapitalLetters(String text) {
+        String out = text;
+        for (int i = 0; i < 3; i++) {
+            out = out.replaceAll("(?<=\\b\\p{Lu})\\s+(?=\\p{Lu}\\b)", "");
+        }
+        return out;
+    }
+
+    private String cleanDecisionLine(String text) {
+        if (text == null) {
+            return "";
+        }
+        String cleaned = text
+                .replace("✔", "")
+                .replace("•", "")
+                .replace("→", "")
+                .replace("⚠", "")
+                .replace("ℹ", "")
+                .replace("🎓", "")
+                .replace("🏥", "")
+                .replace("⏱", "")
+                .replace("🏛", "")
+                .replace("📧", "")
+                .replace("🏅", "")
+                .replace("️", "")
+                .trim();
+        return cleaned.replaceAll("\\s+", " ");
+    }
+
+    private String sanitizeReportText(String text) {
+        if (text == null) {
+            return "";
+        }
+        String cleaned = cleanDecisionLine(text)
+                .replace("✓", "")
+                .replace("✔", "")
+                .replace("✗", "")
+                .replace("✘", "")
+                .replace("—", "-")
+                .trim();
+        return cleaned.replaceAll("\\s+", " ");
+    }
+
+    private String mapStatusFr(String status) {
+        return switch (safe(status)) {
+            case "MATCH" -> "Conforme";
+            case "PARTIAL" -> "À vérifier";
+            case "MISMATCH" -> "Écart";
+            default -> "Non confirmé";
+        };
+    }
+
+    private HBox buildInfoRow(String label, String value) {
+        Label keyLabel = new Label(label + ":");
+        keyLabel.getStyleClass().add("staff-review-key");
+        Label valueLabel = new Label(value == null || value.isBlank() ? "-" : value);
+        valueLabel.setWrapText(true);
+        valueLabel.getStyleClass().add("staff-review-value");
+        HBox row = new HBox(8, keyLabel, valueLabel);
+        row.setAlignment(Pos.TOP_LEFT);
+        return row;
+    }
+
+    private String buildUserInitials(User user) {
+        String nom = safe(user.getNom());
+        String prenom = safe(user.getPrenom());
+        String initials = "";
+        if (!nom.isBlank()) initials += Character.toUpperCase(nom.charAt(0));
+        if (!prenom.isBlank()) initials += Character.toUpperCase(prenom.charAt(0));
+        return initials.isBlank() ? "?" : initials;
+    }
+
+    private String verdictLabelFr(String verdict) {
+        return switch (safe(verdict)) {
+            case "APPROVE" -> "APPROUVER";
+            case "PENDING_REVIEW" -> "VÉRIFICATION";
+            case "REJECT" -> "REFUSER";
+            default -> safe(verdict);
+        };
+    }
+
+    private String verdictCssClass(String verdict) {
+        return switch (safe(verdict)) {
+            case "APPROVE" -> "verdict-approve";
+            case "PENDING_REVIEW" -> "verdict-pending";
+            default -> "verdict-reject";
+        };
+    }
+
+    private void openFilePath(String path) {
+        if (!Desktop.isDesktopSupported()) {
+            showError("Pièces staff", "Ouverture de fichiers non supportée sur cet environnement.");
+            return;
+        }
+        try {
+            Desktop.getDesktop().open(new File(path));
+        } catch (Exception ex) {
+            showError("Pièces staff", "Impossible d'ouvrir le fichier:\n" + path);
+        }
     }
 
     private void loadData() {
@@ -635,10 +1190,50 @@ public class UserController {
 
     @FXML
     private void toggleSubmenu(ActionEvent event) {
+        if (submenuVBox == null || userArrow == null) {
+            return;
+        }
         boolean show = !submenuVBox.isVisible();
         submenuVBox.setVisible(show);
         submenuVBox.setManaged(show);
         userArrow.setText(show ? "⌃" : "⌄");
+    }
+
+    @FXML
+    private void onShowUsersPage(ActionEvent event) {
+        switchDashboardPage(true);
+    }
+
+    @FXML
+    private void onShowStaffRequestsPage(ActionEvent event) {
+        loadPendingStaffRequests();
+        switchDashboardPage(false);
+    }
+
+    private void switchDashboardPage(boolean showUsersPage) {
+        if (usersPageContainer != null) {
+            usersPageContainer.setVisible(showUsersPage);
+            usersPageContainer.setManaged(showUsersPage);
+        }
+        if (staffPageContainer != null) {
+            staffPageContainer.setVisible(!showUsersPage);
+            staffPageContainer.setManaged(!showUsersPage);
+        }
+        setNavButtonState(navUsersBtn, showUsersPage);
+        setNavButtonState(navStaffRequestsBtn, !showUsersPage);
+    }
+
+    private void setNavButtonState(Button button, boolean active) {
+        if (button == null) {
+            return;
+        }
+        if (active) {
+            if (!button.getStyleClass().contains("sidebar-nav-btn-active")) {
+                button.getStyleClass().add("sidebar-nav-btn-active");
+            }
+        } else {
+            button.getStyleClass().remove("sidebar-nav-btn-active");
+        }
     }
 
     @FXML
@@ -1040,6 +1635,35 @@ public class UserController {
         return safe(user.getStatutCompte()).toUpperCase(Locale.ROOT).contains("BAN");
     }
 
+    private String resolveAdminSignatureName() {
+        User current = SessionManager.getCurrentUser();
+        if (current == null) {
+            return "Admin MedFlow";
+        }
+        String fullName = (safe(current.getNom()) + " " + safe(current.getPrenom())).trim();
+        if (!fullName.isBlank()) {
+            return fullName;
+        }
+        String email = safe(current.getEmailUser());
+        return email.isBlank() ? "Admin MedFlow" : email;
+    }
+
+    private String resolveStaffDecisionReason(User user) {
+        if (user == null) {
+            return "Non specifie";
+        }
+        String reason = safe(user.getStaffRequestReason());
+        if (reason.isBlank()) {
+            reason = safe(user.getStaffRequestMessage());
+        }
+        return reason.isBlank() ? "Non specifie" : reason;
+    }
+
+    private String buildDecisionPdfName(String prefix, User user) {
+        String idPart = user == null ? "unknown" : String.valueOf(user.getId());
+        return "decision_" + prefix + "_" + idPart + ".pdf";
+    }
+
     private double ratio(int part, int total) {
         return total <= 0 ? 0 : (double) part / total;
     }
@@ -1051,6 +1675,7 @@ public class UserController {
     private String safe(String value) {
         return value == null ? "" : value;
     }
+
 
     private void showError(String title, String message) {
         Alert alert = new Alert(Alert.AlertType.ERROR);

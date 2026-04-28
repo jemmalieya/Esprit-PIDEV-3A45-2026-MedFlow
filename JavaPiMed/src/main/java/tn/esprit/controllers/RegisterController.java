@@ -30,6 +30,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import com.google.gson.Gson;
 import org.mindrot.jbcrypt.BCrypt;
 import tn.esprit.entities.User;
 import tn.esprit.services.UserService;
@@ -43,6 +44,8 @@ import java.util.List;
 import java.util.Map;
 
 public class RegisterController {
+
+    private static final Gson GSON = new Gson();
 
     public static boolean autoRevealOnLoad = false;
 
@@ -375,7 +378,8 @@ public class RegisterController {
                 user.setStaffRequestType("STAFF_SIGNUP");
                 user.setStaffRequestMessage(normalizeOptionalText(staffMessageArea == null ? null : staffMessageArea.getText()));
                 user.setStaffRequestReason(buildStaffRequestReason());
-                user.setStaffRequestProofPath(getAbsolutePath(selectedIdentityProof));
+                // La piece principale de revue admin devient le CV
+                user.setStaffRequestProofPath(getAbsolutePath(selectedOrderProof));
                 user.setStaffDocuments(buildStaffDocumentsPayload());
                 user.setStaffRequestedAt(LocalDateTime.now());
             }
@@ -844,17 +848,13 @@ public class RegisterController {
             return;
         }
         orderProofValid = selectedOrderProof != null;
-        showFieldError(orderProofErrorLabel, orderProofValid ? "" : "L'attestation professionnelle est obligatoire.");
+        showFieldError(orderProofErrorLabel, orderProofValid ? "" : "Le CV est obligatoire.");
     }
 
     private void validateProfessionalPhoto() {
-        if (!isStaffRegistration()) {
-            professionalPhotoValid = true;
-            showFieldError(professionalPhotoErrorLabel, "");
-            return;
-        }
-        professionalPhotoValid = selectedProfessionalPhoto != null;
-        showFieldError(professionalPhotoErrorLabel, professionalPhotoValid ? "" : "La photo professionnelle est obligatoire.");
+        // La photo professionnelle devient optionnelle dans le flow CV-first.
+        professionalPhotoValid = true;
+        showFieldError(professionalPhotoErrorLabel, "");
     }
 
     @FXML
@@ -873,7 +873,7 @@ public class RegisterController {
 
     @FXML
     private void handleSelectOrderProof(ActionEvent event) {
-        selectedOrderProof = chooseSingleFile("Sélectionner l'attestation professionnelle", true);
+        selectedOrderProof = chooseCvFile();
         updateSelectedFileLabel(orderProofNameLabel, selectedOrderProof, false);
         validateOrderProof();
     }
@@ -905,6 +905,18 @@ public class RegisterController {
         FileChooser chooser = buildFileChooser(title, true);
         Stage stage = rootPane != null && rootPane.getScene() != null ? (Stage) rootPane.getScene().getWindow() : null;
         return stage == null ? null : chooser.showOpenMultipleDialog(stage);
+    }
+
+    private File chooseCvFile() {
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Selectionner le CV");
+        chooser.getExtensionFilters().addAll(
+                new FileChooser.ExtensionFilter("CV (PDF/DOC/DOCX)", "*.pdf", "*.doc", "*.docx"),
+                new FileChooser.ExtensionFilter("PDF", "*.pdf"),
+                new FileChooser.ExtensionFilter("Word", "*.doc", "*.docx")
+        );
+        Stage stage = rootPane != null && rootPane.getScene() != null ? (Stage) rootPane.getScene().getWindow() : null;
+        return stage == null ? null : chooser.showOpenDialog(stage);
     }
 
     private FileChooser buildFileChooser(String title, boolean allowDocumentsAndImages) {
@@ -971,14 +983,15 @@ public class RegisterController {
 
     private String buildStaffDocumentsPayload() {
         List<String> documents = new ArrayList<>();
+        // Ordre de revue admin: CV, piece d'identite, diplome, puis pieces optionnelles.
+        addPathIfPresent(documents, selectedOrderProof);
         addPathIfPresent(documents, selectedIdentityProof);
         addPathIfPresent(documents, selectedDiplomaProof);
-        addPathIfPresent(documents, selectedOrderProof);
         addPathIfPresent(documents, selectedProfessionalPhoto);
         for (File file : selectedOtherDocuments) {
             addPathIfPresent(documents, file);
         }
-        return documents.isEmpty() ? null : String.join(" ; ", documents);
+        return documents.isEmpty() ? null : GSON.toJson(documents);
     }
 
     private void addPathIfPresent(List<String> documents, File file) {

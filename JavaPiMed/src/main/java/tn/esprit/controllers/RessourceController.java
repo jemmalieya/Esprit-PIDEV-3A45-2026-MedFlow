@@ -10,6 +10,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -40,6 +41,7 @@ public class RessourceController {
 
     /* ===================== SIDEBAR / DASHBOARD ===================== */
     @FXML private VBox submenuVBox;
+    @FXML private BorderPane resourceDashboardRoot;
     @FXML private Label ressourceArrow;
     @FXML private Label totalResourcesLabel;
     @FXML private Label fileResourcesLabel;
@@ -906,6 +908,7 @@ public class RessourceController {
                 "Type",
                 "Evenement"
         ));
+        sortCombo.setValue("Nom A-Z");
 
         sortCombo.setOnAction(e -> applySort());
 
@@ -972,6 +975,54 @@ public class RessourceController {
         if (categoryFilterCombo != null) {
             categoryFilterCombo.setValue("Accessibilite");
         }
+        applyFilters();
+    }
+
+    @FXML
+    private void showFileResourcesOnly() {
+        if (categoryFilterCombo != null) {
+            categoryFilterCombo.setValue("Toutes categories");
+        }
+        if (searchField != null) {
+            searchField.setText("file");
+        }
+        applyFilters();
+    }
+
+    @FXML
+    private void showExternalLinksOnly() {
+        if (categoryFilterCombo != null) {
+            categoryFilterCombo.setValue("Toutes categories");
+        }
+        if (searchField != null) {
+            searchField.setText("external_link");
+        }
+        applyFilters();
+    }
+
+    @FXML
+    private void showStockResourcesOnly() {
+        if (categoryFilterCombo != null) {
+            categoryFilterCombo.setValue("Stock");
+        }
+        if (searchField != null) {
+            searchField.setText("");
+        }
+        applyFilters();
+    }
+
+    @FXML
+    private void resetDashboardFilters() {
+        if (categoryFilterCombo != null) {
+            categoryFilterCombo.setValue("Toutes categories");
+        }
+        if (searchField != null) {
+            searchField.setText("");
+        }
+        if (sortCombo != null) {
+            sortCombo.setValue("Nom A-Z");
+        }
+        applySort();
         applyFilters();
     }
 
@@ -1189,8 +1240,23 @@ public class RessourceController {
     }
 
     private Stage resolveCurrentStage() {
+        if (resourceDashboardRoot != null && resourceDashboardRoot.getScene() != null) {
+            return (Stage) resourceDashboardRoot.getScene().getWindow();
+        }
         if (ressourceTable != null && ressourceTable.getScene() != null) {
             return (Stage) ressourceTable.getScene().getWindow();
+        }
+        if (searchField != null && searchField.getScene() != null) {
+            return (Stage) searchField.getScene().getWindow();
+        }
+        if (sortCombo != null && sortCombo.getScene() != null) {
+            return (Stage) sortCombo.getScene().getWindow();
+        }
+        if (categoryFilterCombo != null && categoryFilterCombo.getScene() != null) {
+            return (Stage) categoryFilterCombo.getScene().getWindow();
+        }
+        if (inventoryCountLabel != null && inventoryCountLabel.getScene() != null) {
+            return (Stage) inventoryCountLabel.getScene().getWindow();
         }
         if (tfNomRessource != null && tfNomRessource.getScene() != null) {
             return (Stage) tfNomRessource.getScene().getWindow();

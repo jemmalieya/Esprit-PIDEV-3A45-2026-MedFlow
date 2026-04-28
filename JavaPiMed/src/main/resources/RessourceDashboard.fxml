@@ -15,6 +15,7 @@
 
 <BorderPane xmlns="http://javafx.com/javafx/25"
             xmlns:fx="http://javafx.com/fxml/1"
+            fx:id="resourceDashboardRoot"
             fx:controller="tn.esprit.controllers.RessourceController"
             prefWidth="1650.0"
             prefHeight="960.0"
@@ -128,8 +129,18 @@
                     <Region HBox.hgrow="ALWAYS"/>
                     <HBox spacing="16.0" alignment="CENTER_RIGHT">
                         <children>
-                            <Button text="Nouvelle ressource" onAction="#onNewRessource" styleClass="yellow-btn"/>
-                            <Button text="Gestion evenements" onAction="#onGestionEvenements" styleClass="white-btn"/>
+                            <Button text="Nouvelle ressource"
+                                    onAction="#onNewRessource"
+                                    styleClass="yellow-btn"
+                                    minWidth="250.0"
+                                    prefWidth="250.0"
+                                    style="-fx-min-width: 250px; -fx-pref-width: 250px;"/>
+                            <Button text="Gestion evenements"
+                                    onAction="#onGestionEvenements"
+                                    styleClass="white-btn"
+                                    minWidth="250.0"
+                                    prefWidth="250.0"
+                                    style="-fx-min-width: 250px; -fx-pref-width: 250px;"/>
                         </children>
                     </HBox>
                 </children>
@@ -166,6 +177,17 @@
                     <Insets top="22.0" right="24.0" bottom="22.0" left="24.0"/>
                 </padding>
             </VBox>
+
+            <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="quick-filter-bar">
+                <children>
+                    <Label text="Actions rapides" styleClass="quick-filter-label"/>
+                    <Button text="Tout" onAction="#resetDashboardFilters" styleClass="quick-filter-btn"/>
+                    <Button text="Documents" onAction="#showFileResourcesOnly" styleClass="quick-filter-btn"/>
+                    <Button text="Liens" onAction="#showExternalLinksOnly" styleClass="quick-filter-btn"/>
+                    <Button text="Stock" onAction="#showStockResourcesOnly" styleClass="quick-filter-btn"/>
+                    <Button text="Accessibilite" onAction="#showAccessibilityOnly" styleClass="quick-filter-btn-active"/>
+                </children>
+            </HBox>
 
             <HBox spacing="24.0">
                 <children>

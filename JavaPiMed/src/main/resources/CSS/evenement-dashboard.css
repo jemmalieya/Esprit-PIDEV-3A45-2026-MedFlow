@@ -773,3 +773,149 @@
 .logout-utility-btn:hover {
     -fx-background-color: rgba(255,255,255,0.20);
 }
+
+/* ===================== CALENDAR PANEL ===================== */
+.calendar-panel {
+    -fx-background-color: linear-gradient(to bottom right, #ffffff, #f6fbff);
+    -fx-background-radius: 28px;
+    -fx-border-color: #dbe8f5;
+    -fx-border-radius: 28px;
+    -fx-effect: dropshadow(gaussian, rgba(16, 65, 120, 0.08), 18, 0.15, 0, 5);
+}
+
+.calendar-panel-title {
+    -fx-text-fill: #17324d;
+    -fx-font-size: 24px;
+    -fx-font-weight: 900;
+}
+
+.calendar-panel-subtitle {
+    -fx-text-fill: #6b7f97;
+    -fx-font-size: 13px;
+    -fx-font-weight: 700;
+}
+
+.calendar-month-title {
+    -fx-text-fill: #17324d;
+    -fx-font-size: 18px;
+    -fx-font-weight: 900;
+    -fx-padding: 0 10;
+}
+
+.calendar-nav-btn,
+.calendar-ghost-btn {
+    -fx-font-weight: 900;
+    -fx-cursor: hand;
+    -fx-background-radius: 16px;
+}
+
+.calendar-nav-btn {
+    -fx-background-color: linear-gradient(to right, #149ebe, #457df0);
+    -fx-text-fill: white;
+    -fx-padding: 10 14;
+}
+
+.calendar-ghost-btn {
+    -fx-background-color: #eef6ff;
+    -fx-text-fill: #2457b6;
+    -fx-border-color: #cddff6;
+    -fx-border-radius: 16px;
+    -fx-padding: 10 16;
+}
+
+.calendar-weekday-label {
+    -fx-background-color: #eaf3ff;
+    -fx-background-radius: 16px;
+    -fx-padding: 10 0;
+    -fx-text-fill: #2457b6;
+    -fx-font-size: 13px;
+    -fx-font-weight: 900;
+}
+
+.calendar-day-cell {
+    -fx-background-color: white;
+    -fx-background-radius: 20px;
+    -fx-border-color: #e5eef7;
+    -fx-border-radius: 20px;
+    -fx-padding: 12px;
+    -fx-min-height: 132px;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.04), 10, 0.10, 0, 2);
+}
+
+.calendar-day-cell-muted {
+    -fx-background-color: #f7fafc;
+}
+
+.calendar-day-cell-today {
+    -fx-border-color: #18b4c8;
+    -fx-border-width: 1.4px;
+}
+
+.calendar-day-cell-drop-target {
+    -fx-background-color: #edf9ff;
+    -fx-border-color: #149ebe;
+    -fx-border-width: 1.6px;
+}
+
+.calendar-day-number {
+    -fx-text-fill: #17324d;
+    -fx-font-size: 16px;
+    -fx-font-weight: 900;
+}
+
+.calendar-empty-label {
+    -fx-text-fill: #a2b0c2;
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-padding: 10 0 0 0;
+}
+
+.calendar-event-chip {
+    -fx-background-color: linear-gradient(to right, #149ebe, #457df0);
+    -fx-text-fill: white;
+    -fx-background-radius: 14px;
+    -fx-padding: 8 10;
+    -fx-font-size: 12px;
+    -fx-font-weight: 800;
+    -fx-cursor: open-hand;
+}
+
+.calendar-event-chip:hover {
+    -fx-effect: dropshadow(gaussian, rgba(20, 158, 190, 0.26), 14, 0.16, 0, 3);
+}
+
+/* ===================== QUICK FILTERS ===================== */
+.quick-filter-bar {
+    -fx-background-color: rgba(255,255,255,0.72);
+    -fx-background-radius: 22px;
+    -fx-padding: 12 16;
+    -fx-border-color: #dbe8f5;
+    -fx-border-radius: 22px;
+}
+
+.quick-filter-label {
+    -fx-text-fill: #55708c;
+    -fx-font-size: 13px;
+    -fx-font-weight: 900;
+}
+
+.quick-filter-btn,
+.quick-filter-btn-active {
+    -fx-background-radius: 16px;
+    -fx-padding: 10 14;
+    -fx-font-size: 13px;
+    -fx-font-weight: 900;
+    -fx-cursor: hand;
+}
+
+.quick-filter-btn {
+    -fx-background-color: #f3f8ff;
+    -fx-text-fill: #2457b6;
+    -fx-border-color: #d2e1f5;
+    -fx-border-radius: 16px;
+}
+
+.quick-filter-btn-active {
+    -fx-background-color: linear-gradient(to right, #149ebe, #457df0);
+    -fx-text-fill: white;
+}

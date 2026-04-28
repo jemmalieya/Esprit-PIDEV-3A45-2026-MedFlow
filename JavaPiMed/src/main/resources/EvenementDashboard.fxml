@@ -209,6 +209,7 @@
                             </HBox>
                             <HBox spacing="10.0" alignment="CENTER_RIGHT">
                                 <children>
+                                    <Button text="Calendrier" onAction="#ouvrirCalendrierEvenements" styleClass="white-btn"/>
                                     <Button text="Assistant IA" onAction="#ouvrirRecommandationsAiBack" styleClass="white-btn"/>
                                     <Button text="Export PDF" onAction="#handleExportPDF" styleClass="yellow-btn"/>
                                 </children>

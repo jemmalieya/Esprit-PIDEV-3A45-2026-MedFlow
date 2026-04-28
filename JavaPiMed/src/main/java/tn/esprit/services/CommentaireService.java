@@ -15,6 +15,8 @@ public class CommentaireService {
 
     private Connection cn;
     private final CommentModerationService commentModerationService = new CommentModerationService();
+    private final CommentSpamService commentSpamService = new CommentSpamService();
+
 
     public CommentaireService() {
         cn = MyDataBase.getInstance().getCnx();
@@ -24,9 +26,18 @@ public class CommentaireService {
     // AJOUT
     // =========================
     public boolean ajouter(Commentaire c) {
-        if (c == null) {
-            System.out.println("Ajout commentaire refusé : commentaire null.");
-            return false;
+        if (c.getContenu() == null || c.getContenu().trim().isEmpty()) {
+            throw new IllegalArgumentException("Veuillez écrire un commentaire avant d’envoyer.");
+        }
+
+        SpamResult spamResult = commentSpamService.checkBeforeAdd(
+                c.getUser().getId(),
+                c.getPost().getId(),
+                c.getContenu()
+        );
+
+        if (spamResult.isSpam()) {
+            throw new IllegalArgumentException(spamResult.getMessage());
         }
 
         if (c.getPost() == null || c.getPost().getId() <= 0) {
@@ -171,8 +182,34 @@ public class CommentaireService {
     // MODIFIER
     // =========================
     public void modifier(Commentaire c) {
-        String sql = "UPDATE commentaire SET contenu=?, est_anonyme=?, parametres_confidentialite=?, status=?, moderation_score=?, moderation_label=?, moderated_at=? WHERE id=?";
-        try {
+        if (c == null) {
+            throw new IllegalArgumentException("Commentaire invalide.");
+        }
+
+        if (c.getPost() == null || c.getPost().getId() <= 0) {
+            throw new IllegalArgumentException("Post invalide.");
+        }
+
+        if (c.getUser() == null || c.getUser().getId() <= 0) {
+            throw new IllegalArgumentException("Utilisateur invalide.");
+        }
+
+        if (c.getContenu() == null || c.getContenu().trim().isEmpty()) {
+            throw new IllegalArgumentException("Veuillez écrire un commentaire avant d’enregistrer.");
+        }
+
+        SpamResult spamResult = commentSpamService.checkBeforeUpdate(
+                c.getUser().getId(),
+                c.getPost().getId(),
+                c.getId(),
+                c.getContenu()
+        );
+
+        if (spamResult.isSpam()) {
+            throw new IllegalArgumentException(spamResult.getMessage());
+        }
+
+        String sql = "UPDATE commentaire SET contenu=?, est_anonyme=?, parametres_confidentialite=?, status=?, moderation_score=?, moderation_label=?, moderated_at=? WHERE id=?";try {
             PreparedStatement ps = cn.prepareStatement(sql);
             ps.setString(1, c.getContenu());
             ps.setBoolean(2, c.isEst_anonyme());

@@ -223,3 +223,16 @@
 .location-small-btn:hover {
     -fx-background-color: #a7f3d0;
 }
+
+.upload-image-btn {
+    -fx-background-color: linear-gradient(to right, #06b6d4, #2563eb);
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 12;
+    -fx-padding: 9 14;
+    -fx-cursor: hand;
+}
+
+.upload-image-btn:hover {
+    -fx-background-color: linear-gradient(to right, #0891b2, #1d4ed8);
+}

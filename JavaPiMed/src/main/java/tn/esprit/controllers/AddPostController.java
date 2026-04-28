@@ -23,6 +23,7 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import javafx.stage.FileChooser;
 
 import tn.esprit.entities.Post;
 import tn.esprit.entities.PostAiSuggestion;
@@ -30,6 +31,7 @@ import tn.esprit.entities.User;
 import tn.esprit.services.GeminiPostAssistantService;
 import tn.esprit.services.PostService;
 import tn.esprit.tools.SessionManager;
+import tn.esprit.services.CloudinaryPostService;
 
 import javax.imageio.ImageIO;
 import java.awt.BasicStroke;
@@ -46,6 +48,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Locale;
+import java.io.File;
 
 public class AddPostController {
 
@@ -79,6 +82,9 @@ public class AddPostController {
 
     private Post postToEdit = null;
     private boolean editMode = false;
+
+    private File selectedImageFile;
+    private CloudinaryPostService cloudinaryPostService;
 
     private double selectedLatitude = 36.8065;
     private double selectedLongitude = 10.1815;
@@ -147,9 +153,17 @@ public class AddPostController {
         if (isBlank(imageField.getText())) {
             setError(imageField, imageError, "Image obligatoire");
             isValid = false;
-        } else if (!imageField.getText().startsWith("http")) {
-            setError(imageField, imageError, "URL invalide (http/https)");
-            isValid = false;
+        } else {
+            String img = imageField.getText().trim();
+
+            boolean isUrl = img.startsWith("http://") || img.startsWith("https://");
+            boolean isSelectedLocalFile = selectedImageFile != null && selectedImageFile.exists();
+            boolean isLocalPath = new File(img).exists();
+
+            if (!isUrl && !isSelectedLocalFile && !isLocalPath) {
+                setError(imageField, imageError, "Choisissez une image ou utilisez une URL valide");
+                isValid = false;
+            }
         }
 
         if (!isBlank(localisationField.getText())) {
@@ -237,12 +251,28 @@ public class AddPostController {
 
     private void updatePreviewImage() {
         try {
-            String url = imageField.getText();
-            if (!isBlank(url)) {
-                previewImage.setImage(new Image(url));
+            String value = imageField.getText();
+
+            if (isBlank(value)) {
+                previewImage.setImage(null);
+                return;
+            }
+
+            value = value.trim();
+
+            if (value.startsWith("http://") || value.startsWith("https://") || value.startsWith("file:")) {
+                previewImage.setImage(new Image(value, true));
+                return;
+            }
+
+            File localFile = new File(value);
+
+            if (localFile.exists()) {
+                previewImage.setImage(new Image(localFile.toURI().toString(), true));
             } else {
                 previewImage.setImage(null);
             }
+
         } catch (Exception e) {
             previewImage.setImage(null);
         }
@@ -295,7 +325,18 @@ public class AddPostController {
         });
 
         imageField.textProperty().addListener((obs, oldVal, newVal) -> {
-            if (!isBlank(newVal) && !newVal.startsWith("http")) {
+            if (isBlank(newVal)) {
+                imageField.setStyle(null);
+                imageError.setText("");
+                return;
+            }
+
+            String img = newVal.trim();
+
+            boolean isUrl = img.startsWith("http://") || img.startsWith("https://");
+            boolean isLocalPath = new File(img).exists();
+
+            if (!isUrl && !isLocalPath) {
                 imageField.setStyle("-fx-border-color: red;");
             } else {
                 imageField.setStyle(null);
@@ -328,6 +369,32 @@ public class AddPostController {
             }
         });
     }
+    private String uploadImageUrlVersCloudinary() throws Exception {
+        String imageUrl = imageField.getText() == null ? "" : imageField.getText().trim();
+
+        if (imageUrl.isBlank()) {
+            throw new IllegalStateException("Image obligatoire.");
+        }
+
+        if (!imageUrl.startsWith("http://") && !imageUrl.startsWith("https://")) {
+            throw new IllegalStateException("L'image doit être une URL web valide.");
+        }
+
+        imageError.setStyle("-fx-text-fill: #2563eb;");
+        imageError.setText("Upload vers Cloudinary en cours...");
+
+        String cloudinaryUrl = getCloudinaryPostService().uploadPostImageFromUrl(imageUrl);
+
+        imageField.setText(cloudinaryUrl);
+        imageError.setStyle("-fx-text-fill: green;");
+        imageError.setText("Image envoyée vers Cloudinary avec succès.");
+
+        previewImage.setImage(new Image(cloudinaryUrl, true));
+
+        return cloudinaryUrl;
+    }
+
+
 
     @FXML
     private void handlePublish() {
@@ -336,12 +403,13 @@ public class AddPostController {
         }
 
         try {
+            String imageCloudinaryUrl = uploadImageUrlVersCloudinary();
             if (editMode && postToEdit != null) {
                 postToEdit.setTitre(titreField.getText().trim());
                 postToEdit.setContenu(contenuArea.getText().trim());
                 postToEdit.setCategorie(categorieBox.getValue());
                 postToEdit.setLocalisation(isBlank(localisationField.getText()) ? "Tunis" : localisationField.getText().trim());
-                postToEdit.setImg_post(isBlank(imageField.getText()) ? "" : imageField.getText().trim());
+                postToEdit.setImg_post(imageCloudinaryUrl);
                 postToEdit.setHashtags(isBlank(hashtagsField.getText()) ? "" : hashtagsField.getText().trim());
                 postToEdit.setEst_anonyme(anonymeCheck.isSelected());
                 postToEdit.setHumeur(humeurBox.getValue());
@@ -392,7 +460,7 @@ public class AddPostController {
                 post.setContenu(contenuArea.getText().trim());
                 post.setCategorie(categorieBox.getValue());
                 post.setLocalisation(isBlank(localisationField.getText()) ? "Tunis" : localisationField.getText().trim());
-                post.setImg_post(isBlank(imageField.getText()) ? "" : imageField.getText().trim());
+                post.setImg_post(imageCloudinaryUrl);
                 post.setHashtags(isBlank(hashtagsField.getText()) ? "" : hashtagsField.getText().trim());
                 post.setVisibilite("Public");
                 post.setDate_creation(java.time.LocalDateTime.now());
@@ -1559,5 +1627,12 @@ public class AddPostController {
                 .replace("\\/", "/")
                 .replace("\\n", " ")
                 .replace("\\t", " ");
+    }
+
+    private CloudinaryPostService getCloudinaryPostService() {
+        if (cloudinaryPostService == null) {
+            cloudinaryPostService = new CloudinaryPostService();
+        }
+        return cloudinaryPostService;
     }
 }

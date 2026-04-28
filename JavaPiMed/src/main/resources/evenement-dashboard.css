@@ -167,6 +167,15 @@
     -fx-background-color: #eef3f9;
 }
 
+.main-scroll {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.main-scroll > .viewport {
+    -fx-background-color: #eef3f9;
+}
+
 .top-search-box {
     -fx-background-color: white;
     -fx-background-radius: 24px;

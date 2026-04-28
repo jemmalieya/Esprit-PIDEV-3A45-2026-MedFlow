@@ -93,6 +93,8 @@ public class ReponseController {
         statutCol.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("statut_reclamation"));
         prioriteCol.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("priorite"));
 
+        reclamationTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+
         descriptionCol.setCellValueFactory(cellData -> {
             String desc = cellData.getValue().getDescription();
             if (desc == null) desc = "";

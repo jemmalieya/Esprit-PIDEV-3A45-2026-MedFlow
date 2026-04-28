@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressBar?>
+<?import javafx.scene.canvas.Canvas?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.paint.Color?>
+<?import javafx.geometry.Insets?>
+
+<AnchorPane fx:id="rootPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="600.0" prefWidth="900.0" style="-fx-background-color: #f5f7fa;" xmlns="http://javafx.com/javafx/20.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="tn.esprit.controllers.FaceLoginController">
+    <!-- Main container -->
+    <VBox layoutX="0.0" layoutY="0.0" prefHeight="600.0" prefWidth="900.0" spacing="20.0" style="-fx-padding: 30;" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+        
+        <!-- Header -->
+        <VBox spacing="10.0" style="-fx-alignment: center;">
+            <Label text="🎯 Face Recognition Login" style="-fx-font-size: 28; -fx-font-weight: bold; -fx-text-fill: #1e91ad;" />
+            <Label fx:id="instructionLabel" text="Position your face in front of the camera" style="-fx-font-size: 14; -fx-text-fill: #235567; -fx-text-alignment: center;" wrapText="true" />
+        </VBox>
+
+        <!-- Webcam section -->
+        <VBox style="-fx-border-color: #d0d8e0; -fx-border-radius: 10; -fx-padding: 15; -fx-background-color: #000000; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 5, 0, 0, 2);" spacing="15.0" alignment="CENTER">
+            
+            <!-- Live camera canvas -->
+            <Canvas fx:id="cameraCanvas" width="500" height="375" style="-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 8, 0, 0, 3);" />
+
+            <!-- Progress bar -->
+            <ProgressBar fx:id="enrollmentProgress" prefWidth="500.0" progress="0.0" style="-fx-padding: 2;" />
+
+            <!-- Status indicators -->
+            <HBox spacing="20.0" style="-fx-alignment: center;">
+                <VBox spacing="5.0" style="-fx-alignment: center; -fx-padding: 10; -fx-border-color: #e8f1f5; -fx-border-radius: 5; -fx-background-color: #f0f7fc; -fx-min-width: 150;">
+                    <Label text="Face Status" style="-fx-font-size: 12; -fx-text-fill: #666666; -fx-font-weight: bold;" />
+                    <Label fx:id="faceStatusLabel" text="Analyzing..." style="-fx-font-size: 14; -fx-font-weight: bold;" textFill="#1e91ad" />
+                </VBox>
+
+                <VBox spacing="5.0" style="-fx-alignment: center; -fx-padding: 10; -fx-border-color: #e8f1f5; -fx-border-radius: 5; -fx-background-color: #f0f7fc; -fx-min-width: 150;">
+                    <Label text="Status" style="-fx-font-size: 12; -fx-text-fill: #666666; -fx-font-weight: bold;" />
+                    <Label fx:id="statusLabel" text="Processing..." style="-fx-font-size: 14; -fx-font-weight: bold;" textFill="#1e91ad" />
+                </VBox>
+            </HBox>
+        </VBox>
+
+        <!-- Info message -->
+        <Label text="💡 Tips: Make sure you have good lighting, face the camera directly, and avoid wearing sunglasses or hats." style="-fx-font-size: 13; -fx-text-fill: #7f8c8d; -fx-padding: 10; -fx-background-color: #fffbea; -fx-border-color: #f39c12; -fx-border-radius: 5; -fx-border-width: 1;" wrapText="true" />
+
+        <!-- Bottom buttons -->
+        <HBox spacing="10.0" style="-fx-alignment: center;">
+            <Button fx:id="cancelButton" mnemonicParsing="false" style="-fx-padding: 10 30; -fx-font-size: 14; -fx-text-fill: white; -fx-background-color: #e74c3c; -fx-border-radius: 5; -fx-cursor: hand;" text="Cancel" />
+        </HBox>
+    </VBox>
+</AnchorPane>

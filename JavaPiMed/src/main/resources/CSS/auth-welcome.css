@@ -1,0 +1,312 @@
+/* ═══════════════════════════════════════════
+   MEDFLOW — AUTH WELCOME  (Modern Redesign)
+   ═══════════════════════════════════════════ */
+
+.welcome-root {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%,
+        #030811 0%,
+        #071a2a 35%,
+        #0a2a3a 68%,
+        #061520 100%);
+    -fx-background-insets: 0;
+    -fx-font-family: "Segoe UI", "Inter", "Arial";
+}
+
+/* ── Decorative background ring (used by controller) ── */
+.bg-ring {
+    -fx-background-color: transparent;
+    -fx-border-color: rgba(0, 200, 230, 0.07);
+    -fx-border-width: 2;
+    -fx-border-radius: 1000;
+    -fx-background-radius: 1000;
+}
+
+/* ── Hero card (main glass container) ── */
+.welcome-card {
+    -fx-background-color:
+        rgba(255,255,255,0.03),
+        linear-gradient(from 0% 0% to 100% 100%,
+            rgba(8, 23, 35, 0.90) 0%,
+            rgba(10, 32, 46, 0.88) 50%,
+            rgba(7, 20, 32, 0.92) 100%);
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 32, 31;
+    -fx-border-color:
+        rgba(0, 220, 255, 0.18),
+        rgba(255,255,255,0.07);
+    -fx-border-width: 1, 1;
+    -fx-border-insets: 0, 1;
+    -fx-border-radius: 32, 31;
+    -fx-effect: dropshadow(gaussian, rgba(0, 150, 200, 0.22), 88, 0.14, 0, 26);
+}
+
+/* ── Accent top bar inside card ── */
+.welcome-accent-bar {
+    -fx-background-color: linear-gradient(to right, #00c9e0, #0084a8, transparent);
+    -fx-background-radius: 2;
+    -fx-min-height: 3;
+    -fx-max-height: 3;
+    -fx-pref-height: 3;
+}
+
+/* ── Brand badge ── */
+.welcome-brand-badge {
+    -fx-background-color: rgba(0, 195, 225, 0.14);
+    -fx-background-radius: 50;
+    -fx-border-color: rgba(0, 200, 235, 0.30);
+    -fx-border-radius: 50;
+    -fx-border-width: 1;
+    -fx-padding: 5 14;
+    -fx-alignment: CENTER;
+    -fx-effect: dropshadow(gaussian, rgba(0, 180, 215, 0.20), 14, 0.2, 0, 3);
+}
+
+.welcome-brand {
+    -fx-text-fill: #00d4ed;
+    -fx-font-size: 13px;
+    -fx-font-weight: 900;
+    -fx-letter-spacing: 3px;
+    -fx-effect: dropshadow(gaussian, rgba(0,200,240,0.60), 14, 0.3, 0, 0);
+}
+
+.theme-toggle {
+    -fx-background-color: rgba(255,255,255,0.09);
+    -fx-text-fill: #d6f3ff;
+    -fx-border-color: rgba(0, 190, 225, 0.36);
+    -fx-border-width: 1;
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-padding: 8 14;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+    -fx-cursor: hand;
+}
+
+.theme-toggle:hover {
+    -fx-background-color: rgba(0, 200, 230, 0.16);
+    -fx-border-color: rgba(0, 200, 230, 0.55);
+}
+
+.theme-toggle:pressed {
+    -fx-scale-x: 0.98;
+    -fx-scale-y: 0.98;
+}
+
+/* ── Headline ── */
+.welcome-title {
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 54px;
+    -fx-font-weight: 900;
+    -fx-line-spacing: 2px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.62), 20, 0.24, 0, 3);
+}
+
+.welcome-title-accent {
+    -fx-text-fill: #00d4ed;
+    -fx-font-size: 54px;
+    -fx-font-weight: 900;
+    -fx-effect: dropshadow(gaussian, rgba(0, 200, 240, 0.55), 18, 0.3, 0, 2);
+}
+
+.welcome-subtitle {
+    -fx-text-fill: rgba(222, 242, 250, 0.92);
+    -fx-font-size: 16px;
+    -fx-font-weight: 600;
+    -fx-max-width: 680;
+    -fx-line-spacing: 3px;
+}
+
+/* ── Feature pills ── */
+.welcome-pills-row {
+    -fx-padding: 4 0 4 0;
+}
+
+.welcome-pill {
+    -fx-background-color: rgba(255,255,255,0.08);
+    -fx-background-radius: 16;
+    -fx-border-color: rgba(255,255,255,0.10);
+    -fx-border-radius: 16;
+    -fx-border-width: 1;
+    -fx-padding: 13 16;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.16), 12, 0.15, 0, 2);
+}
+
+.welcome-pill:hover {
+    -fx-background-color: rgba(0, 200, 235, 0.13);
+    -fx-border-color: rgba(0, 200, 235, 0.34);
+    -fx-translate-y: -1;
+    -fx-effect: dropshadow(gaussian, rgba(0, 185, 225, 0.20), 16, 0.20, 0, 3);
+}
+
+.welcome-pill-icon {
+    -fx-font-size: 16px;
+    -fx-font-weight: 900;
+    -fx-text-fill: #8ce8ff;
+}
+
+.pill-title {
+    -fx-text-fill: #f2fbff;
+    -fx-font-size: 13px;
+    -fx-font-weight: 800;
+}
+
+.pill-text {
+    -fx-text-fill: rgba(194, 232, 245, 0.88);
+    -fx-font-size: 12px;
+    -fx-font-weight: 500;
+}
+
+/* ── Divider ── */
+.welcome-divider {
+    -fx-background-color: rgba(255,255,255,0.08);
+    -fx-min-height: 1;
+    -fx-max-height: 1;
+    -fx-pref-height: 1;
+}
+
+/* ── Action buttons ── */
+.welcome-primary,
+.welcome-secondary {
+    -fx-padding: 14 22;
+    -fx-font-size: 14px;
+    -fx-font-weight: 800;
+    -fx-background-radius: 14;
+    -fx-border-radius: 14;
+    -fx-cursor: hand;
+    -fx-letter-spacing: 0.5px;
+}
+
+.welcome-primary {
+    -fx-background-color: linear-gradient(to right, #00bcd6, #0094b8);
+    -fx-text-fill: white;
+    -fx-effect: dropshadow(gaussian, rgba(0, 180, 220, 0.45), 20, 0.25, 0, 6);
+}
+
+.welcome-primary:focused,
+.welcome-secondary:focused {
+    -fx-border-color: rgba(120, 230, 255, 0.80);
+    -fx-border-width: 1.2;
+}
+
+.welcome-secondary {
+    -fx-background-color: rgba(255,255,255,0.10);
+    -fx-text-fill: #d8f5ff;
+    -fx-border-color: rgba(0, 190, 225, 0.30);
+    -fx-border-width: 1;
+}
+
+.welcome-primary:hover {
+    -fx-background-color: linear-gradient(to right, #00d4ef, #00a8d0);
+    -fx-translate-y: -2;
+    -fx-effect: dropshadow(gaussian, rgba(0, 200, 240, 0.60), 28, 0.3, 0, 8);
+}
+
+.welcome-primary:pressed {
+    -fx-translate-y: 0;
+    -fx-scale-x: 0.99;
+    -fx-scale-y: 0.99;
+}
+
+.welcome-secondary:hover {
+    -fx-background-color: rgba(0, 195, 230, 0.16);
+    -fx-border-color: rgba(0, 195, 230, 0.50);
+    -fx-text-fill: #e9fbff;
+    -fx-translate-y: -1;
+}
+
+.welcome-secondary:pressed {
+    -fx-translate-y: 0;
+    -fx-scale-x: 0.995;
+    -fx-scale-y: 0.995;
+}
+
+.welcome-footer-note {
+    -fx-text-fill: rgba(193, 226, 236, 0.84);
+    -fx-font-size: 11px;
+}
+
+/* ── Light mode overrides ── */
+.welcome-root-light {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%,
+        #eaf8ff 0%,
+        #dff4ff 40%,
+        #d4eefc 70%,
+        #e6f9ff 100%);
+    -fx-font-family: "Segoe UI", "Inter", "Arial";
+}
+
+.welcome-root-light .welcome-card {
+    -fx-background-color:
+        rgba(255,255,255,0.80),
+        linear-gradient(from 0% 0% to 100% 100%,
+            rgba(255,255,255,0.95) 0%,
+            rgba(235, 248, 255, 0.94) 55%,
+            rgba(225, 244, 252, 0.93) 100%);
+    -fx-border-color: rgba(0, 150, 190, 0.24), rgba(255,255,255,0.65);
+    -fx-effect: dropshadow(gaussian, rgba(0, 120, 160, 0.16), 56, 0.12, 0, 16);
+}
+
+.welcome-root-light .welcome-brand-badge {
+    -fx-background-color: rgba(0, 185, 215, 0.12);
+    -fx-border-color: rgba(0, 165, 205, 0.35);
+}
+
+.welcome-root-light .welcome-brand,
+.welcome-root-light .welcome-title-accent,
+.welcome-root-light .welcome-pill-icon {
+    -fx-text-fill: #0087aa;
+    -fx-effect: none;
+}
+
+.welcome-root-light .welcome-title {
+    -fx-text-fill: #0a3346;
+    -fx-effect: dropshadow(gaussian, rgba(255,255,255,0.65), 10, 0.2, 0, 0);
+}
+
+.welcome-root-light .welcome-subtitle,
+.welcome-root-light .pill-text,
+.welcome-root-light .welcome-footer-note {
+    -fx-text-fill: rgba(22, 68, 88, 0.82);
+}
+
+.welcome-root-light .pill-title {
+    -fx-text-fill: #154f67;
+}
+
+.welcome-root-light .welcome-pill {
+    -fx-background-color: rgba(255,255,255,0.72);
+    -fx-border-color: rgba(0, 155, 195, 0.20);
+    -fx-effect: dropshadow(gaussian, rgba(0, 120, 150, 0.12), 10, 0.14, 0, 2);
+}
+
+.welcome-root-light .welcome-pill:hover {
+    -fx-background-color: rgba(225, 245, 255, 0.88);
+    -fx-border-color: rgba(0, 170, 205, 0.36);
+}
+
+.welcome-root-light .welcome-divider {
+    -fx-background-color: rgba(0, 120, 150, 0.18);
+}
+
+.welcome-root-light .welcome-primary {
+    -fx-background-color: linear-gradient(to right, #0db8d2, #0a90b3);
+    -fx-text-fill: white;
+}
+
+.welcome-root-light .welcome-secondary {
+    -fx-background-color: rgba(255,255,255,0.75);
+    -fx-text-fill: #166581;
+    -fx-border-color: rgba(0, 140, 175, 0.34);
+}
+
+.welcome-root-light .theme-toggle {
+    -fx-background-color: rgba(255,255,255,0.82);
+    -fx-text-fill: #175b74;
+    -fx-border-color: rgba(0, 140, 175, 0.35);
+}
+
+.welcome-root-light .theme-toggle:hover {
+    -fx-background-color: rgba(230, 247, 255, 0.92);
+    -fx-border-color: rgba(0, 160, 190, 0.50);
+}
+

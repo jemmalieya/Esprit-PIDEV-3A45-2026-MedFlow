@@ -10,13 +10,13 @@ public class MainFx extends Application {
 
     @Override
     public void start(Stage stage) throws Exception {
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("/FrontFXML/Login.fxml"));
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("/FrontFXML/AuthWelcome.fxml"));
         Parent root = loader.load();
 
-        Scene scene = new Scene(root, 1300, 780);
+        Scene scene = new Scene(root, 1280, 720);
 
         stage.setScene(scene);
-        stage.setTitle("MedFlow - Connexion");
+        stage.setTitle("MedFlow - Bienvenue");
         stage.setMaximized(true);
         stage.show();
     }

@@ -10,17 +10,23 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.util.StringConverter;
 import tn.esprit.entities.Evenement;
 import tn.esprit.entities.Ressource;
+import tn.esprit.services.CloudinaryEventUploadService;
 import tn.esprit.services.EvenementService;
 import tn.esprit.services.RessourceService;
+import tn.esprit.tools.SessionManager;
 
+import java.io.File;
+import java.nio.file.Files;
 import java.sql.SQLException;
 import java.util.Date;
 import java.util.HashMap;
@@ -35,14 +41,18 @@ public class RessourceController {
 
     /* ===================== SIDEBAR / DASHBOARD ===================== */
     @FXML private VBox submenuVBox;
+    @FXML private BorderPane resourceDashboardRoot;
     @FXML private Label ressourceArrow;
     @FXML private Label totalResourcesLabel;
     @FXML private Label fileResourcesLabel;
     @FXML private Label linkResourcesLabel;
     @FXML private Label stockResourcesLabel;
+    @FXML private Label accessibilityResourcesLabel;
+    @FXML private Label historiqueResourcesLabel;
     @FXML private Label inventoryCountLabel;
     @FXML private TextField searchField;
     @FXML private ComboBox<String> sortCombo;
+    @FXML private ComboBox<String> categoryFilterCombo;
 
     @FXML private TableView<Ressource> ressourceTable;
     @FXML private TableColumn<Ressource, String> eventCol;
@@ -73,6 +83,7 @@ public class RessourceController {
     /* ===================== SERVICES / DATA ===================== */
     private final RessourceService ressourceService = new RessourceService();
     private final EvenementService evenementService = new EvenementService();
+    private final CloudinaryEventUploadService cloudinaryEventUploadService = new CloudinaryEventUploadService();
     private final ObservableList<Ressource> masterList = FXCollections.observableArrayList();
     private final ObservableList<Evenement> evenements = FXCollections.observableArrayList();
     private final Map<Integer, String> eventTitlesById = new HashMap<>();
@@ -190,6 +201,12 @@ public class RessourceController {
         loadScene("/EvenementDashboard.fxml", "Gestion des Evenements");
     }
 
+    @FXML
+    private void onLogout() {
+        SessionManager.clear();
+        loadScene("/FrontFXML/Login.fxml", "Connexion");
+    }
+
     /* =========================================================
        ===================== ACTIONS AJOUT / MODIF ==============
        ========================================================= */
@@ -243,6 +260,46 @@ public class RessourceController {
 
         } catch (Exception e) {
             showAlert(Alert.AlertType.ERROR, "Erreur", e.getMessage());
+        }
+    }
+
+    @FXML
+    private void choisirFichierCloudinary() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Uploader une ressource vers Cloudinary");
+        fileChooser.getExtensionFilters().addAll(
+                new FileChooser.ExtensionFilter("Documents et images",
+                        "*.pdf", "*.png", "*.jpg", "*.jpeg", "*.webp", "*.doc", "*.docx", "*.ppt", "*.pptx", "*.xls", "*.xlsx"),
+                new FileChooser.ExtensionFilter("Tous les fichiers", "*.*")
+        );
+
+        File file = fileChooser.showOpenDialog(resolveCurrentStage());
+        if (file == null) {
+            return;
+        }
+
+        if (!cloudinaryEventUploadService.isConfigured()) {
+            showAlert(
+                    Alert.AlertType.ERROR,
+                    "Cloudinary non configure",
+                    "Ajoutez CLOUDINARY_EVENT_CLOUD_NAME, CLOUDINARY_EVENT_API_KEY et CLOUDINARY_EVENT_API_SECRET dans .env.local, les variables d'environnement ou VM options."
+            );
+            return;
+        }
+
+        try {
+            CloudinaryEventUploadService.UploadResult result = cloudinaryEventUploadService.uploadResourceFile(file);
+            cbTypeRessource.setValue("file");
+            tfCheminFichier.setText(result.secureUrl());
+
+            String mime = Files.probeContentType(file.toPath());
+            tfMimeType.setText(mime == null || mime.isBlank() ? "application/octet-stream" : mime);
+            tfTailleKb.setText(String.valueOf(Math.max(1, Math.round(file.length() / 1024.0f))));
+
+            validateConditionalFields();
+            showAlert(Alert.AlertType.INFORMATION, "Cloudinary", "Ressource uploadee avec succes vers Cloudinary.");
+        } catch (Exception e) {
+            showAlert(Alert.AlertType.ERROR, "Cloudinary", "Upload impossible : " + e.getMessage());
         }
     }
 
@@ -839,6 +896,7 @@ public class RessourceController {
 
         addActionsColumn();
         ressourceTable.setPlaceholder(new Label("Aucune ressource trouvee"));
+        ressourceTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_ALL_COLUMNS);
     }
 
     private void configureSort() {
@@ -850,14 +908,28 @@ public class RessourceController {
                 "Type",
                 "Evenement"
         ));
+        sortCombo.setValue("Nom A-Z");
 
         sortCombo.setOnAction(e -> applySort());
+
+        if (categoryFilterCombo != null) {
+            categoryFilterCombo.setItems(FXCollections.observableArrayList(
+                    "Toutes categories",
+                    "Accessibilite",
+                    "Document",
+                    "Materiel",
+                    "Stock"
+            ));
+            categoryFilterCombo.setValue("Toutes categories");
+            categoryFilterCombo.setOnAction(e -> applyFilters());
+        }
     }
 
     private void loadData() {
         masterList.setAll(ressourceService.recuperer());
         filteredList = new FilteredList<>(masterList, r -> true);
         ressourceTable.setItems(filteredList);
+        applyFilters();
 
         if (inventoryCountLabel != null) {
             inventoryCountLabel.setText(masterList.size() + " ressource(s) dans votre espace");
@@ -868,19 +940,90 @@ public class RessourceController {
         if (searchField == null) return;
 
         searchField.textProperty().addListener((o, a, b) -> {
-            String keyword = normalize(b);
-
-            filteredList.setPredicate(r ->
-                    keyword.isEmpty()
-                            || normalize(r.getNom_ressource()).contains(keyword)
-                            || normalize(r.getCategorie_ressource()).contains(keyword)
-                            || normalize(r.getType_ressource()).contains(keyword)
-                            || normalize(getEventTitle(r)).contains(keyword)
-                            || normalize(r.getFournisseur_ressource()).contains(keyword)
-            );
-
-            updateStats();
+            applyFilters();
         });
+    }
+
+    private void applyFilters() {
+        if (filteredList == null) return;
+
+        String keyword = normalize(searchField == null ? "" : searchField.getText());
+        String category = categoryFilterCombo == null ? "Toutes categories" : text(categoryFilterCombo.getValue());
+        String normalizedCategory = normalize(category);
+
+        filteredList.setPredicate(r -> {
+            boolean matchesKeyword = keyword.isEmpty()
+                    || normalize(r.getNom_ressource()).contains(keyword)
+                    || normalize(r.getCategorie_ressource()).contains(keyword)
+                    || normalize(r.getType_ressource()).contains(keyword)
+                    || normalize(getEventTitle(r)).contains(keyword)
+                    || normalize(r.getFournisseur_ressource()).contains(keyword)
+                    || normalize(r.getNotes_ressource()).contains(keyword);
+
+            boolean matchesCategory = normalizedCategory.isBlank()
+                    || normalizedCategory.equals("toutes categories")
+                    || normalize(r.getCategorie_ressource()).contains(normalizedCategory);
+
+            return matchesKeyword && matchesCategory;
+        });
+
+        updateStats();
+    }
+
+    @FXML
+    private void showAccessibilityOnly() {
+        if (categoryFilterCombo != null) {
+            categoryFilterCombo.setValue("Accessibilite");
+        }
+        applyFilters();
+    }
+
+    @FXML
+    private void showFileResourcesOnly() {
+        if (categoryFilterCombo != null) {
+            categoryFilterCombo.setValue("Toutes categories");
+        }
+        if (searchField != null) {
+            searchField.setText("file");
+        }
+        applyFilters();
+    }
+
+    @FXML
+    private void showExternalLinksOnly() {
+        if (categoryFilterCombo != null) {
+            categoryFilterCombo.setValue("Toutes categories");
+        }
+        if (searchField != null) {
+            searchField.setText("external_link");
+        }
+        applyFilters();
+    }
+
+    @FXML
+    private void showStockResourcesOnly() {
+        if (categoryFilterCombo != null) {
+            categoryFilterCombo.setValue("Stock");
+        }
+        if (searchField != null) {
+            searchField.setText("");
+        }
+        applyFilters();
+    }
+
+    @FXML
+    private void resetDashboardFilters() {
+        if (categoryFilterCombo != null) {
+            categoryFilterCombo.setValue("Toutes categories");
+        }
+        if (searchField != null) {
+            searchField.setText("");
+        }
+        if (sortCombo != null) {
+            sortCombo.setValue("Nom A-Z");
+        }
+        applySort();
+        applyFilters();
     }
 
     private void applySort() {
@@ -930,20 +1073,32 @@ public class RessourceController {
                     filteredList.stream().filter(r -> "stock_item".equalsIgnoreCase(text(r.getType_ressource()))).count()
             ));
         }
+
+        if (accessibilityResourcesLabel != null) {
+            accessibilityResourcesLabel.setText(String.valueOf(
+                    filteredList.stream().filter(r -> normalize(r.getCategorie_ressource()).contains("accessibilite")).count()
+            ));
+        }
+
+        if (historiqueResourcesLabel != null) {
+            historiqueResourcesLabel.setText(String.valueOf(
+                    filteredList.stream().filter(r -> !r.isEst_publique_ressource()).count()
+            ));
+        }
     }
 
     private void addActionsColumn() {
         actionsCol.setCellFactory(col -> new TableCell<>() {
             private final Button viewBtn = new Button("Voir");
             private final Button editBtn = new Button("Modifier");
-            private final Button deleteBtn = new Button("Supprimer");
-            private final ToolBar toolBar = new ToolBar(viewBtn, editBtn, deleteBtn);
+            private final Button archiveBtn = new Button("Historique");
+            private final ToolBar toolBar = new ToolBar(viewBtn, editBtn, archiveBtn);
 
             {
                 toolBar.getStyleClass().add("action-toolbar");
                 viewBtn.getStyleClass().add("view-btn");
                 editBtn.getStyleClass().add("edit-btn");
-                deleteBtn.getStyleClass().add("delete-btn");
+                archiveBtn.getStyleClass().add("delete-btn");
 
                 viewBtn.setOnAction(e -> {
                     Ressource r = getTableView().getItems().get(getIndex());
@@ -955,18 +1110,18 @@ public class RessourceController {
                     ouvrirPageModification(r);
                 });
 
-                deleteBtn.setOnAction(e -> {
+                archiveBtn.setOnAction(e -> {
                     Ressource r = getTableView().getItems().get(getIndex());
 
                     Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
                     confirm.setTitle("Confirmation");
                     confirm.setHeaderText(null);
-                    confirm.setContentText("Supprimer la ressource : " + text(r.getNom_ressource()) + " ?");
+                    confirm.setContentText("Envoyer la ressource dans l'historique : " + text(r.getNom_ressource()) + " ?");
 
                     Optional<ButtonType> result = confirm.showAndWait();
                     if (result.isPresent() && result.get() == ButtonType.OK) {
-                        ressourceService.supprimer(r);
-                        masterList.remove(r);
+                        ressourceService.archiver(r);
+                        ressourceTable.refresh();
                         updateStats();
 
                         if (inventoryCountLabel != null) {
@@ -1085,8 +1240,23 @@ public class RessourceController {
     }
 
     private Stage resolveCurrentStage() {
+        if (resourceDashboardRoot != null && resourceDashboardRoot.getScene() != null) {
+            return (Stage) resourceDashboardRoot.getScene().getWindow();
+        }
         if (ressourceTable != null && ressourceTable.getScene() != null) {
             return (Stage) ressourceTable.getScene().getWindow();
+        }
+        if (searchField != null && searchField.getScene() != null) {
+            return (Stage) searchField.getScene().getWindow();
+        }
+        if (sortCombo != null && sortCombo.getScene() != null) {
+            return (Stage) sortCombo.getScene().getWindow();
+        }
+        if (categoryFilterCombo != null && categoryFilterCombo.getScene() != null) {
+            return (Stage) categoryFilterCombo.getScene().getWindow();
+        }
+        if (inventoryCountLabel != null && inventoryCountLabel.getScene() != null) {
+            return (Stage) inventoryCountLabel.getScene().getWindow();
         }
         if (tfNomRessource != null && tfNomRessource.getScene() != null) {
             return (Stage) tfNomRessource.getScene().getWindow();

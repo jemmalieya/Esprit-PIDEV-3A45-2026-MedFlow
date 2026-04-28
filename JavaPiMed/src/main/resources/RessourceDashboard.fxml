@@ -15,6 +15,7 @@
 
 <BorderPane xmlns="http://javafx.com/javafx/25"
             xmlns:fx="http://javafx.com/fxml/1"
+            fx:id="resourceDashboardRoot"
             fx:controller="tn.esprit.controllers.RessourceController"
             prefWidth="1650.0"
             prefHeight="960.0"
@@ -28,8 +29,8 @@
                     <children>
                         <StackPane prefWidth="40.0" prefHeight="40.0">
                             <children>
-                                <Label text="❤" styleClass="logo-heart"/>
-                                <Label text="✚" styleClass="logo-plus"/>
+                                <Label text="+" styleClass="logo-plus"/>
+                                <Label text="&#10084;" styleClass="logo-heart"/>
                             </children>
                         </StackPane>
                         <Label text="MEDFLOW" styleClass="logo-text"/>
@@ -40,7 +41,6 @@
 
                 <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="sidebar-item">
                     <children>
-                        <Label text="🩺" styleClass="sidebar-item-icon"/>
                         <Label text="Dashboard" styleClass="sidebar-item-text"/>
                     </children>
                 </HBox>
@@ -57,10 +57,10 @@
                     <graphic>
                         <HBox alignment="CENTER_LEFT" spacing="10.0" maxWidth="Infinity">
                             <children>
-                                <Label text="📦" styleClass="sidebar-item-icon"/>
+                                <Label text="" styleClass="sidebar-item-icon"/>
                                 <Label text="Ressources" styleClass="sidebar-item-text"/>
                                 <Region HBox.hgrow="ALWAYS"/>
-                                <Label fx:id="ressourceArrow" text="⌄" styleClass="sidebar-arrow"/>
+                                <Label fx:id="ressourceArrow" text="v" styleClass="sidebar-arrow"/>
                             </children>
                         </HBox>
                     </graphic>
@@ -75,17 +75,16 @@
                     <children>
                         <Label text="GESTION DES RESSOURCES :" styleClass="submenu-title"/>
                         <Button text="Voir toutes les ressources" onAction="#onVoirTousRessources" maxWidth="Infinity" alignment="CENTER_LEFT" styleClass="submenu-link"/>
-                        <Button text="Nouveau ressource" onAction="#onNewRessource" maxWidth="Infinity" alignment="CENTER_LEFT" styleClass="submenu-link"/>
+                        <Button text="Nouvelle ressource" onAction="#onNewRessource" maxWidth="Infinity" alignment="CENTER_LEFT" styleClass="submenu-link"/>
                         <Button text="Gestion evenements" onAction="#onGestionEvenements" maxWidth="Infinity" alignment="CENTER_LEFT" styleClass="submenu-link"/>
                     </children>
                 </VBox>
 
                 <Region VBox.vgrow="ALWAYS"/>
 
-                <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="sidebar-item">
+                <HBox alignment="CENTER_LEFT" spacing="10.0" onMouseClicked="#onLogout" styleClass="sidebar-item">
                     <children>
-                        <Label text="↪" styleClass="sidebar-item-icon"/>
-                        <Label text="Deconnexion" styleClass="sidebar-item-text"/>
+                        <Label text="Quitter" styleClass="sidebar-item-text"/>
                     </children>
                 </HBox>
             </children>
@@ -105,7 +104,7 @@
                 <children>
                     <TextField fx:id="searchField" promptText="Rechercher une ressource..." HBox.hgrow="ALWAYS" styleClass="top-search-input"/>
                     <Region HBox.hgrow="ALWAYS"/>
-                    <Label text="🔔" styleClass="notif-icon"/>
+                    <Label text="" styleClass="notif-icon"/>
                 </children>
             </HBox>
 
@@ -113,7 +112,7 @@
                 <children>
                     <StackPane minWidth="88.0" minHeight="88.0" prefWidth="88.0" prefHeight="88.0" styleClass="hero-icon-box">
                         <children>
-                            <Label text="📦" styleClass="hero-icon"/>
+                            <Label text="&#128230;" styleClass="hero-icon"/>
                         </children>
                     </StackPane>
                     <VBox spacing="10.0">
@@ -122,7 +121,7 @@
                             <HBox spacing="14.0" alignment="CENTER_LEFT">
                                 <children>
                                     <Label fx:id="inventoryCountLabel" text="0 ressource(s) dans votre espace" styleClass="hero-subtitle"/>
-                                    <Label text="🛡 Admin" styleClass="admin-badge"/>
+                                    <Label text="Admin" styleClass="admin-badge"/>
                                 </children>
                             </HBox>
                         </children>
@@ -130,8 +129,18 @@
                     <Region HBox.hgrow="ALWAYS"/>
                     <HBox spacing="16.0" alignment="CENTER_RIGHT">
                         <children>
-                            <Button text="⊕ Nouveau Ressource" onAction="#onNewRessource" styleClass="yellow-btn"/>
-                            <Button text="📅 Gestion Evenements" onAction="#onGestionEvenements" styleClass="white-btn"/>
+                            <Button text="Nouvelle ressource"
+                                    onAction="#onNewRessource"
+                                    styleClass="yellow-btn"
+                                    minWidth="250.0"
+                                    prefWidth="250.0"
+                                    style="-fx-min-width: 250px; -fx-pref-width: 250px;"/>
+                            <Button text="Gestion evenements"
+                                    onAction="#onGestionEvenements"
+                                    styleClass="white-btn"
+                                    minWidth="250.0"
+                                    prefWidth="250.0"
+                                    style="-fx-min-width: 250px; -fx-pref-width: 250px;"/>
                         </children>
                     </HBox>
                 </children>
@@ -146,15 +155,19 @@
                         <children>
                             <HBox spacing="12.0" alignment="CENTER_LEFT">
                                 <children>
-                                    <Label text="☰" styleClass="list-icon"/>
+                                    <Label text="&#9776;" styleClass="list-icon"/>
                                     <Label text="Liste des Ressources" styleClass="list-title"/>
                                 </children>
                             </HBox>
                             <Region HBox.hgrow="ALWAYS"/>
                             <HBox spacing="12.0" alignment="CENTER_RIGHT">
                                 <children>
-                                    <Label text="🔔 Ressources actives" styleClass="pill-label"/>
+                                    <Label text="Filtres" styleClass="pill-label"/>
+                                    <ComboBox fx:id="categoryFilterCombo" promptText="Categorie" styleClass="sort-combo"/>
                                     <ComboBox fx:id="sortCombo" styleClass="sort-combo"/>
+                                    <Button text="Accessibilite"
+                                            onAction="#showAccessibilityOnly"
+                                            styleClass="white-btn"/>
                                 </children>
                             </HBox>
                         </children>
@@ -165,12 +178,23 @@
                 </padding>
             </VBox>
 
+            <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="quick-filter-bar">
+                <children>
+                    <Label text="Actions rapides" styleClass="quick-filter-label"/>
+                    <Button text="Tout" onAction="#resetDashboardFilters" styleClass="quick-filter-btn"/>
+                    <Button text="Documents" onAction="#showFileResourcesOnly" styleClass="quick-filter-btn"/>
+                    <Button text="Liens" onAction="#showExternalLinksOnly" styleClass="quick-filter-btn"/>
+                    <Button text="Stock" onAction="#showStockResourcesOnly" styleClass="quick-filter-btn"/>
+                    <Button text="Accessibilite" onAction="#showAccessibilityOnly" styleClass="quick-filter-btn-active"/>
+                </children>
+            </HBox>
+
             <HBox spacing="24.0">
                 <children>
                     <VBox spacing="16.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
                         <children>
                             <StackPane prefWidth="46.0" prefHeight="46.0" styleClass="stat-badge blue-badge">
-                                <children><Label text="📦" styleClass="stat-emoji"/></children>
+                                <children><Label text="&#128230;" styleClass="stat-emoji"/></children>
                             </StackPane>
                             <Label fx:id="totalResourcesLabel" text="0" styleClass="stat-number"/>
                             <Label text="Total Ressources" styleClass="stat-text"/>
@@ -179,7 +203,7 @@
                     <VBox spacing="16.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
                         <children>
                             <StackPane prefWidth="46.0" prefHeight="46.0" styleClass="stat-badge green-badge">
-                                <children><Label text="📄" styleClass="stat-emoji"/></children>
+                                <children><Label text="&#128196;" styleClass="stat-emoji"/></children>
                             </StackPane>
                             <Label fx:id="fileResourcesLabel" text="0" styleClass="stat-number"/>
                             <Label text="Type Fichier" styleClass="stat-text"/>
@@ -188,7 +212,7 @@
                     <VBox spacing="16.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
                         <children>
                             <StackPane prefWidth="46.0" prefHeight="46.0" styleClass="stat-badge orange-badge">
-                                <children><Label text="🔗" styleClass="stat-emoji"/></children>
+                                <children><Label text="&#128279;" styleClass="stat-emoji"/></children>
                             </StackPane>
                             <Label fx:id="linkResourcesLabel" text="0" styleClass="stat-number"/>
                             <Label text="Liens Externes" styleClass="stat-text"/>
@@ -197,10 +221,28 @@
                     <VBox spacing="16.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
                         <children>
                             <StackPane prefWidth="46.0" prefHeight="46.0" styleClass="stat-badge red-badge">
-                                <children><Label text="🧰" styleClass="stat-emoji"/></children>
+                                <children><Label text="&#129520;" styleClass="stat-emoji"/></children>
                             </StackPane>
                             <Label fx:id="stockResourcesLabel" text="0" styleClass="stat-number"/>
                             <Label text="Stock / Materiel" styleClass="stat-text"/>
+                        </children>
+                    </VBox>
+                    <VBox spacing="16.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
+                        <children>
+                            <StackPane prefWidth="46.0" prefHeight="46.0" styleClass="stat-badge green-badge">
+                                <children><Label text="&#127911;" styleClass="stat-emoji"/></children>
+                            </StackPane>
+                            <Label fx:id="accessibilityResourcesLabel" text="0" styleClass="stat-number"/>
+                            <Label text="Accessibilite" styleClass="stat-text"/>
+                        </children>
+                    </VBox>
+                    <VBox spacing="16.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
+                        <children>
+                            <StackPane prefWidth="46.0" prefHeight="46.0" styleClass="stat-badge blue-badge">
+                                <children><Label text="&#128336;" styleClass="stat-emoji"/></children>
+                            </StackPane>
+                            <Label fx:id="historiqueResourcesLabel" text="0" styleClass="stat-number"/>
+                            <Label text="Historique" styleClass="stat-text"/>
                         </children>
                     </VBox>
                 </children>
@@ -208,16 +250,16 @@
 
             <VBox styleClass="table-wrapper" VBox.vgrow="ALWAYS">
                 <children>
-                    <TableView fx:id="ressourceTable" VBox.vgrow="ALWAYS" prefHeight="500" styleClass="events-table">
+                    <TableView fx:id="ressourceTable" VBox.vgrow="ALWAYS" prefHeight="620" styleClass="events-table">
                         <columns>
-                            <TableColumn fx:id="eventCol" prefWidth="230.0" text="EVENEMENT"/>
-                            <TableColumn fx:id="nomCol" prefWidth="170.0" text="NOM"/>
-                            <TableColumn fx:id="categorieCol" prefWidth="160.0" text="CATEGORIE"/>
-                            <TableColumn fx:id="typeCol" prefWidth="140.0" text="TYPE"/>
-                            <TableColumn fx:id="quantiteCol" prefWidth="110.0" text="QUANTITE"/>
-                            <TableColumn fx:id="fournisseurCol" prefWidth="170.0" text="FOURNISSEUR"/>
-                            <TableColumn fx:id="notesCol" prefWidth="260.0" text="NOTES"/>
-                            <TableColumn fx:id="actionsCol" prefWidth="280.0" text="ACTIONS"/>
+                            <TableColumn fx:id="eventCol" prefWidth="260.0" text="EVENEMENT"/>
+                            <TableColumn fx:id="nomCol" prefWidth="190.0" text="NOM"/>
+                            <TableColumn fx:id="categorieCol" prefWidth="180.0" text="CATEGORIE"/>
+                            <TableColumn fx:id="typeCol" prefWidth="150.0" text="TYPE"/>
+                            <TableColumn fx:id="quantiteCol" prefWidth="120.0" text="QUANTITE"/>
+                            <TableColumn fx:id="fournisseurCol" prefWidth="210.0" text="FOURNISSEUR"/>
+                            <TableColumn fx:id="notesCol" prefWidth="360.0" text="NOTES"/>
+                            <TableColumn fx:id="actionsCol" prefWidth="320.0" text="ACTIONS"/>
                         </columns>
                     </TableView>
                 </children>

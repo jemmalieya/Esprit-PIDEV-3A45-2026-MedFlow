@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx/25"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="tn.esprit.controllers.EvenementController"
+            prefWidth="1650.0" prefHeight="960.0"
+            stylesheets="@CSS/evenement-dashboard.css"
+            styleClass="root-pane">
+
+    <left>
+        <VBox prefWidth="250.0" minWidth="250.0" maxWidth="250.0" styleClass="sidebar">
+            <children>
+                <HBox alignment="CENTER_LEFT" spacing="14.0" styleClass="logo-box">
+                    <children>
+                        <StackPane prefWidth="40.0" prefHeight="40.0">
+                            <children>
+                                <Label text="&#10084;" styleClass="logo-heart"/>
+                                <Label text="+" styleClass="logo-plus"/>
+                            </children>
+                        </StackPane>
+                        <Label text="MEDFLOW" styleClass="logo-text"/>
+                    </children>
+                </HBox>
+
+                <Region prefHeight="1.0" maxHeight="1.0" styleClass="sidebar-separator"/>
+
+                <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="sidebar-item">
+                    <children>
+                        <Label text="Dashboard" styleClass="sidebar-item-text"/>
+                    </children>
+                </HBox>
+
+                <Label text="GESTIONS" styleClass="sidebar-section-title"/>
+
+                <Button fx:id="evenementBtn"
+                        text=""
+                        onAction="#toggleSubmenu"
+                        alignment="CENTER_LEFT"
+                        maxWidth="Infinity"
+                        prefWidth="220.0"
+                        contentDisplay="GRAPHIC_ONLY"
+                        styleClass="sidebar-item, sidebar-btn">
+                    <graphic>
+                        <HBox alignment="CENTER_LEFT" spacing="10.0" maxWidth="Infinity">
+                            <children>
+                                <Label text="" styleClass="sidebar-item-icon"/>
+                                <Label text="Evenements" styleClass="sidebar-item-text"/>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Label fx:id="evenementArrow" text="v" styleClass="sidebar-arrow"/>
+                            </children>
+                        </HBox>
+                    </graphic>
+                </Button>
+
+                <VBox fx:id="submenuVBox"
+                      spacing="18.0"
+                      styleClass="submenu-card"
+                      managed="false"
+                      visible="false"
+                      maxWidth="220.0">
+                    <children>
+                        <Label text="GESTION DES EVENEMENTS :" styleClass="submenu-title"/>
+                        <Button text="Voir tous les evenements" onAction="#onVoirTousEvenements" maxWidth="Infinity" alignment="CENTER_LEFT" styleClass="submenu-link"/>
+                        <Button text="Calendrier" onAction="#ouvrirCalendrierEvenements" maxWidth="Infinity" alignment="CENTER_LEFT" styleClass="submenu-link"/>
+                        <Button text="Tableau de bord BI" onAction="#onTableauBordAdmin" maxWidth="Infinity" alignment="CENTER_LEFT" styleClass="submenu-link"/>
+                        <Button text="Gestion des ressources" onAction="#onAutresActions" maxWidth="Infinity" alignment="CENTER_LEFT" styleClass="submenu-link"/>
+                    </children>
+                </VBox>
+
+                <Region prefHeight="18.0" maxHeight="18.0"/>
+
+                <Button text=""
+                        onAction="#onGoToFront"
+                        alignment="CENTER_LEFT"
+                        maxWidth="Infinity"
+                        prefWidth="220.0"
+                        contentDisplay="GRAPHIC_ONLY"
+                        styleClass="sidebar-item, sidebar-btn, sidebar-utility-btn">
+                    <graphic>
+                        <HBox alignment="CENTER_LEFT" spacing="10.0" maxWidth="Infinity">
+                            <children>
+                                <Label text="&gt;" styleClass="sidebar-item-icon"/>
+                                <Label text="Espace front" styleClass="sidebar-item-text"/>
+                            </children>
+                        </HBox>
+                    </graphic>
+                </Button>
+
+                <Button text=""
+                        onAction="#onLogout"
+                        alignment="CENTER_LEFT"
+                        maxWidth="Infinity"
+                        prefWidth="220.0"
+                        contentDisplay="GRAPHIC_ONLY"
+                        styleClass="sidebar-item, sidebar-btn, sidebar-utility-btn logout-utility-btn">
+                    <graphic>
+                        <HBox alignment="CENTER_LEFT" spacing="10.0" maxWidth="Infinity">
+                            <children>
+                                <Label text="X" styleClass="sidebar-item-icon"/>
+                                <Label text="Deconnexion" styleClass="sidebar-item-text"/>
+                            </children>
+                        </HBox>
+                    </graphic>
+                </Button>
+            </children>
+            <padding>
+                <Insets top="24.0" right="18.0" bottom="24.0" left="18.0"/>
+            </padding>
+        </VBox>
+    </left>
+
+    <center>
+        <VBox spacing="18.0" styleClass="main-area">
+            <padding>
+                <Insets top="16.0" right="22.0" bottom="18.0" left="22.0"/>
+            </padding>
+
+            <HBox alignment="CENTER_LEFT" spacing="20.0" styleClass="hero-card">
+                <children>
+                    <StackPane minWidth="88.0" minHeight="88.0" prefWidth="88.0" prefHeight="88.0" styleClass="hero-icon-box">
+                        <children>
+                            <Label text="&#128197;" styleClass="hero-icon"/>
+                        </children>
+                    </StackPane>
+
+                    <VBox spacing="10.0">
+                        <children>
+                            <Label text="Calendrier des Evenements" styleClass="hero-title"/>
+                            <Label text="Planifiez, visualisez et glissez les evenements vers une nouvelle date." styleClass="hero-subtitle"/>
+                        </children>
+                    </VBox>
+
+                    <Region HBox.hgrow="ALWAYS"/>
+
+                    <HBox spacing="10.0" alignment="CENTER_RIGHT">
+                        <children>
+                            <Button text="Retour tableau" onAction="#retourListeEvenements" styleClass="white-btn"/>
+                            <Button text="Aujourd'hui" onAction="#showCurrentCalendarMonth" styleClass="yellow-btn"/>
+                        </children>
+                    </HBox>
+                </children>
+                <padding>
+                    <Insets top="26.0" right="30.0" bottom="26.0" left="30.0"/>
+                </padding>
+            </HBox>
+
+            <VBox spacing="18.0" styleClass="calendar-panel" VBox.vgrow="ALWAYS">
+                <children>
+                    <HBox alignment="CENTER_LEFT" spacing="16.0">
+                        <children>
+                            <VBox spacing="4.0">
+                                <children>
+                                    <Label text="Vue mensuelle" styleClass="calendar-panel-title"/>
+                                    <Label fx:id="calendarSelectionHintLabel"
+                                           text="Glissez un evenement d'un jour vers un autre pour changer sa date."
+                                           styleClass="calendar-panel-subtitle"/>
+                                </children>
+                            </VBox>
+                            <Region HBox.hgrow="ALWAYS"/>
+                            <HBox alignment="CENTER_RIGHT" spacing="10.0">
+                                <children>
+                                    <Button text="←" onAction="#showPreviousCalendarMonth" styleClass="calendar-nav-btn"/>
+                                    <Label fx:id="calendarMonthLabel" text="Mois" styleClass="calendar-month-title"/>
+                                    <Button text="→" onAction="#showNextCalendarMonth" styleClass="calendar-nav-btn"/>
+                                </children>
+                            </HBox>
+                        </children>
+                    </HBox>
+
+                    <GridPane fx:id="calendarWeekHeader" hgap="10.0" styleClass="calendar-week-header">
+                        <columnConstraints>
+                            <ColumnConstraints percentWidth="14.285"/>
+                            <ColumnConstraints percentWidth="14.285"/>
+                            <ColumnConstraints percentWidth="14.285"/>
+                            <ColumnConstraints percentWidth="14.285"/>
+                            <ColumnConstraints percentWidth="14.285"/>
+                            <ColumnConstraints percentWidth="14.285"/>
+                            <ColumnConstraints percentWidth="14.29"/>
+                        </columnConstraints>
+                    </GridPane>
+
+                    <GridPane fx:id="calendarMonthGrid" hgap="10.0" vgap="10.0" styleClass="calendar-month-grid" VBox.vgrow="ALWAYS">
+                        <columnConstraints>
+                            <ColumnConstraints percentWidth="14.285"/>
+                            <ColumnConstraints percentWidth="14.285"/>
+                            <ColumnConstraints percentWidth="14.285"/>
+                            <ColumnConstraints percentWidth="14.285"/>
+                            <ColumnConstraints percentWidth="14.285"/>
+                            <ColumnConstraints percentWidth="14.285"/>
+                            <ColumnConstraints percentWidth="14.29"/>
+                        </columnConstraints>
+                    </GridPane>
+                </children>
+                <padding>
+                    <Insets top="20.0" right="22.0" bottom="22.0" left="22.0"/>
+                </padding>
+            </VBox>
+        </VBox>
+    </center>
+</BorderPane>

@@ -329,37 +329,71 @@ public class LoginController {
 
     @FXML
     private void handleForgotPassword(ActionEvent event) {
-        // ── Étape 1 : demander l'email ──────────────────────────────────────
+        // ── Etape 1 : demander l'email ──────────────────────────────────────
         Dialog<String> emailDialog = new Dialog<>();
         emailDialog.setTitle("Mot de passe oublié");
-        emailDialog.setHeaderText("Réinitialisation du mot de passe");
+        emailDialog.setHeaderText("Reinitialisation du mot de passe");
+        styleDialog(emailDialog, "#2563eb");
 
         ButtonType sendCodeBtn = new ButtonType("Envoyer le code", ButtonBar.ButtonData.OK_DONE);
         ButtonType cancelBtn   = new ButtonType("Annuler",          ButtonBar.ButtonData.CANCEL_CLOSE);
         emailDialog.getDialogPane().getButtonTypes().addAll(sendCodeBtn, cancelBtn);
+        styleDialogButtons(emailDialog, sendCodeBtn, cancelBtn, "#2563eb");
 
         GridPane grid = new GridPane();
-        grid.setHgap(10); grid.setVgap(10);
-        grid.setStyle("-fx-padding: 20 24 10 24;");
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setStyle("-fx-padding: 16 24 8 24;");
 
         TextField emailInput = new TextField();
         emailInput.setPromptText("exemple@email.com");
         emailInput.setPrefWidth(320);
+        styleTextInput(emailInput);
 
-        grid.add(new Label("Entrez votre adresse e-mail :"), 0, 0);
+        Label title = new Label("Entrez votre adresse e-mail");
+        title.setStyle("-fx-font-size: 14px; -fx-font-weight: 700; -fx-text-fill: #0f172a;");
+
+        Label infoLabel = new Label("Un code a 6 chiffres sera envoye sur votre adresse.");
+        infoLabel.setStyle("-fx-text-fill: #475569; -fx-font-size: 12px;");
+
+        Label dialogErrorLabel = new Label();
+        dialogErrorLabel.setStyle("-fx-text-fill: #dc2626; -fx-font-size: 12px; -fx-font-weight: 600;");
+        dialogErrorLabel.setVisible(false);
+        dialogErrorLabel.setManaged(false);
+
+        grid.add(title, 0, 0);
         grid.add(emailInput, 0, 1);
-
-        Label infoLabel = new Label("Un code de réinitialisation à 6 chiffres vous sera envoyé.");
-        infoLabel.setStyle("-fx-text-fill: #6b7280; -fx-font-size: 12px;");
         grid.add(infoLabel, 0, 2);
+        grid.add(dialogErrorLabel, 0, 3);
 
         emailDialog.getDialogPane().setContent(grid);
+        javafx.scene.Node sendNode = emailDialog.getDialogPane().lookupButton(sendCodeBtn);
+        sendNode.setDisable(true);
 
-        // Pré-remplir avec l'email en cours de saisie
+        Runnable validateEmailInput = () -> {
+            String value = emailInput.getText() == null ? "" : emailInput.getText().trim();
+            boolean valid = value.matches("^[^@]+@[^@]+\\.[^@]+$");
+            sendNode.setDisable(!valid);
+            if (value.isEmpty()) {
+                dialogErrorLabel.setVisible(false);
+                dialogErrorLabel.setManaged(false);
+            } else if (!valid) {
+                dialogErrorLabel.setText("Format email invalide.");
+                dialogErrorLabel.setVisible(true);
+                dialogErrorLabel.setManaged(true);
+            } else {
+                dialogErrorLabel.setVisible(false);
+                dialogErrorLabel.setManaged(false);
+            }
+        };
+        emailInput.textProperty().addListener((obs, oldVal, newVal) -> validateEmailInput.run());
+
+        // Pre-remplir avec l'email en cours de saisie
         String currentEmail = emailField != null ? emailField.getText() : "";
         if (currentEmail != null && !currentEmail.isBlank()) {
             emailInput.setText(currentEmail.trim());
         }
+        validateEmailInput.run();
 
         emailDialog.setResultConverter(btn -> btn == sendCodeBtn ? emailInput.getText() : null);
         Optional<String> emailResult = emailDialog.showAndWait();
@@ -368,7 +402,7 @@ public class LoginController {
 
         String targetEmail = emailResult.get().trim();
 
-        // Vérifier que l'email existe
+        // Verifier que l'email existe
         User found = userService.findByEmail(targetEmail);
         if (found == null) {
             showAlertInfo("Email introuvable",
@@ -376,7 +410,7 @@ public class LoginController {
             return;
         }
 
-        // Générer un code à 6 chiffres
+        // Generer un code a 6 chiffres
         String code = String.format("%06d", new Random().nextInt(1_000_000));
         LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(15);
 
@@ -389,45 +423,72 @@ public class LoginController {
         // Envoyer l'email
         EmailService.sendPasswordResetEmail(targetEmail, code);
 
-        showAlertInfo("Code envoyé ✓",
-                "Un code de réinitialisation a été envoyé à :\n" + targetEmail
-                        + "\n\nVérifiez votre boîte mail (et les spams).");
+        showAlertInfo("Code envoye",
+                "Un code de reinitialisation a ete envoye a :\n" + targetEmail
+                        + "\n\nVerifiez votre boite mail (et les spams).");
 
-        // ── Étape 2 : saisir le code + nouveau mot de passe ─────────────────
+        // ── Etape 2 : saisir le code + nouveau mot de passe ─────────────────
         Dialog<Void> resetDialog = new Dialog<>();
         resetDialog.setTitle("Réinitialisation");
-        resetDialog.setHeaderText("Entrez le code reçu par email");
+        resetDialog.setHeaderText("Entrez le code recu par email");
+        styleDialog(resetDialog, "#0f766e");
 
         ButtonType confirmBtn  = new ButtonType("Confirmer", ButtonBar.ButtonData.OK_DONE);
         ButtonType cancelBtn2  = new ButtonType("Annuler",   ButtonBar.ButtonData.CANCEL_CLOSE);
         resetDialog.getDialogPane().getButtonTypes().addAll(confirmBtn, cancelBtn2);
+        styleDialogButtons(resetDialog, confirmBtn, cancelBtn2, "#0f766e");
 
         GridPane resetGrid = new GridPane();
-        resetGrid.setHgap(10); resetGrid.setVgap(12);
-        resetGrid.setStyle("-fx-padding: 20 24 10 24;");
+        resetGrid.setHgap(10);
+        resetGrid.setVgap(12);
+        resetGrid.setStyle("-fx-padding: 16 24 8 24;");
 
         TextField codeInput       = new TextField();
-        codeInput.setPromptText("Code à 6 chiffres");
+        codeInput.setPromptText("Code a 6 chiffres");
         codeInput.setPrefWidth(320);
+        styleTextInput(codeInput);
 
         PasswordField newPass  = new PasswordField();
         newPass.setPromptText("Nouveau mot de passe");
         newPass.setPrefWidth(320);
+        styleTextInput(newPass);
+
+        Label passwordRulesLabel = new Label("8+ caracteres, 1 majuscule, 1 minuscule, 1 chiffre, 1 symbole");
+        passwordRulesLabel.setStyle("-fx-text-fill: #64748b; -fx-font-size: 11px;");
 
         PasswordField confirmPass = new PasswordField();
         confirmPass.setPromptText("Confirmer le mot de passe");
         confirmPass.setPrefWidth(320);
+        styleTextInput(confirmPass);
 
-        Label codeHint = new Label("Code valide 15 min — vérifiez vos spams si absent");
-        codeHint.setStyle("-fx-text-fill: #6b7280; -fx-font-size: 11px;");
+        Label codeHint = new Label("Code valide 15 min - verifiez vos spams si absent");
+        codeHint.setStyle("-fx-text-fill: #475569; -fx-font-size: 11px;");
 
-        resetGrid.add(new Label("Code reçu par email :"), 0, 0);
-        resetGrid.add(codeInput, 0, 1);
-        resetGrid.add(codeHint, 0, 2);
-        resetGrid.add(new Label("Nouveau mot de passe :"), 0, 3);
-        resetGrid.add(newPass, 0, 4);
-        resetGrid.add(new Label("Confirmer le mot de passe :"), 0, 5);
-        resetGrid.add(confirmPass, 0, 6);
+        Label resetErrorLabel = new Label();
+        resetErrorLabel.setStyle("-fx-text-fill: #dc2626; -fx-font-size: 12px; -fx-font-weight: 600;");
+        resetErrorLabel.setVisible(false);
+        resetErrorLabel.setManaged(false);
+
+        Label stepTitle = new Label("Securisez votre compte");
+        stepTitle.setStyle("-fx-font-size: 14px; -fx-font-weight: 700; -fx-text-fill: #0f172a;");
+
+        Label codeLabel = new Label("Code recu par email :");
+        codeLabel.setStyle("-fx-font-size: 12px; -fx-font-weight: 600; -fx-text-fill: #334155;");
+        Label passLabel = new Label("Nouveau mot de passe :");
+        passLabel.setStyle("-fx-font-size: 12px; -fx-font-weight: 600; -fx-text-fill: #334155;");
+        Label confirmLabel = new Label("Confirmer le mot de passe :");
+        confirmLabel.setStyle("-fx-font-size: 12px; -fx-font-weight: 600; -fx-text-fill: #334155;");
+
+        resetGrid.add(stepTitle, 0, 0);
+        resetGrid.add(codeLabel, 0, 1);
+        resetGrid.add(codeInput, 0, 2);
+        resetGrid.add(codeHint, 0, 3);
+        resetGrid.add(passLabel, 0, 4);
+        resetGrid.add(newPass, 0, 5);
+        resetGrid.add(passwordRulesLabel, 0, 6);
+        resetGrid.add(confirmLabel, 0, 7);
+        resetGrid.add(confirmPass, 0, 8);
+        resetGrid.add(resetErrorLabel, 0, 9);
 
         resetDialog.getDialogPane().setContent(resetGrid);
 
@@ -435,10 +496,28 @@ public class LoginController {
         javafx.scene.Node confirmNode = resetDialog.getDialogPane().lookupButton(confirmBtn);
         confirmNode.setDisable(true);
         Runnable validate = () -> {
+            String passwordError = validateNewPassword(newPass.getText());
             boolean ok = !codeInput.getText().isBlank()
-                    && newPass.getText().length() >= 6
+                    && passwordError == null
                     && newPass.getText().equals(confirmPass.getText());
             confirmNode.setDisable(!ok);
+            if (passwordError != null && !newPass.getText().isBlank()) {
+                resetErrorLabel.setText(passwordError);
+                resetErrorLabel.setVisible(true);
+                resetErrorLabel.setManaged(true);
+            } else if (!confirmPass.getText().isBlank() && !newPass.getText().equals(confirmPass.getText())) {
+                resetErrorLabel.setText("Les mots de passe ne correspondent pas.");
+                resetErrorLabel.setVisible(true);
+                resetErrorLabel.setManaged(true);
+            } else {
+                resetErrorLabel.setVisible(false);
+                resetErrorLabel.setManaged(false);
+            }
+
+            boolean strong = passwordError == null && !newPass.getText().isBlank();
+            passwordRulesLabel.setStyle(strong
+                    ? "-fx-text-fill: #16a34a; -fx-font-size: 11px; -fx-font-weight: 700;"
+                    : "-fx-text-fill: #64748b; -fx-font-size: 11px;");
         };
         codeInput.textProperty().addListener((o, ol, n) -> validate.run());
         newPass.textProperty().addListener((o, ol, n) -> validate.run());
@@ -450,39 +529,124 @@ public class LoginController {
                     String enteredCode = codeInput.getText().trim();
                     String newPassword = newPass.getText();
 
-                    // Vérifier le code en base
-                    User tokenUser = userService.findByResetToken(enteredCode);
-                    if (tokenUser == null || tokenUser.getId() != found.getId()) {
-                        e.consume(); // empêcher la fermeture
-                        Label errLbl = new Label("❌ Code invalide ou expiré.");
-                        errLbl.setStyle("-fx-text-fill: #dc2626; -fx-font-size: 12px;");
-                        resetGrid.add(errLbl, 0, 7);
+                    String passwordError = validateNewPassword(newPassword);
+                    if (passwordError != null) {
+                        e.consume();
+                        resetErrorLabel.setText(passwordError);
+                        resetErrorLabel.setVisible(true);
+                        resetErrorLabel.setManaged(true);
                         return;
                     }
 
-                    // Hasher et mettre à jour
+                    // Verifier le code en base
+                    User tokenUser = userService.findByResetToken(enteredCode);
+                    if (tokenUser == null || tokenUser.getId() != found.getId()) {
+                        e.consume(); // empêcher la fermeture
+                        resetErrorLabel.setText("Code invalide ou expire.");
+                        resetErrorLabel.setVisible(true);
+                        resetErrorLabel.setManaged(true);
+                        return;
+                    }
+
+                    // Hasher et mettre a jour
                     String hashed = BCrypt.hashpw(newPassword, BCrypt.gensalt(12));
                     boolean updated = userService.updatePasswordAndClearToken(found.getId(), hashed);
                     if (!updated) {
                         e.consume();
-                        Label errLbl = new Label("❌ Erreur lors de la mise à jour. Réessayez.");
-                        errLbl.setStyle("-fx-text-fill: #dc2626; -fx-font-size: 12px;");
-                        resetGrid.add(errLbl, 0, 7);
+                        resetErrorLabel.setText("Erreur lors de la mise a jour. Reessayez.");
+                        resetErrorLabel.setVisible(true);
+                        resetErrorLabel.setManaged(true);
                         return;
                     }
-                    // Succès — laisser la fenêtre se fermer
+                    // Succes - laisser la fenetre se fermer
                 }
         );
 
-        Optional<Void> resetResult = resetDialog.showAndWait();
+        resetDialog.showAndWait();
 
-        // Vérifier si le mot de passe a été mis à jour avec succès
-        // (on tente de retrouver l'utilisateur avec le token — si null = token effacé = succès)
+        // Verifier si le mot de passe a ete mis a jour avec succes
+        // (on tente de retrouver l'utilisateur avec le token - si null = token efface = succes)
         User check = userService.findByResetToken(codeInput.getText().trim());
         if (check == null && !codeInput.getText().isBlank()) {
-            showAlertInfo("Mot de passe mis à jour ✓",
-                    "Votre mot de passe a été modifié avec succès.\nVous pouvez maintenant vous connecter.");
+            showAlertInfo("Mot de passe mis a jour",
+                    "Votre mot de passe a ete modifie avec succes.\nVous pouvez maintenant vous connecter.");
         }
+    }
+
+    private void styleDialog(Dialog<?> dialog, String accentColor) {
+        if (dialog == null || dialog.getDialogPane() == null) {
+            return;
+        }
+        dialog.getDialogPane().setStyle(
+                "-fx-background-color: linear-gradient(to bottom, #f8fbff, #ffffff);"
+                        + "-fx-border-color: " + accentColor + "33;"
+                        + "-fx-border-width: 1;"
+                        + "-fx-border-radius: 14;"
+                        + "-fx-background-radius: 14;"
+                        + "-fx-padding: 8;"
+        );
+    }
+
+    private void styleDialogButtons(Dialog<?> dialog, ButtonType primaryBtn, ButtonType secondaryBtn, String accentColor) {
+        if (dialog == null || dialog.getDialogPane() == null) {
+            return;
+        }
+        Node primary = dialog.getDialogPane().lookupButton(primaryBtn);
+        Node secondary = dialog.getDialogPane().lookupButton(secondaryBtn);
+        if (primary != null) {
+            primary.setStyle(
+                    "-fx-background-color: " + accentColor + ";"
+                            + "-fx-text-fill: white;"
+                            + "-fx-font-weight: 700;"
+                            + "-fx-background-radius: 10;"
+                            + "-fx-padding: 8 16 8 16;"
+            );
+        }
+        if (secondary != null) {
+            secondary.setStyle(
+                    "-fx-background-color: #e2e8f0;"
+                            + "-fx-text-fill: #0f172a;"
+                            + "-fx-font-weight: 700;"
+                            + "-fx-background-radius: 10;"
+                            + "-fx-padding: 8 16 8 16;"
+            );
+        }
+    }
+
+    private void styleTextInput(TextField field) {
+        if (field == null) {
+            return;
+        }
+        field.setStyle(
+                "-fx-background-color: #ffffff;"
+                        + "-fx-border-color: #cbd5e1;"
+                        + "-fx-border-radius: 10;"
+                        + "-fx-background-radius: 10;"
+                        + "-fx-padding: 10 12 10 12;"
+                        + "-fx-font-size: 13px;"
+        );
+    }
+
+    private String validateNewPassword(String password) {
+        if (password == null || password.isBlank()) {
+            return "Le nouveau mot de passe est obligatoire.";
+        }
+        if (password.length() < 8) {
+            return "Minimum 8 caracteres requis.";
+        }
+        if (!password.matches(".*[A-Z].*")) {
+            return "Ajoutez au moins 1 lettre majuscule.";
+        }
+        if (!password.matches(".*[a-z].*")) {
+            return "Ajoutez au moins 1 lettre minuscule.";
+        }
+        if (!password.matches(".*\\d.*")) {
+            return "Ajoutez au moins 1 chiffre.";
+        }
+        if (!password.matches(".*[^A-Za-z0-9].*")) {
+            return "Ajoutez au moins 1 caractere special.";
+        }
+        return null;
     }
 
     private void showAlertInfo(String title, String content) {
@@ -616,20 +780,28 @@ public class LoginController {
     private GoogleProfile fetchGoogleProfile() throws Exception {
         String clientId = readGoogleSetting("GOOGLE_OAUTH_CLIENT_ID", "google.oauth.clientId");
         String clientSecret = readGoogleSetting("GOOGLE_OAUTH_CLIENT_SECRET", "google.oauth.clientSecret");
+        String configuredRedirectUri = readGoogleSetting("GOOGLE_OAUTH_REDIRECT_URI", "google.oauth.redirectUri");
 
         if (clientId == null || clientId.isBlank() || clientSecret == null || clientSecret.isBlank()) {
             throw new IllegalStateException("Configure GOOGLE_OAUTH_CLIENT_ID et GOOGLE_OAUTH_CLIENT_SECRET.");
         }
 
-        int port = 8765;
-        String redirectUri = "http://127.0.0.1:" + port + "/oauth2callback";
+        String redirectUri = (configuredRedirectUri == null || configuredRedirectUri.isBlank())
+                ? "http://127.0.0.1:8765/oauth2callback"
+                : configuredRedirectUri.trim();
+        URI redirect = URI.create(redirectUri);
+        int port = redirect.getPort();
+        if (port <= 0) {
+            throw new IllegalStateException("GOOGLE_OAUTH_REDIRECT_URI invalide: port requis (ex: http://127.0.0.1:8765/oauth2callback)");
+        }
+        String callbackPath = (redirect.getPath() == null || redirect.getPath().isBlank()) ? "/oauth2callback" : redirect.getPath();
         String state = UUID.randomUUID().toString();
 
         CompletableFuture<Map<String, String>> callbackFuture = new CompletableFuture<>();
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", port), 0);
         ExecutorService serverExecutor = Executors.newSingleThreadExecutor();
         server.setExecutor(serverExecutor);
-        server.createContext("/oauth2callback", exchange -> handleOAuthCallback(exchange, callbackFuture));
+        server.createContext(callbackPath, exchange -> handleOAuthCallback(exchange, callbackFuture));
         server.start();
 
         try {
@@ -645,6 +817,13 @@ public class LoginController {
             openBrowser(authUrl);
 
             Map<String, String> callbackParams = callbackFuture.get(120, TimeUnit.SECONDS);
+            String oauthError = callbackParams.get("error");
+            if (oauthError != null && !oauthError.isBlank()) {
+                String oauthDescription = callbackParams.get("error_description");
+                throw new IllegalStateException("Google OAuth error: " + oauthError
+                        + (oauthDescription == null || oauthDescription.isBlank() ? "" : " (" + oauthDescription + ")"));
+            }
+
             String callbackState = callbackParams.get("state");
             String code = callbackParams.get("code");
 
@@ -657,6 +836,8 @@ public class LoginController {
 
             String accessToken = exchangeCodeForAccessToken(code, clientId, clientSecret, redirectUri);
             return fetchUserInfo(accessToken);
+        } catch (java.util.concurrent.TimeoutException timeout) {
+            throw new IllegalStateException("Timeout OAuth (120s). Verifiez l'URI autorisee dans Google Cloud: " + redirectUri);
         } finally {
             server.stop(0);
             serverExecutor.shutdownNow();
@@ -678,7 +859,7 @@ public class LoginController {
 
         HttpResponse<String> response = HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
-            throw new IllegalStateException("Token Google refuse (" + response.statusCode() + ")");
+            throw new IllegalStateException("Token Google refuse (" + response.statusCode() + "): " + truncate(response.body(), 260));
         }
 
         String accessToken = extractJsonValue(response.body(), "access_token");
@@ -697,7 +878,7 @@ public class LoginController {
 
         HttpResponse<String> response = HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
-            throw new IllegalStateException("UserInfo Google refuse (" + response.statusCode() + ")");
+            throw new IllegalStateException("UserInfo Google refuse (" + response.statusCode() + "): " + truncate(response.body(), 260));
         }
 
         GoogleProfile profile = new GoogleProfile();
@@ -770,6 +951,13 @@ public class LoginController {
 
     private String urlDecode(String value) {
         return java.net.URLDecoder.decode(value, StandardCharsets.UTF_8);
+    }
+
+    private String truncate(String value, int maxLen) {
+        if (value == null) {
+            return "";
+        }
+        return value.length() <= maxLen ? value : value.substring(0, maxLen) + "...";
     }
 
     private void openBrowser(String url) throws Exception {

@@ -1,35 +1,41 @@
 package tn.esprit.services;
 
-import javax.mail.*;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeBodyPart;
-import javax.mail.internet.MimeMessage;
-import javax.mail.internet.MimeMultipart;
 import tn.esprit.entities.User;
 
-import java.util.Properties;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.util.Base64;
 
 /**
  * Service d'envoi des emails MedFlow.
  *
- * Configuration (via variables d'environnement OU propriétés système) :
- *   MEDFLOW_MAIL_USER  / mail.user     → ex: votre.compte@gmail.com
- *   MEDFLOW_MAIL_PASS  / mail.password → mot de passe d'application Gmail
- *   MEDFLOW_MAIL_HOST  / mail.smtp.host  (défaut : smtp.gmail.com)
- *   MEDFLOW_MAIL_PORT  / mail.smtp.port  (défaut : 587)
+ * Configuration (via variables d'environnement OU proprietes systeme) :
+ *   BREVO_API_KEY      / brevo.api.key
+ *   BREVO_SENDER_EMAIL / brevo.sender.email
+ *   BREVO_SENDER_NAME  / brevo.sender.name (defaut: MedFlow)
+ *   BREVO_API_URL      / brevo.api.url     (defaut: https://api.brevo.com/v3/smtp/email)
+ *
+ * Compatibilite: MEDFLOW_MAIL_USER / mail.user est aussi accepte pour l'email expediteur.
  */
 public class EmailService {
 
-    private static final String SMTP_HOST;
-    private static final String SMTP_PORT;
-    private static final String SMTP_USER;
-    private static final String SMTP_PASS;
+    private static final String BREVO_API_URL;
+    private static final String BREVO_API_KEY;
+    private static final String SENDER_EMAIL;
+    private static final String SENDER_NAME;
+    private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
 
     static {
-        SMTP_HOST = getSetting("MEDFLOW_MAIL_HOST", "mail.smtp.host", "smtp.gmail.com");
-        SMTP_PORT = getSetting("MEDFLOW_MAIL_PORT", "mail.smtp.port", "587");
-        SMTP_USER = getSetting("MEDFLOW_MAIL_USER", "mail.user", null);
-        SMTP_PASS = getSetting("MEDFLOW_MAIL_PASS", "mail.password", null);
+        BREVO_API_URL = getSetting("BREVO_API_URL", "brevo.api.url", "https://api.brevo.com/v3/smtp/email");
+        BREVO_API_KEY = getSetting("BREVO_API_KEY", "brevo.api.key", null);
+        String configuredSender = getSetting("BREVO_SENDER_EMAIL", "brevo.sender.email", null);
+        if (isBlank(configuredSender)) {
+            configuredSender = getSetting("MEDFLOW_MAIL_USER", "mail.user", null);
+        }
+        SENDER_EMAIL = configuredSender;
+        SENDER_NAME = getSetting("BREVO_SENDER_NAME", "brevo.sender.name", "MedFlow");
     }
 
     private static String getSetting(String envKey, String propKey, String defaultValue) {
@@ -66,9 +72,101 @@ public class EmailService {
     }
 
     /**
-     * Envoie un email de notification de refus de la demande staff.
+     * Envoie un email de confirmation d'approbation staff avec piece jointe.
+     */
+    public static void sendStaffApprovalEmail(User user, byte[] pdfBytes, String pdfName) {
+        if (user == null || isBlank(user.getEmailUser())) return;
+
+        String name = firstName(user);
+        String subject = "✅ MedFlow – Demande staff approuvée";
+        String html = buildHtml(
+                "Félicitations, " + name + " !",
+                "Votre demande d'accès staff a été <strong style='color:#059669;'>approuvée</strong> par l'équipe MedFlow.",
+                new String[]{
+                        "Votre compte est maintenant <strong>actif</strong>.",
+                        "Vous pouvez désormais vous connecter avec votre email et mot de passe.",
+                        "Type de poste : <strong>" + safe(user.getTypeStaff()) + "</strong>",
+                        "Une fiche de décision est jointe à cet email."
+                },
+                "#059669", "Connexion approuvée ✓"
+        );
+
+        if (pdfBytes == null || pdfBytes.length == 0) {
+            sendAsync(user.getEmailUser(), subject, html);
+        } else {
+            String fileName = isBlank(pdfName) ? "decision_staff.pdf" : pdfName;
+            sendAsyncWithAttachment(user.getEmailUser(), subject, html, fileName, pdfBytes);
+        }
+    }
+
+    /**
+     * Envoie un email de decision staff avec motif.
+     */
+    public static void sendStaffDecisionEmail(User user, boolean approved, String reason) {
+        if (user == null || isBlank(user.getEmailUser())) return;
+
+        String name = firstName(user);
+        String subject = approved
+                ? "MedFlow - Demande staff approuvee"
+                : "MedFlow - Demande staff refusee";
+        String statusText = approved
+                ? "approuvee"
+                : "refusee";
+        String accent = approved ? "#059669" : "#dc2626";
+
+        String html = buildHtml(
+                "Bonjour, " + name,
+                "Votre demande d'acces staff a ete "
+                        + "<strong style='color:" + accent + ";'>" + statusText + "</strong>.",
+                new String[]{
+                        "Type de poste : <strong>" + safe(user.getTypeStaff()) + "</strong>",
+                        "Motif de decision : <strong>" + escapeHtml(safe(reason)) + "</strong>",
+                        "Pour toute question, contactez l'administrateur."
+                },
+                accent,
+                approved ? "Decision approuvee" : "Decision refusee"
+        );
+        sendAsync(user.getEmailUser(), subject, html);
+    }
+
+    /**
+     * Envoie un email de bannissement avec motif et piece jointe (fiche de decision).
+     */
+    public static void sendAccountBanEmail(User user, String reason, byte[] pdfBytes, String pdfName) {
+        if (user == null || isBlank(user.getEmailUser())) return;
+
+        String subject = "MedFlow - Notification de suspension de compte";
+        String html = buildHtml(
+                "Notification de suspension",
+                "Votre compte a ete suspendu par l'administration MedFlow.",
+                new String[]{
+                        "Motif de la decision : <strong>" + escapeHtml(safe(reason)) + "</strong>",
+                        "Une fiche de decision est jointe a cet email.",
+                        "Si vous souhaitez contester la decision, contactez le support."
+                },
+                "#dc2626",
+                "Compte suspendu"
+        );
+
+        if (pdfBytes == null || pdfBytes.length == 0) {
+            sendAsync(user.getEmailUser(), subject, html);
+            return;
+        }
+        sendAsyncWithAttachment(user.getEmailUser(), subject, html, pdfName, pdfBytes);
+    }
+
+    /**
+     * Envoie un email de notification de refus de la demande staff (sans piece jointe).
      */
     public static void sendStaffRejectionEmail(User user) {
+        if (user == null || isBlank(user.getEmailUser())) return;
+        sendStaffRejectionEmail(user, null, null);
+    }
+
+    /**
+     * Envoie un email de notification de refus de la demande staff avec piece jointe PDF.
+     */
+    public static void sendStaffRejectionEmail(User user, byte[] pdfBytes, String pdfName) {
         if (user == null || isBlank(user.getEmailUser())) return;
 
         String name = firstName(user);
@@ -79,11 +177,17 @@ public class EmailService {
                 new String[]{
                         "Votre demande n'a pas pu être validée à ce stade.",
                         "Vous pouvez contacter l'administrateur pour plus d'informations.",
-                        "Vous avez la possibilité de soumettre une nouvelle demande après vérification de vos documents."
+                        "Vous avez la possibilité de soumettre une nouvelle demande après vérification de vos documents.",
+                        "Une fiche de décision est jointe à cet email."
                 },
                 "#dc2626", "Demande refusée"
         );
-        sendAsync(user.getEmailUser(), subject, html);
+        if (pdfBytes == null || pdfBytes.length == 0) {
+            sendAsync(user.getEmailUser(), subject, html);
+        } else {
+            String fileName = isBlank(pdfName) ? "decision_refus.pdf" : pdfName;
+            sendAsyncWithAttachment(user.getEmailUser(), subject, html, fileName, pdfBytes);
+        }
     }
 
     /**
@@ -129,45 +233,123 @@ public class EmailService {
         thread.start();
     }
 
-    private static void send(String to, String subject, String html) throws MessagingException {
-        if (isBlank(SMTP_USER) || isBlank(SMTP_PASS)) {
-            System.err.println("[EmailService] SMTP non configuré. Définissez MEDFLOW_MAIL_USER et MEDFLOW_MAIL_PASS.");
-            System.out.println("[EmailService] Email simulé → À: " + to + " | Objet: " + subject);
+    private static void sendAsyncWithAttachment(String to, String subject, String html, String fileName, byte[] content) {
+        Thread thread = new Thread(() -> {
+            try {
+                sendWithAttachment(to, subject, html, fileName, content);
+            } catch (Exception e) {
+                System.err.println("[EmailService] Erreur envoi email avec piece jointe a " + to + " : " + e.getMessage());
+            }
+        });
+        thread.setDaemon(true);
+        thread.setName("email-sender-attachment");
+        thread.start();
+    }
+
+    private static void send(String to, String subject, String html) throws Exception {
+        if (isBlank(BREVO_API_KEY) || isBlank(SENDER_EMAIL)) {
+            System.err.println("[EmailService] Brevo non configure. Definissez BREVO_API_KEY et BREVO_SENDER_EMAIL.");
+            System.out.println("[EmailService] Email simule -> A: " + to + " | Objet: " + subject);
             return;
         }
 
-        Properties props = new Properties();
-        props.put("mail.smtp.host", SMTP_HOST);
-        props.put("mail.smtp.port", SMTP_PORT);
-        props.put("mail.smtp.auth", "true");
-        props.put("mail.smtp.starttls.enable", "true");
-        props.put("mail.smtp.ssl.trust", SMTP_HOST);
+        String payload = "{"
+                + "\"sender\":{\"name\":\"" + escapeJson(SENDER_NAME) + "\",\"email\":\"" + escapeJson(SENDER_EMAIL) + "\"},"
+                + "\"to\":[{\"email\":\"" + escapeJson(to) + "\"}],"
+                + "\"subject\":\"" + escapeJson(subject) + "\","
+                + "\"htmlContent\":\"" + escapeJson(html) + "\""
+                + "}";
 
-        Session session = Session.getInstance(props, new Authenticator() {
-            @Override
-            protected PasswordAuthentication getPasswordAuthentication() {
-                return new PasswordAuthentication(SMTP_USER, SMTP_PASS);
-            }
-        });
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BREVO_API_URL))
+                .header("accept", "application/json")
+                .header("api-key", BREVO_API_KEY)
+                .header("content-type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(payload))
+                .build();
 
-        MimeMessage message = new MimeMessage(session);
-        try {
-            message.setFrom(new InternetAddress(SMTP_USER, "MedFlow", "UTF-8"));
-        } catch (java.io.UnsupportedEncodingException e) {
-            message.setFrom(new InternetAddress(SMTP_USER));
+        HttpResponse<String> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            throw new IllegalStateException("Brevo refuse l'envoi (" + response.statusCode() + "): " + truncate(response.body(), 280));
         }
-        message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(to));
-        message.setSubject(subject, "UTF-8");
 
-        MimeBodyPart htmlPart = new MimeBodyPart();
-        htmlPart.setContent(html, "text/html; charset=UTF-8");
+        System.out.println("[EmailService] Email envoye via Brevo a : " + to);
+    }
 
-        MimeMultipart multipart = new MimeMultipart("alternative");
-        multipart.addBodyPart(htmlPart);
-        message.setContent(multipart);
+    private static void sendWithAttachment(String to, String subject, String html, String fileName, byte[] content) throws Exception {
+        if (isBlank(BREVO_API_KEY) || isBlank(SENDER_EMAIL)) {
+            System.err.println("[EmailService] Brevo non configure. Definissez BREVO_API_KEY et BREVO_SENDER_EMAIL.");
+            System.out.println("[EmailService] Email simule -> A: " + to + " | Objet: " + subject + " | PJ: " + fileName);
+            return;
+        }
 
-        Transport.send(message);
-        System.out.println("[EmailService] Email envoyé à : " + to);
+        String b64 = Base64.getEncoder().encodeToString(content);
+        String payload = "{"
+                + "\"sender\":{\"name\":\"" + escapeJson(SENDER_NAME) + "\",\"email\":\"" + escapeJson(SENDER_EMAIL) + "\"},"
+                + "\"to\":[{\"email\":\"" + escapeJson(to) + "\"}],"
+                + "\"subject\":\"" + escapeJson(subject) + "\","
+                + "\"htmlContent\":\"" + escapeJson(html) + "\","
+                + "\"attachment\":[{\"content\":\"" + b64 + "\",\"name\":\"" + escapeJson(fileName) + "\"}]"
+                + "}";
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BREVO_API_URL))
+                .header("accept", "application/json")
+                .header("api-key", BREVO_API_KEY)
+                .header("content-type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(payload))
+                .build();
+
+        HttpResponse<String> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            throw new IllegalStateException("Brevo refuse l'envoi (" + response.statusCode() + "): " + truncate(response.body(), 280));
+        }
+        System.out.println("[EmailService] Email envoye via Brevo a : " + to + " (avec PJ)");
+    }
+
+    /**
+     * Envoie un email de confirmation d'approbation staff.
+     */
+    public void sendStaffApprovalEmail(String to, String nomStaff, String roleStaff) throws Exception {
+        String subject = "✅ Votre demande d'accès MedFlow a été approuvée";
+        String html = buildHtml(
+                "Bienvenue dans l'équipe MedFlow! 🎉",
+                "Votre demande d'accès a été examinée et <strong>approuvée</strong> par nos administrateurs.",
+                new String[]{
+                        "Rôle: <strong>" + escapeHtml(roleStaff) + "</strong>",
+                        "Votre compte est maintenant <strong>actif</strong>",
+                        "Vous pouvez vous connecter immédiatement avec vos identifiants",
+                        "En cas de questions, contactez notre support"
+                },
+                "#10b981",
+                "ACCÈS ACCORDÉ"
+        );
+        sendViaBrevo(to, subject, html);
+    }
+
+    /**
+     * Envoie un email de notification de refus staff.
+     */
+    public void sendStaffRejectionEmail(String to, String nomStaff, String reason) throws Exception {
+        String subject = "⚠️ Votre demande d'accès MedFlow a été refusée";
+        String html = buildHtml(
+                "Votre demande d'accès a été refusée",
+                "Après examen de votre dossier, nous regrettons de vous informer que votre demande n'a pas pu être approuvée à ce stade.",
+                new String[]{
+                        "Motif du refus: <strong>" + escapeHtml(reason) + "</strong>",
+                        "Vous pouvez soumettre une nouvelle demande après amélioration de votre dossier",
+                        "N'hésitez pas à nous contacter pour plus d'informations",
+                        "L'équipe MedFlow"
+                },
+                "#ef4444",
+                "DEMANDE REFUSÉE"
+        );
+        sendViaBrevo(to, subject, html);
+    }
+
+    // Pont de compatibilite pour les appels historiques.
+    private void sendViaBrevo(String to, String subject, String html) throws Exception {
+        send(to, subject, html);
     }
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -243,7 +425,19 @@ public class EmailService {
         if (s == null) return "";
         return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
     }
+
+    private static String escapeJson(String value) {
+        if (value == null) return "";
+        return value
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\r", "\\r")
+                .replace("\n", "\\n")
+                .replace("\t", "\\t");
+    }
+
+    private static String truncate(String value, int maxLen) {
+        if (value == null) return "";
+        return value.length() <= maxLen ? value : value.substring(0, maxLen) + "...";
+    }
 }
-
-
-

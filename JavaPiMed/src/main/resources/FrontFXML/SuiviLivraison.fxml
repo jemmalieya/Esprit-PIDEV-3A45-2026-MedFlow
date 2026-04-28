@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx/20.0.2"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="tn.esprit.controllers.CommandeController"
+            prefWidth="1400" prefHeight="820"
+            stylesheets="@../CSS/commandes.css,@../CSS/booking.css"
+            styleClass="cmd-root">
+
+    <left>
+        <fx:include source="Sidebar.fxml"/>
+    </left>
+
+    <center>
+        <ScrollPane fitToWidth="true" styleClass="cmd-scroll">
+            <content>
+                <VBox spacing="20" styleClass="cmd-main">
+                    <padding>
+                        <Insets top="24" right="28" bottom="24" left="28"/>
+                    </padding>
+
+                    <HBox alignment="CENTER_LEFT" spacing="12" styleClass="suivi-header-row">
+                        <Button text="← Retour commandes"
+                                onAction="#retourCommandesDepuisSuivi"
+                                styleClass="btn-secondary"/>
+                        <Label text="Suivi livraison"
+                               styleClass="suivi-page-title"/>
+                    </HBox>
+
+                    <HBox spacing="20" alignment="TOP_LEFT">
+                        <VBox spacing="16"
+                              prefWidth="430"
+                              styleClass="suivi-detail-card">
+                            <children>
+                                <Label text="🚚 Détails de la livraison"
+                                       styleClass="suivi-card-title"/>
+
+                                <Label fx:id="livraisonDepartLabel"
+                                       text="Départ : -"
+                                       styleClass="suivi-info-label"/>
+
+                                <Label fx:id="livraisonDestinationLabel"
+                                       text="Destination : -"
+                                       wrapText="true"
+                                       styleClass="suivi-info-label"/>
+
+                                <Label fx:id="livraisonStatutLabel"
+                                       text="Statut : -"
+                                       styleClass="suivi-status-badge"/>
+
+                                <Label fx:id="livraisonDistanceLabel"
+                                       text="Distance : -"
+                                       styleClass="suivi-info-label"/>
+
+                                <Label fx:id="livraisonDureeLabel"
+                                       text="Durée estimée : -"
+                                       styleClass="suivi-info-label"/>
+                            </children>
+                        </VBox>
+
+                        <VBox spacing="10">
+                            <children>
+                                <Label text="🗺 Itinéraire"
+                                       styleClass="suivi-card-title"/>
+
+                                <StackPane fx:id="mapContainer"
+                                           prefWidth="700"
+                                           prefHeight="620"
+                                           minHeight="620"
+                                            styleClass="suivi-map-card">
+                                    <children>
+                                        <ImageView fx:id="livraisonMapImageView"
+                                                   fitWidth="700"
+                                                   fitHeight="620"
+                                                   preserveRatio="false"
+                                                   smooth="true"/>
+                                    </children>
+                                </StackPane>
+                            </children>
+                        </VBox>
+                    </HBox>
+                </VBox>
+            </content>
+        </ScrollPane>
+    </center>
+</BorderPane>

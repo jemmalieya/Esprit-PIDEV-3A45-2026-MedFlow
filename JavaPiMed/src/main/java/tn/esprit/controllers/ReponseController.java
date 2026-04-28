@@ -93,6 +93,8 @@ public class ReponseController {
         statutCol.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("statut_reclamation"));
         prioriteCol.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("priorite"));
 
+        reclamationTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+
         descriptionCol.setCellValueFactory(cellData -> {
             String desc = cellData.getValue().getDescription();
             if (desc == null) desc = "";
@@ -202,6 +204,14 @@ public class ReponseController {
 
                 repondreBtn.setOnAction(e -> {
                     Reclamation rec = getTableView().getItems().get(getIndex());
+
+                    if (new ReponseService().hasFinalResponseForReclamation(rec.getId_reclamation())) {
+                        showAlert(Alert.AlertType.WARNING,
+                                "Action refusée",
+                                "Une réponse finale existe déjà pour cette réclamation.");
+                        return;
+                    }
+
                     ouvrirFormulaireReponse(rec);
                 });
 
@@ -214,7 +224,19 @@ public class ReponseController {
             @Override
             protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
-                setGraphic(empty ? null : toolBar);
+
+                if (empty || getIndex() >= getTableView().getItems().size()) {
+                    setGraphic(null);
+                } else {
+                    Reclamation rec = getTableView().getItems().get(getIndex());
+
+                    boolean finalExists = new ReponseService()
+                            .hasFinalResponseForReclamation(rec.getId_reclamation());
+
+                    repondreBtn.setDisable(finalExists);
+
+                    setGraphic(toolBar);
+                }
             }
         });
 
@@ -222,6 +244,7 @@ public class ReponseController {
     }
     private void ouvrirPopupReponses(Reclamation reclamation) {
         try {
+            new ReponseService().markPatientMessagesAsReadByAdmin(reclamation.getId_reclamation());
             Stage stage = new Stage();
             stage.setTitle("Réponses");
 
@@ -259,10 +282,17 @@ public class ReponseController {
 
             TableColumn<ReponseReclamation, String> statusCol = new TableColumn<>("Statut");
             statusCol.setCellValueFactory(data ->
-                    new SimpleStringProperty(data.getValue().isIs_read() ? "Lu" : "Non lu")
+                    new SimpleStringProperty(data.getValue().isLu_par_patient() ? "Lu" : "Non lu")
             );
 
             TableColumn<ReponseReclamation, Void> actionCol = new TableColumn<>("Actions");
+
+            TableColumn<ReponseReclamation, String> auteurCol = new TableColumn<>("Auteur");
+            auteurCol.setCellValueFactory(data ->
+                    new SimpleStringProperty(
+                            data.getValue().getAuteur() != null ? data.getValue().getAuteur() : ""
+                    )
+            );
 
             actionCol.setCellFactory(col -> new TableCell<>() {
 
@@ -271,17 +301,47 @@ public class ReponseController {
 
                 private final HBox box = new HBox(8, edit, delete);
 
+
                 {
                     edit.getStyleClass().add("btn-edit");
                     delete.getStyleClass().add("btn-delete");
 
                     edit.setOnAction(e -> {
                         ReponseReclamation r = getTableView().getItems().get(getIndex());
+
+                        if (!"ADMIN".equalsIgnoreCase(r.getRole_emetteur())) {
+                            showAlert(Alert.AlertType.WARNING,
+                                    "Action refusée",
+                                    "Vous ne pouvez modifier que vos propres réponses.");
+                            return;
+                        }
+
+                        if (r.isLu_par_patient()) {
+                            showAlert(Alert.AlertType.WARNING,
+                                    "Action refusée",
+                                    "Cette réponse admin a déjà été lue par le patient. Modification impossible.");
+                            return;
+                        }
+
                         ouvrirModificationReponse(r, table);
                     });
 
                     delete.setOnAction(e -> {
                         ReponseReclamation r = getTableView().getItems().get(getIndex());
+
+                        if (!"ADMIN".equalsIgnoreCase(r.getRole_emetteur())) {
+                            showAlert(Alert.AlertType.WARNING,
+                                    "Action refusée",
+                                    "Vous ne pouvez supprimer que vos propres réponses.");
+                            return;
+                        }
+
+                        if (r.isLu_par_patient()) {
+                            showAlert(Alert.AlertType.WARNING,
+                                    "Action refusée",
+                                    "Cette réponse admin a déjà été lue par le patient. Suppression impossible.");
+                            return;
+                        }
 
                         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
                         confirm.setHeaderText("Supprimer cette réponse ?");
@@ -300,11 +360,27 @@ public class ReponseController {
                 @Override
                 protected void updateItem(Void item, boolean empty) {
                     super.updateItem(item, empty);
-                    setGraphic(empty ? null : box);
+
+                    if (empty || getIndex() >= getTableView().getItems().size()) {
+                        setGraphic(null);
+                    } else {
+                        ReponseReclamation r = getTableView().getItems().get(getIndex());
+
+                        boolean isAdminMessage = "ADMIN".equalsIgnoreCase(r.getRole_emetteur());
+                        boolean locked = isAdminMessage && r.isLu_par_patient();
+
+                        if (!isAdminMessage) {
+                            setGraphic(null); // pas de boutons sur réponse patient côté admin
+                        } else {
+                            edit.setDisable(locked);
+                            delete.setDisable(locked);
+                            setGraphic(box);
+                        }
+                    }
                 }
             });
 
-            table.getColumns().addAll(msgCol, dateCol, statusCol, actionCol);
+            table.getColumns().addAll(auteurCol, msgCol, dateCol, statusCol, actionCol);
 
             table.setPlaceholder(new Label("Aucune réponse 💬"));
 
@@ -357,8 +433,7 @@ public class ReponseController {
             typeCombo.getStyleClass().add("input-field");
 
             // READ
-            CheckBox readCheck = new CheckBox("Lu");
-            readCheck.setSelected(r.isIs_read());
+
 
             // BUTTONS
             Button save = new Button("✔ Enregistrer");
@@ -372,7 +447,7 @@ public class ReponseController {
             save.setOnAction(e -> {
                 r.setMessage(messageField.getText());
                 r.setType_reponse(typeCombo.getValue());
-                r.setIs_read(readCheck.isSelected());
+
                 r.setDate_modification_rep(java.time.LocalDateTime.now());
 
                 new ReponseService().modifier(r);
@@ -390,7 +465,7 @@ public class ReponseController {
                     title,
                     new Label("Message"), messageField,
                     new Label("Type"), typeCombo,
-                    readCheck,
+
                     buttons
             );
 
@@ -598,7 +673,10 @@ public class ReponseController {
     private void openBlogStats() {
         navigateTo("/BlogStats.fxml", "MedFlow - Statistiques Blog");
     }
-
+    @FXML
+    private void openPendingPostsAdminPage() {
+        navigateTo("/PendingPostsAdmin.fxml", "MedFlow - Validation des posts");
+    }
     @FXML
     private void handleLogout() {
         navigateTo("/FrontFXML/Login.fxml", "MedFlow - Connexion");

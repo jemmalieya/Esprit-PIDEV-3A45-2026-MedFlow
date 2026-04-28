@@ -12,6 +12,7 @@ import javafx.animation.TranslateTransition;
 import javafx.util.Duration;
 
 import java.time.LocalDateTime;
+import tn.esprit.services.ReclamationService;
 
 public class ReponseFormController {
 
@@ -30,6 +31,9 @@ public class ReponseFormController {
 
     private Reclamation reclamation;
     private final ReponseService reponseService = new ReponseService();
+
+    private final ReclamationService reclamationService = new ReclamationService();
+
     private Runnable afterSave;
     private boolean validateForm() {
 
@@ -122,7 +126,10 @@ public class ReponseFormController {
         reponse.setType_reponse(typeReponse);
         reponse.setDate_creation_rep(LocalDateTime.now());
         reponse.setDate_modification_rep(LocalDateTime.now());
-        reponse.setIs_read(false);
+        reponse.setAuteur("ADMIN");
+        reponse.setRole_emetteur("ADMIN");
+        reponse.setLu_par_admin(true);
+        reponse.setLu_par_patient(false);
 
         try {
             if (reponseService.existeDoublon(reponse)) {
@@ -131,15 +138,34 @@ public class ReponseFormController {
                         "Une réponse identique existe déjà pour cette réclamation.");
                 return;
             }
+            if (reponseService.hasFinalResponseForReclamation(reclamation.getId_reclamation())) {
+                showAlert(Alert.AlertType.WARNING,
+                        "Action refusée",
+                        "Une réponse finale existe déjà pour cette réclamation.");
+                return;
+            }
+
             reponseService.ajouter(reponse);
 
-            if (afterSave != null) {
-                afterSave.run(); // 🔥 refresh table parent
+            // 🔥 ÉTAPE 7 : réactiver la notification pour le user
+            reclamationService.updateNotificationEnvoyee(reclamation.getId_reclamation(), false);
+
+            // 🔥 mettre à jour le statut selon le type choisi
+            if ("Réponse finale".equalsIgnoreCase(typeReponse)) {
+                reclamationService.updateStatut(reclamation.getId_reclamation(), "Clôturée");
+            } else {
+                reclamationService.updateStatut(reclamation.getId_reclamation(), "Répondu");
             }
+
+            if (afterSave != null) {
+                afterSave.run();
+            }
+
             showAlert(Alert.AlertType.INFORMATION, "Succès", "Réponse envoyée avec succès.");
-            // Fermer la fenêtre
+
             Stage stage = (Stage) messageArea.getScene().getWindow();
             stage.close();
+
         } catch (Exception e) {
             showAlert(Alert.AlertType.ERROR, "Erreur", "Erreur lors de l'envoi: " + e.getMessage());
         }

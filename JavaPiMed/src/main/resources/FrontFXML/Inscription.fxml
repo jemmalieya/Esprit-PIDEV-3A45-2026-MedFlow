@@ -2,139 +2,294 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
-<?import javafx.scene.image.Image?>
-<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.*?>
 
-<StackPane xmlns="http://javafx.com/javafx/21"
-           xmlns:fx="http://javafx.com/fxml/1"
-           fx:controller="tn.esprit.controllers.RegisterController"
-           fx:id="rootPane"
-           prefHeight="820.0"
-           prefWidth="1400.0"
-           stylesheets="@../CSS/login.css"
-           styleClass="login-root">
+<AnchorPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="tn.esprit.controllers.RegisterController"
+            fx:id="rootPane"
+            prefHeight="720.0"
+            prefWidth="1280.0"
+            minWidth="900.0"
+            minHeight="600.0"
+            stylesheets="@../CSS/login.css"
+            styleClass="auth-page-signup">
 
-    <!-- Soft background shapes (static) -->
-    <AnchorPane styleClass="login-background-shape shape-one" StackPane.alignment="TOP_LEFT"/>
-    <AnchorPane styleClass="login-background-shape shape-two" StackPane.alignment="BOTTOM_RIGHT"/>
+    <HBox fx:id="mainContent" alignment="CENTER" spacing="0.0"
+          AnchorPane.bottomAnchor="40.0"
+          AnchorPane.leftAnchor="56.0"
+          AnchorPane.rightAnchor="56.0"
+          AnchorPane.topAnchor="40.0">
 
-    <HBox maxWidth="1200.0" prefHeight="720.0" prefWidth="1200.0" styleClass="login-shell">
-        <!-- Left visual / brand side, same spirit as login -->
-        <VBox spacing="24.0" styleClass="login-brand-panel" HBox.hgrow="ALWAYS">
+        <!-- ── Visual / Branding Panel ── -->
+        <VBox fx:id="visualPanel" prefWidth="420.0" spacing="18.0"
+              styleClass="auth-visual-signup" HBox.hgrow="ALWAYS">
             <padding>
-                <Insets top="40.0" right="40.0" bottom="40.0" left="40.0"/>
+                <Insets top="40.0" right="38.0" bottom="40.0" left="38.0"/>
             </padding>
 
-            <HBox alignment="TOP_LEFT" spacing="14.0">
-                <ImageView fitHeight="46.0" fitWidth="46.0" pickOnBounds="true" preserveRatio="true">
-                    <image>
-                        <Image url="@../images/logo.png"/>
-                    </image>
-                </ImageView>
-                <VBox spacing="2.0">
-                    <Label text="MEDFLOW" styleClass="brand-title"/>
-                    <Label text="Plateforme de santé connectée" styleClass="brand-subtitle"/>
-                </VBox>
+            <!-- Brand badge -->
+            <HBox alignment="CENTER_LEFT" spacing="10.0">
+                <HBox styleClass="auth-brand-badge" maxWidth="180" alignment="CENTER">
+                    <Label text="✦  MEDFLOW" styleClass="auth-visual-brand"/>
+                </HBox>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Button fx:id="themeToggleBtn"
+                        text="Mode clair"
+                        onAction="#handleToggleTheme"
+                        styleClass="theme-toggle-auth"/>
             </HBox>
 
-            <VBox spacing="10.0" maxWidth="360.0">
-                <Label text="Créez votre compte en quelques secondes." styleClass="hero-title" wrapText="true"/>
-                <Label text="Rejoignez MedFlow pour gérer vos rendez-vous, ordonnances et réclamations dans un espace unique." styleClass="hero-text" wrapText="true"/>
+            <Label text="Inscription" styleClass="auth-visual-title"/>
+            <Label text="Creez votre compte en quelques secondes.&#xA;Rejoignez MedFlow en tant que patient ou membre du staff."
+                   styleClass="auth-visual-subtitle" wrapText="true"/>
+
+            <Region VBox.vgrow="ALWAYS"/>
+
+            <VBox spacing="6.0" styleClass="auth-visual-note">
+                <Label text="✅  Inscription simple" styleClass="auth-visual-note-title"/>
+                <Label text="Patient : accès immédiat · Staff : vérification administrative avant activation"
+                       styleClass="auth-visual-note-text" wrapText="true"/>
             </VBox>
         </VBox>
 
-        <!-- Right signup card side, mirroring the login card -->
-        <VBox alignment="CENTER" prefWidth="460.0" styleClass="login-right-pane">
-            <VBox fx:id="signupCard" maxWidth="420.0" minWidth="380.0" spacing="18.0" styleClass="login-form-panel">
-                <padding>
-                    <Insets top="28.0" right="32.0" bottom="28.0" left="32.0"/>
-                </padding>
+        <!-- ── Form Panel ── -->
+        <ScrollPane fitToWidth="true"
+                    hbarPolicy="NEVER"
+                    vbarPolicy="AS_NEEDED"
+                    pannable="true"
+                    prefWidth="640.0"
+                    styleClass="auth-form-scroll"
+                    HBox.hgrow="ALWAYS">
+            <content>
+                <VBox fx:id="signupCard" prefWidth="600.0" spacing="12.0"
+                      styleClass="auth-form-panel">
+                    <padding>
+                        <Insets top="30.0" right="40.0" bottom="30.0" left="40.0"/>
+                    </padding>
 
-                <VBox spacing="8.0">
-                    <Label text="Créer un compte" styleClass="form-title"/>
-                    <Label text="Renseignez vos informations pour activer votre espace MedFlow." styleClass="form-subtitle" wrapText="true"/>
+                    <Label text="Creer un compte 🚀" styleClass="auth-form-title"/>
+                    <Label text="Remplissez le formulaire ci-dessous pour rejoindre MedFlow." styleClass="auth-form-subtitle"/>
+
+                    <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="registration-type-row">
+                        <Label text="Type de compte" styleClass="signup-field-label"/>
+                        <ComboBox fx:id="registrationTypeCombo" styleClass="registration-type-combo" prefWidth="220.0"/>
+                    </HBox>
+                    <Label fx:id="staffInfoLabel"
+                           text="Mode staff: votre compte sera cree en attente de validation administrateur. Merci de renseigner les informations professionnelles demandées."
+                           styleClass="staff-info-label"
+                           managed="false"
+                           visible="false"
+                           wrapText="true"/>
+
+                    <Region minHeight="4" maxHeight="4"/>
+
+                    <GridPane hgap="14.0" vgap="4.0" styleClass="signup-grid">
+                        <columnConstraints>
+                            <ColumnConstraints percentWidth="50.0"/>
+                            <ColumnConstraints percentWidth="50.0"/>
+                        </columnConstraints>
+
+                        <Label text="CIN" styleClass="signup-field-label" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+                        <TextField fx:id="cinField" promptText="8 chiffres" styleClass="login-field"
+                                   GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+                        <Label fx:id="cinErrorLabel" managed="false" styleClass="field-error"
+                               text="" visible="false" wrapText="true"
+                               GridPane.columnIndex="0" GridPane.rowIndex="2"/>
+
+                        <Label text="NOM" styleClass="signup-field-label" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+                        <TextField fx:id="nomField" promptText="Votre nom" styleClass="login-field"
+                                   GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+                        <Label fx:id="nomErrorLabel" managed="false" styleClass="field-error"
+                               text="" visible="false" wrapText="true"
+                               GridPane.columnIndex="1" GridPane.rowIndex="2"/>
+
+                        <Label text="PRÉNOM" styleClass="signup-field-label" GridPane.columnIndex="0" GridPane.rowIndex="3"/>
+                        <TextField fx:id="prenomField" promptText="Votre prenom" styleClass="login-field"
+                                   GridPane.columnIndex="0" GridPane.rowIndex="4"/>
+                        <Label fx:id="prenomErrorLabel" managed="false" styleClass="field-error"
+                               text="" visible="false" wrapText="true"
+                               GridPane.columnIndex="0" GridPane.rowIndex="5"/>
+
+                        <Label text="DATE DE NAISSANCE" styleClass="signup-field-label" GridPane.columnIndex="1" GridPane.rowIndex="3"/>
+                        <DatePicker fx:id="dateNaissancePicker" promptText="jj/mm/aaaa"
+                                    styleClass="signup-date-picker"
+                                    GridPane.columnIndex="1" GridPane.rowIndex="4"/>
+                        <Label fx:id="dateNaissanceErrorLabel" managed="false" styleClass="field-error"
+                               text="" visible="false" wrapText="true"
+                               GridPane.columnIndex="1" GridPane.rowIndex="5"/>
+
+                        <Label text="TÉLÉPHONE" styleClass="signup-field-label" GridPane.columnIndex="0" GridPane.rowIndex="6"/>
+                        <TextField fx:id="telephoneField" promptText="54430709" styleClass="login-field"
+                                   GridPane.columnIndex="0" GridPane.rowIndex="7"/>
+                        <Label fx:id="telephoneErrorLabel" managed="false" styleClass="field-error"
+                               text="" visible="false" wrapText="true"
+                               GridPane.columnIndex="0" GridPane.rowIndex="8"/>
+
+                        <Label text="E-MAIL" styleClass="signup-field-label" GridPane.columnIndex="1" GridPane.rowIndex="6"/>
+                        <TextField fx:id="emailField" promptText="exemple@email.com" styleClass="login-field"
+                                   GridPane.columnIndex="1" GridPane.rowIndex="7"/>
+                        <Label fx:id="emailErrorLabel" managed="false" styleClass="field-error"
+                               text="" visible="false" wrapText="true"
+                               GridPane.columnIndex="1" GridPane.rowIndex="8"/>
+
+                        <Label text="ADRESSE *" styleClass="signup-field-label" GridPane.columnIndex="0" GridPane.rowIndex="9"/>
+                        <TextField fx:id="adresseField" promptText="Votre adresse" styleClass="login-field"
+                                   GridPane.columnIndex="0" GridPane.rowIndex="10"/>
+                        <Label fx:id="adresseErrorLabel" managed="false" styleClass="field-error"
+                               text="" visible="false" wrapText="true"
+                               GridPane.columnIndex="0" GridPane.rowIndex="11"/>
+
+                        <Label text="MOT DE PASSE" styleClass="signup-field-label" GridPane.columnIndex="1" GridPane.rowIndex="9"/>
+                        <PasswordField fx:id="motDePasseField" promptText="••••••••" styleClass="login-field"
+                                       GridPane.columnIndex="1" GridPane.rowIndex="10"/>
+                        <Label fx:id="passwordErrorLabel" managed="false" styleClass="field-error"
+                               text="" visible="false" wrapText="true"
+                               GridPane.columnIndex="1" GridPane.rowIndex="11"/>
+
+                        <Label text="CONFIRMER MDP" styleClass="signup-field-label" GridPane.columnIndex="0" GridPane.rowIndex="12"/>
+                        <PasswordField fx:id="confirmerMotDePasseField" promptText="••••••••" styleClass="login-field"
+                                       GridPane.columnIndex="0" GridPane.rowIndex="13"/>
+                        <Label fx:id="confirmPasswordErrorLabel" managed="false" styleClass="field-error"
+                               text="" visible="false" wrapText="true"
+                               GridPane.columnIndex="0" GridPane.rowIndex="14"/>
+                    </GridPane>
+
+                    <VBox fx:id="staffSectionBox" spacing="14.0" styleClass="staff-section-card" managed="false" visible="false">
+                        <Label text="Informations professionnelles" styleClass="staff-section-title"/>
+                        <Label text="Ces informations permettront à l'administrateur de vérifier votre demande d'accès staff."
+                               styleClass="auth-form-subtitle" wrapText="true"/>
+
+                        <GridPane hgap="14.0" vgap="4.0" styleClass="signup-grid">
+                            <columnConstraints>
+                                <ColumnConstraints percentWidth="50.0"/>
+                                <ColumnConstraints percentWidth="50.0"/>
+                            </columnConstraints>
+
+                            <Label text="TYPE STAFF *" styleClass="signup-field-label" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+                            <ComboBox fx:id="staffTypeCombo" promptText="Choisir..." styleClass="registration-type-combo"
+                                      prefWidth="260.0" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+                            <Label fx:id="staffTypeErrorLabel" managed="false" styleClass="field-error"
+                                   text="" visible="false" wrapText="true"
+                                   GridPane.columnIndex="0" GridPane.rowIndex="2"/>
+
+                            <Label text="SPÉCIALITÉ" styleClass="signup-field-label" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+                            <TextField fx:id="staffSpecialityField" promptText="Optionnel" styleClass="login-field"
+                                       GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+
+                            <Label text="ANNÉES D'EXPÉRIENCE" styleClass="signup-field-label" GridPane.columnIndex="0" GridPane.rowIndex="3"/>
+                            <TextField fx:id="staffExperienceField" promptText="Ex: 5" styleClass="login-field"
+                                       GridPane.columnIndex="0" GridPane.rowIndex="4"/>
+                            <Label fx:id="staffExperienceErrorLabel" managed="false" styleClass="field-error"
+                                   text="" visible="false" wrapText="true"
+                                   GridPane.columnIndex="0" GridPane.rowIndex="5"/>
+
+                            <Label text="ÉTABLISSEMENT ACTUEL *" styleClass="signup-field-label" GridPane.columnIndex="1" GridPane.rowIndex="3"/>
+                            <TextField fx:id="staffEstablishmentField" promptText="Clinique / Hôpital / Service" styleClass="login-field"
+                                       GridPane.columnIndex="1" GridPane.rowIndex="4"/>
+                            <Label fx:id="staffEstablishmentErrorLabel" managed="false" styleClass="field-error"
+                                   text="" visible="false" wrapText="true"
+                                   GridPane.columnIndex="1" GridPane.rowIndex="5"/>
+
+                            <Label text="N° D'AUTORISATION *" styleClass="signup-field-label" GridPane.columnIndex="0" GridPane.rowIndex="6"/>
+                            <TextField fx:id="staffAuthorizationField" promptText="N° d'autorisation" styleClass="login-field"
+                                       GridPane.columnIndex="0" GridPane.rowIndex="7"/>
+                            <Label fx:id="staffAuthorizationErrorLabel" managed="false" styleClass="field-error"
+                                   text="" visible="false" wrapText="true"
+                                   GridPane.columnIndex="0" GridPane.rowIndex="8"/>
+
+                            <Label text="MESSAGE (OPTIONNEL)" styleClass="signup-field-label" GridPane.columnIndex="0" GridPane.rowIndex="9"/>
+                            <TextArea fx:id="staffMessageArea" promptText="Décrivez brièvement votre rôle, votre expérience et le besoin d'accès."
+                                      styleClass="staff-textarea"
+                                      prefRowCount="4"
+                                      wrapText="true"
+                                      GridPane.columnIndex="0"
+                                      GridPane.columnSpan="2"
+                                      GridPane.rowIndex="10"/>
+                        </GridPane>
+
+                        <Separator/>
+
+                        <Label text="Pièces justificatives" styleClass="staff-section-title"/>
+                        <Label text="Format accepté : PDF / DOC / DOCX pour le CV. JPG / PNG pour l'identité et le diplôme. Les 3 premiers documents (CV, identité, diplôme) sont obligatoires."
+                               styleClass="upload-helper-text" wrapText="true"/>
+
+                        <GridPane hgap="14.0" vgap="8.0" styleClass="signup-grid">
+                            <columnConstraints>
+                                <ColumnConstraints percentWidth="50.0"/>
+                                <ColumnConstraints percentWidth="50.0"/>
+                            </columnConstraints>
+
+                            <Label text="PIÈCE D'IDENTITÉ *" styleClass="signup-field-label" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+                            <Label text="DIPLÔME MÉDICAL *" styleClass="signup-field-label" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+
+                            <HBox spacing="10.0" alignment="CENTER_LEFT" GridPane.columnIndex="0" GridPane.rowIndex="1">
+                                <Button text="Choisir..." onAction="#handleSelectIdentityProof" styleClass="upload-select-button"/>
+                                <Label fx:id="identityProofNameLabel" styleClass="upload-file-label" text="Aucun fichier choisi"/>
+                            </HBox>
+                            <HBox spacing="10.0" alignment="CENTER_LEFT" GridPane.columnIndex="1" GridPane.rowIndex="1">
+                                <Button text="Choisir..." onAction="#handleSelectDiplomaProof" styleClass="upload-select-button"/>
+                                <Label fx:id="diplomaProofNameLabel" styleClass="upload-file-label" text="Aucun fichier choisi"/>
+                            </HBox>
+                            <Label fx:id="identityProofErrorLabel" managed="false" styleClass="field-error"
+                                   text="" visible="false" wrapText="true"
+                                   GridPane.columnIndex="0" GridPane.rowIndex="2"/>
+                            <Label fx:id="diplomaProofErrorLabel" managed="false" styleClass="field-error"
+                                   text="" visible="false" wrapText="true"
+                                   GridPane.columnIndex="1" GridPane.rowIndex="2"/>
+
+                            <Label text="CV (PDF/DOC/DOCX) *" styleClass="signup-field-label" GridPane.columnIndex="0" GridPane.rowIndex="3"/>
+                            <Label text="PHOTO PROFESSIONNELLE (OPTIONNEL)" styleClass="signup-field-label" GridPane.columnIndex="1" GridPane.rowIndex="3"/>
+
+                            <HBox spacing="10.0" alignment="CENTER_LEFT" GridPane.columnIndex="0" GridPane.rowIndex="4">
+                                <Button text="Choisir..." onAction="#handleSelectOrderProof" styleClass="upload-select-button"/>
+                                <Label fx:id="orderProofNameLabel" styleClass="upload-file-label" text="Aucun fichier choisi"/>
+                            </HBox>
+                            <HBox spacing="10.0" alignment="CENTER_LEFT" GridPane.columnIndex="1" GridPane.rowIndex="4">
+                                <Button text="Choisir..." onAction="#handleSelectProfessionalPhoto" styleClass="upload-select-button"/>
+                                <Label fx:id="professionalPhotoNameLabel" styleClass="upload-file-label" text="Aucun fichier choisi"/>
+                            </HBox>
+                            <Label fx:id="orderProofErrorLabel" managed="false" styleClass="field-error"
+                                   text="" visible="false" wrapText="true"
+                                   GridPane.columnIndex="0" GridPane.rowIndex="5"/>
+                            <Label fx:id="professionalPhotoErrorLabel" managed="false" styleClass="field-error"
+                                   text="" visible="false" wrapText="true"
+                                   GridPane.columnIndex="1" GridPane.rowIndex="5"/>
+
+                            <Label text="AUTRES DOCUMENTS" styleClass="signup-field-label" GridPane.columnIndex="0" GridPane.rowIndex="6"/>
+                            <HBox spacing="10.0" alignment="CENTER_LEFT" GridPane.columnIndex="0" GridPane.columnSpan="2" GridPane.rowIndex="7">
+                                <Button text="Ajouter..." onAction="#handleSelectOtherDocuments" styleClass="upload-select-button"/>
+                                <Label fx:id="otherDocumentsNameLabel" styleClass="upload-file-label" text="Aucun fichier choisi"/>
+                            </HBox>
+                        </GridPane>
+                    </VBox>
+
+                    <HBox alignment="CENTER_LEFT" spacing="8.0">
+                        <CheckBox fx:id="conditionsCheckBox" styleClass="remember-check"/>
+                        <Label styleClass="signup-conditions-text" text="J'accepte les"/>
+                        <Hyperlink styleClass="signup-conditions-link" text="Conditions d'utilisation"/>
+                    </HBox>
+
+                    <Label fx:id="signupStatusLabel" managed="false" styleClass="status-message"
+                           text="" visible="false" wrapText="true"/>
+
+                    <HBox fx:id="registerButtonBox" alignment="CENTER_RIGHT">
+                        <Button onAction="#handleRegister" styleClass="primary-action" text="S'inscrire →"/>
+                    </HBox>
+
+                    <HBox fx:id="successButtonBox" alignment="CENTER_RIGHT" spacing="10.0"
+                          managed="false" visible="false">
+                        <Button fx:id="skipAfterSignupBtn" styleClass="secondary-action" text="Passer" onAction="#handleGoToLogin"/>
+                        <Button fx:id="faceEnrollBtn" styleClass="face-action" text="🎯  Enregistrer mon visage"
+                                onAction="#handleFaceEnrollmentSignup"/>
+                    </HBox>
+
+                    <HBox alignment="CENTER" spacing="6.0">
+                        <Label styleClass="register-label" text="Vous avez deja un compte ?"/>
+                        <Hyperlink onAction="#handleGoToLogin" styleClass="login-link-secondary" text="Se connecter"/>
+                    </HBox>
                 </VBox>
-
-                <GridPane hgap="18.0" vgap="8.0">
-                    <columnConstraints>
-                        <ColumnConstraints percentWidth="50"/>
-                        <ColumnConstraints percentWidth="50"/>
-                    </columnConstraints>
-
-                    <!-- CIN -->
-                    <Label text="CIN" styleClass="signup-field-label" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
-                    <TextField fx:id="cinField" promptText="8 chiffres" styleClass="login-field" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
-                    <Label fx:id="cinErrorLabel" text="" styleClass="field-error" managed="false" visible="false" wrapText="true" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
-
-                    <!-- Nom -->
-                    <Label text="Nom" styleClass="signup-field-label" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
-                    <TextField fx:id="nomField" promptText="Votre nom" styleClass="login-field" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
-                    <Label fx:id="nomErrorLabel" text="" styleClass="field-error" managed="false" visible="false" wrapText="true" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
-
-                    <!-- Prénom -->
-                    <Label text="Prénom" styleClass="signup-field-label" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
-                    <TextField fx:id="prenomField" promptText="Votre prénom" styleClass="login-field" GridPane.rowIndex="4" GridPane.columnIndex="0"/>
-                    <Label fx:id="prenomErrorLabel" text="" styleClass="field-error" managed="false" visible="false" wrapText="true" GridPane.rowIndex="5" GridPane.columnIndex="0"/>
-
-                    <!-- Date de naissance -->
-                    <Label text="Date de naissance" styleClass="signup-field-label" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
-                    <DatePicker fx:id="dateNaissancePicker" promptText="jj/mm/aaaa" styleClass="signup-date-picker" GridPane.rowIndex="4" GridPane.columnIndex="1"/>
-                    <Label fx:id="dateNaissanceErrorLabel" text="" styleClass="field-error" managed="false" visible="false" wrapText="true" GridPane.rowIndex="5" GridPane.columnIndex="1"/>
-
-                    <!-- Téléphone -->
-                    <Label text="Téléphone" styleClass="signup-field-label" GridPane.rowIndex="6" GridPane.columnIndex="0"/>
-                    <TextField fx:id="telephoneField" promptText="54430709 ou +21654430709" styleClass="login-field" GridPane.rowIndex="7" GridPane.columnIndex="0"/>
-                    <Label fx:id="telephoneErrorLabel" text="" styleClass="field-error" managed="false" visible="false" wrapText="true" GridPane.rowIndex="8" GridPane.columnIndex="0"/>
-
-                    <!-- Adresse e-mail -->
-                    <Label text="Adresse e-mail" styleClass="signup-field-label" GridPane.rowIndex="6" GridPane.columnIndex="1"/>
-                    <TextField fx:id="emailField" promptText="exemple@email.com" styleClass="login-field" GridPane.rowIndex="7" GridPane.columnIndex="1"/>
-                    <Label fx:id="emailErrorLabel" text="" styleClass="field-error" managed="false" visible="false" wrapText="true" GridPane.rowIndex="8" GridPane.columnIndex="1"/>
-
-                    <!-- Adresse -->
-                    <Label text="Adresse (optionnel)" styleClass="signup-field-label" GridPane.rowIndex="9" GridPane.columnIndex="0"/>
-                    <TextField fx:id="adresseField" promptText="Votre adresse" styleClass="login-field" GridPane.rowIndex="10" GridPane.columnIndex="0"/>
-                    <Label fx:id="adresseErrorLabel" text="" styleClass="field-error" managed="false" visible="false" wrapText="true" GridPane.rowIndex="11" GridPane.columnIndex="0"/>
-
-                    <!-- Mot de passe -->
-                    <Label text="Mot de passe" styleClass="signup-field-label" GridPane.rowIndex="9" GridPane.columnIndex="1"/>
-                    <PasswordField fx:id="motDePasseField" promptText="••••••••" styleClass="login-field" GridPane.rowIndex="10" GridPane.columnIndex="1"/>
-                    <Label fx:id="passwordErrorLabel" text="" styleClass="field-error" managed="false" visible="false" wrapText="true" GridPane.rowIndex="11" GridPane.columnIndex="1"/>
-
-                    <!-- Confirmer le mot de passe -->
-                    <Label text="Confirmer le mot de passe" styleClass="signup-field-label" GridPane.rowIndex="12" GridPane.columnIndex="1"/>
-                    <PasswordField fx:id="confirmerMotDePasseField" promptText="••••••••" styleClass="login-field" GridPane.rowIndex="13" GridPane.columnIndex="1"/>
-                    <Label fx:id="confirmPasswordErrorLabel" text="" styleClass="field-error" managed="false" visible="false" wrapText="true" GridPane.rowIndex="14" GridPane.columnIndex="1"/>
-                </GridPane>
-
-                <!-- Conditions -->
-                <HBox alignment="CENTER_LEFT" spacing="8.0">
-                    <CheckBox fx:id="conditionsCheckBox"/>
-                    <Label text="J'accepte les " styleClass="signup-conditions-text"/>
-                    <Hyperlink text="Conditions d'utilisation" styleClass="signup-conditions-link"/>
-                    <Label text=" de MedFlow." styleClass="signup-conditions-text"/>
-                </HBox>
-
-                <!-- Validation / status message -->
-                <Label fx:id="signupStatusLabel" text="" wrapText="true" managed="false" visible="false" styleClass="status-message"/>
-
-                <!-- Submit button -->
-                <HBox fx:id="registerButtonBox" alignment="CENTER_RIGHT">
-                    <Button text="S'inscrire" onAction="#handleRegister" styleClass="primary-action"/>
-                </HBox>
-
-                <!-- Success redirect button (shown after successful registration) -->
-                <HBox fx:id="successButtonBox" alignment="CENTER_RIGHT" managed="false" visible="false">
-                    <Button text="Se connecter maintenant" onAction="#handleGoToLogin" styleClass="primary-action"/>
-                </HBox>
-
-                <!-- Already have an account? -->
-                <HBox alignment="CENTER" spacing="6.0">
-                    <Label text="Vous avez déjà un compte ?" styleClass="register-label"/>
-                    <Hyperlink onAction="#handleGoToLogin" text="Se connecter" styleClass="login-link-secondary"/>
-                </HBox>
-            </VBox>
-        </VBox>
+            </content>
+        </ScrollPane>
     </HBox>
-</StackPane>
+</AnchorPane>

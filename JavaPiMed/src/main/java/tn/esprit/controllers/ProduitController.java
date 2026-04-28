@@ -1,6 +1,14 @@
 package tn.esprit.controllers;
 
+
+import tn.esprit.entities.Commande;
+import tn.esprit.services.*;
+
+import java.time.LocalDate;
+import java.util.*;
 import javafx.animation.FadeTransition;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.scene.chart.BarChart;
 import javafx.scene.chart.LineChart;
 import javafx.scene.chart.NumberAxis;
@@ -11,13 +19,7 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
-import tn.esprit.entities.Commande;
-import tn.esprit.services.CommandeService;
-import tn.esprit.services.DashboardBIService;
 
-import java.time.LocalDate;
-import java.util.HashMap;
-import java.util.Map;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -34,28 +36,48 @@ import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
+import javafx.embed.swing.SwingFXUtils;
 import javafx.stage.FileChooser;
 import javafx.stage.Popup;
 import javafx.stage.Stage;
 import javafx.stage.Window;
 import javafx.util.Duration;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.EncodeHintType;
+import com.google.zxing.WriterException;
+import com.google.zxing.client.j2se.MatrixToImageWriter;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
 import tn.esprit.entities.Produit;
-import tn.esprit.services.ProduitService;
 import tn.esprit.session.CartSession;
 import tn.esprit.tools.SessionManager;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Optional;
+import java.awt.image.BufferedImage;
 
 public class ProduitController {
 
+    private static final String PHARMACY_NAME = "Pharmacie Esprit Ariana";
+    private static final String PHARMACY_PHONE = "+216 22 123 456";
+    private static final String PHARMACY_EMAIL = "contact@medflow.tn";
+    private static final String PHARMACY_ADDRESS = "Pharmacie Esprit Ariana, Ariana, Tunisie";
+    private final ProduitSpeechService produitSpeechService = new ProduitSpeechService();
+    private final ProduitVoiceSearchService produitVoiceSearchService = new ProduitVoiceSearchService();
+    private final Object voiceSearchLock = new Object();
+    private volatile boolean voiceSearchRunning = false;
+    private final AssistantServiceProduit assistantServiceProduit = new AssistantServiceProduit();
+    private int currentPage = 0;
+    private static final int PAGE_SIZE = 12;
+    private List<Produit> currentFilteredList = new ArrayList<>();
+    private HBox paginationBar = null;
     // AJOUT / MODIF
+    // AJOUT Cloudinary : service d'upload image
+    private CloudinaryProduitService cloudinaryService;
+
+    // Pour savoir si un upload est en cours (évite double-clic)
+    private volatile boolean uploadEnCours = false;
     @FXML private Button btnAjouterProduit;
     @FXML private Button btnModifierProduit;
     @FXML private Button btnResetProduit;
@@ -91,6 +113,7 @@ public class ProduitController {
     @FXML private ComboBox<String> categorieCombo;
     @FXML private Label resultCountLabel;
     @FXML private Button btnPanier;
+    @FXML private Button voiceSearchBtn;
 
     // DASHBOARD ADMIN BI
     @FXML private Label biPeriodeLabel;
@@ -129,8 +152,19 @@ public class ProduitController {
     @FXML private TableColumn<Produit, String> stockCategorieCol;
     @FXML private TableColumn<Produit, Number> stockStockCol;
     @FXML private TableColumn<Produit, String> stockStatutCol;
+    @FXML private Button       btnAssistant;
+    @FXML private VBox         assistantPanel;
+    @FXML private VBox         assistantMessagesContainer;
+    @FXML private ScrollPane   assistantScrollPane;
+    @FXML private TextField    assistantInputField;
+    @FXML private HBox         assistantTypingIndicator;
+    @FXML private VBox         assistantSuggestionsBar;
+    @FXML private FlowPane     suggestionsFlow;
+
 
     @FXML private FlowPane recommandationsContainer;
+    private final HuggingFaceRecommendationService huggingFaceService =
+            new HuggingFaceRecommendationService();
 
 
     private final DashboardBIService dashboardBIService = new DashboardBIService();
@@ -138,6 +172,7 @@ public class ProduitController {
     private final ObservableList<Produit> masterList = FXCollections.observableArrayList();
     private final ObservableList<Produit> filteredList = FXCollections.observableArrayList();
     private final List<Produit> allProduitsFront = new ArrayList<>();
+    private final Map<String, Image> thumbnailImageCache = new HashMap<>();
 
     private static Produit produitAmodifier;
     private String imagePath = "";
@@ -152,12 +187,25 @@ public class ProduitController {
         initDashboardIfExists();
         initModifierPageIfExists();
         initPharmacieIfExists();
+        initCloudinary();
         initDashboardBIIfExists();
+        if (suggestionsFlow != null) {
+            buildAssistantSuggestions();
+        }
 
 
 
     }
-
+    private void initCloudinary() {
+        try {
+            cloudinaryService = new CloudinaryProduitService();
+            System.out.println("[Cloudinary] Service initialisé avec succès.");
+        } catch (IllegalStateException e) {
+            // Variables d'env manquantes → on désactive silencieusement
+            cloudinaryService = null;
+            System.err.println("[Cloudinary] DÉSACTIVÉ — variables manquantes : " + e.getMessage());
+        }
+    }
     private void initAjoutPageIfExists() {
         if (cbCategorieProduit != null && cbCategorieProduit.getItems().isEmpty()) {
             cbCategorieProduit.getItems().addAll("Médicament", "Parapharmacie", "Matériel");
@@ -411,6 +459,9 @@ public class ProduitController {
         }
 
         loadProduits();
+
+        // ── Notifications initiales (disparaissent automatiquement) ──────────────
+        Platform.runLater(this::afficherNotificationsInitiales);
     }
 
     private void loadProduits() {
@@ -528,7 +579,7 @@ public class ProduitController {
             row.getStyleClass().add("product-row-even");
         }
 
-        // IMAGE
+        // ── IMAGE ──────────────────────────────────────────────────────────
         StackPane imageBox = new StackPane();
         imageBox.setPrefWidth(90);
         imageBox.setMinWidth(90);
@@ -539,26 +590,14 @@ public class ProduitController {
         thumb.getStyleClass().add("row-image-box");
         thumb.setPrefSize(52, 52);
 
-        String imagePath = safe(p.getImage_produit());
-        if (!imagePath.isEmpty()) {
-            try {
-                File file = new File(imagePath);
-                if (file.exists()) {
-                    ImageView imageView = new ImageView(new Image(file.toURI().toString()));
-                    imageView.setFitWidth(45);
-                    imageView.setFitHeight(45);
-                    imageView.setPreserveRatio(true);
-                    thumb.getChildren().add(imageView);
-                } else {
-                    Label imgIcon = new Label("🖼");
-                    imgIcon.getStyleClass().add("row-image-icon");
-                    thumb.getChildren().add(imgIcon);
-                }
-            } catch (Exception e) {
-                Label imgIcon = new Label("🖼");
-                imgIcon.getStyleClass().add("row-image-icon");
-                thumb.getChildren().add(imgIcon);
-            }
+        // ★ CORRECTION CLOUDINARY : utilise chargerImage() au lieu de new File()
+        Image img = chargerImage(safe(p.getImage_produit()));
+        if (img != null) {
+            ImageView imageView = new ImageView(img);
+            imageView.setFitWidth(45);
+            imageView.setFitHeight(45);
+            imageView.setPreserveRatio(true);
+            thumb.getChildren().add(imageView);
         } else {
             Label imgIcon = new Label("🖼");
             imgIcon.getStyleClass().add("row-image-icon");
@@ -567,19 +606,19 @@ public class ProduitController {
 
         imageBox.getChildren().add(thumb);
 
-        // NOM
+        // ── NOM ────────────────────────────────────────────────────────────
         Label nomLabel = new Label(safe(p.getNom_produit()));
         nomLabel.getStyleClass().add("row-main-text");
         nomLabel.setWrapText(true);
         nomLabel.setMaxWidth(160);
         VBox nomBox = wrapProduitCell(nomLabel, 180, Pos.CENTER_LEFT);
 
-        // PRIX
+        // ── PRIX ───────────────────────────────────────────────────────────
         Label prixLabel = new Label(String.format("%.2f Dt", p.getPrix_produit()));
         prixLabel.getStyleClass().add("row-price-text");
         VBox prixBox = wrapProduitCell(prixLabel, 120, Pos.CENTER_LEFT);
 
-        // QUANTITE
+        // ── QUANTITE ───────────────────────────────────────────────────────
         Label qteLabel = new Label(String.valueOf(p.getQuantite_produit()));
         if (p.getQuantite_produit() <= 0) {
             qteLabel.getStyleClass().add("qty-badge-red");
@@ -590,15 +629,14 @@ public class ProduitController {
         }
         VBox qteBox = wrapProduitCell(qteLabel, 120, Pos.CENTER_LEFT);
 
-        // CATEGORIE
+        // ── CATEGORIE ──────────────────────────────────────────────────────
         Label catLabel = new Label(safe(p.getCategorie_produit()));
         catLabel.getStyleClass().add("category-badge");
         VBox catBox = wrapProduitCell(catLabel, 160, Pos.CENTER_LEFT);
 
-        // STATUT
+        // ── STATUT ─────────────────────────────────────────────────────────
         Label statutLabel = new Label(safe(p.getStatus_produit()));
         String statut = safe(p.getStatus_produit()).toLowerCase(Locale.ROOT);
-
         if (statut.contains("disponible")) {
             statutLabel.getStyleClass().add("statut-badge-disponible");
         } else if (statut.contains("rupture")) {
@@ -606,17 +644,16 @@ public class ProduitController {
         } else {
             statutLabel.getStyleClass().add("statut-badge-indisponible");
         }
-
         VBox statutBox = wrapProduitCell(statutLabel, 150, Pos.CENTER_LEFT);
 
-        // DESCRIPTION
+        // ── DESCRIPTION ────────────────────────────────────────────────────
         Label descLabel = new Label(shortText(safe(p.getDescription_produit()), 45));
         descLabel.getStyleClass().add("row-description-text");
         descLabel.setWrapText(true);
         descLabel.setMaxWidth(240);
         VBox descBox = wrapProduitCell(descLabel, 260, Pos.CENTER_LEFT);
 
-        // ACTIONS
+        // ── ACTIONS ────────────────────────────────────────────────────────
         Button editBtn = new Button("✏");
         editBtn.getStyleClass().add("action-blue-btn");
         editBtn.setOnAction(e -> ouvrirPageModifier(p));
@@ -630,18 +667,14 @@ public class ProduitController {
         VBox actionsWrap = wrapProduitCell(actionsContent, 130, Pos.CENTER_LEFT);
 
         row.getChildren().addAll(
-                imageBox,
-                nomBox,
-                prixBox,
-                qteBox,
-                catBox,
-                statutBox,
-                descBox,
-                actionsWrap
+                imageBox, nomBox, prixBox, qteBox, catBox, statutBox, descBox, actionsWrap
         );
 
         return row;
     }
+
+
+
     private VBox wrapProduitCell(Node node, double width, Pos alignment) {
         VBox box = new VBox(node);
         box.setAlignment(alignment);
@@ -676,8 +709,15 @@ public class ProduitController {
         if (ruptureLabel != null) ruptureLabel.setText(String.valueOf(rupture));
         if (indisponiblesLabel != null) indisponiblesLabel.setText(String.valueOf(indisponibles));
         if (inventoryCountLabel != null) inventoryCountLabel.setText(total + " produit(s) dans votre inventaire");
-        if (alerteInventaireLabel != null) alerteInventaireLabel.setText("🔔 Alerte Inventaire " + rupture);
+
+        // Mise à jour du label alerte avec le handler de clic
+        if (alerteInventaireLabel != null) {
+            int alertCount = rupture + indisponibles;
+            alerteInventaireLabel.setText("🔔 Alerte Inventaire " + alertCount);
+            configurerAlerteInventaireLabel();
+        }
     }
+
 
     private void initPharmacieIfExists() {
         if (productGrid == null) return;
@@ -709,27 +749,29 @@ public class ProduitController {
         if (searchProduitField != null) {
             searchProduitField.textProperty().addListener((obs, oldV, newV) -> refreshPharmacieGrid());
         }
-        if (triPrixCombo != null) triPrixCombo.setOnAction(e -> refreshPharmacieGrid());
+        if (triPrixCombo  != null) triPrixCombo.setOnAction(e -> refreshPharmacieGrid());
         if (triStockCombo != null) triStockCombo.setOnAction(e -> refreshPharmacieGrid());
         if (categorieCombo != null) categorieCombo.setOnAction(e -> refreshPharmacieGrid());
 
+        updateVoiceSearchButtonState(false);
+
         updatePanierButton();
         refreshPharmacieGrid();
+
+        // ── Charger les recommandations IA en arrière-plan ────────────────────
+        chargerRecommandationsIA();
     }
+
 
     private void refreshPharmacieGrid() {
         if (productGrid == null) return;
 
-        productGrid.getChildren().clear();
-
+        // ── Filtrage ────────────────────────────────────────────────────
         List<Produit> filtered = new ArrayList<>(allProduitsFront);
 
-        String keyword;
-        if (searchProduitField != null && searchProduitField.getText() != null) {
-            keyword = searchProduitField.getText().trim().toLowerCase(Locale.ROOT);
-        } else {
-            keyword = "";
-        }
+        String keyword = (searchProduitField != null && searchProduitField.getText() != null)
+                ? searchProduitField.getText().trim().toLowerCase(Locale.ROOT)
+                : "";
 
         if (!keyword.isEmpty()) {
             filtered.removeIf(p ->
@@ -745,131 +787,397 @@ public class ProduitController {
         }
 
         if (triPrixCombo != null) {
-            if ("Prix croissant".equals(triPrixCombo.getValue())) {
+            if ("Prix croissant".equals(triPrixCombo.getValue()))
                 filtered.sort(Comparator.comparingDouble(Produit::getPrix_produit));
-            } else if ("Prix décroissant".equals(triPrixCombo.getValue())) {
+            else if ("Prix décroissant".equals(triPrixCombo.getValue()))
                 filtered.sort(Comparator.comparingDouble(Produit::getPrix_produit).reversed());
-            }
         }
 
         if (triStockCombo != null) {
-            if ("Stock croissant".equals(triStockCombo.getValue())) {
+            if ("Stock croissant".equals(triStockCombo.getValue()))
                 filtered.sort(Comparator.comparingInt(Produit::getQuantite_produit));
-            } else if ("Stock décroissant".equals(triStockCombo.getValue())) {
+            else if ("Stock décroissant".equals(triStockCombo.getValue()))
                 filtered.sort(Comparator.comparingInt(Produit::getQuantite_produit).reversed());
-            }
         }
 
-        for (Produit produit : filtered) {
-            productGrid.getChildren().add(createProductCard(produit));
-        }
+        // Sauvegarder + reset page si filtre changé
+        currentFilteredList = filtered;
+        currentPage = 0;
 
         if (resultCountLabel != null) {
             resultCountLabel.setText(filtered.size() + " produit(s) trouvé(s)");
         }
+
+        renderCurrentPage();
+    }
+
+
+    @FXML
+    private void onVoiceSearchClicked(ActionEvent event) {
+        if (searchProduitField == null) return;
+
+        if (voiceSearchRunning) {
+            stopVoiceSearch();
+            return;
+        }
+        startVoiceSearch();
+    }
+    private void renderCurrentPage() {
+        if (productGrid == null) return;
+        productGrid.getChildren().clear();
+
+        int total     = currentFilteredList.size();
+        int totalPages = (int) Math.ceil((double) total / PAGE_SIZE);
+        if (totalPages < 1) totalPages = 1;
+        if (currentPage >= totalPages) currentPage = totalPages - 1;
+
+        int from = currentPage * PAGE_SIZE;
+        int to   = Math.min(from + PAGE_SIZE, total);
+
+        List<Produit> page = currentFilteredList.subList(from, to);
+        for (Produit p : page) {
+            productGrid.getChildren().add(createProductCard(p));
+        }
+
+        // Mettre à jour / créer la barre de pagination
+        buildPaginationBar(totalPages);
+    }
+// ── SECTION 4 : Méthodes de pagination ────────────────────────────────────
+
+    /**
+     * Construit ou met à jour la barre de pagination.
+     * Elle s'insère dynamiquement après le productGrid dans le VBox parent.
+     */
+    private void buildPaginationBar(int totalPages) {
+        if (productGrid == null) return;
+
+        // Récupérer le VBox parent
+        javafx.scene.Parent parent = productGrid.getParent();
+        if (!(parent instanceof VBox mainVBox)) return;
+
+        // Supprimer l'ancienne barre si elle existe
+        mainVBox.getChildren().removeIf(n -> "pagination-bar-node".equals(n.getId()));
+
+        if (totalPages <= 1) return; // pas de pagination si une seule page
+
+        paginationBar = new HBox(6);
+        paginationBar.setId("pagination-bar-node");
+        paginationBar.getStyleClass().add("pagination-bar");
+        paginationBar.setAlignment(Pos.CENTER);
+
+        // Bouton ← précédent
+        Button prevBtn = new Button("‹");
+        prevBtn.getStyleClass().add("page-btn-nav");
+        prevBtn.setDisable(currentPage == 0);
+        prevBtn.setOnAction(e -> {
+            if (currentPage > 0) {
+                currentPage--;
+                renderCurrentPage();
+            }
+        });
+
+        // Info pages
+        Label pageInfo = new Label("Page " + (currentPage + 1) + " / " + totalPages);
+        pageInfo.getStyleClass().add("page-info-label");
+
+        paginationBar.getChildren().add(prevBtn);
+
+        // Numéros de pages (max 7 affichés avec ellipses)
+        int maxButtons = 7;
+        int half = maxButtons / 2;
+        int startPage, endPage;
+
+        if (totalPages <= maxButtons) {
+            startPage = 0;
+            endPage   = totalPages;
+        } else if (currentPage <= half) {
+            startPage = 0;
+            endPage   = maxButtons;
+        } else if (currentPage >= totalPages - half - 1) {
+            startPage = totalPages - maxButtons;
+            endPage   = totalPages;
+        } else {
+            startPage = currentPage - half;
+            endPage   = currentPage + half + 1;
+        }
+
+        // Première page + ellipse si nécessaire
+        if (startPage > 0) {
+            paginationBar.getChildren().add(makePageButton(0, totalPages));
+            if (startPage > 1) {
+                Label dots = new Label("…");
+                dots.getStyleClass().add("page-info-label");
+                paginationBar.getChildren().add(dots);
+            }
+        }
+
+        // Pages du milieu
+        for (int i = startPage; i < endPage; i++) {
+            paginationBar.getChildren().add(makePageButton(i, totalPages));
+        }
+
+        // Dernière page + ellipse si nécessaire
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                Label dots = new Label("…");
+                dots.getStyleClass().add("page-info-label");
+                paginationBar.getChildren().add(dots);
+            }
+            paginationBar.getChildren().add(makePageButton(totalPages - 1, totalPages));
+        }
+
+        // Bouton → suivant
+        Button nextBtn = new Button("›");
+        nextBtn.getStyleClass().add("page-btn-nav");
+        nextBtn.setDisable(currentPage == totalPages - 1);
+        nextBtn.setOnAction(e -> {
+            if (currentPage < totalPages - 1) {
+                currentPage++;
+                renderCurrentPage();
+            }
+        });
+
+        paginationBar.getChildren().addAll(nextBtn, pageInfo);
+
+        // Insérer après le productGrid
+        int gridIndex = mainVBox.getChildren().indexOf(productGrid);
+        if (gridIndex >= 0) {
+            mainVBox.getChildren().add(gridIndex + 1, paginationBar);
+        } else {
+            mainVBox.getChildren().add(paginationBar);
+        }
+    }
+
+    /** Crée un bouton numéroté pour la pagination */
+    private Button makePageButton(int pageIndex, int totalPages) {
+        Button btn = new Button(String.valueOf(pageIndex + 1));
+        if (pageIndex == currentPage) {
+            btn.getStyleClass().add("page-btn-active");
+        } else {
+            btn.getStyleClass().add("page-btn");
+        }
+        btn.setOnAction(e -> {
+            currentPage = pageIndex;
+            renderCurrentPage();
+        });
+        return btn;
+    }
+
+    private void startVoiceSearch() {
+        synchronized (voiceSearchLock) {
+            if (voiceSearchRunning) return;
+            voiceSearchRunning = true;
+        }
+        updateVoiceSearchButtonState(true);
+
+        Thread t = new Thread(() -> {
+            String recognized = "";
+            try {
+                recognized = produitVoiceSearchService.ecouterNomProduit(8, extraireNomsProduitsPourReconnaissance());
+            } catch (Exception ex) {
+                System.err.println("[ProduitController] Recherche vocale indisponible: " + ex.getMessage());
+            }
+
+            final String finalRecognized = recognized;
+            Platform.runLater(() -> {
+                try {
+                    if (voiceSearchRunning && finalRecognized != null && !finalRecognized.isBlank()) {
+                        searchProduitField.setText(finalRecognized);
+                    } else if (voiceSearchRunning) {
+                        afficherFeedbackVoiceAmbigu();
+                    }
+                } finally {
+                    synchronized (voiceSearchLock) {
+                        voiceSearchRunning = false;
+                    }
+                    updateVoiceSearchButtonState(false);
+                }
+            });
+        }, "produit-voice-search-thread");
+
+        t.setDaemon(true);
+        t.start();
+    }
+
+    private void afficherFeedbackVoiceAmbigu() {
+        if (voiceSearchBtn == null) {
+            return;
+        }
+        voiceSearchBtn.setTooltip(new Tooltip("Je n'ai pas bien compris. Reessayez avec le nom exact du produit."));
+    }
+
+    private List<String> extraireNomsProduitsPourReconnaissance() {
+        List<String> noms = new ArrayList<>();
+        for (Produit produit : allProduitsFront) {
+            if (produit == null) {
+                continue;
+            }
+            String nom = safe(produit.getNom_produit());
+            if (!nom.isBlank()) {
+                noms.add(nom);
+            }
+        }
+        return noms;
+    }
+
+    private void stopVoiceSearch() {
+        synchronized (voiceSearchLock) {
+            if (!voiceSearchRunning) return;
+            voiceSearchRunning = false;
+        }
+        produitVoiceSearchService.arreterEcoute();
+        updateVoiceSearchButtonState(false);
+    }
+
+    private void updateVoiceSearchButtonState(boolean listening) {
+        if (voiceSearchBtn == null) return;
+
+        voiceSearchBtn.setText(listening ? "⏹" : "🎤");
+        voiceSearchBtn.setTooltip(new Tooltip(listening
+                ? "Cliquer pour arrêter l'écoute"
+                : "Cliquer pour rechercher un produit par la voix"));
     }
 
     private VBox createProductCard(Produit produit) {
         VBox card = new VBox();
         card.getStyleClass().add("product-card");
-        card.setPrefWidth(280);
-        card.setMaxWidth(280);
-        card.setSpacing(10);
+        card.setPrefWidth(256);
+        card.setMaxWidth(256);
+        card.setSpacing(0);
 
-        // Image Box
+        // ── Zone image ──────────────────────────────────────────────────────
         StackPane imageBox = new StackPane();
         imageBox.getStyleClass().add("card-image-box");
         imageBox.setPrefHeight(150);
 
-        Label topBadge = new Label();
-        StackPane.setAlignment(topBadge, Pos.TOP_LEFT);
-        StackPane.setMargin(topBadge, new Insets(10, 0, 0, 10));
+        boolean isRupture = safe(produit.getStatus_produit())
+                .toLowerCase(Locale.ROOT).contains("rupture");
 
+        // Badge rupture
+        Label ruptureBadge = new Label();
+        if (isRupture) {
+            ruptureBadge.setText("RUPTURE");
+            ruptureBadge.getStyleClass().add("stock-badge-top");
+        }
+        StackPane.setAlignment(ruptureBadge, Pos.TOP_LEFT);
+        StackPane.setMargin(ruptureBadge, new Insets(8, 0, 0, 8));
+
+        // Badge prix
         Label priceBadge = new Label(formatPrix(produit.getPrix_produit()));
         priceBadge.getStyleClass().add("price-badge-top");
         StackPane.setAlignment(priceBadge, Pos.TOP_RIGHT);
-        StackPane.setMargin(priceBadge, new Insets(10, 10, 0, 0));
+        StackPane.setMargin(priceBadge, new Insets(8, 8, 0, 0));
 
-        if (safe(produit.getStatus_produit()).toLowerCase(Locale.ROOT).contains("rupture")) {
-            topBadge.setText("RUPTURE");
-            topBadge.getStyleClass().add("stock-badge-top");
-        }
-
-        String imagePath = safe(produit.getImage_produit());
-        if (!imagePath.isEmpty()) {
-            try {
-                File file = new File(imagePath);
-                if (file.exists()) {
-                    ImageView imageView = new ImageView(new Image(file.toURI().toString()));
-                    imageView.setFitWidth(120);
-                    imageView.setFitHeight(120);
-                    imageView.setPreserveRatio(true);
-                    imageBox.getChildren().add(imageView);
-                } else {
-                    imageBox.getChildren().add(new Label("🖼"));
-                }
-            } catch (Exception e) {
-                imageBox.getChildren().add(new Label("🖼"));
-            }
+        // ★ CORRECTION CLOUDINARY : utilise chargerImage() au lieu de new File()
+        Image img = chargerImage(safe(produit.getImage_produit()));
+        if (img != null) {
+            ImageView iv = new ImageView(img);
+            iv.setFitWidth(110);
+            iv.setFitHeight(110);
+            iv.setPreserveRatio(true);
+            imageBox.getChildren().add(iv);
         } else {
-            imageBox.getChildren().add(new Label("🖼"));
+            imageBox.getChildren().add(makePlaceholderIcon());
         }
+        imageBox.getChildren().addAll(ruptureBadge, priceBadge);
 
-        imageBox.getChildren().addAll(topBadge, priceBadge);
-
-        // Content
+        // ── Corps de la carte ────────────────────────────────────────────────
         VBox content = new VBox(8);
         content.getStyleClass().add("card-content");
-        content.setPadding(new Insets(10));
+        content.setPadding(new Insets(12, 14, 12, 14));
 
         Label nom = new Label(safe(produit.getNom_produit()));
         nom.getStyleClass().add("product-name");
         nom.setWrapText(true);
+        nom.setMaxWidth(228);
 
-        HBox categoryStock = new HBox(10);
-        Label categorie = new Label("🏷 " + safe(produit.getCategorie_produit()));
-        categorie.getStyleClass().add("category-chip");
-        Label stock = new Label("📦 " + produit.getQuantite_produit());
-        stock.getStyleClass().add("stock-text");
-        categoryStock.getChildren().addAll(categorie, stock);
+        HBox metaRow = new HBox(8);
+        metaRow.setAlignment(Pos.CENTER_LEFT);
 
-        Label statut = new Label(safe(produit.getStatus_produit()));
-        if (safe(produit.getStatus_produit()).toLowerCase(Locale.ROOT).contains("rupture")) {
-            statut.getStyleClass().add("status-chip-ko");
+        String cat = safe(produit.getCategorie_produit());
+        Label categLabel = new Label(cat.isEmpty() ? "—" : cat);
+        categLabel.getStyleClass().add("category-chip");
+
+        Label stockLabel = new Label("📦 " + produit.getQuantite_produit());
+        stockLabel.getStyleClass().add("stock-text");
+
+        metaRow.getChildren().addAll(categLabel, stockLabel);
+
+        Label statutLabel = new Label(safe(produit.getStatus_produit()));
+        String statutLow = safe(produit.getStatus_produit()).toLowerCase(Locale.ROOT);
+        if (statutLow.contains("rupture") || statutLow.contains("indisponible")) {
+            statutLabel.getStyleClass().add("status-chip-ko");
         } else {
-            statut.getStyleClass().add("status-chip-ok");
+            statutLabel.getStyleClass().add("status-chip-ok");
         }
 
-        // Quantity and Buttons
-        HBox bottomRow = new HBox(10);
-        bottomRow.setAlignment(Pos.CENTER_LEFT);
+        content.getChildren().addAll(nom, metaRow, statutLabel);
 
-        Spinner<Integer> quantitySpinner = new Spinner<>(1, 99, 1);
-        quantitySpinner.setPrefWidth(60);
-        quantitySpinner.getStyleClass().add("quantity-spinner");
+        // ── Footer : quantité + boutons ──────────────────────────────────────
+        HBox footer = new HBox(8);
+        footer.getStyleClass().add("card-footer");
+        footer.setAlignment(Pos.CENTER_LEFT);
 
-        Button addBtn = new Button("Ajouter");
-        if (safe(produit.getStatus_produit()).toLowerCase(Locale.ROOT).contains("rupture")) {
-            addBtn.getStyleClass().add("add-btn-disabled");
-            addBtn.setDisable(true);
-            quantitySpinner.setDisable(true);
-        } else {
-            addBtn.getStyleClass().add("add-btn");
-            addBtn.setOnAction(e -> ajouterProduitAuPanier(produit, quantitySpinner.getValue()));
-        }
+        final int[] qty = {1};
 
+        Label qtyLabel = new Label("Qté :");
+        qtyLabel.getStyleClass().add("qty-label");
+
+        Button minusBtn = new Button("−");
+        minusBtn.getStyleClass().add("qty-minus-btn");
+
+        Label qtyValue = new Label("1");
+        qtyValue.getStyleClass().add("qty-value-label");
+
+        Button plusBtn = new Button("+");
+        plusBtn.getStyleClass().add("qty-plus-btn");
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Button addBtn  = new Button("Ajouter");
         Button infoBtn = new Button("ℹ");
         infoBtn.getStyleClass().add("icon-btn");
         infoBtn.setOnAction(e -> showProduitDetailsPopup(produit));
 
-        bottomRow.getChildren().addAll(new Label("Qté:"), quantitySpinner, addBtn, infoBtn);
+        if (isRupture) {
+            minusBtn.setDisable(true);
+            plusBtn.setDisable(true);
+            qtyValue.setOpacity(0.4);
+            addBtn.getStyleClass().add("add-btn-disabled");
+            addBtn.setDisable(true);
+        } else {
+            addBtn.getStyleClass().add("add-btn");
 
-        content.getChildren().addAll(nom, categoryStock, statut, bottomRow);
-        card.getChildren().addAll(imageBox, content);
+            minusBtn.setOnAction(e -> {
+                if (qty[0] > 1) {
+                    qty[0]--;
+                    qtyValue.setText(String.valueOf(qty[0]));
+                }
+            });
 
+            int maxQty = produit.getQuantite_produit();
+            plusBtn.setOnAction(e -> {
+                if (qty[0] < maxQty) {
+                    qty[0]++;
+                    qtyValue.setText(String.valueOf(qty[0]));
+                }
+            });
+
+            addBtn.setOnAction(e -> ajouterProduitAuPanier(produit, qty[0]));
+        }
+
+        footer.getChildren().addAll(qtyLabel, minusBtn, qtyValue, plusBtn, spacer, addBtn, infoBtn);
+
+        card.getChildren().addAll(imageBox, content, footer);
         return card;
     }
-
+    /** Petite icône placeholder pour les produits sans image */
+    private Label makePlaceholderIcon() {
+        Label lbl = new Label("🖼");
+        lbl.setStyle("-fx-font-size: 36px; -fx-text-fill: #c0ccd8;");
+        return lbl;
+    }
     /*private HBox createInfoRow(String label, String value) {
         HBox row = new HBox(12);
         row.setAlignment(Pos.CENTER_LEFT);
@@ -1301,21 +1609,122 @@ public class ProduitController {
 
     @FXML
     void choisirImage(ActionEvent event) {
+
+        // Empêcher double-clic pendant un upload en cours
+        if (uploadEnCours) {
+            showAlert(Alert.AlertType.WARNING, "Upload en cours",
+                    "Veuillez attendre la fin de l'upload précédent.");
+            return;
+        }
+
         FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Choisir une image");
+        fileChooser.setTitle("Choisir une image produit");
         fileChooser.getExtensionFilters().addAll(
-                new FileChooser.ExtensionFilter("Images (*.jpg, *.png, *.jpeg, *.webp)", "*.jpg", "*.png", "*.jpeg", "*.webp")
+                new FileChooser.ExtensionFilter(
+                        "Images (*.jpg, *.png, *.jpeg, *.webp)",
+                        "*.jpg", "*.png", "*.jpeg", "*.webp")
         );
 
         File fichier = fileChooser.showOpenDialog(btnUploadProduit.getScene().getWindow());
 
-        if (fichier != null) {
+        if (fichier == null) {
+            // L'utilisateur a annulé → on ne touche à rien
+            return;
+        }
+
+        // ── CAS 1 : Cloudinary disponible → upload cloud ─────────────────
+        if (cloudinaryService != null) {
+
+            // Feedback visuel immédiat
+            uploadEnCours = true;
+            btnUploadProduit.setDisable(true);
+            btnUploadProduit.setText("⏳ Upload...");
+            lblImageProduit.setText("Upload en cours, veuillez patienter...");
+
+            // Upload dans un thread séparé (ne bloque pas l'UI)
+            Thread uploadThread = new Thread(() -> {
+
+                String urlCloudinary = null;
+                String erreurMessage = null;
+
+                try {
+                    System.out.println("[Cloudinary] Upload démarré : " + fichier.getName());
+                    urlCloudinary = cloudinaryService.uploadImageProduit(fichier);
+                    System.out.println("[Cloudinary] URL reçue : " + urlCloudinary);
+
+                } catch (Exception e) {
+                    erreurMessage = e.getMessage();
+                    System.err.println("[Cloudinary] Erreur upload : " + erreurMessage);
+                }
+
+                // Retour sur le thread JavaFX pour mettre à jour l'UI
+                final String urlFinal    = urlCloudinary;
+                final String erreurFinal = erreurMessage;
+
+                Platform.runLater(() -> {
+
+                    uploadEnCours = false;
+                    btnUploadProduit.setDisable(false);
+                    btnUploadProduit.setText("📁 Choisir image");
+
+                    if (urlFinal != null && !urlFinal.isBlank()) {
+                        // ✅ Upload réussi
+                        imagePath = urlFinal;
+                        // Pour la validation, on passe le nom du fichier
+                        // (la validation vérifie l'extension, pas l'URL)
+                        lblImageProduit.setText(fichier.getName());
+                        validateImage(fichier.getName());
+                        System.out.println("[Cloudinary] imagePath = " + imagePath);
+
+                    } else {
+                        // ❌ Échec upload → fallback chemin local
+                        imagePath = fichier.getAbsolutePath();
+                        lblImageProduit.setText(fichier.getName() + " (local)");
+                        validateImage(fichier.getName());
+
+                        showAlert(Alert.AlertType.WARNING,
+                                "Upload Cloudinary échoué",
+                                "L'image sera sauvegardée en local.\n" +
+                                        "Cause : " + (erreurFinal != null ? erreurFinal : "inconnue"));
+                    }
+                });
+
+            }, "cloudinary-upload-thread");
+
+            uploadThread.setDaemon(true);
+            uploadThread.start();
+
+        } else {
+            // ── CAS 2 : Cloudinary désactivé → chemin local (comportement original)
             imagePath = fichier.getAbsolutePath();
             lblImageProduit.setText(fichier.getName());
-        } else {
-            lblImageProduit.setText("Aucun fichier choisi");
+            validateImage(fichier.getName());
+            System.out.println("[Cloudinary] Mode local. imagePath = " + imagePath);
         }
     }
+    private Image chargerImage(String imgPath) {
+        if (imgPath == null || imgPath.isBlank()) {
+            return null;
+        }
+        try {
+            if (imgPath.startsWith("http://") || imgPath.startsWith("https://")) {
+                // ── URL Cloudinary : chargement asynchrone (ne bloque pas l'UI)
+                return new Image(imgPath, true);
+            } else {
+                // ── Chemin local
+                File file = new File(imgPath);
+                if (file.exists()) {
+                    return new Image(file.toURI().toString());
+                }
+                System.err.println("[chargerImage] Fichier local introuvable : " + imgPath);
+                return null;
+            }
+        } catch (Exception e) {
+            System.err.println("[chargerImage] Erreur : " + imgPath + " → " + e.getMessage());
+            return null;
+        }
+    }
+
 
     @FXML
     void retourProduit(ActionEvent event) {
@@ -1738,6 +2147,125 @@ public class ProduitController {
             e.printStackTrace();
         }
     }
+
+    @FXML
+    private void ouvrirContactPharmaciePopup() {
+        try {
+            Dialog<Void> dialog = new Dialog<>();
+            dialog.setTitle("Contacter la pharmacie");
+            dialog.setHeaderText(null);
+            dialog.setResizable(false);
+
+            DialogPane dialogPane = dialog.getDialogPane();
+            dialogPane.getButtonTypes().add(ButtonType.CLOSE);
+
+            URL cssUrl = getClass().getResource("/CSS/pharmacie.css");
+            if (cssUrl != null) {
+                dialogPane.getStylesheets().add(cssUrl.toExternalForm());
+            }
+
+            VBox content = new VBox(16);
+            content.setAlignment(Pos.CENTER);
+            content.setPadding(new Insets(18));
+            content.setMinWidth(540);
+            content.getStyleClass().add("contact-popup");
+
+            Label title = new Label("📇 Contact rapide de la pharmacie");
+            title.getStyleClass().add("contact-popup-title");
+            title.setWrapText(true);
+            title.setAlignment(Pos.CENTER);
+
+            Label subtitle = new Label("Scannez le QR code pour enregistrer le contact dans votre téléphone.");
+            subtitle.getStyleClass().add("contact-popup-subtitle");
+            subtitle.setWrapText(true);
+            subtitle.setAlignment(Pos.CENTER);
+
+            ImageView qrView = new ImageView(SwingFXUtils.toFXImage(createContactQrImage(buildPharmacyVCard(), 240, 240), null));
+            qrView.setFitWidth(240);
+            qrView.setFitHeight(240);
+            qrView.setPreserveRatio(true);
+
+            Label qrCaption = new Label("📱 Ouvrez l’app appareil photo pour scanner");
+            qrCaption.getStyleClass().add("contact-qr-caption");
+
+            VBox qrBox = new VBox(10, qrView, qrCaption);
+            qrBox.setAlignment(Pos.CENTER);
+            qrBox.getStyleClass().add("contact-qr-box");
+
+            GridPane infoGrid = new GridPane();
+            infoGrid.setHgap(12);
+            infoGrid.setVgap(10);
+            infoGrid.setPadding(new Insets(4, 6, 4, 6));
+
+            infoGrid.add(createContactLabel("Nom"), 0, 0);
+            infoGrid.add(createContactValue(PHARMACY_NAME), 1, 0);
+            infoGrid.add(createContactLabel("Téléphone"), 0, 1);
+            infoGrid.add(createContactValue(PHARMACY_PHONE), 1, 1);
+            infoGrid.add(createContactLabel("Email"), 0, 2);
+            infoGrid.add(createContactValue(PHARMACY_EMAIL), 1, 2);
+            infoGrid.add(createContactLabel("Adresse"), 0, 3);
+            infoGrid.add(createContactValue(PHARMACY_ADDRESS), 1, 3);
+
+            ColumnConstraints labelCol = new ColumnConstraints();
+            labelCol.setMinWidth(110);
+            ColumnConstraints valueCol = new ColumnConstraints();
+            valueCol.setHgrow(Priority.ALWAYS);
+            infoGrid.getColumnConstraints().addAll(labelCol, valueCol);
+
+            VBox infoCard = new VBox(infoGrid);
+            infoCard.getStyleClass().add("contact-info-card");
+
+            content.getChildren().addAll(title, subtitle, qrBox, infoCard);
+            dialogPane.setContent(content);
+            dialogPane.setPrefWidth(600);
+            dialogPane.setPrefHeight(620);
+
+            Button closeButton = (Button) dialogPane.lookupButton(ButtonType.CLOSE);
+            closeButton.setText("Fermer");
+            closeButton.getStyleClass().add("contact-close-btn");
+            closeButton.setDefaultButton(true);
+
+            dialog.showAndWait();
+        } catch (Exception e) {
+            e.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Erreur contact", "Impossible d'afficher le contact pharmacie : " + e.getMessage());
+        }
+    }
+
+    private Label createContactLabel(String text) {
+        Label label = new Label(text + " :");
+        label.getStyleClass().add("contact-info-label");
+        return label;
+    }
+
+    private Label createContactValue(String text) {
+        Label label = new Label(text);
+        label.setWrapText(true);
+        label.getStyleClass().add("contact-info-value");
+        return label;
+    }
+
+    private String buildPharmacyVCard() {
+        return "BEGIN:VCARD\n" +
+                "VERSION:3.0\n" +
+                "FN:" + PHARMACY_NAME + "\n" +
+                "ORG:MedFlow\n" +
+                "TEL;TYPE=CELL:" + PHARMACY_PHONE + "\n" +
+                "EMAIL;TYPE=WORK:" + PHARMACY_EMAIL + "\n" +
+                "ADR;TYPE=WORK:;;" + PHARMACY_ADDRESS + "\n" +
+                "END:VCARD";
+    }
+
+    private BufferedImage createContactQrImage(String content, int width, int height) throws WriterException {
+        QRCodeWriter writer = new QRCodeWriter();
+        Map<EncodeHintType, Object> hints = new HashMap<>();
+        hints.put(EncodeHintType.CHARACTER_SET, "UTF-8");
+        hints.put(EncodeHintType.MARGIN, 1);
+
+        BitMatrix matrix = writer.encode(content, BarcodeFormat.QR_CODE, width, height, hints);
+        return MatrixToImageWriter.toBufferedImage(matrix);
+    }
+
     private void showSuccessAlert(String produitName, int quantity) {
         Platform.runLater(() -> {
             String text = quantity == 1
@@ -2109,37 +2637,27 @@ public class ProduitController {
             content.setAlignment(Pos.TOP_CENTER);
             content.getStyleClass().add("product-details-popup");
 
+            // ── Image ──────────────────────────────────────────────────────
             StackPane imageWrapper = new StackPane();
             imageWrapper.setPrefSize(220, 180);
             imageWrapper.getStyleClass().add("product-image-container");
 
-            String imgPath = safe(p.getImage_produit());
-            if (!imgPath.isEmpty()) {
-                try {
-                    File file = new File(imgPath);
-                    if (file.exists()) {
-                        ImageView imageView = new ImageView(new Image(file.toURI().toString()));
-                        imageView.setFitWidth(150);
-                        imageView.setFitHeight(150);
-                        imageView.setPreserveRatio(true);
-                        imageView.getStyleClass().add("popup-product-image");
-                        imageWrapper.getChildren().add(imageView);
-                    } else {
-                        Label placeholder = new Label("🖼");
-                        placeholder.getStyleClass().add("image-placeholder");
-                        imageWrapper.getChildren().add(placeholder);
-                    }
-                } catch (Exception e) {
-                    Label placeholder = new Label("🖼");
-                    placeholder.getStyleClass().add("image-placeholder");
-                    imageWrapper.getChildren().add(placeholder);
-                }
+            // ★ CORRECTION CLOUDINARY : utilise chargerImage() au lieu de new File()
+            Image img = chargerImage(safe(p.getImage_produit()));
+            if (img != null) {
+                ImageView imageView = new ImageView(img);
+                imageView.setFitWidth(150);
+                imageView.setFitHeight(150);
+                imageView.setPreserveRatio(true);
+                imageView.getStyleClass().add("popup-product-image");
+                imageWrapper.getChildren().add(imageView);
             } else {
                 Label placeholder = new Label("🖼");
                 placeholder.getStyleClass().add("image-placeholder");
                 imageWrapper.getChildren().add(placeholder);
             }
 
+            // ── Badges prix / stock ────────────────────────────────────────
             HBox badgesRow = new HBox(10);
             badgesRow.setAlignment(Pos.CENTER);
 
@@ -2151,22 +2669,35 @@ public class ProduitController {
 
             badgesRow.getChildren().addAll(prixBadge, stockBadge);
 
+            // ── Nom + bouton voix ──────────────────────────────────────────
             Label nameLabel = new Label(safe(p.getNom_produit()));
             nameLabel.getStyleClass().add("product-name-popup");
             nameLabel.setWrapText(true);
             nameLabel.setAlignment(Pos.CENTER);
 
+            Button voiceBtn = new Button("🔊");
+            voiceBtn.setTooltip(new Tooltip("Lire tous les détails du produit"));
+            voiceBtn.getStyleClass().add("popup-voice-btn");
+            voiceBtn.setOnAction(e -> lireDetailsProduit(p));
+
+            HBox titleRow = new HBox(12);
+            titleRow.setAlignment(Pos.CENTER_LEFT);
+            HBox.setHgrow(nameLabel, Priority.ALWAYS);
+            titleRow.getChildren().addAll(nameLabel, voiceBtn);
+
+            // ── Tags catégorie + statut ────────────────────────────────────
             HBox tagsRow = new HBox(10);
             tagsRow.setAlignment(Pos.CENTER);
 
             Label categorieTag = new Label("🏷 " + safe(p.getCategorie_produit()));
             categorieTag.getStyleClass().add("popup-category-tag");
 
-            Label statusTag = new Label(getStatutIcon(p.getStatus_produit()) + " " + safe(p.getStatus_produit()));
-            String statut = safe(p.getStatus_produit()).toLowerCase(Locale.ROOT);
-            if (statut.contains("rupture")) {
+            Label statusTag = new Label(getStatutIcon(p.getStatus_produit())
+                    + " " + safe(p.getStatus_produit()));
+            String statutLow = safe(p.getStatus_produit()).toLowerCase(Locale.ROOT);
+            if (statutLow.contains("rupture")) {
                 statusTag.getStyleClass().add("popup-status-ko");
-            } else if (statut.contains("indisponible")) {
+            } else if (statutLow.contains("indisponible")) {
                 statusTag.getStyleClass().add("popup-status-warn");
             } else {
                 statusTag.getStyleClass().add("popup-status-ok");
@@ -2174,17 +2705,18 @@ public class ProduitController {
 
             tagsRow.getChildren().addAll(categorieTag, statusTag);
 
+            // ── Détails ────────────────────────────────────────────────────
             VBox detailsCard = new VBox(10);
             detailsCard.getStyleClass().add("popup-details-card");
-
             detailsCard.getChildren().addAll(
-                    createInfoRow("Nom", safe(p.getNom_produit())),
-                    createInfoRow("Catégorie", safe(p.getCategorie_produit())),
-                    createInfoRow("Prix", formatPrix(p.getPrix_produit())),
-                    createInfoRow("Quantité", String.valueOf(p.getQuantite_produit())),
-                    createInfoRow("Statut", safe(p.getStatus_produit()))
+                    createInfoRow("Nom",        safe(p.getNom_produit())),
+                    createInfoRow("Catégorie",  safe(p.getCategorie_produit())),
+                    createInfoRow("Prix",       formatPrix(p.getPrix_produit())),
+                    createInfoRow("Quantité",   String.valueOf(p.getQuantite_produit())),
+                    createInfoRow("Statut",     safe(p.getStatus_produit()))
             );
 
+            // ── Description ────────────────────────────────────────────────
             VBox descCard = new VBox(8);
             descCard.getStyleClass().add("popup-description-card");
 
@@ -2202,12 +2734,7 @@ public class ProduitController {
             descCard.getChildren().addAll(descTitle, descText);
 
             content.getChildren().addAll(
-                    imageWrapper,
-                    badgesRow,
-                    nameLabel,
-                    tagsRow,
-                    detailsCard,
-                    descCard
+                    imageWrapper, badgesRow, titleRow, tagsRow, detailsCard, descCard
             );
 
             dialogPane.setContent(content);
@@ -2224,9 +2751,32 @@ public class ProduitController {
 
         } catch (Exception e) {
             e.printStackTrace();
-            showAlert(Alert.AlertType.ERROR, "Erreur popup", "Impossible d'afficher les détails : " + e.getMessage());
+            showAlert(Alert.AlertType.ERROR, "Erreur popup",
+                    "Impossible d'afficher les détails : " + e.getMessage());
         }
     }
+
+
+    private void lireDetailsProduit(Produit produit) {
+        if (produit == null) return;
+
+        String texte = construireTexteLectureProduit(produit);
+        produitSpeechService.parlerAsync(texte);
+    }
+
+    private String construireTexteLectureProduit(Produit produit) {
+        String description = safe(produit.getDescription_produit()).isBlank()
+                ? "Aucune description disponible"
+                : safe(produit.getDescription_produit());
+
+        return "Produit " + safe(produit.getNom_produit()) + ". " +
+                "Catégorie " + safe(produit.getCategorie_produit()) + ". " +
+                "Prix " + formatPrix(produit.getPrix_produit()) + ". " +
+                "Quantité en stock " + produit.getQuantite_produit() + ". " +
+                "Statut " + safe(produit.getStatus_produit()) + ". " +
+                "Description " + description + ".";
+    }
+
     private boolean showStyledConfirmationDialog(String title, String message, String confirmText, String cancelText, String variant) {
         Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle("");
@@ -2375,6 +2925,945 @@ public class ProduitController {
         sequence.setOnFinished(e -> popup.hide());
         sequence.play();
     }
+// ─────────────────────────────────────────────────────────────────────────
+// ── 3. AJOUTER cette nouvelle méthode dans ProduitController ─────────────
+// ─────────────────────────────────────────────────────────────────────────
 
+    /**
+     * Charge les recommandations IA en arrière-plan (thread séparé)
+     * et met à jour l'UI sur le JavaFX thread.
+     */
+    private void chargerRecommandationsIA() {
+        // Récupérer l'ID du user connecté
+        tn.esprit.entities.User user = SessionManager.getCurrentUser();
+        final int userId = (user != null && user.getId() > 0) ? user.getId() : 0;
+
+        // Afficher un état de chargement dans le FlowPane recommandations
+        // (si tu as un recommandationsContainer dans Pharmacie.fxml, sinon skip)
+        // Pour la pharmacie on injecte directement les cartes dans productGrid section
+
+        // Lancer en arrière-plan pour ne pas bloquer l'UI
+        Thread thread = new Thread(() -> {
+            System.out.println("[Pharmacie] Chargement recommandations IA pour user " + userId);
+
+            List<String> recommandationsTexte;
+            List<tn.esprit.entities.Produit> produitsBestSellers;
+
+            try {
+                // Appel IA (peut prendre quelques secondes)
+                recommandationsTexte = huggingFaceService.genererRecommandations(userId);
+                // Best sellers complets avec objets Produit pour les cartes
+                produitsBestSellers  = huggingFaceService.getProduitsBestSellersComplets(4);
+            } catch (Exception e) {
+                System.err.println("[Pharmacie] Erreur IA : " + e.getMessage());
+                recommandationsTexte = List.of(
+                        "💊 Recommandations en cours de chargement...",
+                        "🔥 Découvrez nos best sellers"
+                );
+                produitsBestSellers = new ArrayList<>();
+            }
+
+            final List<String>   finalRecoTexte    = recommandationsTexte;
+            final List<tn.esprit.entities.Produit> finalBestSellers = produitsBestSellers;
+
+            // Mettre à jour l'UI sur le JavaFX Application Thread
+            javafx.application.Platform.runLater(() -> {
+                afficherRecommandationsIA(finalRecoTexte, finalBestSellers);
+            });
+
+        }, "huggingface-reco-thread");
+        thread.setDaemon(true);
+        thread.start();
+    }
+
+// ─────────────────────────────────────────────────────────────────────────
+// ── 4. AJOUTER cette méthode d'affichage ─────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Affiche les recommandations IA dans une section dédiée
+     * au-dessus du productGrid.
+     */
+    private void afficherRecommandationsIA(
+            List<String> recommandationsTexte,
+            List<tn.esprit.entities.Produit> bestSellers) {
+
+        if (productGrid == null) return;
+
+        // Récupérer le parent ScrollPane content VBox
+        javafx.scene.Parent parent = productGrid.getParent();
+        if (!(parent instanceof javafx.scene.layout.VBox mainVBox)) return;
+
+        // Supprimer l'ancienne section recommandations si elle existe
+        mainVBox.getChildren().removeIf(n -> "reco-section".equals(n.getId()));
+
+        // ── Construire la section recommandations ─────────────────────────────
+        javafx.scene.layout.VBox recoSection = new javafx.scene.layout.VBox(14);
+        recoSection.setId("reco-section");
+        recoSection.getStyleClass().add("reco-section");
+        recoSection.setPadding(new javafx.geometry.Insets(0, 0, 8, 0));
+
+        // Titre section
+        javafx.scene.layout.HBox titreBox = new javafx.scene.layout.HBox(10);
+        titreBox.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+
+        javafx.scene.control.Label titreLbl = new javafx.scene.control.Label("🤖 Recommandés pour vous");
+        titreLbl.getStyleClass().add("reco-title");
+
+        javafx.scene.control.Label badgeLbl = new javafx.scene.control.Label("IA");
+        badgeLbl.getStyleClass().add("reco-badge");
+
+        titreBox.getChildren().addAll(titreLbl, badgeLbl);
+        recoSection.getChildren().add(titreBox);
+
+        List<Produit> produitsRecommandes = findRecommendedProducts(recommandationsTexte, bestSellers);
+        if (produitsRecommandes.isEmpty()) {
+            produitsRecommandes.addAll(bestSellers.stream().limit(6).toList());
+        }
+
+        javafx.scene.control.Label recoProductsTitle = new javafx.scene.control.Label("Produits recommandés");
+        recoProductsTitle.getStyleClass().add("reco-strip-title");
+        recoSection.getChildren().add(recoProductsTitle);
+
+        javafx.scene.Node recoCarousel = createAutoCarousel(produitsRecommandes, false);
+        recoSection.getChildren().add(recoCarousel);
+
+        javafx.scene.control.Label bsTitle = new javafx.scene.control.Label("Best sellers");
+        bsTitle.getStyleClass().add("reco-strip-title");
+        recoSection.getChildren().add(bsTitle);
+
+        javafx.scene.Node bestCarousel = createAutoCarousel(bestSellers, true);
+        recoSection.getChildren().add(bestCarousel);
+
+        // Inserer la section en haut, juste avant la barre de recherche/filtres.
+        int filterIndex = -1;
+        for (int i = 0; i < mainVBox.getChildren().size(); i++) {
+            javafx.scene.Node child = mainVBox.getChildren().get(i);
+            if (child.getStyleClass().contains("filter-card")) {
+                filterIndex = i;
+                break;
+            }
+        }
+
+        if (filterIndex >= 0) {
+            mainVBox.getChildren().add(filterIndex, recoSection);
+        } else {
+            // Fallback: avant la grille produits si le bloc filtres est absent.
+            int gridIndex = mainVBox.getChildren().indexOf(productGrid);
+            if (gridIndex >= 0) {
+                mainVBox.getChildren().add(gridIndex, recoSection);
+            } else {
+                mainVBox.getChildren().add(recoSection);
+            }
+        }
+
+        System.out.println("[Pharmacie] Recommandations IA affichées : " + recommandationsTexte.size());
+    }
+
+    private List<Produit> findRecommendedProducts(List<String> recommandationsTexte, List<Produit> bestSellers) {
+        Map<String, Produit> byName = new LinkedHashMap<>();
+        for (Produit p : allProduitsFront) {
+            byName.put(normalizeRecoText(p.getNom_produit()), p);
+        }
+
+        LinkedHashSet<Produit> ordered = new LinkedHashSet<>();
+        for (String reco : recommandationsTexte) {
+            String normReco = normalizeRecoText(reco);
+            for (Map.Entry<String, Produit> e : byName.entrySet()) {
+                if (!e.getKey().isBlank() && normReco.contains(e.getKey())) {
+                    ordered.add(e.getValue());
+                    break;
+                }
+            }
+            if (ordered.size() >= 8) {
+                break;
+            }
+        }
+
+        if (ordered.isEmpty()) {
+            ordered.addAll(bestSellers);
+        }
+        return new ArrayList<>(ordered);
+    }
+
+    private Node createAutoCarousel(List<Produit> produits, boolean bestSellerMode) {
+        List<Produit> safe = new ArrayList<>(produits == null ? List.of() : produits);
+        if (safe.isEmpty()) {
+            return new Label("Aucun produit à afficher");
+        }
+
+        StackPane host = new StackPane();
+        host.getStyleClass().add("reco-auto-carousel");
+        host.setPrefHeight(220);
+
+        Integer[] index = {0};
+        Runnable render = () -> {
+            HBox row = new HBox(24);
+            row.setAlignment(Pos.CENTER);
+            row.getStyleClass().add("reco-carousel-row");
+
+            int maxVisible = Math.min(3, safe.size());
+            for (int offset = 0; offset < maxVisible; offset++) {
+                Produit current = safe.get(Math.floorMod(index[0] + offset, safe.size()));
+                Node card = createRecoProduitCard(current, bestSellerMode);
+                row.getChildren().add(card);
+            }
+
+            row.setOpacity(0);
+            row.setTranslateX(32);
+            host.getChildren().setAll(row);
+
+            FadeTransition fade = new FadeTransition(Duration.millis(260), row);
+            fade.setFromValue(0);
+            fade.setToValue(1);
+
+            javafx.animation.TranslateTransition slide = new javafx.animation.TranslateTransition(Duration.millis(260), row);
+            slide.setFromX(32);
+            slide.setToX(0);
+
+            new javafx.animation.ParallelTransition(fade, slide).play();
+        };
+
+        Timeline loop = new Timeline(new KeyFrame(Duration.seconds(2.6), e -> {
+            index[0] = index[0] + 1;
+            render.run();
+        }));
+        loop.setCycleCount(Timeline.INDEFINITE);
+
+        render.run();
+        loop.play();
+
+        host.sceneProperty().addListener((obs, oldScene, newScene) -> {
+            if (newScene == null) {
+                loop.stop();
+            }
+        });
+
+        return host;
+    }
+
+    private Node createRecoProduitCard(Produit produit, boolean bestSellerMode) {
+        VBox card = new VBox(8);
+        card.getStyleClass().add("reco-product-card");
+        card.setPrefWidth(230);
+        card.setMaxWidth(230);
+        if (bestSellerMode) {
+            card.getStyleClass().add("reco-best-card");
+        }
+
+        StackPane imageBox = new StackPane();
+        imageBox.getStyleClass().add("reco-product-image-box");
+        ImageView iv = buildThumbnailImageView(produit == null ? null : produit.getImage_produit(), 72, 72);
+        if (iv != null) {
+            imageBox.getChildren().add(iv);
+        } else {
+            imageBox.getChildren().add(new Label("🖼"));
+        }
+
+        Label nom = new Label(produit.getNom_produit() == null ? "Produit" : produit.getNom_produit());
+        nom.getStyleClass().add("reco-product-name");
+        nom.setWrapText(true);
+
+        Label prix = new Label(String.format(Locale.US, "%.2f DT", produit.getPrix_produit()));
+        prix.getStyleClass().add("reco-product-price");
+
+        card.getChildren().addAll(imageBox, nom, prix);
+        return card;
+    }
+
+
+    private ImageView buildThumbnailImageView(String imagePath, double width, double height) {
+
+        String path = (imagePath == null) ? "" : imagePath.trim();
+        if (path.isEmpty()) {
+            return null;
+        }
+
+        try {
+            String cacheKey = path + "|" + (int) width + "x" + (int) height;
+
+            Image image = thumbnailImageCache.computeIfAbsent(cacheKey, k -> {
+
+                if (path.startsWith("http://") || path.startsWith("https://")) {
+                    // ── URL Cloudinary ──────────────────────────────────
+                    System.out.println("[Thumbnail] Chargement URL : " + path);
+                    return new Image(path, width, height, true, true, true);
+
+                } else {
+                    // ── Chemin local ────────────────────────────────────
+                    File file = new File(path);
+                    if (!file.exists()) {
+                        System.err.println("[Thumbnail] Fichier introuvable : " + path);
+                        return null;
+                    }
+                    return new Image(file.toURI().toString(), width, height, true, true, true);
+                }
+            });
+
+            if (image == null) {
+                return null;
+            }
+
+            ImageView view = new ImageView(image);
+            view.setFitWidth(width);
+            view.setFitHeight(height);
+            view.setPreserveRatio(true);
+            view.setSmooth(true);
+            return view;
+
+        } catch (Exception e) {
+            System.err.println("[Thumbnail] Exception : " + path + " → " + e.getMessage());
+            return null;
+        }
+    }
+
+    private String normalizeRecoText(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.toLowerCase(Locale.ROOT)
+                .replaceAll("[^a-z0-9 ]", " ")
+                .replaceAll("\\s+", " ")
+                .trim();
+    }
+
+// ─────────────────────────────────────────────────────────────────────────
+// ── 5. AJOUTER cette méthode de carte best seller ────────────────────────
+// ─────────────────────────────────────────────────────────────────────────
+
+    private javafx.scene.layout.VBox createBestSellerCard(tn.esprit.entities.Produit produit) {
+        javafx.scene.layout.VBox card = new javafx.scene.layout.VBox(8);
+        card.setPrefWidth(200);
+        card.setMaxWidth(200);
+        card.setStyle(
+                "-fx-background-color: white; -fx-border-color: #fca5a5; "
+                        + "-fx-border-radius: 12; -fx-background-radius: 12; "
+                        + "-fx-padding: 12; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 6, 0, 0, 2);"
+        );
+
+        // Badge best seller
+        javafx.scene.control.Label badgeLbl = new javafx.scene.control.Label("🔥 Best Seller");
+        badgeLbl.setStyle(
+                "-fx-background-color: #fef2f2; -fx-text-fill: #dc2626; "
+                        + "-fx-font-size: 10px; -fx-font-weight: bold; "
+                        + "-fx-background-radius: 6; -fx-padding: 2 6;"
+        );
+
+        // Image
+        javafx.scene.layout.StackPane imgBox = new javafx.scene.layout.StackPane();
+        imgBox.setPrefHeight(80);
+        javafx.scene.image.ImageView bestIv = buildThumbnailImageView(produit == null ? null : produit.getImage_produit(), 70, 70);
+        if (bestIv != null) {
+            imgBox.getChildren().add(bestIv);
+        } else {
+            imgBox.getChildren().add(new javafx.scene.control.Label("🖼"));
+        }
+
+        // Nom
+        javafx.scene.control.Label nomLbl = new javafx.scene.control.Label(
+                produit.getNom_produit() == null ? "" : produit.getNom_produit());
+        nomLbl.setWrapText(true);
+        nomLbl.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #111827;");
+
+        // Prix
+        javafx.scene.control.Label prixLbl = new javafx.scene.control.Label(
+                String.format(Locale.US, "%.2f DT", produit.getPrix_produit()));
+        prixLbl.setStyle("-fx-font-size: 13px; -fx-text-fill: #059669; -fx-font-weight: bold;");
+
+        // Bouton ajouter
+        javafx.scene.control.Button addBtn = new javafx.scene.control.Button("+ Ajouter");
+        addBtn.setMaxWidth(Double.MAX_VALUE);
+        addBtn.setStyle(
+                "-fx-background-color: #dc2626; -fx-text-fill: white; "
+                        + "-fx-font-size: 12px; -fx-font-weight: bold; "
+                        + "-fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 6 10;"
+        );
+
+        boolean rupture = "Rupture".equalsIgnoreCase(produit.getStatus_produit());
+        if (rupture) {
+            addBtn.setDisable(true);
+            addBtn.setText("Rupture");
+            addBtn.setStyle(addBtn.getStyle() + "-fx-background-color: #9ca3af;");
+        } else {
+            addBtn.setOnAction(e -> {
+                ajouterProduitAuPanier(produit, 1);
+                updatePanierButton();
+            });
+        }
+
+        card.getChildren().addAll(badgeLbl, imgBox, nomLbl, prixLbl, addBtn);
+        return card;
+    }
+    /** Ouvre / ferme le panneau chat latéral. */
+    @FXML
+    private void toggleAssistantPanel() {
+        if (assistantPanel == null) return;
+        boolean show = !assistantPanel.isVisible();
+        assistantPanel.setVisible(show);
+        assistantPanel.setManaged(show);
+        if (btnAssistant != null) {
+            btnAssistant.setText(show ? "✕ Fermer" : "🤖 Assistant");
+        }
+    }
+
+    /** Vide la conversation et réaffiche les suggestions. */
+    @FXML
+    private void onClearAssistant() {
+        if (assistantMessagesContainer != null) {
+            assistantMessagesContainer.getChildren().clear();
+        }
+        assistantServiceProduit.resetConversation();  // resetConversation() est la nouvelle méthode du service
+        if (assistantSuggestionsBar != null) {
+            assistantSuggestionsBar.setVisible(true);
+            assistantSuggestionsBar.setManaged(true);
+        }
+    }
+
+    /** Envoie le message saisi dans le chat assistant. */
+    @FXML
+    private void onSendAssistantMessage() {
+        if (assistantInputField == null) return;
+        String text = assistantInputField.getText();
+        if (text == null || text.isBlank()) return;
+
+        assistantInputField.clear();
+        addUserBubble(text);
+
+        // Cacher les suggestions dès le premier message
+        if (assistantSuggestionsBar != null) {
+            assistantSuggestionsBar.setVisible(false);
+            assistantSuggestionsBar.setManaged(false);
+        }
+
+        showAssistantTyping(true);
+
+        // Appel API en arrière-plan
+        Thread t = new Thread(() -> {
+            String response = assistantServiceProduit.chat(text);
+            Platform.runLater(() -> {
+                showAssistantTyping(false);
+                addAssistantBubble(response);
+                scrollAssistantToBottom();
+            });
+        }, "pharma-chat-thread");
+        t.setDaemon(true);
+        t.start();
+    }
+
+    /** Construit les chips de suggestions rapides. */
+    private void buildAssistantSuggestions() {
+        if (suggestionsFlow == null) return;
+        suggestionsFlow.getChildren().clear();
+
+        java.util.List<String> suggestions = java.util.List.of(
+                "💊 Effets secondaires ibuprofène",
+                "🤒 J'ai de la fièvre",
+                "😣 Mal à la tête",
+                "🤧 Allergie au pollen",
+                "😴 Médicaments pour dormir",
+                "🩺 Douleurs abdominales"
+        );
+
+        for (String s : suggestions) {
+            Button chip = new Button(s);
+            chip.getStyleClass().add("suggestion-chip");
+            chip.setWrapText(true);
+            chip.setOnAction(e -> {
+                if (assistantInputField != null) {
+                    // Retirer l'emoji du début pour envoyer un texte propre
+                    assistantInputField.setText(s.replaceAll("^[^a-zA-ZÀ-ÿ]+", "").trim());
+                    onSendAssistantMessage();
+                }
+            });
+            suggestionsFlow.getChildren().add(chip);
+        }
+    }
+
+    /** Ajoute une bulle utilisateur (droite, bleue). */
+    private void addUserBubble(String text) {
+        if (assistantMessagesContainer == null) return;
+
+        HBox row = new HBox();
+        row.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
+
+        Label bubble = new Label(text);
+        bubble.getStyleClass().add("bubble-user");
+        bubble.setWrapText(true);
+        bubble.setMaxWidth(260);
+
+        row.getChildren().add(bubble);
+        assistantMessagesContainer.getChildren().add(row);
+        scrollAssistantToBottom();
+    }
+
+    /** Ajoute une bulle réponse assistant (gauche, blanche). */
+    private void addAssistantBubble(String text) {
+        if (assistantMessagesContainer == null) return;
+
+        HBox row = new HBox(8);
+        row.setAlignment(javafx.geometry.Pos.TOP_LEFT);
+
+        Label avatar = new Label("💊");
+        avatar.getStyleClass().add("bubble-assistant-avatar");
+        avatar.setMinWidth(30);
+
+        Label bubble = new Label(text);
+        bubble.getStyleClass().add("bubble-assistant");
+        bubble.setWrapText(true);
+        bubble.setMaxWidth(260);
+
+        row.getChildren().addAll(avatar, bubble);
+        assistantMessagesContainer.getChildren().add(row);
+        scrollAssistantToBottom();
+    }
+
+    private void showAssistantTyping(boolean visible) {
+        if (assistantTypingIndicator == null) return;
+        assistantTypingIndicator.setVisible(visible);
+        assistantTypingIndicator.setManaged(visible);
+        if (visible) scrollAssistantToBottom();
+    }
+
+    private void scrollAssistantToBottom() {
+        if (assistantScrollPane == null) return;
+        javafx.animation.Timeline scroll = new javafx.animation.Timeline(
+                new javafx.animation.KeyFrame(
+                        javafx.util.Duration.millis(80),
+                        e -> assistantScrollPane.setVvalue(1.0)
+                )
+        );
+        scroll.play();
+    }
+    /**
+     * Configure le label "Alerte Inventaire" pour ouvrir un popup au clic.
+     */
+    private void configurerAlerteInventaireLabel() {
+        if (alerteInventaireLabel == null) return;
+
+        alerteInventaireLabel.setStyle(
+                alerteInventaireLabel.getStyle() + "; -fx-cursor: hand;"
+        );
+        // Retirer les anciens handlers pour éviter les doublons
+        alerteInventaireLabel.setOnMouseClicked(null);
+        alerteInventaireLabel.setOnMouseClicked(e -> ouvrirPopupAlerteInventaire());
+
+        // Effet hover
+        alerteInventaireLabel.setOnMouseEntered(e ->
+                alerteInventaireLabel.setStyle(alerteInventaireLabel.getStyle()
+                        + "; -fx-background-color: rgba(255,255,255,0.28);")
+        );
+        alerteInventaireLabel.setOnMouseExited(e -> {
+            // Remettre le style d'origine (pill-label) — on force juste le cursor
+            alerteInventaireLabel.setStyle("-fx-cursor: hand;");
+        });
+    }
+
+    /**
+     * Popup complet : liste des produits en rupture / stock bas / indisponibles.
+     */
+    private void ouvrirPopupAlerteInventaire() {
+        List<Produit> tous = produitService.recuperer();
+
+        List<Produit> enRupture      = new ArrayList<>();
+        List<Produit> stockBas       = new ArrayList<>(); // quantité <= 5 et > 0
+        List<Produit> indisponibles  = new ArrayList<>();
+
+        for (Produit p : tous) {
+            String statut = safe(p.getStatus_produit()).toLowerCase(Locale.ROOT);
+            if (statut.contains("rupture") || p.getQuantite_produit() <= 0) {
+                enRupture.add(p);
+            } else if (p.getQuantite_produit() <= 5) {
+                stockBas.add(p);
+            } else if (statut.contains("indisponible")) {
+                indisponibles.add(p);
+            }
+        }
+
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("Alertes Inventaire");
+        dialog.setHeaderText(null);
+        dialog.setResizable(true);
+
+        DialogPane pane = dialog.getDialogPane();
+        pane.getButtonTypes().add(ButtonType.CLOSE);
+
+        URL cssUrl = getClass().getResource("/CSS/produit-dashboard.css");
+        if (cssUrl != null) pane.getStylesheets().add(cssUrl.toExternalForm());
+
+        pane.getStyleClass().add("confirm-dialog");
+
+        // ── Contenu principal ─────────────────────────────────────────────────
+        VBox root = new VBox(20);
+        root.setPadding(new Insets(24));
+        root.setMinWidth(620);
+
+        // Titre
+        HBox titreBox = new HBox(12);
+        titreBox.setAlignment(Pos.CENTER_LEFT);
+        Label titreLbl = new Label("🔔 Alertes Inventaire");
+        titreLbl.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #16345c;");
+
+        int totalAlertes = enRupture.size() + stockBas.size() + indisponibles.size();
+        Label countBadge = new Label(totalAlertes + " alerte(s)");
+        countBadge.setStyle(
+                "-fx-background-color: #ff4f4f; -fx-text-fill: white; "
+                        + "-fx-font-size: 13px; -fx-font-weight: bold; "
+                        + "-fx-background-radius: 999px; -fx-padding: 4 12;"
+        );
+        titreBox.getChildren().addAll(titreLbl, countBadge);
+        root.getChildren().add(titreBox);
+
+        if (totalAlertes == 0) {
+            Label ok = new Label("✅ Tous les produits sont en stock normal !");
+            ok.setStyle("-fx-font-size: 16px; -fx-text-fill: #087c56; -fx-font-weight: bold;");
+            root.getChildren().add(ok);
+        } else {
+            ScrollPane scroll = new ScrollPane();
+            scroll.setFitToWidth(true);
+            scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+            scroll.setStyle("-fx-background-color: transparent; -fx-border-color: transparent;");
+            scroll.setPrefHeight(440);
+
+            VBox sections = new VBox(18);
+            sections.setPadding(new Insets(4, 8, 4, 4));
+
+            // Section rupture
+            if (!enRupture.isEmpty()) {
+                sections.getChildren().add(
+                        creerSectionAlerte("🚨 En Rupture de Stock", enRupture,
+                                "#fff1f1", "#ff4f4f", "#b51d1d")
+                );
+            }
+
+            // Section stock bas
+            if (!stockBas.isEmpty()) {
+                sections.getChildren().add(
+                        creerSectionAlerte("⚠ Stock Très Bas (≤ 5 unités)", stockBas,
+                                "#fffaf0", "#f2b321", "#a95b00")
+                );
+            }
+
+            // Section indisponibles
+            if (!indisponibles.isEmpty()) {
+                sections.getChildren().add(
+                        creerSectionAlerte("❌ Indisponibles", indisponibles,
+                                "#fff6f6", "#e57373", "#c62828")
+                );
+            }
+
+            scroll.setContent(sections);
+            root.getChildren().add(scroll);
+        }
+
+        pane.setContent(root);
+        pane.setPrefWidth(680);
+
+        Button closeBtn = (Button) pane.lookupButton(ButtonType.CLOSE);
+        closeBtn.setText("Fermer");
+        closeBtn.getStyleClass().add("confirm-cancel-btn");
+
+        dialog.showAndWait();
+    }
+
+    /**
+     * Crée une section colorée avec la liste des produits concernés.
+     */
+    private VBox creerSectionAlerte(String titre, List<Produit> produits,
+                                    String bgColor, String borderColor, String textColor) {
+        VBox section = new VBox(10);
+        section.setStyle(
+                "-fx-background-color: " + bgColor + "; "
+                        + "-fx-border-color: " + borderColor + "; "
+                        + "-fx-border-radius: 14px; -fx-background-radius: 14px; "
+                        + "-fx-border-width: 1.5px; -fx-padding: 14 16;"
+        );
+
+        // En-tête de section
+        HBox header = new HBox(10);
+        header.setAlignment(Pos.CENTER_LEFT);
+
+        Label titreLbl = new Label(titre);
+        titreLbl.setStyle(
+                "-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: " + textColor + ";"
+        );
+
+        Label badge = new Label(produits.size() + " produit(s)");
+        badge.setStyle(
+                "-fx-background-color: " + borderColor + "; -fx-text-fill: white; "
+                        + "-fx-font-size: 11px; -fx-font-weight: bold; "
+                        + "-fx-background-radius: 999px; -fx-padding: 3 10;"
+        );
+
+        header.getChildren().addAll(titreLbl, badge);
+        section.getChildren().add(header);
+
+        // Séparateur léger
+        Region sep = new Region();
+        sep.setPrefHeight(1);
+        sep.setStyle("-fx-background-color: " + borderColor + "; -fx-opacity: 0.3;");
+        section.getChildren().add(sep);
+
+        // Lignes produits
+        for (Produit p : produits) {
+            HBox row = creerLigneProduitAlerte(p, textColor, borderColor);
+            section.getChildren().add(row);
+        }
+
+        return section;
+    }
+
+    /**
+     * Crée une ligne pour un produit dans le popup alerte.
+     */
+    private HBox creerLigneProduitAlerte(Produit p, String textColor, String accentColor) {
+        HBox row = new HBox(14);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.setPadding(new Insets(8, 6, 8, 6));
+        row.setStyle(
+                "-fx-background-color: white; -fx-background-radius: 10px; "
+                        + "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.04), 4, 0, 0, 1);"
+        );
+
+        // ── Miniature image ─────────────────────────────────────────────────
+        StackPane thumb = new StackPane();
+        thumb.setPrefSize(44, 44);
+        thumb.setMinSize(44, 44);
+        thumb.setStyle(
+                "-fx-background-color: #f0f4fa; -fx-background-radius: 10px; "
+                        + "-fx-border-color: #dde4f0; -fx-border-radius: 10px;"
+        );
+
+        // ★ CORRECTION CLOUDINARY : utilise chargerImage() au lieu de new File()
+        Image img = chargerImage(safe(p.getImage_produit()));
+        if (img != null) {
+            ImageView iv = new ImageView(img);
+            iv.setFitWidth(36);
+            iv.setFitHeight(36);
+            iv.setPreserveRatio(true);
+            thumb.getChildren().add(iv);
+        } else {
+            thumb.getChildren().add(new Label("🖼"));
+        }
+
+        // ── Infos produit ───────────────────────────────────────────────────
+        VBox infos = new VBox(3);
+        HBox.setHgrow(infos, Priority.ALWAYS);
+
+        Label nom = new Label(safe(p.getNom_produit()));
+        nom.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1a2f55;");
+
+        HBox meta = new HBox(8);
+        meta.setAlignment(Pos.CENTER_LEFT);
+
+        Label cat = new Label(safe(p.getCategorie_produit()));
+        cat.setStyle(
+                "-fx-background-color: #eef4ff; -fx-text-fill: #173d8b; "
+                        + "-fx-font-size: 11px; -fx-font-weight: bold; "
+                        + "-fx-background-radius: 999px; -fx-padding: 2 8;"
+        );
+
+        Label prix = new Label(String.format("%.2f DT", p.getPrix_produit()));
+        prix.setStyle("-fx-font-size: 12px; -fx-text-fill: #00a86b; -fx-font-weight: bold;");
+
+        meta.getChildren().addAll(cat, prix);
+        infos.getChildren().addAll(nom, meta);
+
+        // ── Badge quantité ──────────────────────────────────────────────────
+        Label qtyBadge = new Label("📦 " + p.getQuantite_produit());
+        qtyBadge.setStyle(
+                "-fx-background-color: " + accentColor + "22; "
+                        + "-fx-text-fill: " + textColor + "; "
+                        + "-fx-font-size: 13px; -fx-font-weight: bold; "
+                        + "-fx-background-radius: 999px; -fx-padding: 5 12; "
+                        + "-fx-border-color: " + accentColor + "55; -fx-border-radius: 999px;"
+        );
+
+        // ── Badge statut ────────────────────────────────────────────────────
+        Label statutBadge = new Label(safe(p.getStatus_produit()));
+        String statut = safe(p.getStatus_produit()).toLowerCase(Locale.ROOT);
+        if (statut.contains("rupture")) {
+            statutBadge.getStyleClass().add("statut-badge-rupture");
+        } else if (statut.contains("indisponible")) {
+            statutBadge.getStyleClass().add("statut-badge-indisponible");
+        } else {
+            statutBadge.getStyleClass().add("qty-badge-soft-red");
+        }
+
+        row.getChildren().addAll(thumb, infos, qtyBadge, statutBadge);
+        return row;
+    }
+
+    /**
+     * Affiche des notifications bannières en haut du dashboard au chargement.
+     * Elles disparaissent automatiquement après quelques secondes.
+     */
+    private void afficherNotificationsInitiales() {
+        if (produitsListContainer == null) return;
+
+        List<Produit> tous = produitService.recuperer();
+
+        List<Produit> enRupture     = new ArrayList<>();
+        List<Produit> stockBas      = new ArrayList<>();
+        List<Produit> indisponibles = new ArrayList<>();
+
+        for (Produit p : tous) {
+            String statut = safe(p.getStatus_produit()).toLowerCase(Locale.ROOT);
+            if (statut.contains("rupture") || p.getQuantite_produit() <= 0) {
+                enRupture.add(p);
+            } else if (p.getQuantite_produit() <= 5) {
+                stockBas.add(p);
+            } else if (statut.contains("indisponible")) {
+                indisponibles.add(p);
+            }
+        }
+
+        if (enRupture.isEmpty() && stockBas.isEmpty() && indisponibles.isEmpty()) return;
+
+        // Récupérer la scène pour y ancrer les toasts empilés
+        Scene scene = produitsListContainer.getScene();
+        if (scene == null) return;
+
+        javafx.stage.Window window = scene.getWindow();
+        if (window == null) return;
+
+        // Construire les messages à afficher (max 3 bannières)
+        List<String[]> messages = new ArrayList<>(); // [texte, styleClass, icône]
+
+        if (!enRupture.isEmpty()) {
+            String noms = enRupture.stream()
+                    .limit(3)
+                    .map(p -> safe(p.getNom_produit()))
+                    .reduce((a, b) -> a + ", " + b).orElse("");
+            String suffix = enRupture.size() > 3 ? " +" + (enRupture.size() - 3) + " autres" : "";
+            messages.add(new String[]{
+                    enRupture.size() + " produit(s) en RUPTURE : " + noms + suffix,
+                    "dashboard-toast-danger", "🚨"
+            });
+        }
+
+        if (!stockBas.isEmpty()) {
+            String noms = stockBas.stream()
+                    .limit(3)
+                    .map(p -> safe(p.getNom_produit()) + " (" + p.getQuantite_produit() + ")")
+                    .reduce((a, b) -> a + ", " + b).orElse("");
+            String suffix = stockBas.size() > 3 ? " +" + (stockBas.size() - 3) + " autres" : "";
+            messages.add(new String[]{
+                    "Stock bas : " + noms + suffix,
+                    "dashboard-toast-info", "⚠"
+            });
+        }
+
+        if (!indisponibles.isEmpty()) {
+            messages.add(new String[]{
+                    indisponibles.size() + " produit(s) indisponibles",
+                    "dashboard-toast-danger", "❌"
+            });
+        }
+
+        // Afficher les bannières avec un délai décalé
+        for (int i = 0; i < messages.size(); i++) {
+            final String[] msg = messages.get(i);
+            final int index = i;
+            PauseTransition delay = new PauseTransition(Duration.millis(300 + index * 600));
+            delay.setOnFinished(e ->
+                    afficherBanniereAlerte(msg[0], msg[1], msg[2], window, scene, index)
+            );
+            delay.play();
+        }
+    }
+
+    /**
+     * Affiche une bannière d'alerte en haut de l'écran (disparaît après 4 sec).
+     */
+    private void afficherBanniereAlerte(String message, String styleClass, String iconText,
+                                        javafx.stage.Window window, Scene scene, int stackIndex) {
+        HBox toast = new HBox(12);
+        toast.setAlignment(Pos.CENTER_LEFT);
+        toast.getStyleClass().addAll("floating-toast", styleClass);
+        toast.setMaxWidth(580);
+        toast.setPadding(new Insets(14, 20, 14, 16));
+
+        Label icon = new Label(iconText);
+        icon.getStyleClass().add("toast-icon");
+        icon.setStyle("-fx-font-size: 20px;");
+
+        Label textLabel = new Label(message);
+        textLabel.getStyleClass().add("toast-text");
+        textLabel.setWrapText(true);
+        textLabel.setMaxWidth(480);
+
+        // Bouton fermer
+        Button closeBtn = new Button("✕");
+        closeBtn.setStyle(
+                "-fx-background-color: transparent; -fx-text-fill: white; "
+                        + "-fx-font-size: 14px; -fx-cursor: hand; -fx-padding: 0 4;"
+        );
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        toast.getChildren().addAll(icon, textLabel, spacer, closeBtn);
+
+        javafx.stage.Popup popup = new javafx.stage.Popup();
+        popup.getContent().add(toast);
+        popup.setAutoHide(false);
+        popup.setHideOnEscape(true);
+        popup.setAutoFix(true);
+
+        // Position : en haut à droite, empilées verticalement
+        double toastHeight = 60;
+        double marginTop   = 16;
+        double marginRight = 24;
+        double x = window.getX() + scene.getWidth() - 620;
+        double y = window.getY() + marginTop + stackIndex * (toastHeight + 10) + 60;
+
+        popup.show(window, x, y);
+
+        URL cssUrl = getClass().getResource("/CSS/produit-dashboard.css");
+        if (cssUrl != null && popup.getScene() != null) {
+            popup.getScene().getStylesheets().add(cssUrl.toExternalForm());
+        }
+
+        // Fermeture manuelle
+        closeBtn.setOnAction(e -> {
+            FadeTransition ft = new FadeTransition(Duration.millis(180), toast);
+            ft.setToValue(0);
+            ft.setOnFinished(ev -> popup.hide());
+            ft.play();
+        });
+
+        // Animation entrée
+        toast.setOpacity(0);
+        toast.setTranslateX(40);
+
+        FadeTransition fadeIn = new FadeTransition(Duration.millis(280), toast);
+        fadeIn.setFromValue(0); fadeIn.setToValue(1);
+
+        javafx.animation.TranslateTransition slideIn =
+                new javafx.animation.TranslateTransition(Duration.millis(280), toast);
+        slideIn.setFromX(40); slideIn.setToX(0);
+
+        javafx.animation.ParallelTransition enter =
+                new javafx.animation.ParallelTransition(fadeIn, slideIn);
+
+        // Pause 4 secondes puis disparition
+        PauseTransition pause = new PauseTransition(Duration.seconds(4));
+
+        FadeTransition fadeOut = new FadeTransition(Duration.millis(320), toast);
+        fadeOut.setFromValue(1); fadeOut.setToValue(0);
+
+        javafx.animation.TranslateTransition slideOut =
+                new javafx.animation.TranslateTransition(Duration.millis(320), toast);
+        slideOut.setFromX(0); slideOut.setToX(40);
+
+        javafx.animation.ParallelTransition exit =
+                new javafx.animation.ParallelTransition(fadeOut, slideOut);
+
+        javafx.animation.SequentialTransition seq =
+                new javafx.animation.SequentialTransition(enter, pause, exit);
+
+        seq.setOnFinished(e -> popup.hide());
+        seq.play();
+    }
 
 }

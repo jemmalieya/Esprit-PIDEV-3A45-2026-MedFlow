@@ -21,20 +21,37 @@ import tn.esprit.tools.SessionManager;
 import tn.esprit.entities.User;
 import java.time.LocalDateTime;
 
+import tn.esprit.services.AudioRecorderServiceReclamation;
+import tn.esprit.services.GroqSpeechToTextServiceReclamation;
+import tn.esprit.services.GroqTranslationServiceReclamation;
+import tn.esprit.services.VoiceTranslationResult;
+
+import java.io.File;
+
 public class ReclamationController {
 
     // ===== FORM =====
     @FXML private TextField tfContenu;
     @FXML private TextArea taDescription;
     @FXML private ComboBox<String> cbType;
-    @FXML private ComboBox<String> cbPriorite;
+
     @FXML private Label lblMessage;
     private Reclamation reclamationToEdit = null;
     private boolean isEditMode = false;
     @FXML private Label errContenu;
     @FXML private Label errDescription;
     @FXML private Label errType;
-    @FXML private Label errPriorite;
+
+    @FXML private Label lblVoiceStatus;
+    private final AudioRecorderServiceReclamation audioRecorderService = new AudioRecorderServiceReclamation();
+    private final GroqSpeechToTextServiceReclamation speechService = new GroqSpeechToTextServiceReclamation();
+    private final GroqTranslationServiceReclamation translationService = new GroqTranslationServiceReclamation();
+
+    private String contenuOriginalVoice;
+    private String descriptionOriginalVoice;
+    private String langueContenuVoice;
+    private String langueDescriptionVoice;
+
 
     private final ReclamationService reclamationService = new ReclamationService();
     public void setReclamation(Reclamation r) {
@@ -45,7 +62,7 @@ public class ReclamationController {
         tfContenu.setText(r.getContenu());
         taDescription.setText(r.getDescription());
         cbType.setValue(r.getType());
-        cbPriorite.setValue(r.getPriorite());
+
     }
     // ===== INIT =====
     @FXML
@@ -55,9 +72,6 @@ public class ReclamationController {
                 "Technique", "Service", "Paiement", "Livraison", "Autre"
         ));
 
-        cbPriorite.setItems(FXCollections.observableArrayList(
-                "Faible", "Moyenne", "Élevée"
-        ));
         tfContenu.textProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal.length() >= 3) {
                 tfContenu.setStyle("-fx-border-color: green;");
@@ -69,6 +83,81 @@ public class ReclamationController {
                 taDescription.setStyle("-fx-border-color: green;");
             }
         });
+
+    }
+
+    @FXML
+    private void dicterContenu() {
+        dicterEtTraduire(true);
+    }
+
+    @FXML
+    private void dicterDescription() {
+        dicterEtTraduire(false);
+    }
+
+    private void dicterEtTraduire(boolean isContenu) {
+
+        showMessage("🎤 Parlez maintenant pendant 7 secondes...", "#0f766e");
+
+        if (lblVoiceStatus != null) {
+            lblVoiceStatus.setText("🎤 Enregistrement en cours...");
+            lblVoiceStatus.setStyle("-fx-text-fill: #0f766e; -fx-font-weight: bold;");
+        }
+
+        new Thread(() -> {
+            File audioFile = null;
+
+            try {
+                audioFile = audioRecorderService.enregistrerWavPendant(7);
+
+                String texteOriginal = speechService.transcrire(audioFile);
+
+                VoiceTranslationResult result =
+                        translationService.traduireVersFrancais(texteOriginal);
+
+                Platform.runLater(() -> {
+
+                    if (isContenu) {
+                        tfContenu.setText(result.getTexteFrancais());
+                        contenuOriginalVoice = result.getTexteOriginal();
+                        langueContenuVoice = result.getLangueSource();
+                    } else {
+                        taDescription.setText(result.getTexteFrancais());
+                        descriptionOriginalVoice = result.getTexteOriginal();
+                        langueDescriptionVoice = result.getLangueSource();
+                    }
+
+                    showMessage("✅ Voix détectée et traduite en français", "green");
+
+                    if (lblVoiceStatus != null) {
+                        lblVoiceStatus.setText(
+                                "Texte original : " + result.getTexteOriginal()
+                                        + "\nLangue : " + result.getLangueSource()
+                                        + "\nTraduction : " + result.getTexteFrancais()
+                        );
+                        lblVoiceStatus.setStyle("-fx-text-fill: green; -fx-font-weight: bold;");
+                    }
+                });
+
+            } catch (Exception e) {
+                e.printStackTrace();
+
+                Platform.runLater(() -> {
+                    showMessage("❌ Erreur API voix : " + e.getMessage(), "red");
+
+                    if (lblVoiceStatus != null) {
+                        lblVoiceStatus.setText("Erreur : " + e.getMessage());
+                        lblVoiceStatus.setStyle("-fx-text-fill: red; -fx-font-weight: bold;");
+                    }
+                });
+
+            } finally {
+                if (audioFile != null && audioFile.exists()) {
+                    audioFile.delete();
+                }
+            }
+        }).start();
     }
 
     // ===== AJOUT =====
@@ -80,8 +169,7 @@ public class ReclamationController {
 
         if (tfContenu.getText().isEmpty()
                 || taDescription.getText().isEmpty()
-                || cbType.getValue() == null
-                || cbPriorite.getValue() == null) {
+                || cbType.getValue() == null) {
 
             showMessage("Veuillez remplir tous les champs", "red");
             return;
@@ -95,7 +183,7 @@ public class ReclamationController {
                     reclamationToEdit.setContenu(tfContenu.getText());
                     reclamationToEdit.setDescription(taDescription.getText());
                     reclamationToEdit.setType(cbType.getValue());
-                    reclamationToEdit.setPriorite(cbPriorite.getValue());
+
 
                     reclamationService.modifier(reclamationToEdit);
 
@@ -130,7 +218,7 @@ public class ReclamationController {
                     r.setContenu(tfContenu.getText());
                     r.setDescription(taDescription.getText());
                     r.setType(cbType.getValue());
-                    r.setPriorite(cbPriorite.getValue());
+
                     r.setStatut_reclamation("En attente");
                     r.setDate_creation_r(LocalDateTime.now());
                     r.setNotification_envoyee(false);
@@ -153,7 +241,7 @@ public class ReclamationController {
         errContenu.setText("");
         errDescription.setText("");
         errType.setText("");
-        errPriorite.setText("");
+
     }
     private boolean validerFormulaire() {
 
@@ -184,11 +272,7 @@ public class ReclamationController {
             isValid = false;
         }
 
-        // 🔴 PRIORITE
-        if (cbPriorite.getValue() == null) {
-            errPriorite.setText("Veuillez choisir une priorité");
-            isValid = false;
-        }
+
 
         // 🔥 MESSAGE GLOBAL
         if (!isValid) {
@@ -209,7 +293,7 @@ public class ReclamationController {
         tfContenu.setStyle(null);
         taDescription.setStyle(null);
         cbType.setStyle(null);
-        cbPriorite.setStyle(null);
+
     }
     private void goToListPage() {
         try {
@@ -236,7 +320,7 @@ public class ReclamationController {
         tfContenu.clear();
         taDescription.clear();
         cbType.setValue(null);
-        cbPriorite.setValue(null);
+
     }
 
     // ===== NAVIGATION =====

@@ -6,6 +6,7 @@
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
@@ -119,7 +120,7 @@
                     <!-- CONTENT -->
                     <HBox spacing="20">
                         <!-- LEFT -->
-                        <VBox spacing="20" HBox.hgrow="ALWAYS" prefWidth="720">
+                        <VBox spacing="20" HBox.hgrow="ALWAYS" prefWidth="820">
                             <VBox spacing="12" styleClass="booking-card">
                                 <Label text="Description" styleClass="card-title"/>
                                 <Label fx:id="descriptionDetailLabel"
@@ -134,6 +135,70 @@
                                        text="Objectif..."
                                        wrapText="true"
                                        style="-fx-text-fill: #4d6d78; -fx-font-size: 14px;"/>
+                            </VBox>
+
+                            <VBox spacing="12" styleClass="ai-front-card">
+                                <HBox spacing="10" alignment="CENTER_LEFT">
+                                    <Label text="Recommandations IA" styleClass="card-title"/>
+                                    <Region HBox.hgrow="ALWAYS"/>
+                                    <Label fx:id="aiFrontStatusLabel"
+                                           text="Analyse locale"
+                                           wrapText="true"
+                                           styleClass="ai-status-chip"/>
+                                </HBox>
+                                <FlowPane fx:id="aiFrontRecommendationsContainer"
+                                          hgap="12"
+                                          vgap="12"
+                                          prefWrapLength="780"/>
+                            </VBox>
+
+                            <VBox spacing="12" styleClass="booking-card">
+                                <HBox spacing="10" alignment="CENTER_LEFT">
+                                    <Label text="Accessibilite live" styleClass="card-title"/>
+                                    <Region HBox.hgrow="ALWAYS"/>
+                                    <Button text="Rejoindre l'appel video"
+                                            onAction="#ouvrirSalleAccessibilite"
+                                            styleClass="confirm-button"/>
+                                </HBox>
+                                <Label fx:id="accessibilityStatusLabel"
+                                       text="Salle live, transcription et liens d'assistance."
+                                       wrapText="true"
+                                       style="-fx-text-fill: #4d6d78; -fx-font-size: 14px;"/>
+                                <FlowPane fx:id="accessibilityResourcesContainer"
+                                          hgap="10"
+                                          vgap="10"
+                                          prefWrapLength="780"/>
+                            </VBox>
+
+                            <VBox spacing="12" styleClass="event-map-card">
+                                <HBox spacing="10" alignment="CENTER_LEFT">
+                                    <Label text="Carte et accès" styleClass="card-title"/>
+                                    <Region HBox.hgrow="ALWAYS"/>
+                                    <Button text="-"
+                                            onAction="#zoomArriereCarteEvenement"
+                                            styleClass="event-map-tool-button"/>
+                                    <Button text="+"
+                                            onAction="#zoomAvantCarteEvenement"
+                                            styleClass="event-map-tool-button"/>
+                                    <Button text="Depuis ma position"
+                                            onAction="#ouvrirItineraireEvenement"
+                                            styleClass="event-link-button"/>
+                                    <Button text="Ouvrir la carte"
+                                            onAction="#ouvrirCarteEvenement"
+                                            styleClass="event-link-button"/>
+                                </HBox>
+                                <StackPane minHeight="390" prefHeight="390" styleClass="event-map-frame">
+                                    <ImageView fx:id="mapImageView"
+                                               fitWidth="820"
+                                               fitHeight="390"
+                                               preserveRatio="false"
+                                               smooth="true"/>
+                                    <Label fx:id="mapStatusLabel"
+                                           text="Chargement de la carte..."
+                                           wrapText="true"
+                                           StackPane.alignment="BOTTOM_LEFT"
+                                           styleClass="event-map-status"/>
+                                </StackPane>
                             </VBox>
                         </VBox>
 
@@ -173,14 +238,25 @@
                                        style="-fx-text-fill: #4d6d78; -fx-font-size: 13px;"/>
                             </VBox>
 
-                            <HBox spacing="12">
-                                <Button text="Retour"
-                                        onAction="#retourVersListeFront"
-                                        styleClass="cancel-button"/>
+                            <VBox spacing="12" styleClass="weather-card">
+                                <Label text="Météo du lieu" styleClass="card-title"/>
+                                <Label fx:id="weatherConditionLabel" text="Chargement..." wrapText="true" styleClass="weather-main-label"/>
+                                <HBox spacing="8">
+                                    <Label fx:id="weatherTempLabel" text="-" styleClass="weather-chip"/>
+                                    <Label fx:id="weatherHumidityLabel" text="-" styleClass="weather-chip"/>
+                                </HBox>
+                                <Label fx:id="weatherWindLabel" text="-" wrapText="true" styleClass="weather-note-label"/>
+                            </VBox>
 
+                            <HBox spacing="12">
                                 <Region HBox.hgrow="ALWAYS"/>
 
+                                <Button text="Retour"
+                                        onAction="#retourVersListeFrontFixe"
+                                        styleClass="cancel-button"/>
+
                                 <Button text="Participer"
+                                        onAction="#ouvrirFormulaireParticipation"
                                         styleClass="confirm-button"/>
                             </HBox>
                         </VBox>

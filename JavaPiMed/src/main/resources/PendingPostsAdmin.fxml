@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx/25"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="tn.esprit.controllers.PendingPostsAdminController"
+            prefWidth="1650.0"
+            prefHeight="960.0"
+            styleClass="root-pane"
+            stylesheets="@evenement-dashboard.css">
+
+    <left>
+        <VBox prefWidth="250.0" minWidth="250.0" maxWidth="250.0" styleClass="sidebar">
+            <children>
+
+                <HBox alignment="CENTER_LEFT" spacing="14.0" styleClass="logo-box">
+                    <children>
+                        <StackPane prefWidth="40.0" prefHeight="40.0">
+                            <children>
+                                <Label text="❤" styleClass="logo-heart"/>
+                                <Label text="✚" styleClass="logo-plus"/>
+                            </children>
+                        </StackPane>
+                        <Label text="MEDFLOW" styleClass="logo-text"/>
+                    </children>
+                </HBox>
+
+                <Region prefHeight="1.0" maxHeight="1.0" styleClass="sidebar-separator"/>
+
+                <Label text="GESTIONS" styleClass="sidebar-section-title"/>
+
+                <Button text=""
+                        alignment="CENTER_LEFT"
+                        maxWidth="Infinity"
+                        prefWidth="220.0"
+                        contentDisplay="GRAPHIC_ONLY"
+                        styleClass="sidebar-item, sidebar-btn">
+                    <graphic>
+                        <HBox alignment="CENTER_LEFT" spacing="10.0" maxWidth="Infinity">
+                            <children>
+                                <Label text="📰" styleClass="sidebar-item-icon"/>
+                                <Label text="Posts en attente" styleClass="sidebar-item-text"/>
+                            </children>
+                        </HBox>
+                    </graphic>
+                </Button>
+
+                <Button text=""
+                        onAction="#goBackToBlog"
+                        alignment="CENTER_LEFT"
+                        maxWidth="Infinity"
+                        prefWidth="220.0"
+                        contentDisplay="GRAPHIC_ONLY"
+                        styleClass="sidebar-item, sidebar-btn">
+                    <graphic>
+                        <HBox alignment="CENTER_LEFT" spacing="10.0" maxWidth="Infinity">
+                            <children>
+                                <Label text="↩" styleClass="sidebar-item-icon"/>
+                                <Label text="Retour Blog" styleClass="sidebar-item-text"/>
+                            </children>
+                        </HBox>
+                    </graphic>
+                </Button>
+
+                <Button text=""
+                        onAction="#openBlogStats"
+                        alignment="CENTER_LEFT"
+                        maxWidth="Infinity"
+                        prefWidth="220.0"
+                        contentDisplay="GRAPHIC_ONLY"
+                        styleClass="sidebar-item, sidebar-btn">
+                    <graphic>
+                        <HBox alignment="CENTER_LEFT" spacing="10.0" maxWidth="Infinity">
+                            <children>
+                                <Label text="📊" styleClass="sidebar-item-icon"/>
+                                <Label text="Statistique Blog" styleClass="sidebar-item-text"/>
+                            </children>
+                        </HBox>
+                    </graphic>
+                </Button>
+
+                <Region VBox.vgrow="ALWAYS"/>
+
+                <Button text="↪ Déconnexion"
+                        onAction="#handleLogout"
+                        alignment="CENTER_LEFT"
+                        maxWidth="Infinity"
+                        prefWidth="220.0"
+                        styleClass="sidebar-item, sidebar-btn"/>
+            </children>
+
+            <padding>
+                <Insets top="24.0" right="18.0" bottom="24.0" left="18.0"/>
+            </padding>
+        </VBox>
+    </left>
+
+    <center>
+        <VBox spacing="22.0" styleClass="main-area">
+            <padding>
+                <Insets top="18.0" right="22.0" bottom="22.0" left="22.0"/>
+            </padding>
+
+            <HBox alignment="CENTER_LEFT" spacing="20.0" styleClass="hero-card">
+                <children>
+                    <StackPane minWidth="88.0" minHeight="88.0"
+                               prefWidth="88.0" prefHeight="88.0"
+                               styleClass="hero-icon-box">
+                        <children>
+                            <Label text="📰" styleClass="hero-icon"/>
+                        </children>
+                    </StackPane>
+
+                    <VBox spacing="10.0">
+                        <children>
+                            <Label text="Validation des Posts Patients" styleClass="hero-title"/>
+                            <HBox spacing="14.0" alignment="CENTER_LEFT">
+                                <children>
+                                    <Label fx:id="pendingCountLabel"
+                                           text="0 post(s) en attente"
+                                           styleClass="hero-subtitle"/>
+                                    <Label text="🛡 Admin" styleClass="admin-badge"/>
+                                </children>
+                            </HBox>
+                        </children>
+                    </VBox>
+
+                    <Region HBox.hgrow="ALWAYS"/>
+
+                    <HBox spacing="16.0" alignment="CENTER_RIGHT">
+                        <children>
+                            <Button text="🔄 Actualiser"
+                                    onAction="#refreshPosts"
+                                    styleClass="white-btn"/>
+
+                            <Button text="📄 Retour Blog"
+                                    onAction="#goBackToBlog"
+                                    styleClass="white-btn"/>
+                        </children>
+                    </HBox>
+                </children>
+
+                <padding>
+                    <Insets top="30.0" right="30.0" bottom="30.0" left="30.0"/>
+                </padding>
+            </HBox>
+
+            <VBox spacing="16.0" styleClass="list-header-card">
+                <children>
+                    <HBox alignment="CENTER_LEFT" spacing="18.0">
+                        <children>
+                            <HBox spacing="12.0" alignment="CENTER_LEFT">
+                                <children>
+                                    <Label text="☰" styleClass="list-icon"/>
+                                    <Label text="Liste des posts en attente" styleClass="list-title"/>
+                                </children>
+                            </HBox>
+
+                            <Region HBox.hgrow="ALWAYS"/>
+
+                            <Label text="Validez ou refusez les posts envoyés par les patients."
+                                   styleClass="sort-label"/>
+                        </children>
+                    </HBox>
+
+                    <TextField fx:id="searchField"
+                               promptText="Rechercher par titre, contenu, catégorie..."
+                               styleClass="search-main-input"/>
+                </children>
+
+                <padding>
+                    <Insets top="22.0" right="24.0" bottom="22.0" left="24.0"/>
+                </padding>
+            </VBox>
+
+            <HBox spacing="24.0">
+                <children>
+                    <VBox spacing="16.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
+                        <children>
+                            <StackPane prefWidth="46.0" prefHeight="46.0" styleClass="stat-badge blue-badge">
+                                <children>
+                                    <Label text="📋" styleClass="stat-emoji"/>
+                                </children>
+                            </StackPane>
+                            <Label fx:id="totalPendingLabel" text="0" styleClass="stat-number"/>
+                            <Label text="Posts en attente" styleClass="stat-text"/>
+                        </children>
+                    </VBox>
+
+                    <VBox spacing="16.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
+                        <children>
+                            <StackPane prefWidth="46.0" prefHeight="46.0" styleClass="stat-badge green-badge">
+                                <children>
+                                    <Label text="✅" styleClass="stat-emoji"/>
+                                </children>
+                            </StackPane>
+                            <Label fx:id="approvedTodayLabel" text="0" styleClass="stat-number"/>
+                            <Label text="Approuvés aujourd’hui" styleClass="stat-text"/>
+                        </children>
+                    </VBox>
+
+                    <VBox spacing="16.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
+                        <children>
+                            <StackPane prefWidth="46.0" prefHeight="46.0" styleClass="stat-badge red-badge">
+                                <children>
+                                    <Label text="❌" styleClass="stat-emoji"/>
+                                </children>
+                            </StackPane>
+                            <Label fx:id="rejectedTodayLabel" text="0" styleClass="stat-number"/>
+                            <Label text="Refusés aujourd’hui" styleClass="stat-text"/>
+                        </children>
+                    </VBox>
+                </children>
+            </HBox>
+
+            <VBox styleClass="table-wrapper highlight-table" VBox.vgrow="ALWAYS">
+                <children>
+                    <TableView fx:id="pendingPostsTable"
+                               VBox.vgrow="ALWAYS"
+                               styleClass="events-table highlight-table-view">
+
+                        <columns>
+                            <TableColumn fx:id="titleCol" prefWidth="220.0" text="TITRE"/>
+                            <TableColumn fx:id="categoryCol" prefWidth="160.0" text="CATÉGORIE"/>
+                            <TableColumn fx:id="contentCol" prefWidth="360.0" text="CONTENU"/>
+                            <TableColumn fx:id="dateCol" prefWidth="180.0" text="DATE"/>
+                            <TableColumn fx:id="userCol" prefWidth="200.0" text="AUTEUR"/>
+                            <TableColumn fx:id="actionsCol" prefWidth="260.0" text="ACTIONS"/>
+                        </columns>
+                    </TableView>
+                </children>
+            </VBox>
+        </VBox>
+    </center>
+</BorderPane>

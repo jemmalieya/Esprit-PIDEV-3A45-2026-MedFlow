@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressBar?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx/25"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="tn.esprit.controllers.EvenementController"
+            prefWidth="1650.0" prefHeight="960.0"
+            stylesheets="@CSS/evenement-dashboard.css"
+            styleClass="root-pane">
+
+    <left>
+        <VBox prefWidth="250.0" minWidth="250.0" maxWidth="250.0" styleClass="sidebar">
+            <padding>
+                <Insets top="24.0" right="18.0" bottom="24.0" left="18.0"/>
+            </padding>
+            <children>
+                <HBox alignment="CENTER_LEFT" spacing="14.0" styleClass="logo-box">
+                    <children>
+                        <StackPane prefWidth="40.0" prefHeight="40.0">
+                            <children>
+                                <Label text="&#10084;" styleClass="logo-heart"/>
+                                <Label text="+" styleClass="logo-plus"/>
+                            </children>
+                        </StackPane>
+                        <Label text="MEDFLOW" styleClass="logo-text"/>
+                    </children>
+                </HBox>
+
+                <Region prefHeight="1.0" maxHeight="1.0" styleClass="sidebar-separator"/>
+
+                <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="sidebar-item">
+                    <children>
+                        <Label text="Dashboard" styleClass="sidebar-item-text"/>
+                    </children>
+                </HBox>
+
+                <Label text="GESTIONS" styleClass="sidebar-section-title"/>
+
+                <Button text=""
+                        onAction="#retourListeEvenements"
+                        alignment="CENTER_LEFT"
+                        maxWidth="Infinity"
+                        prefWidth="220.0"
+                        contentDisplay="GRAPHIC_ONLY"
+                        styleClass="sidebar-item, sidebar-btn">
+                    <graphic>
+                        <HBox alignment="CENTER_LEFT" spacing="10.0" maxWidth="Infinity">
+                            <children>
+                                <Label text="&lt;" styleClass="sidebar-item-icon"/>
+                                <Label text="Retour evenements" styleClass="sidebar-item-text"/>
+                            </children>
+                        </HBox>
+                    </graphic>
+                </Button>
+
+                <Button text=""
+                        onAction="#onTableauBordAdmin"
+                        alignment="CENTER_LEFT"
+                        maxWidth="Infinity"
+                        prefWidth="220.0"
+                        contentDisplay="GRAPHIC_ONLY"
+                        styleClass="sidebar-item, sidebar-btn">
+                    <graphic>
+                        <HBox alignment="CENTER_LEFT" spacing="10.0" maxWidth="Infinity">
+                            <children>
+                                <Label text="BI" styleClass="sidebar-item-icon"/>
+                                <Label text="Dashboard BI" styleClass="sidebar-item-text"/>
+                            </children>
+                        </HBox>
+                    </graphic>
+                </Button>
+
+                <Region VBox.vgrow="ALWAYS"/>
+
+                <Button text=""
+                        onAction="#onGoToFront"
+                        alignment="CENTER_LEFT"
+                        maxWidth="Infinity"
+                        prefWidth="220.0"
+                        contentDisplay="GRAPHIC_ONLY"
+                        styleClass="sidebar-item, sidebar-btn, sidebar-utility-btn">
+                    <graphic>
+                        <HBox alignment="CENTER_LEFT" spacing="10.0" maxWidth="Infinity">
+                            <children>
+                                <Label text="&gt;" styleClass="sidebar-item-icon"/>
+                                <Label text="Espace front" styleClass="sidebar-item-text"/>
+                            </children>
+                        </HBox>
+                    </graphic>
+                </Button>
+            </children>
+        </VBox>
+    </left>
+
+    <center>
+        <ScrollPane fitToWidth="true"
+                    hbarPolicy="NEVER"
+                    vbarPolicy="AS_NEEDED"
+                    styleClass="ai-page-scroll">
+            <content>
+                <VBox spacing="20.0" styleClass="main-area">
+                    <padding>
+                        <Insets top="18.0" right="22.0" bottom="24.0" left="22.0"/>
+                    </padding>
+
+                    <HBox alignment="CENTER_LEFT" spacing="20.0" styleClass="ai-page-hero">
+                        <padding>
+                            <Insets top="30.0" right="30.0" bottom="30.0" left="30.0"/>
+                        </padding>
+                        <children>
+                            <StackPane minWidth="88.0" minHeight="88.0" prefWidth="88.0" prefHeight="88.0" styleClass="hero-icon-box">
+                                <children>
+                                    <Label text="AI" styleClass="hero-icon"/>
+                                </children>
+                            </StackPane>
+
+                            <VBox spacing="8.0">
+                                <children>
+                                    <Label text="Assistant IA Evenements" styleClass="hero-title"/>
+                                    <Label fx:id="aiBackStatusLabel"
+                                           text="Analyse locale active"
+                                           wrapText="true"
+                                           styleClass="hero-subtitle"/>
+                                </children>
+                            </VBox>
+
+                            <Region HBox.hgrow="ALWAYS"/>
+
+                            <HBox spacing="12.0" alignment="CENTER_RIGHT">
+                                <children>
+                                    <Button text="Retour liste" onAction="#retourListeEvenements" styleClass="white-btn"/>
+                                    <Button text="Dashboard BI" onAction="#onTableauBordAdmin" styleClass="yellow-btn"/>
+                                </children>
+                            </HBox>
+                        </children>
+                    </HBox>
+
+                    <VBox spacing="10.0" styleClass="ai-page-event-card">
+                        <children>
+                            <Label fx:id="aiBackEventTitleLabel" text="Evenement" wrapText="true" styleClass="ai-page-event-title"/>
+                            <Label fx:id="aiBackEventMetaLabel" text="Type | Ville | Date" wrapText="true" styleClass="ai-page-event-meta"/>
+                        </children>
+                    </VBox>
+
+                    <HBox spacing="20.0">
+                        <children>
+                            <VBox spacing="14.0" styleClass="ai-page-risk-card" HBox.hgrow="ALWAYS">
+                                <children>
+                                    <HBox alignment="CENTER_LEFT" spacing="12.0">
+                                        <children>
+                                            <Label text="Score de risque" styleClass="ai-page-section-title"/>
+                                            <Region HBox.hgrow="ALWAYS"/>
+                                            <Label fx:id="aiBackRiskLevelLabel" text="Niveau -" styleClass="ai-page-badge-warning"/>
+                                        </children>
+                                    </HBox>
+                                    <Label fx:id="aiBackRiskScoreLabel" text="0/100" styleClass="ai-page-risk-number"/>
+                                    <ProgressBar fx:id="aiBackRiskProgress" progress="0.0" maxWidth="Infinity" styleClass="ai-page-progress"/>
+                                    <VBox fx:id="aiBackReasonsContainer" spacing="10.0"/>
+                                </children>
+                            </VBox>
+
+                            <VBox spacing="14.0" styleClass="ai-page-card" HBox.hgrow="ALWAYS">
+                                <children>
+                                    <Label text="Actions recommandees" styleClass="ai-page-section-title"/>
+                                    <VBox fx:id="aiBackSuggestionsContainer" spacing="10.0"/>
+                                </children>
+                            </VBox>
+                        </children>
+                    </HBox>
+
+                    <VBox spacing="14.0" styleClass="ai-page-card">
+                        <children>
+                            <HBox alignment="CENTER_LEFT" spacing="12.0">
+                                <children>
+                                    <Label text="Recommandations pour front et back" styleClass="ai-page-section-title"/>
+                                    <Region HBox.hgrow="ALWAYS"/>
+                                    <Label text="Classement local verifiable" styleClass="ai-page-badge-info"/>
+                                </children>
+                            </HBox>
+                            <FlowPane fx:id="aiBackRecommendationsContainer" hgap="14.0" vgap="14.0" prefWrapLength="1200"/>
+                        </children>
+                    </VBox>
+
+                    <VBox spacing="12.0" styleClass="ai-page-card">
+                        <children>
+                            <Label text="Resume professionnel" styleClass="ai-page-section-title"/>
+                            <TextArea fx:id="aiBackSummaryArea"
+                                      editable="false"
+                                      wrapText="true"
+                                      prefRowCount="7"
+                                      styleClass="ai-page-summary"/>
+                        </children>
+                    </VBox>
+                </VBox>
+            </content>
+        </ScrollPane>
+    </center>
+</BorderPane>

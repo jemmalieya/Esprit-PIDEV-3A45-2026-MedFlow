@@ -10,6 +10,7 @@
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
+<?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
@@ -110,7 +111,12 @@
     </left>
 
     <center>
-        <VBox spacing="22.0" styleClass="main-area">
+        <ScrollPane fitToWidth="true"
+                    hbarPolicy="AS_NEEDED"
+                    vbarPolicy="AS_NEEDED"
+                    styleClass="main-scroll">
+            <content>
+                <VBox spacing="22.0" styleClass="main-area">
             <padding>
                 <Insets top="18.0" right="22.0" bottom="22.0" left="22.0"/>
             </padding>
@@ -254,8 +260,8 @@
 
                     <TableView fx:id="reclamationTable"
                                VBox.vgrow="ALWAYS"
-                               prefHeight="360.0"
-                               minHeight="300.0"
+                               prefHeight="460.0"
+                               minHeight="420.0"
                                styleClass="admin-reclamation-table">
 
                         <placeholder>
@@ -309,6 +315,8 @@
                     <Insets top="18.0" right="18.0" bottom="18.0" left="18.0"/>
                 </padding>
             </VBox>
-        </VBox>
+                </VBox>
+            </content>
+        </ScrollPane>
     </center>
 </BorderPane>

@@ -25,6 +25,7 @@ import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TextInputControl;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
@@ -613,7 +614,7 @@ public class LoginController {
         }
     }
 
-    private void styleTextInput(TextField field) {
+    private void styleTextInput(TextInputControl field) {
         if (field == null) {
             return;
         }
@@ -668,7 +669,7 @@ public class LoginController {
         Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
         showStatus("Connexion Google en cours...", true);
 
-        CompletableFuture.supplyAsync(() -> {
+        CompletableFuture.<User>supplyAsync(() -> {
             try {
                 GoogleProfile profile = fetchGoogleProfile();
                 User user = userService.findByEmail(profile.email);
@@ -977,7 +978,30 @@ public class LoginController {
             navigateToStage(stage, "/AdminDashboard.fxml", "MedFlow - Tableau de bord Admin");
             return;
         }
-        navigateToStage(stage, "/EvenementDashboard.fxml", "MedFlow - Tableau de bord");
+        if ("STAFF".equals(role)) {
+            String typeStaff = user.getTypeStaff() == null ? "" : user.getTypeStaff().trim().toUpperCase();
+            switch (typeStaff) {
+                case "RESP_PRODUCTS":
+                    navigateToStage(stage, "/ProduitDashboard.fxml", "MedFlow - Tableau de bord Produits");
+                    return;
+                case "RESP_BLOG":
+                case "RESP_RECLAMATION":
+                    navigateToStage(stage, "/reponse.fxml", "MedFlow - Tableau de bord Blog/Réclamations");
+                    return;
+                case "RESP_PATIENTS":
+                    navigateToStage(stage, "/BackFXML/ConsultationDocteur.fxml", "MedFlow - Tableau de bord Patients");
+                    return;
+                case "RESP_USERS":
+                    navigateToStage(stage, "/AdminDashboard.fxml", "MedFlow - Tableau de bord Utilisateurs");
+                    return;
+                case "RESP_EVEN":
+                default:
+                    navigateToStage(stage, "/EvenementDashboard.fxml", "MedFlow - Tableau de bord Événements");
+                    return;
+            }
+        }
+        // Fallback pour tout rôle inconnu
+        navigateToStage(stage, "/FrontFXML/Accueil.fxml", "MedFlow - Accueil");
     }
 
     private static class GoogleProfile {
@@ -1044,13 +1068,13 @@ public class LoginController {
         navigateToStage(stage, resourcePath, title);
     }
 
-    private void markError(TextField field) {
+    private void markError(TextInputControl field) {
         if (field != null) {
             field.setStyle("-fx-border-color: #dc2626; -fx-border-width: 1.2; -fx-background-radius: 6; -fx-border-radius: 6;");
         }
     }
 
-    private void markValid(TextField field) {
+    private void markValid(TextInputControl field) {
         if (field != null) {
             field.setStyle("-fx-border-color: #16a34a; -fx-border-width: 1.2; -fx-background-radius: 6; -fx-border-radius: 6;");
         }

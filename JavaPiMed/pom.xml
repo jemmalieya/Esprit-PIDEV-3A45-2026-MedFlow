@@ -141,20 +141,21 @@
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
             <version>4.5.13</version>
-
+        </dependency>
+        <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-web</artifactId>
-            <version>21</version>
+            <version>20.0.2</version>
         </dependency>
 
         <dependency>
             <groupId>org.json</groupId>
             <artifactId>json</artifactId>
             <version>20240303</version>
-
         </dependency>
 
         <dependency>
+
             <groupId>com.cloudinary</groupId>
 
             <artifactId>cloudinary-http45</artifactId>
@@ -187,7 +188,7 @@
             <version>5.2.5</version>
         </dependency>
 
-
+        <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-web</artifactId>
             <version>20.0.2</version>
@@ -198,7 +199,8 @@
             <version>${jcefmaven.version}</version>
         </dependency>
 
-
+        <dependency>
+            <groupId>com.cloudinary</groupId>
             <artifactId>cloudinary-http5</artifactId>
             <version>2.3.2</version>
         </dependency>

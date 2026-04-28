@@ -24,6 +24,21 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import javafx.stage.FileChooser;
+import javafx.stage.Window;
+import com.itextpdf.text.BaseColor;
+import com.itextpdf.text.Chunk;
+import com.itextpdf.text.Document;
+import com.itextpdf.text.DocumentException;
+import com.itextpdf.text.Element;
+import com.itextpdf.text.Font;
+import com.itextpdf.text.PageSize;
+import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.Phrase;
+import com.itextpdf.text.Rectangle;
+import com.itextpdf.text.pdf.PdfPCell;
+import com.itextpdf.text.pdf.PdfPTable;
+import com.itextpdf.text.pdf.PdfWriter;
 import tn.esprit.entities.Prescription;
 import tn.esprit.entities.FicheMedicale;
 import tn.esprit.entities.RendezVous;
@@ -31,6 +46,7 @@ import tn.esprit.entities.User;
 import tn.esprit.services.DialogflowAssistantService;
 import tn.esprit.services.HuggingFaceUrgencyService;
 import tn.esprit.services.SpeechToTextService;
+import tn.esprit.services.TextToSpeechService;
 import tn.esprit.services.FicheMedicaleService;
 import tn.esprit.services.PrescriptionService;
 import tn.esprit.services.RendezVousService;
@@ -39,6 +55,8 @@ import tn.esprit.tools.SessionManager;
 
 import java.net.URL;
 import javax.sound.sampled.LineUnavailableException;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.DayOfWeek;
@@ -60,6 +78,8 @@ import java.util.ResourceBundle;
 import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import javafx.util.Duration;
 
 public class ConsultationController implements Initializable {
@@ -125,6 +145,8 @@ public class ConsultationController implements Initializable {
     @FXML
     private Button aiVoiceMessageButton;
     @FXML
+    private Button aiVoiceOutputToggleButton;
+    @FXML
     private Label aiRecordingIndicator;
 
     @FXML
@@ -173,6 +195,8 @@ public class ConsultationController implements Initializable {
     @FXML
     private TableColumn<FicheMedicale, Void> recordColActions;
     @FXML
+    private TableColumn<FicheMedicale, Void> recordColDownloadPdf;
+    @FXML
     private VBox recordDetailsPanel;
     @FXML
     private Label recordDetailsSummaryLabel;
@@ -188,6 +212,8 @@ public class ConsultationController implements Initializable {
     private TableColumn<Prescription, String> recordPrescriptionFrequenceColumn;
     @FXML
     private TableColumn<Prescription, String> recordPrescriptionInstructionsColumn;
+    @FXML
+    private TableColumn<Prescription, Void> recordPrescriptionDownloadColumn;
     @FXML
     private TableColumn<RendezVous, Number> colId;
     @FXML
@@ -222,6 +248,7 @@ public class ConsultationController implements Initializable {
     private final ObservableList<FicheMedicale> myRecordsData = FXCollections.observableArrayList();
     private final ObservableList<Prescription> recordPrescriptionsData = FXCollections.observableArrayList();
     private final HashMap<Integer, Boolean> expandedRecordState = new HashMap<>();
+    private FicheMedicale selectedRecordForPrescriptions;
     private final Set<LocalDateTime> selectedDoctorReservedSlots = new HashSet<>();
     private final RendezVousService rendezVousService = new RendezVousService();
     private final UserService userService = new UserService();
@@ -230,6 +257,8 @@ public class ConsultationController implements Initializable {
     private final HuggingFaceUrgencyService urgencyService = new HuggingFaceUrgencyService();
     private final DialogflowAssistantService dialogflowAssistantService = new DialogflowAssistantService();
     private final SpeechToTextService speechToTextService = new SpeechToTextService();
+    private final TextToSpeechService textToSpeechService = new TextToSpeechService();
+    private boolean aiVoiceOutputEnabled = true;
     private volatile boolean isRecordingAudio = false;
     private Timeline recordingAutoStopTimeline;
     private static final int RECORDING_AUTO_STOP_SECONDS = 15;
@@ -342,6 +371,7 @@ public class ConsultationController implements Initializable {
         loadDoctorCards();
         validateAllBookingInputs();
         initializeAiAssistantConversation();
+        updateAiVoiceOutputToggleButton();
     }
 
     @FXML
@@ -366,6 +396,12 @@ public class ConsultationController implements Initializable {
     @FXML
     private void handleSendAiMessage(ActionEvent event) {
         sendAiMessageFromComposer();
+    }
+
+    @FXML
+    private void handleToggleAiVoiceOutput(ActionEvent event) {
+        aiVoiceOutputEnabled = !aiVoiceOutputEnabled;
+        updateAiVoiceOutputToggleButton();
     }
 
     @FXML
@@ -414,19 +450,19 @@ public class ConsultationController implements Initializable {
         CompletableFuture.supplyAsync(() -> {
             try {
                 return speechToTextService.stopRecordingAndTranscribe();
-            } catch (IOException | InterruptedException ex) {
+            } catch (Exception ex) {
                 throw new RuntimeException(ex);
             }
         }).whenComplete((transcript, throwable) -> Platform.runLater(() -> {
             if (throwable != null) {
                 setAiAssistantStatus("Audio processing failed");
-                appendAiAssistantMessage("Voice transcription failed: " + throwable.getMessage(), false);
+                appendAiAssistantMessage("Voice transcription failed. Please try again.", false);
                 return;
             }
 
             if (transcript == null || transcript.isBlank()) {
                 setAiAssistantStatus("No speech detected");
-                appendAiAssistantMessage("I could not detect speech. Try again.", false);
+                appendAiAssistantMessage("I could not detect speech. Please try again.", false);
                 return;
             }
 
@@ -870,6 +906,27 @@ public class ConsultationController implements Initializable {
         }
 
         aiConversationHistory.getChildren().add(row);
+
+        // Speak AI replies aloud.
+        if (!fromUser && aiVoiceOutputEnabled) {
+            textToSpeechService.speakAsync(message);
+        }
+    }
+
+    private void updateAiVoiceOutputToggleButton() {
+        if (aiVoiceOutputToggleButton == null) {
+            return;
+        }
+
+        if (aiVoiceOutputEnabled) {
+            aiVoiceOutputToggleButton.setText("🔊 Voice On");
+            aiVoiceOutputToggleButton.getStyleClass().remove("ai-mini-pill-muted");
+        } else {
+            aiVoiceOutputToggleButton.setText("🔇 Voice Off");
+            if (!aiVoiceOutputToggleButton.getStyleClass().contains("ai-mini-pill-muted")) {
+                aiVoiceOutputToggleButton.getStyleClass().add("ai-mini-pill-muted");
+            }
+        }
     }
 
     private VBox createAiAvatar(String text, boolean userAvatar) {
@@ -1513,6 +1570,26 @@ public class ConsultationController implements Initializable {
             }
         });
 
+        if (recordColDownloadPdf != null) {
+            recordColDownloadPdf.setCellFactory(col -> new TableCell<>() {
+                private final Button downloadBtn = new Button("Download PDF");
+
+                {
+                    downloadBtn.getStyleClass().add("table-modify-button");
+                    downloadBtn.setOnAction(e -> {
+                        FicheMedicale ficheMedicale = getTableView().getItems().get(getIndex());
+                        downloadMedicalRecordPdf(ficheMedicale);
+                    });
+                }
+
+                @Override
+                protected void updateItem(Void item, boolean empty) {
+                    super.updateItem(item, empty);
+                    setGraphic(empty ? null : downloadBtn);
+                }
+            });
+        }
+
         myRecordsTable.setItems(myRecordsData);
         myRecordsTable.setPlaceholder(new Label("No medical records found for this patient."));
     }
@@ -1527,6 +1604,25 @@ public class ConsultationController implements Initializable {
         recordPrescriptionDoseColumn.setCellValueFactory(data -> new SimpleStringProperty(valueOrDash(data.getValue().getDose())));
         recordPrescriptionFrequenceColumn.setCellValueFactory(data -> new SimpleStringProperty(valueOrDash(data.getValue().getFrequence())));
         recordPrescriptionInstructionsColumn.setCellValueFactory(data -> new SimpleStringProperty(valueOrDash(data.getValue().getInstructions())));
+        if (recordPrescriptionDownloadColumn != null) {
+            recordPrescriptionDownloadColumn.setCellFactory(col -> new TableCell<>() {
+                private final Button downloadBtn = new Button("Download PDF");
+
+                {
+                    downloadBtn.getStyleClass().add("table-modify-button");
+                    downloadBtn.setOnAction(e -> {
+                        Prescription prescription = getTableView().getItems().get(getIndex());
+                        downloadPrescriptionPdf(prescription, selectedRecordForPrescriptions);
+                    });
+                }
+
+                @Override
+                protected void updateItem(Void item, boolean empty) {
+                    super.updateItem(item, empty);
+                    setGraphic(empty ? null : downloadBtn);
+                }
+            });
+        }
         recordPrescriptionsTable.setPlaceholder(new Label("No prescriptions found."));
     }
 
@@ -1558,6 +1654,7 @@ public class ConsultationController implements Initializable {
             return;
         }
 
+        selectedRecordForPrescriptions = ficheMedicale;
         List<Prescription> prescriptions = prescriptionService.getByFicheMedicaleId(ficheMedicale.getId());
         recordPrescriptionsData.setAll(prescriptions);
 
@@ -1610,6 +1707,7 @@ public class ConsultationController implements Initializable {
                 new KeyFrame(Duration.millis(180), e -> {
                     recordDetailsPanel.setVisible(false);
                     recordDetailsPanel.setManaged(false);
+                    selectedRecordForPrescriptions = null;
                     recordPrescriptionsData.clear();
                 })
         );
@@ -2019,6 +2117,323 @@ public class ConsultationController implements Initializable {
             return false;
         }
         return a.trim().equalsIgnoreCase(b.trim());
+    }
+
+    private void downloadMedicalRecordPdf(FicheMedicale ficheMedicale) {
+        if (ficheMedicale == null) {
+            showError("Export PDF", "No medical record is selected.");
+            return;
+        }
+
+        File target = choosePdfDestination(
+                "Save medical record PDF",
+                String.format("fiche-medicale-%d.pdf", ficheMedicale.getId())
+        );
+        if (target == null) {
+            return;
+        }
+
+        try {
+            exportMedicalRecordPdf(target, ficheMedicale);
+            showInfo("Export PDF", "Medical record PDF saved successfully.");
+        } catch (Exception ex) {
+            showError("Export PDF", "Unable to generate the medical record PDF: " + ex.getMessage());
+        }
+    }
+
+    private void downloadPrescriptionPdf(Prescription prescription, FicheMedicale ficheMedicale) {
+        if (prescription == null) {
+            showError("Export PDF", "No prescription is selected.");
+            return;
+        }
+
+        FicheMedicale resolvedFiche = ficheMedicale != null ? ficheMedicale : findMedicalRecordById(prescription.getFiche_medicale_id());
+        File target = choosePdfDestination(
+                "Save prescription PDF",
+                String.format("prescription-%d.pdf", prescription.getId())
+        );
+        if (target == null) {
+            return;
+        }
+
+        try {
+            exportPrescriptionPdf(target, prescription, resolvedFiche);
+            showInfo("Export PDF", "Prescription PDF saved successfully.");
+        } catch (Exception ex) {
+            showError("Export PDF", "Unable to generate the prescription PDF: " + ex.getMessage());
+        }
+    }
+
+    private File choosePdfDestination(String title, String suggestedFileName) {
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle(title);
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PDF", "*.pdf"));
+        chooser.setInitialFileName(suggestedFileName);
+        Window window = myRecordsTable != null && myRecordsTable.getScene() != null
+                ? myRecordsTable.getScene().getWindow()
+                : null;
+        return chooser.showSaveDialog(window);
+    }
+
+    private void exportMedicalRecordPdf(File target, FicheMedicale ficheMedicale) throws IOException, DocumentException {
+        RendezVous rendezVous = resolveRendezVousForRecord(ficheMedicale);
+        User patient = resolvePatientForRecord(rendezVous);
+        User doctor = resolveDoctorForRecord(rendezVous);
+
+        try (FileOutputStream outputStream = new FileOutputStream(target)) {
+            Document document = new Document(PageSize.A4, 36, 36, 42, 42);
+            PdfWriter.getInstance(document, outputStream);
+            document.open();
+
+            Font titleFont = new Font(Font.FontFamily.HELVETICA, 22, Font.BOLD, BaseColor.WHITE);
+            Font subTitleFont = new Font(Font.FontFamily.HELVETICA, 10, Font.NORMAL, new BaseColor(224, 242, 254));
+            Font sectionTitleFont = new Font(Font.FontFamily.HELVETICA, 12, Font.BOLD, new BaseColor(15, 23, 42));
+            Font labelFont = new Font(Font.FontFamily.HELVETICA, 10, Font.BOLD, new BaseColor(51, 65, 85));
+            Font valueFont = new Font(Font.FontFamily.HELVETICA, 10, Font.NORMAL, BaseColor.BLACK);
+            Font mutedFont = new Font(Font.FontFamily.HELVETICA, 10, Font.NORMAL, new BaseColor(100, 116, 139));
+
+            addPdfHeader(document, "Fiche Medicale", "MedFlow medical record export", titleFont, subTitleFont, new BaseColor(14, 116, 144));
+
+            PdfPTable summary = new PdfPTable(new float[]{1f, 1f});
+            summary.setWidthPercentage(100f);
+            summary.setSpacingAfter(14f);
+            summary.addCell(createInfoCell("Patient", formatUserName(patient), labelFont, valueFont));
+            summary.addCell(createInfoCell("Doctor", formatDoctorName(doctor, rendezVous), labelFont, valueFont));
+            summary.addCell(createInfoCell("Rendez-vous", rendezVous == null ? "-" : "#" + rendezVous.getId(), labelFont, valueFont));
+            summary.addCell(createInfoCell("Date", formatTimestampForPdf(recordTimestampForSort(ficheMedicale)), labelFont, valueFont));
+            summary.addCell(createInfoCell("Mode", rendezVous == null ? "-" : valueOrDash(rendezVous.getMode()), labelFont, valueFont));
+            summary.addCell(createInfoCell("Duration", ficheMedicale.getDuree_minutes() == null ? "-" : ficheMedicale.getDuree_minutes() + " min", labelFont, valueFont));
+            document.add(summary);
+
+            addTextSection(document, "Diagnostic", valueOrDash(ficheMedicale.getDiagnostic()), sectionTitleFont, valueFont);
+            addTextSection(document, "Observations", valueOrDash(ficheMedicale.getObservations()), sectionTitleFont, valueFont);
+            addTextSection(document, "Resultats des examens", valueOrDash(ficheMedicale.getResultats_examens()), sectionTitleFont, valueFont);
+            if (rendezVous != null) {
+                addTextSection(document, "Motif de consultation", valueOrDash(rendezVous.getMotif()), sectionTitleFont, valueFont);
+            }
+
+            addSignatureSection(document, ficheMedicale.getSignature(), sectionTitleFont, valueFont, mutedFont);
+            document.close();
+        }
+    }
+
+    private void exportPrescriptionPdf(File target, Prescription prescription, FicheMedicale ficheMedicale) throws IOException, DocumentException {
+        RendezVous rendezVous = ficheMedicale == null ? null : resolveRendezVousForRecord(ficheMedicale);
+        User patient = resolvePatientForRecord(rendezVous);
+        User doctor = resolveDoctorForRecord(rendezVous);
+
+        try (FileOutputStream outputStream = new FileOutputStream(target)) {
+            Document document = new Document(PageSize.A4, 36, 36, 42, 42);
+            PdfWriter.getInstance(document, outputStream);
+            document.open();
+
+            Font titleFont = new Font(Font.FontFamily.HELVETICA, 22, Font.BOLD, BaseColor.WHITE);
+            Font subTitleFont = new Font(Font.FontFamily.HELVETICA, 10, Font.NORMAL, new BaseColor(237, 247, 237));
+            Font sectionTitleFont = new Font(Font.FontFamily.HELVETICA, 12, Font.BOLD, new BaseColor(15, 23, 42));
+            Font labelFont = new Font(Font.FontFamily.HELVETICA, 10, Font.BOLD, new BaseColor(51, 65, 85));
+            Font valueFont = new Font(Font.FontFamily.HELVETICA, 10, Font.NORMAL, BaseColor.BLACK);
+
+            addPdfHeader(document, "Prescription", "MedFlow prescription export", titleFont, subTitleFont, new BaseColor(22, 101, 52));
+
+            PdfPTable summary = new PdfPTable(new float[]{1f, 1f});
+            summary.setWidthPercentage(100f);
+            summary.setSpacingAfter(14f);
+            summary.addCell(createInfoCell("Patient", formatUserName(patient), labelFont, valueFont));
+            summary.addCell(createInfoCell("Doctor", formatDoctorName(doctor, rendezVous), labelFont, valueFont));
+            summary.addCell(createInfoCell("Prescription ID", "#" + prescription.getId(), labelFont, valueFont));
+            summary.addCell(createInfoCell("Fiche medicale", ficheMedicale == null ? "-" : "#" + ficheMedicale.getId(), labelFont, valueFont));
+            summary.addCell(createInfoCell("Rendez-vous", rendezVous == null ? "-" : "#" + rendezVous.getId(), labelFont, valueFont));
+            summary.addCell(createInfoCell("Date", formatTimestampForPdf(prescription.getCreated_at()), labelFont, valueFont));
+            document.add(summary);
+
+            PdfPTable medicationTable = new PdfPTable(new float[]{1.2f, 1f, 1f, 0.9f});
+            medicationTable.setWidthPercentage(100f);
+            medicationTable.setSpacingAfter(16f);
+            addTableHeader(medicationTable, "Medicament");
+            addTableHeader(medicationTable, "Dose");
+            addTableHeader(medicationTable, "Frequence");
+            addTableHeader(medicationTable, "Duree");
+            addTableValue(medicationTable, valueOrDash(prescription.getNom_medicament()));
+            addTableValue(medicationTable, valueOrDash(prescription.getDose()));
+            addTableValue(medicationTable, valueOrDash(prescription.getFrequence()));
+            addTableValue(medicationTable, prescription.getDuree() <= 0 ? "-" : prescription.getDuree() + " j");
+            document.add(medicationTable);
+
+            addTextSection(document, "Instructions", valueOrDash(prescription.getInstructions()), sectionTitleFont, valueFont);
+            if (ficheMedicale != null) {
+                addTextSection(document, "Diagnostic associe", valueOrDash(ficheMedicale.getDiagnostic()), sectionTitleFont, valueFont);
+            }
+
+            document.close();
+        }
+    }
+
+    private void addPdfHeader(Document document, String title, String subtitle, Font titleFont, Font subtitleFont, BaseColor accentColor) throws DocumentException {
+        PdfPTable header = new PdfPTable(1);
+        header.setWidthPercentage(100f);
+        header.setSpacingAfter(16f);
+
+        PdfPCell cell = new PdfPCell();
+        cell.setBackgroundColor(accentColor);
+        cell.setBorder(Rectangle.NO_BORDER);
+        cell.setPaddingTop(16f);
+        cell.setPaddingRight(18f);
+        cell.setPaddingBottom(16f);
+        cell.setPaddingLeft(18f);
+
+        Paragraph titleParagraph = new Paragraph(title, titleFont);
+        titleParagraph.setSpacingAfter(4f);
+        cell.addElement(titleParagraph);
+        cell.addElement(new Paragraph(subtitle, subtitleFont));
+        header.addCell(cell);
+        document.add(header);
+    }
+
+    private PdfPCell createInfoCell(String label, String value, Font labelFont, Font valueFont) {
+        PdfPCell cell = new PdfPCell();
+        cell.setPadding(12f);
+        cell.setBorderColor(new BaseColor(226, 232, 240));
+        cell.setBackgroundColor(new BaseColor(248, 250, 252));
+        Paragraph paragraph = new Paragraph();
+        paragraph.add(new Chunk(label + "\n", labelFont));
+        paragraph.add(new Chunk(valueOrDash(value), valueFont));
+        cell.addElement(paragraph);
+        return cell;
+    }
+
+    private void addTextSection(Document document, String title, String content, Font sectionTitleFont, Font valueFont) throws DocumentException {
+        PdfPTable section = new PdfPTable(1);
+        section.setWidthPercentage(100f);
+        section.setSpacingAfter(12f);
+
+        PdfPCell cell = new PdfPCell();
+        cell.setPadding(14f);
+        cell.setBorderColor(new BaseColor(226, 232, 240));
+        cell.setBackgroundColor(BaseColor.WHITE);
+
+        Paragraph heading = new Paragraph(title, sectionTitleFont);
+        heading.setSpacingAfter(8f);
+        cell.addElement(heading);
+        cell.addElement(new Paragraph(valueOrDash(content), valueFont));
+        section.addCell(cell);
+        document.add(section);
+    }
+
+    private void addSignatureSection(Document document, String signaturePath, Font sectionTitleFont, Font valueFont, Font mutedFont) throws DocumentException, IOException {
+        PdfPTable section = new PdfPTable(1);
+        section.setWidthPercentage(100f);
+        section.setSpacingAfter(8f);
+
+        PdfPCell cell = new PdfPCell();
+        cell.setPadding(14f);
+        cell.setBorderColor(new BaseColor(226, 232, 240));
+        cell.setBackgroundColor(BaseColor.WHITE);
+
+        Paragraph heading = new Paragraph("Signature du docteur", sectionTitleFont);
+        heading.setSpacingAfter(10f);
+        cell.addElement(heading);
+
+        if (signaturePath != null && !signaturePath.isBlank() && Files.exists(Path.of(signaturePath))) {
+            com.itextpdf.text.Image signatureImage = com.itextpdf.text.Image.getInstance(signaturePath);
+            signatureImage.scaleToFit(180f, 90f);
+            signatureImage.setAlignment(Element.ALIGN_LEFT);
+            cell.addElement(signatureImage);
+        } else {
+            cell.addElement(new Paragraph("Aucune signature jointe a cette fiche medicale.", mutedFont));
+        }
+
+        section.addCell(cell);
+        document.add(section);
+    }
+
+    private void addTableHeader(PdfPTable table, String text) {
+        Font font = new Font(Font.FontFamily.HELVETICA, 10, Font.BOLD, BaseColor.WHITE);
+        PdfPCell cell = new PdfPCell(new Phrase(text, font));
+        cell.setBackgroundColor(new BaseColor(30, 41, 59));
+        cell.setPadding(10f);
+        cell.setBorderColor(new BaseColor(30, 41, 59));
+        table.addCell(cell);
+    }
+
+    private void addTableValue(PdfPTable table, String text) {
+        Font font = new Font(Font.FontFamily.HELVETICA, 10, Font.NORMAL, BaseColor.BLACK);
+        PdfPCell cell = new PdfPCell(new Phrase(valueOrDash(text), font));
+        cell.setPadding(10f);
+        cell.setBorderColor(new BaseColor(226, 232, 240));
+        cell.setBackgroundColor(new BaseColor(248, 250, 252));
+        table.addCell(cell);
+    }
+
+    private FicheMedicale findMedicalRecordById(int ficheMedicaleId) {
+        for (FicheMedicale ficheMedicale : myRecordsData) {
+            if (ficheMedicale != null && ficheMedicale.getId() == ficheMedicaleId) {
+                return ficheMedicale;
+            }
+        }
+        return null;
+    }
+
+    private RendezVous resolveRendezVousForRecord(FicheMedicale ficheMedicale) {
+        Integer rendezVousId = ficheMedicale == null ? null : ficheMedicale.getRendez_vous_id();
+        if (rendezVousId == null) {
+            return null;
+        }
+
+        for (RendezVous rendezVous : allMyBookingsData) {
+            if (rendezVous != null && rendezVous.getId() == rendezVousId) {
+                return rendezVous;
+            }
+        }
+        return null;
+    }
+
+    private User resolvePatientForRecord(RendezVous rendezVous) {
+        User currentUser = SessionManager.getCurrentUser();
+        if (rendezVous == null) {
+            return currentUser;
+        }
+        if (currentUser != null && currentUser.getId() == rendezVous.getIdPatient()) {
+            return currentUser;
+        }
+        return userService.findById(rendezVous.getIdPatient());
+    }
+
+    private User resolveDoctorForRecord(RendezVous rendezVous) {
+        if (rendezVous == null || rendezVous.getIdStaff() <= 0) {
+            return null;
+        }
+        return userService.findById(rendezVous.getIdStaff());
+    }
+
+    private String formatUserName(User user) {
+        if (user == null) {
+            return "-";
+        }
+        String firstName = user.getPrenom() == null ? "" : user.getPrenom().trim();
+        String lastName = user.getNom() == null ? "" : user.getNom().trim();
+        String fullName = (firstName + " " + lastName).trim();
+        if (!fullName.isBlank()) {
+            return fullName;
+        }
+        return user.getId() > 0 ? "User #" + user.getId() : "-";
+    }
+
+    private String formatDoctorName(User doctor, RendezVous rendezVous) {
+        if (doctor != null) {
+            String name = formatUserName(doctor);
+            return name.equals("-") ? name : "Dr. " + name;
+        }
+        if (rendezVous != null && rendezVous.getIdStaff() > 0) {
+            return "Dr. #" + rendezVous.getIdStaff();
+        }
+        return "-";
+    }
+
+    private String formatTimestampForPdf(Timestamp timestamp) {
+        if (timestamp == null) {
+            return "-";
+        }
+        return dateTimeFormatter.format(timestamp.toLocalDateTime());
     }
 
     private String valueOrDash(String value) {

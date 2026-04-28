@@ -9,6 +9,7 @@ import javafx.animation.Timeline;
 import javafx.concurrent.Task;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.fxml.FXML;
+import javafx.geometry.Point2D;
 import javafx.scene.SnapshotParameters;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
@@ -25,14 +26,21 @@ import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.chart.BarChart;
 import javafx.scene.chart.PieChart;
 import javafx.scene.chart.XYChart;
+import javafx.scene.image.ImageView;
 import javafx.scene.image.WritableImage;
 import javafx.scene.input.KeyCode;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.shape.Circle;
+import javafx.scene.shape.Line;
+import javafx.scene.shape.Rectangle;
+import javafx.scene.shape.Polyline;
 import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
+import javafx.scene.paint.Color;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.stage.FileChooser;
 import javafx.stage.Window;
@@ -48,12 +56,15 @@ import tn.esprit.entities.RendezVous;
 import tn.esprit.entities.User;
 import tn.esprit.services.BrevoEmailService;
 import tn.esprit.services.FicheMedicaleService;
+import tn.esprit.services.HandTrackingService;
 import tn.esprit.services.PrescriptionService;
 import tn.esprit.services.PrescriptionSuggestionService;
 import tn.esprit.services.RendezVousService;
 import tn.esprit.services.UserService;
 import tn.esprit.tools.MyDataBase;
 import tn.esprit.tools.SessionManager;
+import com.github.sarxos.webcam.Webcam;
+import com.github.sarxos.webcam.WebcamResolution;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -62,9 +73,13 @@ import java.time.LocalDate;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.io.File;
 import java.io.IOException;
 import java.awt.Desktop;
+import java.awt.Dimension;
 import java.awt.image.BufferedImage;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -158,6 +173,18 @@ public class ConsultationDocteur {
 
     @FXML
     private Label selectedRendezVousIdLabel;
+    @FXML
+    private StackPane signatureCameraContainer;
+    @FXML
+    private Button captureSignatureButton;
+    @FXML
+    private Button clearSignatureButton;
+    @FXML
+    private Label signatureStatusLabel;
+    @FXML
+    private ImageView signaturePreviewImageView;
+    @FXML
+    private Label signaturePreviewPlaceholderLabel;
     @FXML
     private Label consultationStartTimeLabel;
     @FXML
@@ -331,6 +358,19 @@ public class ConsultationDocteur {
     private WebView jitsiWebView;
     private boolean jitsiEmbedInitializationAttempted;
     private boolean jitsiEmbedSupported;
+    private Webcam signatureWebcam;
+    private Thread signatureCameraThread;
+    private ImageView signatureCameraView;
+    private Label signatureOverlayStatusLabel;
+    private Pane signatureLandmarkLayer;
+    private Pane signatureDrawingLayer;
+    private Polyline activeSignatureStroke;
+    private WritableImage capturedSignatureImage;
+    private HandTrackingService handTrackingService;
+    private Point2D lastSignaturePoint;
+    private boolean lastPinchActive;
+    private boolean signatureDrawn;
+    private String lastSignatureStatusMessage;
 
     // Initialize method to set up the combo box options
     @FXML
@@ -393,6 +433,7 @@ public class ConsultationDocteur {
         if (resultatsExamensField != null) {
             resultatsExamensField.textProperty().addListener((obs, oldValue, newValue) -> validateResultatsExamensField());
         }
+        initializeSignatureCaptureUi();
 
         // Detail panel fiche edit listeners
         if (detailDiagnosticEditArea != null) {
@@ -477,6 +518,7 @@ public class ConsultationDocteur {
         boolean diagnosticValid = validateDiagnosticField();
         boolean observationsValid = validateObservationsField();
         boolean resultatsValid = validateResultatsExamensField();
+        validateSignatureCapture();
         return diagnosticValid && observationsValid && resultatsValid;
     }
 
@@ -551,7 +593,6 @@ public class ConsultationDocteur {
         if (resultatsError != null) {
             errors.add("- Exam results: " + resultatsError);
         }
-
         if (errors.isEmpty()) {
             return "";
         }
@@ -565,6 +606,17 @@ public class ConsultationDocteur {
             return false;
         }
         applyValidationState(diagnosticField, diagnosticValidationLabel, true, "Diagnostic is valid.");
+        return true;
+    }
+
+    private boolean validateSignatureCapture() {
+        if (capturedSignatureImage != null) {
+            updateSignatureStatus("Signature captured and ready to save.");
+        } else if (signatureDrawn) {
+            updateSignatureStatus("Signature drawn. Click capture to attach it, or save without signature.");
+        } else {
+            updateSignatureStatus("Aucune signature capturee. Vous pouvez enregistrer la fiche sans signature.");
+        }
         return true;
     }
 
@@ -1248,9 +1300,11 @@ public class ConsultationDocteur {
 
     private void startConsultation(RendezVous rendezVous) {
         if (rendezVous == null) {
-            return;
-        }
+                return;
+            }
 
+        stopSignatureCamera();
+        resetCapturedSignature();
         selectedRendezVousId = rendezVous.getId();
         consultationStartTime = Timestamp.valueOf(LocalDateTime.now());
         boolean isDistanciel = "Distanciel".equalsIgnoreCase(nullSafe(rendezVous.getMode()));
@@ -1259,6 +1313,7 @@ public class ConsultationDocteur {
         updateConsultationTimingLabels(consultationStartTime, null, null, "00:00:00");
         setSaveButtonEnabled(true);
         startConsultationTimer();
+        startSignatureCamera();
         showPage(2);
 
         if (isDistanciel) {
@@ -1297,6 +1352,9 @@ public class ConsultationDocteur {
 
         if (!showConsultationPage) {
             stopJitsiCall();
+            stopSignatureCamera();
+            clearSignatureCanvas();
+            resetCapturedSignature();
             configureConsultationModeUi(false, null);
         }
 
@@ -1858,6 +1916,16 @@ public class ConsultationDocteur {
             return;
         }
 
+        String savedSignaturePath = null;
+        if (capturedSignatureImage != null) {
+            try {
+                savedSignaturePath = persistCapturedSignature(selectedRendezVousId, doctorId, endTime);
+            } catch (IOException ex) {
+            showError("Erreur signature", "Impossible d'enregistrer la signature capturée: " + ex.getMessage());
+            return;
+        }
+        }
+
         Connection connection = MyDataBase.getInstance().getCnx();
         boolean previousAutoCommit = true;
 
@@ -1874,7 +1942,7 @@ public class ConsultationDocteur {
             fiche.setEnd_time(endTime);
             fiche.setDuree_minutes(durationMinutes);
             fiche.setCreated_at(endTime);
-            fiche.setSignature("Dr-" + doctorId);
+            fiche.setSignature(savedSignaturePath);
 
             int ficheMedicaleId = ficheMedicaleService.ajouter(fiche, connection);
             if (ficheMedicaleId <= 0) {
@@ -1929,6 +1997,7 @@ public class ConsultationDocteur {
         updateConsultationTimingLabels(null, null, null, "00:00:00");
         setSaveButtonEnabled(false);
         clearFicheForm();
+        stopSignatureCamera();
         showPage(1);
     }
 
@@ -1946,6 +2015,40 @@ public class ConsultationDocteur {
         if (prescriptionRowsContainer != null) {
             prescriptionRowsContainer.getChildren().clear();
         }
+        resetCapturedSignature();
+    }
+
+    @FXML
+    private void handleCaptureSignature(ActionEvent event) {
+        if (signatureDrawingLayer == null) {
+            if (signatureStatusLabel != null) {
+                signatureStatusLabel.setText("Signature area is not ready.");
+            }
+            return;
+        }
+        if (!signatureDrawn) {
+            if (signatureStatusLabel != null) {
+                signatureStatusLabel.setText("Draw the signature first, then click capture.");
+            }
+            return;
+        }
+
+        capturedSignatureImage = snapshotSignatureDrawing(true);
+        WritableImage previewImage = snapshotSignatureDrawing(false);
+        if (capturedSignatureImage == null || previewImage == null) {
+            capturedSignatureImage = null;
+            refreshSignaturePreview(null);
+            updateSignatureStatus("Impossible de capturer la signature. Dessinez a nouveau puis reessayez.");
+            return;
+        }
+        refreshSignaturePreview(previewImage);
+        updateSignatureStatus("Signature captured. It will be saved with the fiche medicale.");
+    }
+
+    @FXML
+    private void handleClearSignature(ActionEvent event) {
+        clearSignatureCanvas();
+        resetCapturedSignature();
     }
 
     private List<Prescription> buildPrescriptionRows(Timestamp createdAt) {
@@ -2009,6 +2112,423 @@ public class ConsultationDocteur {
 
     private String text(TextField field) {
         return field == null || field.getText() == null ? "" : field.getText().trim();
+    }
+
+    private void initializeSignatureCaptureUi() {
+        initializeHandTrackingService();
+        if (signatureStatusLabel != null) {
+            signatureStatusLabel.setText(handTrackingService == null
+                    ? "Hand tracking models are unavailable. Reload Maven dependencies and restart the app."
+                    : "The camera will open here when the consultation starts.");
+        }
+        if (captureSignatureButton != null) {
+            captureSignatureButton.setDisable(false);
+        }
+        if (clearSignatureButton != null) {
+            clearSignatureButton.setDisable(false);
+        }
+        refreshSignaturePreview(null);
+        ensureSignatureCaptureView();
+    }
+
+    private void ensureSignatureCaptureView() {
+        if (signatureCameraContainer == null || signatureCameraView != null) {
+            return;
+        }
+
+        signatureCameraView = new ImageView();
+        signatureCameraView.setPreserveRatio(false);
+        signatureCameraView.setSmooth(true);
+        signatureCameraView.setScaleX(-1);
+        signatureCameraView.fitWidthProperty().bind(signatureCameraContainer.widthProperty());
+        signatureCameraView.fitHeightProperty().bind(signatureCameraContainer.heightProperty());
+        signatureCameraView.setManaged(false);
+
+        Rectangle clip = new Rectangle();
+        clip.widthProperty().bind(signatureCameraContainer.widthProperty());
+        clip.heightProperty().bind(signatureCameraContainer.heightProperty());
+        signatureCameraContainer.setClip(clip);
+
+        signatureDrawingLayer = new Pane();
+        signatureDrawingLayer.setPickOnBounds(true);
+        signatureDrawingLayer.setManaged(false);
+        signatureDrawingLayer.prefWidthProperty().bind(signatureCameraContainer.widthProperty());
+        signatureDrawingLayer.prefHeightProperty().bind(signatureCameraContainer.heightProperty());
+        signatureDrawingLayer.minWidthProperty().bind(signatureCameraContainer.widthProperty());
+        signatureDrawingLayer.minHeightProperty().bind(signatureCameraContainer.heightProperty());
+        signatureDrawingLayer.maxWidthProperty().bind(signatureCameraContainer.widthProperty());
+        signatureDrawingLayer.maxHeightProperty().bind(signatureCameraContainer.heightProperty());
+        signatureLandmarkLayer = new Pane();
+        signatureLandmarkLayer.setMouseTransparent(true);
+        signatureLandmarkLayer.setManaged(false);
+        signatureLandmarkLayer.prefWidthProperty().bind(signatureCameraContainer.widthProperty());
+        signatureLandmarkLayer.prefHeightProperty().bind(signatureCameraContainer.heightProperty());
+        signatureLandmarkLayer.minWidthProperty().bind(signatureCameraContainer.widthProperty());
+        signatureLandmarkLayer.minHeightProperty().bind(signatureCameraContainer.heightProperty());
+        signatureLandmarkLayer.maxWidthProperty().bind(signatureCameraContainer.widthProperty());
+        signatureLandmarkLayer.maxHeightProperty().bind(signatureCameraContainer.heightProperty());
+        signatureOverlayStatusLabel = new Label("Signature camera pending...");
+        signatureOverlayStatusLabel.setMouseTransparent(true);
+        signatureOverlayStatusLabel.setManaged(false);
+        signatureOverlayStatusLabel.setWrapText(true);
+        signatureOverlayStatusLabel.setMaxWidth(260);
+        signatureOverlayStatusLabel.setStyle("-fx-background-color: rgba(15,23,42,0.78); -fx-text-fill: white; -fx-padding: 8 10 8 10; -fx-background-radius: 10; -fx-font-size: 12;");
+        StackPane.setAlignment(signatureOverlayStatusLabel, javafx.geometry.Pos.TOP_LEFT);
+        StackPane.setMargin(signatureOverlayStatusLabel, new javafx.geometry.Insets(10, 10, 10, 10));
+
+        signatureCameraContainer.getChildren().setAll(signatureCameraView, signatureLandmarkLayer, signatureDrawingLayer, signatureOverlayStatusLabel);
+    }
+
+    private void startSignatureCamera() {
+        ensureSignatureCaptureView();
+        if (signatureCameraView == null || signatureWebcam != null) {
+            return;
+        }
+
+        try {
+            signatureWebcam = Webcam.getDefault();
+            if (signatureWebcam == null) {
+                if (signatureStatusLabel != null) {
+                    signatureStatusLabel.setText("No webcam was found on this machine.");
+                }
+                return;
+            }
+
+            Dimension size = WebcamResolution.VGA.getSize();
+            signatureWebcam.setViewSize(size);
+            signatureWebcam.open(true);
+
+            signatureCameraThread = new Thread(() -> {
+                while (signatureWebcam != null && signatureWebcam.isOpen()) {
+                    BufferedImage frame = signatureWebcam.getImage();
+                    if (frame != null) {
+                        HandTrackingService.HandTrackingResult trackingResult;
+                        try {
+                            trackingResult = handTrackingService == null
+                                    ? HandTrackingService.HandTrackingResult.empty(frame.getWidth(), frame.getHeight(), "Hand tracking service unavailable")
+                                    : handTrackingService.track(frame);
+                        } catch (Exception ex) {
+                            Platform.runLater(() -> {
+                                if (signatureStatusLabel != null) {
+                                    signatureStatusLabel.setText("Hand tracking error: " + ex.getClass().getSimpleName() + " - " + ex.getMessage());
+                                }
+                            });
+                            ex.printStackTrace();
+                            trackingResult = HandTrackingService.HandTrackingResult.empty(frame.getWidth(), frame.getHeight(), "Tracking exception");
+                        }
+                        final HandTrackingService.HandTrackingResult finalTrackingResult = trackingResult;
+                        final WritableImage fxImage = SwingFXUtils.toFXImage(frame, null);
+                        Platform.runLater(() -> {
+                            if (signatureCameraView != null) {
+                                signatureCameraView.setImage(fxImage);
+                            }
+                            updateHandTrackingOverlay(finalTrackingResult);
+                        });
+                    }
+
+                    try {
+                        Thread.sleep(45);
+                    } catch (InterruptedException ex) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                }
+            }, "signature-camera-feed");
+            signatureCameraThread.setDaemon(true);
+            signatureCameraThread.start();
+
+            if (signatureStatusLabel != null) {
+                updateSignatureStatus(handTrackingService == null
+                        ? "Camera opened, but hand tracking is unavailable."
+                        : "Camera opened. Move your hand into frame and pinch thumb with index finger to sign.");
+            }
+        } catch (Exception ex) {
+            updateSignatureStatus("Unable to open the webcam: " + ex.getMessage());
+            stopSignatureCamera();
+        }
+    }
+
+    private void stopSignatureCamera() {
+        if (signatureCameraThread != null) {
+            signatureCameraThread.interrupt();
+            signatureCameraThread = null;
+        }
+
+        if (signatureWebcam != null) {
+            try {
+                signatureWebcam.close();
+            } catch (Exception ignored) {
+            }
+            signatureWebcam = null;
+        }
+
+        if (signatureCameraView != null) {
+            signatureCameraView.setImage(null);
+        }
+        if (signatureLandmarkLayer != null) {
+            signatureLandmarkLayer.getChildren().clear();
+        }
+        activeSignatureStroke = null;
+        lastSignaturePoint = null;
+        lastPinchActive = false;
+    }
+
+    private void clearSignatureCanvas() {
+        if (signatureDrawingLayer != null) {
+            signatureDrawingLayer.getChildren().clear();
+        }
+        activeSignatureStroke = null;
+        lastSignaturePoint = null;
+        lastPinchActive = false;
+        signatureDrawn = false;
+    }
+
+    private void resetCapturedSignature() {
+        capturedSignatureImage = null;
+        refreshSignaturePreview(null);
+        updateSignatureStatus(signatureDrawn
+                ? "Signature drawn. Click capture to attach it, or save without signature."
+                : "Aucune signature capturee. Vous pouvez enregistrer la fiche sans signature.");
+    }
+
+    private void refreshSignaturePreview(WritableImage previewImage) {
+        if (signaturePreviewImageView != null) {
+            signaturePreviewImageView.setImage(previewImage);
+        }
+        if (signaturePreviewPlaceholderLabel != null) {
+            boolean showPlaceholder = previewImage == null;
+            signaturePreviewPlaceholderLabel.setVisible(showPlaceholder);
+            signaturePreviewPlaceholderLabel.setManaged(showPlaceholder);
+        }
+    }
+
+    private WritableImage snapshotSignatureDrawing(boolean transparentBackground) {
+        if (signatureDrawingLayer == null) {
+            return null;
+        }
+
+        double width = Math.max(
+                1.0,
+                signatureCameraContainer != null ? signatureCameraContainer.getWidth() : 0.0
+        );
+        double height = Math.max(
+                1.0,
+                signatureCameraContainer != null ? signatureCameraContainer.getHeight() : 0.0
+        );
+
+        if (signatureDrawingLayer.getChildren().isEmpty()) {
+            return null;
+        }
+
+        Pane snapshotPane = new Pane();
+        snapshotPane.setPrefSize(width, height);
+        snapshotPane.setMinSize(width, height);
+        snapshotPane.setMaxSize(width, height);
+        snapshotPane.setManaged(false);
+
+        if (!transparentBackground) {
+            Rectangle background = new Rectangle(width, height);
+            background.setFill(Color.web("#f8fafc"));
+            background.setArcWidth(18);
+            background.setArcHeight(18);
+            snapshotPane.getChildren().add(background);
+        }
+
+        for (javafx.scene.Node node : signatureDrawingLayer.getChildren()) {
+            if (node instanceof Polyline polyline) {
+                Polyline clone = new Polyline();
+                clone.getPoints().setAll(polyline.getPoints());
+                clone.setStroke(polyline.getStroke());
+                clone.setStrokeWidth(polyline.getStrokeWidth());
+                clone.setStrokeLineCap(polyline.getStrokeLineCap());
+                clone.setStrokeLineJoin(polyline.getStrokeLineJoin());
+                clone.setFill(Color.TRANSPARENT);
+                snapshotPane.getChildren().add(clone);
+            }
+        }
+
+        snapshotPane.resize(width, height);
+        snapshotPane.applyCss();
+        snapshotPane.layout();
+
+        SnapshotParameters parameters = new SnapshotParameters();
+        parameters.setFill(transparentBackground ? Color.TRANSPARENT : Color.web("#f8fafc"));
+        WritableImage image = new WritableImage(
+                Math.max(1, (int) Math.round(width)),
+                Math.max(1, (int) Math.round(height))
+        );
+        snapshotPane.snapshot(parameters, image);
+        return image;
+    }
+
+    private void initializeHandTrackingService() {
+        if (handTrackingService != null) {
+            return;
+        }
+
+        try {
+            Path palmModelPath = resolveHandModelPath("palm_detection_mediapipe_2023feb.onnx");
+            Path handPoseModelPath = resolveHandModelPath("handpose_estimation_mediapipe_2023feb.onnx");
+            handTrackingService = new HandTrackingService(palmModelPath, handPoseModelPath);
+        } catch (Exception ex) {
+            handTrackingService = null;
+            updateSignatureStatus("Unable to initialize hand tracking: " + ex.getMessage());
+        }
+    }
+
+    private Path resolveHandModelPath(String fileName) {
+        Path[] candidates = {
+                Path.of("models", "hand", fileName),
+                Path.of("JavaPiMed", "models", "hand", fileName)
+        };
+        for (Path candidate : candidates) {
+            if (Files.exists(candidate)) {
+                return candidate;
+            }
+        }
+        return candidates[0];
+    }
+
+    private void updateHandTrackingOverlay(HandTrackingService.HandTrackingResult result) {
+        renderHandLandmarks(result);
+        updateSignatureStrokeFromPinch(result);
+    }
+
+    private void renderHandLandmarks(HandTrackingService.HandTrackingResult result) {
+        if (signatureLandmarkLayer == null) {
+            return;
+        }
+
+        signatureLandmarkLayer.getChildren().clear();
+        if (result == null || !result.handDetected() || handTrackingService == null) {
+            return;
+        }
+
+        List<javafx.scene.Node> nodes = new ArrayList<>();
+        List<HandTrackingService.NormalizedLandmark> landmarks = result.landmarks();
+        for (int[] connection : handTrackingService.getHandConnections()) {
+            if (connection[0] >= landmarks.size() || connection[1] >= landmarks.size()) {
+                continue;
+            }
+            Point2D start = mapNormalizedPoint(landmarks.get(connection[0]), result.imageWidth(), result.imageHeight());
+            Point2D end = mapNormalizedPoint(landmarks.get(connection[1]), result.imageWidth(), result.imageHeight());
+            Line line = new Line(start.getX(), start.getY(), end.getX(), end.getY());
+            line.setStroke(Color.web("#38bdf8"));
+            line.setStrokeWidth(1.6);
+            nodes.add(line);
+        }
+
+        for (int i = 0; i < landmarks.size(); i++) {
+            Point2D point = mapNormalizedPoint(landmarks.get(i), result.imageWidth(), result.imageHeight());
+            Circle circle = new Circle(point.getX(), point.getY(), i == 8 ? 5.0 : 3.3);
+            circle.setFill(i == 8 ? Color.web("#f97316") : Color.web("#f8fafc"));
+            circle.setStroke(Color.web("#0f172a"));
+            circle.setStrokeWidth(1.0);
+            nodes.add(circle);
+        }
+
+        signatureLandmarkLayer.getChildren().setAll(nodes);
+    }
+
+    private void updateSignatureStrokeFromPinch(HandTrackingService.HandTrackingResult result) {
+        if (result == null || !result.handDetected()) {
+            activeSignatureStroke = null;
+            lastSignaturePoint = null;
+            lastPinchActive = false;
+            if (capturedSignatureImage == null) {
+                updateSignatureStatus(result != null && result.statusMessage() != null
+                        ? result.statusMessage()
+                        : "No hand detected yet. Show one open hand clearly inside the frame.");
+            }
+            return;
+        }
+
+        if (!result.pinchActive() || result.penTip() == null) {
+            activeSignatureStroke = null;
+            lastSignaturePoint = null;
+            lastPinchActive = false;
+            if (capturedSignatureImage == null) {
+                updateSignatureStatus(result.statusMessage() != null
+                        ? result.statusMessage() + ". Pinch thumb and index finger to draw."
+                        : "Hand detected. Pinch thumb and index finger to draw the signature.");
+            }
+            return;
+        }
+
+        Point2D currentPoint = mapNormalizedPoint(result.penTip(), result.imageWidth(), result.imageHeight());
+        if (activeSignatureStroke == null || !lastPinchActive) {
+            activeSignatureStroke = createSignatureStroke();
+            activeSignatureStroke.getPoints().addAll(currentPoint.getX(), currentPoint.getY());
+            if (signatureDrawingLayer != null) {
+                signatureDrawingLayer.getChildren().add(activeSignatureStroke);
+            }
+        } else if (lastSignaturePoint == null || lastSignaturePoint.distance(currentPoint) >= 2.0) {
+            activeSignatureStroke.getPoints().addAll(currentPoint.getX(), currentPoint.getY());
+        }
+
+        lastSignaturePoint = currentPoint;
+        lastPinchActive = true;
+        signatureDrawn = true;
+        capturedSignatureImage = null;
+        refreshSignaturePreview(null);
+        updateSignatureStatus("Pinch detected. Drawing signature...");
+    }
+
+    private Polyline createSignatureStroke() {
+        Polyline stroke = new Polyline();
+        stroke.setStroke(Color.web("#111827"));
+        stroke.setStrokeWidth(3.5);
+        stroke.setStrokeLineCap(javafx.scene.shape.StrokeLineCap.ROUND);
+        stroke.setStrokeLineJoin(javafx.scene.shape.StrokeLineJoin.ROUND);
+        stroke.setFill(Color.TRANSPARENT);
+        return stroke;
+    }
+
+    private Point2D mapNormalizedPoint(HandTrackingService.NormalizedLandmark landmark, int imageWidth, int imageHeight) {
+        double containerWidth = signatureCameraContainer == null ? 0.0 : signatureCameraContainer.getWidth();
+        double containerHeight = signatureCameraContainer == null ? 0.0 : signatureCameraContainer.getHeight();
+        if (containerWidth <= 0 || containerHeight <= 0 || imageWidth <= 0 || imageHeight <= 0) {
+            return new Point2D(0, 0);
+        }
+        return new Point2D(
+                (1.0 - landmark.x()) * containerWidth,
+                landmark.y() * containerHeight
+        );
+    }
+
+    private void updateSignatureStatus(String message) {
+        if (message == null || message.isBlank()) {
+            return;
+        }
+        if (message.equals(lastSignatureStatusMessage)) {
+            return;
+        }
+        lastSignatureStatusMessage = message;
+        if (signatureStatusLabel != null) {
+            signatureStatusLabel.setText(message);
+        }
+        if (signatureOverlayStatusLabel != null) {
+            signatureOverlayStatusLabel.setText(message);
+        }
+    }
+
+    private String persistCapturedSignature(Integer rendezVousId, int doctorId, Timestamp timestamp) throws IOException {
+        if (capturedSignatureImage == null) {
+            throw new IOException("No captured signature image is available.");
+        }
+        Path signatureDirectory = Path.of(System.getProperty("user.home"), "MedFlow", "signatures");
+        Files.createDirectories(signatureDirectory);
+
+        String fileName = String.format(
+                "fiche-signature-rdv-%d-doc-%d-%d.png",
+                rendezVousId == null ? 0 : rendezVousId,
+                doctorId,
+                timestamp == null ? System.currentTimeMillis() : timestamp.getTime()
+        );
+        Path signaturePath = signatureDirectory.resolve(fileName);
+        BufferedImage bufferedImage = SwingFXUtils.fromFXImage(capturedSignatureImage, null);
+        ImageIO.write(bufferedImage, "png", signaturePath.toFile());
+        return signaturePath.toAbsolutePath().toString();
     }
 
     private static class PrescriptionRowControls {

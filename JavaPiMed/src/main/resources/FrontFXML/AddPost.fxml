@@ -148,6 +148,7 @@
 
 
                                 <!-- CONTENU -->
+                                <!-- CONTENU -->
                                 <HBox alignment="CENTER_LEFT"
                                       spacing="10"
                                       GridPane.columnIndex="0"
@@ -155,7 +156,22 @@
                                       GridPane.columnSpan="2">
 
                                     <Label text="Contenu"/>
+
                                     <Region HBox.hgrow="ALWAYS"/>
+
+                                    <Button text="📚 Références"
+                                            onAction="#handleFindScientificReferences"
+                                            style="-fx-background-color: #0f766e;
+                   -fx-text-fill: white;
+                   -fx-font-weight: bold;
+                   -fx-background-radius: 12;
+                   -fx-padding: 9 14;
+                   -fx-cursor: hand;">
+                                        <tooltip>
+                                            <Tooltip text="Trouver des références scientifiques avec OpenAlex"/>
+                                        </tooltip>
+                                    </Button>
+
                                     <Button text="✨ Améliorer avec IA"
                                             onAction="#handleImproveWithAi"
                                             styleClass="ai-assistant-btn"/>
@@ -167,6 +183,7 @@
                                           GridPane.columnIndex="0"
                                           GridPane.rowIndex="10"
                                           GridPane.columnSpan="2"/>
+
 
                                 <Label fx:id="contenuError"
                                        style="-fx-text-fill: red;"

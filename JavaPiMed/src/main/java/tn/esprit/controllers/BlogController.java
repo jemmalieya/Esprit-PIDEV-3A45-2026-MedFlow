@@ -60,16 +60,24 @@ import tn.esprit.entities.User;
 import tn.esprit.services.CommentaireService;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.ButtonBar;
+import javafx.scene.control.Separator;
+import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.TextArea;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 
+import javafx.scene.control.ContentDisplay;
+import javafx.geometry.Bounds;
+import javafx.scene.control.Tooltip;
+import javafx.stage.Popup;
 
 import tn.esprit.tools.SessionManager;
 import javafx.scene.control.ScrollPane;
 
 import javafx.scene.layout.StackPane;
+
+import tn.esprit.services.ReactionService;
 
 public class BlogController {
 
@@ -101,6 +109,9 @@ public class BlogController {
     private final PostService postService = new PostService();
 
     private final CommentaireService commentaireService = new CommentaireService();
+
+    private final ReactionService reactionService = new ReactionService();
+    private Popup reactionPopup;
 
 
     @FXML
@@ -285,8 +296,14 @@ public class BlogController {
         footer.setAlignment(Pos.CENTER_LEFT);
         footer.getStyleClass().add("post-row-footer");
 
-        Label reactionLabel = new Label("👍 " + post.getNbr_reactions() + " reaction(s)");
+        Label reactionLabel = new Label(buildReactionLabel(post.getId()));
         reactionLabel.getStyleClass().add("footer-meta");
+        reactionLabel.setStyle("-fx-cursor: hand;");
+
+        reactionLabel.setOnMouseClicked(e -> {
+            e.consume();
+            showReactionPopup(post, reactionLabel);
+        });
 
         Label commentLabel = new Label("💬 " + post.getNbr_commentaires() + " commentaire(s)");
         commentLabel.getStyleClass().add("footer-meta");
@@ -1814,5 +1831,382 @@ public class BlogController {
         dialog.showAndWait();
     }
 
+    private String buildReactionLabel(int postId) {
+        int count = reactionService.countReactionsByPost(postId);
+        return "👍 " + count + " reaction(s)";
+    }
+
+    private void showReactionPopup(Post post, Label reactionLabel) {
+        try {
+            User currentUser = SessionManager.getCurrentUser();
+
+            if (currentUser == null) {
+                Alert alert = new Alert(Alert.AlertType.WARNING);
+                alert.setTitle("Session expirée");
+                alert.setHeaderText(null);
+                alert.setContentText("Veuillez vous reconnecter pour réagir à ce post.");
+                alert.showAndWait();
+                return;
+            }
+
+            if (reactionPopup != null && reactionPopup.isShowing()) {
+                reactionPopup.hide();
+            }
+
+            reactionPopup = new Popup();
+            reactionPopup.setAutoHide(true);
+            reactionPopup.setHideOnEscape(true);
+            reactionPopup.setAutoFix(true);
+
+            HBox reactionsBox = new HBox(8);
+            reactionsBox.setAlignment(Pos.CENTER);
+            reactionsBox.setPadding(new Insets(8, 10, 8, 10));
+            reactionsBox.setStyle(
+                    "-fx-background-color: white;" +
+                            "-fx-background-radius: 30;" +
+                            "-fx-border-color: #d8dadf;" +
+                            "-fx-border-radius: 30;" +
+                            "-fx-border-width: 1;" +
+                            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.22), 18, 0.2, 0, 5);"
+            );
+
+            String currentReaction = reactionService.getUserReactionType(post.getId(), currentUser.getId());
+
+            reactionsBox.getChildren().addAll(
+                    createReactionBubble("like", post, reactionLabel, currentReaction),
+                    createReactionBubble("love", post, reactionLabel, currentReaction),
+                    createReactionBubble("haha", post, reactionLabel, currentReaction),
+                    createReactionBubble("wow", post, reactionLabel, currentReaction),
+                    createReactionBubble("sad", post, reactionLabel, currentReaction),
+                    createReactionBubble("angry", post, reactionLabel, currentReaction)
+            );
+
+            reactionPopup.getContent().add(reactionsBox);
+
+            Bounds bounds = reactionLabel.localToScreen(reactionLabel.getBoundsInLocal());
+
+            if (bounds != null) {
+                double popupX = bounds.getMinX();
+                double popupY = bounds.getMinY() - 68;
+
+                reactionPopup.show(reactionLabel, popupX, popupY);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Erreur");
+            alert.setHeaderText(null);
+            alert.setContentText("Impossible d'ouvrir les réactions.");
+            alert.showAndWait();
+        }
+    }
+
+    private Button createReactionButton(String emoji,
+                                        String type,
+                                        String labelText,
+                                        int count,
+                                        Post post,
+                                        Label reactionLabel,
+                                        Dialog<Void> dialog,
+                                        String currentReaction) {
+
+        Label emojiLabel = new Label(emoji);
+        emojiLabel.setStyle(
+                "-fx-font-family: 'Segoe UI Emoji';" +
+                        "-fx-font-size: 28px;"
+        );
+
+        Label textLabel = new Label(labelText);
+        textLabel.setStyle(
+                "-fx-font-size: 12px;" +
+                        "-fx-font-weight: bold;" +
+                        "-fx-text-fill: #1c1e21;"
+        );
+
+        Label countLabel = new Label(String.valueOf(count));
+        countLabel.setStyle(
+                "-fx-font-size: 11px;" +
+                        "-fx-text-fill: #65676b;"
+        );
+
+        VBox content = new VBox(6, emojiLabel, textLabel, countLabel);
+        content.setAlignment(Pos.CENTER);
+
+        Button button = new Button();
+        button.setGraphic(content);
+        button.setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
+        button.setMinWidth(95);
+        button.setPrefWidth(95);
+        button.setMinHeight(110);
+        button.setPrefHeight(110);
+
+        boolean isSelected = currentReaction != null && currentReaction.equalsIgnoreCase(type);
+        styleReactionButton(button, isSelected);
+
+        button.setOnMouseEntered(e -> {
+            button.setScaleX(1.06);
+            button.setScaleY(1.06);
+
+            if (!isSelected) {
+                button.setStyle(
+                        "-fx-background-color: #f0f2f5;" +
+                                "-fx-background-radius: 18;" +
+                                "-fx-border-color: #cfd3d8;" +
+                                "-fx-border-radius: 18;" +
+                                "-fx-border-width: 1;" +
+                                "-fx-cursor: hand;"
+                );
+            }
+        });
+
+        button.setOnMouseExited(e -> {
+            button.setScaleX(1);
+            button.setScaleY(1);
+            styleReactionButton(button, isSelected);
+        });
+
+        button.setOnAction(e -> {
+            try {
+                User currentUser = SessionManager.getCurrentUser();
+
+                if (currentUser == null) {
+                    dialog.close();
+
+                    Alert alert = new Alert(Alert.AlertType.WARNING);
+                    alert.setTitle("Session expirée");
+                    alert.setHeaderText(null);
+                    alert.setContentText("Veuillez vous reconnecter pour réagir à ce post.");
+                    alert.showAndWait();
+                    return;
+                }
+
+                boolean success = reactionService.toggleReaction(
+                        post.getId(),
+                        currentUser.getId(),
+                        type
+                );
+
+                if (success) {
+                    reactionLabel.setText(buildReactionLabel(post.getId()));
+                    dialog.close();
+                } else {
+                    Alert alert = new Alert(Alert.AlertType.ERROR);
+                    alert.setTitle("Réaction");
+                    alert.setHeaderText(null);
+                    alert.setContentText("La réaction n’a pas pu être enregistrée.");
+                    alert.showAndWait();
+                }
+
+            } catch (Exception ex) {
+                ex.printStackTrace();
+
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Erreur");
+                alert.setHeaderText(null);
+                alert.setContentText("Impossible d'enregistrer la réaction.");
+                alert.showAndWait();
+            }
+        });
+
+        return button;
+    }
+
+    private String getReactionEmoji(String type) {
+        if (type == null) {
+            return "👍";
+        }
+
+        switch (type.toLowerCase()) {
+            case "love":
+                return "❤️";
+            case "haha":
+                return "😂";
+            case "wow":
+                return "😮";
+            case "sad":
+                return "😢";
+            case "angry":
+                return "😡";
+            case "like":
+            default:
+                return "👍";
+        }
+    }
+
+    private String getReactionName(String type) {
+        if (type == null) {
+            return "J’aime";
+        }
+
+        switch (type.toLowerCase()) {
+            case "love":
+                return "Love";
+            case "haha":
+                return "Haha";
+            case "wow":
+                return "Wow";
+            case "sad":
+                return "Triste";
+            case "angry":
+                return "Grrr";
+            case "like":
+            default:
+                return "J’aime";
+        }
+    }
+
+    private void styleReactionButton(Button button, boolean selected) {
+        if (selected) {
+            button.setStyle(
+                    "-fx-background-color: #e7f3ff;" +
+                            "-fx-background-radius: 18;" +
+                            "-fx-border-color: #1877f2;" +
+                            "-fx-border-radius: 18;" +
+                            "-fx-border-width: 2;" +
+                            "-fx-cursor: hand;"
+            );
+        } else {
+            button.setStyle(
+                    "-fx-background-color: white;" +
+                            "-fx-background-radius: 18;" +
+                            "-fx-border-color: #e4e6eb;" +
+                            "-fx-border-radius: 18;" +
+                            "-fx-border-width: 1;" +
+                            "-fx-cursor: hand;"
+            );
+        }
+    }
+    private StackPane createReactionBubble(String type, Post post, Label reactionLabel, String currentReaction) {
+        Node iconNode = loadReactionIconNode(type);
+
+        StackPane bubble = new StackPane(iconNode);
+        bubble.setPrefSize(48, 48);
+        bubble.setMinSize(48, 48);
+        bubble.setMaxSize(48, 48);
+
+        boolean selected = currentReaction != null && currentReaction.equalsIgnoreCase(type);
+
+        applyReactionBubbleStyle(bubble, selected, false);
+
+        bubble.setOnMouseEntered(e -> {
+            bubble.setScaleX(1.22);
+            bubble.setScaleY(1.22);
+            applyReactionBubbleStyle(bubble, selected, true);
+        });
+
+        bubble.setOnMouseExited(e -> {
+            bubble.setScaleX(1.0);
+            bubble.setScaleY(1.0);
+            applyReactionBubbleStyle(bubble, selected, false);
+        });
+
+        bubble.setOnMouseClicked(e -> {
+            try {
+                User currentUser = SessionManager.getCurrentUser();
+
+                if (currentUser == null) {
+                    if (reactionPopup != null) {
+                        reactionPopup.hide();
+                    }
+
+                    Alert alert = new Alert(Alert.AlertType.WARNING);
+                    alert.setTitle("Session expirée");
+                    alert.setHeaderText(null);
+                    alert.setContentText("Veuillez vous reconnecter pour réagir à ce post.");
+                    alert.showAndWait();
+                    return;
+                }
+
+                boolean success = reactionService.toggleReaction(
+                        post.getId(),
+                        currentUser.getId(),
+                        type
+                );
+
+                if (success) {
+                    reactionLabel.setText(buildReactionLabel(post.getId()));
+
+                    if (reactionPopup != null) {
+                        reactionPopup.hide();
+                    }
+                } else {
+                    Alert alert = new Alert(Alert.AlertType.ERROR);
+                    alert.setTitle("Réaction");
+                    alert.setHeaderText(null);
+                    alert.setContentText("La réaction n’a pas pu être enregistrée.");
+                    alert.showAndWait();
+                }
+
+            } catch (Exception ex) {
+                ex.printStackTrace();
+
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Erreur");
+                alert.setHeaderText(null);
+                alert.setContentText("Impossible d'enregistrer la réaction.");
+                alert.showAndWait();
+            }
+        });
+
+        Tooltip.install(bubble, new Tooltip(getReactionName(type)));
+
+        return bubble;
+    }
+    private Node loadReactionIconNode(String type) {
+        String path = "/images/reactions/" + type.toLowerCase() + ".png";
+
+        try {
+            Image image = new Image(getClass().getResourceAsStream(path));
+
+            ImageView imageView = new ImageView(image);
+            imageView.setFitWidth(38);
+            imageView.setFitHeight(38);
+            imageView.setPreserveRatio(true);
+            imageView.setSmooth(true);
+
+            return imageView;
+
+        } catch (Exception e) {
+            Label fallback = new Label(getReactionEmoji(type));
+            fallback.setStyle(
+                    "-fx-font-family: 'Segoe UI Emoji';" +
+                            "-fx-font-size: 28px;"
+            );
+            return fallback;
+        }
+    }
+
+    private void applyReactionBubbleStyle(StackPane bubble, boolean selected, boolean hover) {
+        if (selected) {
+            bubble.setStyle(
+                    "-fx-background-color: #e7f3ff;" +
+                            "-fx-background-radius: 24;" +
+                            "-fx-border-color: #1877f2;" +
+                            "-fx-border-radius: 24;" +
+                            "-fx-border-width: 2;" +
+                            "-fx-cursor: hand;"
+            );
+        } else if (hover) {
+            bubble.setStyle(
+                    "-fx-background-color: #f0f2f5;" +
+                            "-fx-background-radius: 24;" +
+                            "-fx-border-color: transparent;" +
+                            "-fx-border-radius: 24;" +
+                            "-fx-border-width: 0;" +
+                            "-fx-cursor: hand;"
+            );
+        } else {
+            bubble.setStyle(
+                    "-fx-background-color: white;" +
+                            "-fx-background-radius: 24;" +
+                            "-fx-border-color: transparent;" +
+                            "-fx-border-radius: 24;" +
+                            "-fx-border-width: 0;" +
+                            "-fx-cursor: hand;"
+            );
+        }
+    }
 
 }

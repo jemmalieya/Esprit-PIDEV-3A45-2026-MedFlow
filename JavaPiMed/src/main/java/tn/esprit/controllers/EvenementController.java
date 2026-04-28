@@ -23,6 +23,9 @@ import javafx.scene.control.*;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.ClipboardContent;
+import javafx.scene.input.Dragboard;
+import javafx.scene.input.TransferMode;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.stage.Popup;
@@ -53,12 +56,18 @@ import java.net.URI;
 import java.net.URL;
 import java.sql.Date;
 import java.sql.SQLException;
+import java.time.DayOfWeek;
+import java.time.format.TextStyle;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import javafx.stage.FileChooser;
@@ -249,6 +258,10 @@ public class EvenementController {
     @FXML private ComboBox<String> filterTypeCombo;
     @FXML private ComboBox<String> filterStatutCombo;
     @FXML private ComboBox<String> filterVilleCombo;
+    @FXML private Label calendarMonthLabel;
+    @FXML private Label calendarSelectionHintLabel;
+    @FXML private GridPane calendarWeekHeader;
+    @FXML private GridPane calendarMonthGrid;
     @FXML private ImageView mapImageView;
     @FXML private Label mapStatusLabel;
     @FXML private Label weatherConditionLabel;
@@ -268,6 +281,8 @@ public class EvenementController {
     private final Set<Integer> displayedCancellationCareEvents = new HashSet<>();
     private boolean eventUpdateToastAnimated;
     private boolean floatingEventUpdatePopupShown;
+    private YearMonth currentCalendarMonth = YearMonth.now();
+    private Evenement draggedCalendarEvent;
 
 
 
@@ -275,6 +290,7 @@ public class EvenementController {
     @FXML
     public void initialize() {
         initDashboardIfExists();
+        initCalendarSection();
         initFormIfExists();
         initCardsBackIfExists();
         chargerEvenementAModifier();
@@ -1373,6 +1389,7 @@ public class EvenementController {
                 inventoryCountLabel.setText(masterList.size() + " événement(s)");
             }
 
+            refreshCalendarMonth();
         } catch (SQLException e) {
             showAlert(Alert.AlertType.ERROR, "Erreur", e.getMessage());
         }
@@ -1417,11 +1434,257 @@ public class EvenementController {
             }
 
             updateStats();
-
+            refreshCalendarMonth();
         } catch (SQLException e) {
             showAlert(Alert.AlertType.ERROR, "Erreur", e.getMessage());
         }
     }
+
+    private void initCalendarSection() {
+        if (calendarMonthGrid == null || calendarWeekHeader == null) {
+            return;
+        }
+        ensureCalendarDataLoaded();
+        buildCalendarWeekHeader();
+        refreshCalendarMonth();
+    }
+
+    private void ensureCalendarDataLoaded() {
+        if (!masterList.isEmpty()) {
+            return;
+        }
+        try {
+            masterList.setAll(evenementService.recuperer());
+        } catch (SQLException e) {
+            if (calendarSelectionHintLabel != null) {
+                calendarSelectionHintLabel.setText("Chargement du calendrier impossible : " + e.getMessage());
+            }
+        }
+    }
+
+    @FXML
+    private void showPreviousCalendarMonth() {
+        currentCalendarMonth = currentCalendarMonth.minusMonths(1);
+        refreshCalendarMonth();
+    }
+
+    @FXML
+    private void showNextCalendarMonth() {
+        currentCalendarMonth = currentCalendarMonth.plusMonths(1);
+        refreshCalendarMonth();
+    }
+
+    @FXML
+    private void showCurrentCalendarMonth() {
+        currentCalendarMonth = YearMonth.now();
+        refreshCalendarMonth();
+    }
+
+    private void buildCalendarWeekHeader() {
+        if (calendarWeekHeader == null || !calendarWeekHeader.getChildren().isEmpty()) {
+            return;
+        }
+
+        List<String> days = List.of("Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim");
+        for (int column = 0; column < days.size(); column++) {
+            Label label = new Label(days.get(column));
+            label.getStyleClass().add("calendar-weekday-label");
+            label.setMaxWidth(Double.MAX_VALUE);
+            label.setAlignment(Pos.CENTER);
+            calendarWeekHeader.add(label, column, 0);
+        }
+    }
+
+    private void refreshCalendarMonth() {
+        if (calendarMonthGrid == null || calendarWeekHeader == null) {
+            return;
+        }
+
+        if (calendarMonthLabel != null) {
+            String month = currentCalendarMonth.getMonth().getDisplayName(TextStyle.FULL, Locale.FRANCE);
+            calendarMonthLabel.setText(month + " " + currentCalendarMonth.getYear());
+        }
+
+        calendarMonthGrid.getChildren().clear();
+        calendarMonthGrid.getRowConstraints().clear();
+
+        for (int row = 0; row < 6; row++) {
+            RowConstraints constraints = new RowConstraints();
+            constraints.setPercentHeight(16.66);
+            constraints.setVgrow(Priority.ALWAYS);
+            calendarMonthGrid.getRowConstraints().add(constraints);
+        }
+
+        LocalDate firstDay = currentCalendarMonth.atDay(1);
+        int offset = firstDay.getDayOfWeek().getValue() - DayOfWeek.MONDAY.getValue();
+        if (offset < 0) {
+            offset += 7;
+        }
+        LocalDate calendarStart = firstDay.minusDays(offset);
+
+        for (int index = 0; index < 42; index++) {
+            LocalDate cellDate = calendarStart.plusDays(index);
+            VBox cell = createCalendarDayCell(cellDate);
+            calendarMonthGrid.add(cell, index % 7, index / 7);
+        }
+    }
+
+    private VBox createCalendarDayCell(LocalDate cellDate) {
+        VBox cell = new VBox(8);
+        cell.getStyleClass().add("calendar-day-cell");
+        if (!cellDate.getMonth().equals(currentCalendarMonth.getMonth())) {
+            cell.getStyleClass().add("calendar-day-cell-muted");
+        }
+        if (LocalDate.now().equals(cellDate)) {
+            cell.getStyleClass().add("calendar-day-cell-today");
+        }
+
+        Label dayNumber = new Label(String.valueOf(cellDate.getDayOfMonth()));
+        dayNumber.getStyleClass().add("calendar-day-number");
+
+        VBox eventsBox = new VBox(6);
+        eventsBox.setFillWidth(true);
+        VBox.setVgrow(eventsBox, Priority.ALWAYS);
+
+        for (Evenement event : getEventsForDate(cellDate)) {
+            eventsBox.getChildren().add(createCalendarEventChip(event, cellDate));
+        }
+
+        if (eventsBox.getChildren().isEmpty()) {
+            Label empty = new Label("Libre");
+            empty.getStyleClass().add("calendar-empty-label");
+            eventsBox.getChildren().add(empty);
+        }
+
+        cell.getChildren().addAll(dayNumber, eventsBox);
+        VBox.setVgrow(eventsBox, Priority.ALWAYS);
+
+        cell.setOnDragOver(event -> {
+            if (draggedCalendarEvent != null && event.getGestureSource() != cell) {
+                event.acceptTransferModes(TransferMode.MOVE);
+            }
+            event.consume();
+        });
+
+        cell.setOnDragEntered(event -> {
+            if (draggedCalendarEvent != null) {
+                cell.getStyleClass().add("calendar-day-cell-drop-target");
+            }
+            event.consume();
+        });
+
+        cell.setOnDragExited(event -> {
+            cell.getStyleClass().remove("calendar-day-cell-drop-target");
+            event.consume();
+        });
+
+        cell.setOnDragDropped(event -> {
+            boolean success = false;
+            if (draggedCalendarEvent != null) {
+                success = moveEventFromCalendar(draggedCalendarEvent, cellDate);
+            }
+            cell.getStyleClass().remove("calendar-day-cell-drop-target");
+            event.setDropCompleted(success);
+            event.consume();
+        });
+
+        return cell;
+    }
+
+    private List<Evenement> getEventsForDate(LocalDate date) {
+        List<Evenement> events = new ArrayList<>();
+        for (Evenement event : masterList) {
+            LocalDate start = toLocalDate(event.getDate_debut_event());
+            LocalDate end = toLocalDate(event.getDate_fin_event());
+            if (start == null || end == null) {
+                continue;
+            }
+            if ((date.isEqual(start) || date.isAfter(start)) && (date.isEqual(end) || date.isBefore(end))) {
+                events.add(event);
+            }
+        }
+        events.sort(Comparator.comparing(e -> safeValue(e.getTitre_event()).toLowerCase(Locale.ROOT)));
+        return events;
+    }
+
+    private Button createCalendarEventChip(Evenement event, LocalDate anchorDate) {
+        Button chip = new Button(shortText(valueOrDash(event.getTitre_event()), 24));
+        chip.getStyleClass().add("calendar-event-chip");
+        chip.setMaxWidth(Double.MAX_VALUE);
+        chip.setAlignment(Pos.CENTER_LEFT);
+        chip.setOnAction(e -> {
+            if (calendarSelectionHintLabel != null) {
+                calendarSelectionHintLabel.setText("Evenement selectionne : " + valueOrDash(event.getTitre_event())
+                        + " | Glissez le chip vers un autre jour pour le reprogrammer.");
+            }
+            if (evenementTable != null) {
+                evenementTable.getSelectionModel().select(event);
+                evenementTable.scrollTo(event);
+            }
+        });
+
+        chip.setOnDragDetected(e -> {
+            draggedCalendarEvent = event;
+            Dragboard dragboard = chip.startDragAndDrop(TransferMode.MOVE);
+            ClipboardContent content = new ClipboardContent();
+            content.putString(String.valueOf(event.getId()));
+            dragboard.setContent(content);
+            if (calendarSelectionHintLabel != null) {
+                calendarSelectionHintLabel.setText("Deplacement de " + valueOrDash(event.getTitre_event())
+                        + " depuis le " + anchorDate + ".");
+            }
+            e.consume();
+        });
+
+        chip.setOnDragDone(e -> {
+            draggedCalendarEvent = null;
+            e.consume();
+        });
+        return chip;
+    }
+
+    private boolean moveEventFromCalendar(Evenement event, LocalDate newStart) {
+        try {
+            LocalDate currentStart = toLocalDate(event.getDate_debut_event());
+            LocalDate currentEnd = toLocalDate(event.getDate_fin_event());
+            if (currentStart == null || currentEnd == null) {
+                return false;
+            }
+
+            long durationDays = Math.max(0, java.time.temporal.ChronoUnit.DAYS.between(currentStart, currentEnd));
+            LocalDate newEnd = newStart.plusDays(durationDays);
+
+            event.setDate_debut_event(Date.valueOf(newStart));
+            event.setDate_fin_event(Date.valueOf(newEnd));
+            event.setDate_mise_a_jour_event(new java.util.Date());
+            evenementService.modifier(event);
+
+            if (calendarSelectionHintLabel != null) {
+                calendarSelectionHintLabel.setText("Evenement reprogramme : " + valueOrDash(event.getTitre_event())
+                        + " | " + newStart + " -> " + newEnd + ".");
+            }
+            if (evenementTable != null) {
+                evenementTable.refresh();
+            }
+            updateStats();
+            refreshCalendarMonth();
+            return true;
+        } catch (Exception ex) {
+            showAlert(Alert.AlertType.ERROR, "Calendrier", "Deplacement impossible : " + ex.getMessage());
+            return false;
+        }
+    }
+
+    private LocalDate toLocalDate(java.util.Date date) {
+        if (date == null) {
+            return null;
+        }
+        if (date instanceof java.sql.Date sqlDate) {
+            return sqlDate.toLocalDate();
+        }
+        return date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+    }
+
     private void updateStats() {
         int total = masterList.size();
         int publies = 0;
@@ -2496,6 +2759,11 @@ public class EvenementController {
     }
 
     @FXML
+    private void ouvrirCalendrierEvenements() {
+        loadScene("/EvenementCalendar.fxml", "Calendrier des événements");
+    }
+
+    @FXML
     private void onShowDraftEvents() {
         if (filterStatutCombo != null) {
             filterStatutCombo.setValue("Brouillon");
@@ -2565,6 +2833,8 @@ public class EvenementController {
                 btnAjouterEvent,
                 btnModifierEvent,
                 btnResetEvent,
+                calendarMonthLabel,
+                calendarSelectionHintLabel,
                 aiBackEventTitleLabel,
                 aiBackSummaryArea
         };
@@ -2583,6 +2853,12 @@ public class EvenementController {
         }
         if (cardsContainer != null && cardsContainer.getScene() != null) {
             return (Stage) cardsContainer.getScene().getWindow();
+        }
+        if (calendarMonthGrid != null && calendarMonthGrid.getScene() != null) {
+            return (Stage) calendarMonthGrid.getScene().getWindow();
+        }
+        if (calendarWeekHeader != null && calendarWeekHeader.getScene() != null) {
+            return (Stage) calendarWeekHeader.getScene().getWindow();
         }
         if (participationsContainer != null && participationsContainer.getScene() != null) {
             return (Stage) participationsContainer.getScene().getWindow();

@@ -148,7 +148,7 @@ public class EvenementServiceTest {
         Evenement ev = buildTestEvenement("EvenementTestJUnit");
         service.ajouter(ev);
 
-        boolean existe = service.evenementExisteDeja("EvenementTestJUnit");
+        boolean existe = service.evenementExisteDeja(Date.valueOf("2025-09-01"));
         assertTrue(existe,
                 "La méthode doit détecter qu'un événement avec ce titre existe déjà.");
     }

@@ -11,6 +11,8 @@
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.layout.StackPane?>
+
 <BorderPane xmlns:fx="http://javafx.com/fxml/1"
             xmlns="http://javafx.com/javafx/21"
             prefWidth="1400.0"
@@ -36,28 +38,56 @@
                         <Insets top="26" right="28" bottom="26" left="28"/>
                     </padding>
 
-                    <VBox spacing="6" styleClass="page-header">
+                    <VBox spacing="18" styleClass="page-header">
                         <HBox alignment="CENTER_LEFT" spacing="14">
                             <VBox spacing="6">
                                 <Label text="Blog" styleClass="page-title"/>
                                 <Label text="Retrouvez tous les articles, actualités et partages de la communauté MedFlow. Cliquez sur un post pour voir les détails !"
                                        wrapText="true"
-                                       styleClass="page-subtitle"/>
+                                       styleClass="page-subtitle"
+                                       maxWidth="620"/>
                             </VBox>
+                        </HBox>
 
-                            <Region HBox.hgrow="ALWAYS"/>
+                        <HBox alignment="CENTER_LEFT" spacing="12">
 
                             <TextField fx:id="searchField"
                                        promptText="Rechercher un post..."
                                        styleClass="blog-search-field"
-                                       prefWidth="260"
-                                       minWidth="220"/>
+                                       prefWidth="300"
+                                       minWidth="260"/>
 
                             <ComboBox fx:id="sortBox"
                                       promptText="Trier par"
                                       styleClass="blog-sort-box"
-                                      prefWidth="190"
-                                      minWidth="170"/>
+                                      prefWidth="210"
+                                      minWidth="190"/>
+
+                            <Region HBox.hgrow="ALWAYS"/>
+
+                            <Button text="Exporter PDF"
+                                    onAction="#handleExportPdf"
+                                    styleClass="new-post-btn"
+                                    prefWidth="140"
+                                    minWidth="140"/>
+
+                            <Button text="⏳"
+                                    onAction="#showMyPendingPostsPopup"
+                                    styleClass="header-icon-btn"/>
+
+                            <StackPane>
+                                <Button fx:id="notificationButton"
+                                        text="🔔"
+                                        onAction="#showModerationNotificationsPopup"
+                                        styleClass="header-icon-btn"/>
+
+                                <Label fx:id="notificationBadgeLabel"
+                                       text="0"
+                                       StackPane.alignment="TOP_RIGHT"
+                                       translateX="7"
+                                       translateY="-7"
+                                       styleClass="notification-badge"/>
+                            </StackPane>
 
                             <Button text="Exporter PDF"
                                     onAction="#handleExportPdf"
@@ -68,8 +98,8 @@
                             <Button text="+ Nouveau post"
                                     onAction="#openAddPostPage"
                                     styleClass="new-post-btn"
-                                    prefWidth="150"
-                                    minWidth="150"/>
+                                    prefWidth="155"
+                                    minWidth="155"/>
                         </HBox>
                     </VBox>
                     <HBox spacing="24" alignment="TOP_LEFT">

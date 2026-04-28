@@ -1,8 +1,13 @@
 target/
+.env
+.env.local
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
 .kotlin
+
+# Vosk model (trop volumineux)
+models/
 
 ### IntelliJ IDEA ###
 .idea/modules.xml

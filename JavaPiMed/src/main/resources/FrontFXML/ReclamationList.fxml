@@ -33,18 +33,61 @@
 
 
 
-            <!-- TABLE CARD -->
-            <VBox styleClass="table-card">
+            <!-- ================= TABLE CARD MODERNE ================= -->
+            <VBox spacing="16" styleClass="reclamation-table-card" VBox.vgrow="ALWAYS">
 
-                <TableView fx:id="tableReclamations" prefHeight="500">
+                <!-- Top table info -->
+                <HBox alignment="CENTER_LEFT" spacing="12" styleClass="table-top-bar">
+                    <VBox spacing="3">
+                        <Label text="Suivi de mes réclamations"
+                               styleClass="table-card-title"/>
+
+                        <Label text="Consultez le statut, la priorité et les réponses de vos demandes."
+                               styleClass="table-card-subtitle"/>
+                    </VBox>
+
+                    <Region HBox.hgrow="ALWAYS"/>
+
+                    <Label text="Gestion complète"
+                           styleClass="table-chip"/>
+                </HBox>
+
+                <!-- Table -->
+                <TableView fx:id="tableReclamations"
+                           prefHeight="560"
+                           VBox.vgrow="ALWAYS"
+                           styleClass="modern-reclamation-table">
 
                     <columns>
-                        <TableColumn fx:id="colContenu" text="Contenu" prefWidth="150"/>
-                        <TableColumn fx:id="colDescription" text="Description" prefWidth="200"/>
-                        <TableColumn fx:id="colType" text="Type" prefWidth="120"/>
-                        <TableColumn fx:id="colStatut" text="Statut" prefWidth="120"/>
-                        <TableColumn fx:id="colPriorite" text="Priorité" prefWidth="120"/>
-                        <TableColumn fx:id="colActions" text="Actions" prefWidth="160"/>
+                        <TableColumn fx:id="colContenu"
+                                     text="Contenu"
+                                     prefWidth="180"
+                                     minWidth="160"/>
+
+                        <TableColumn fx:id="colDescription"
+                                     text="Description"
+                                     prefWidth="300"
+                                     minWidth="260"/>
+
+                        <TableColumn fx:id="colType"
+                                     text="Type"
+                                     prefWidth="140"
+                                     minWidth="120"/>
+
+                        <TableColumn fx:id="colStatut"
+                                     text="Statut"
+                                     prefWidth="150"
+                                     minWidth="130"/>
+
+                        <TableColumn fx:id="colPriorite"
+                                     text="Priorité"
+                                     prefWidth="150"
+                                     minWidth="130"/>
+
+                        <TableColumn fx:id="colActions"
+                                     text="Actions"
+                                     prefWidth="310"
+                                     minWidth="290"/>
                     </columns>
 
                 </TableView>

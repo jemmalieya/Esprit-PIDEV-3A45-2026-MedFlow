@@ -105,7 +105,7 @@
 
                 <Region VBox.vgrow="ALWAYS"/>
 
-                <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="sidebar-item">
+                <HBox alignment="CENTER_LEFT" spacing="10.0" onMouseClicked="#onLogout" styleClass="sidebar-item">
                     <children>
                         <Label text="↪" styleClass="sidebar-item-icon"/>
                         <Label text="Déconnexion" styleClass="sidebar-item-text"/>
@@ -446,10 +446,10 @@
                                                         </VBox>
 
                                                         <TextField fx:id="tfImageEvent"
-                                                                   promptText="https://.../image.jpg ou C:\image.jpg"
+                                                                   promptText="https://.../image.jpg"
                                                                    styleClass="custom-field"/>
 
-                                                        <Button text="Choisir une image depuis le PC"
+                                                        <Button text="Uploader l'image vers Cloudinary"
                                                                 onAction="#choisirImageDepuisPC"
                                                                 maxWidth="Infinity"
                                                                 styleClass="btn-retour"/>

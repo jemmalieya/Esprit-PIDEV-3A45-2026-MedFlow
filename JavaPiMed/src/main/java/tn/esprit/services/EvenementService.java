@@ -16,6 +16,60 @@ public class EvenementService implements IGeneralService<Evenement> {
 
     public EvenementService() {
         cn = MyDataBase.getInstance().getCnx();
+        ensureCancellationReasonColumn();
+    }
+
+    private void ensureCancellationReasonColumn() {
+        if (cn == null) return;
+
+        try {
+            DatabaseMetaData metaData = cn.getMetaData();
+            try (ResultSet columns = metaData.getColumns(cn.getCatalog(), null, "evenement", "motif_annulation_event")) {
+                if (columns.next()) {
+                    return;
+                }
+            }
+
+            try (Statement statement = cn.createStatement()) {
+                statement.executeUpdate("""
+                        ALTER TABLE evenement
+                        ADD COLUMN motif_annulation_event TEXT NULL AFTER statut_event
+                        """);
+            }
+        } catch (SQLException ex) {
+            System.out.println("Impossible de verifier/creer motif_annulation_event: " + ex.getMessage());
+        }
+    }
+
+    public String recupererMotifAnnulation(int eventId) {
+        ensureCancellationReasonColumn();
+        String sql = "SELECT motif_annulation_event FROM evenement WHERE id = ?";
+
+        try (PreparedStatement ps = cn.prepareStatement(sql)) {
+            ps.setInt(1, eventId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("motif_annulation_event");
+                }
+            }
+        } catch (SQLException ex) {
+            System.out.println("Impossible de recuperer le motif d'annulation: " + ex.getMessage());
+        }
+        return "";
+    }
+
+    public void modifierMotifAnnulation(int eventId, String motif) {
+        ensureCancellationReasonColumn();
+        String sql = "UPDATE evenement SET motif_annulation_event = ?, date_mise_a_jour_event = ? WHERE id = ?";
+
+        try (PreparedStatement ps = cn.prepareStatement(sql)) {
+            ps.setString(1, motif == null ? "" : motif.trim());
+            ps.setDate(2, new java.sql.Date(new java.util.Date().getTime()));
+            ps.setInt(3, eventId);
+            ps.executeUpdate();
+        } catch (SQLException ex) {
+            System.out.println("Impossible de modifier le motif d'annulation: " + ex.getMessage());
+        }
     }
 
     @Override
@@ -143,6 +197,7 @@ public class EvenementService implements IGeneralService<Evenement> {
                 Evenement e = new Evenement();
 
                 e.setId(rs.getInt("id"));
+                e.setDemandes_json(rs.getString("demandes_json"));
                 e.setTitre_event(rs.getString("titre_event"));
                 e.setSlug_event(rs.getString("slug_event"));
                 e.setType_event(rs.getString("type_event"));
@@ -193,6 +248,7 @@ public class EvenementService implements IGeneralService<Evenement> {
                 Evenement e = new Evenement();
 
                 e.setId(rs.getInt("id"));
+                e.setDemandes_json(rs.getString("demandes_json"));
                 e.setTitre_event(rs.getString("titre_event"));
                 e.setSlug_event(rs.getString("slug_event"));
                 e.setType_event(rs.getString("type_event"));
@@ -229,15 +285,15 @@ public class EvenementService implements IGeneralService<Evenement> {
         return null;
     }
 
-    public boolean evenementExisteDeja(String titre) {
+    public boolean evenementExisteDeja(Date dateDebut) {
         String sql = """
         SELECT COUNT(*)
         FROM evenement
-        WHERE LOWER(TRIM(titre_event)) = LOWER(TRIM(?))
+        WHERE date_debut_event = ?
     """;
 
         try (PreparedStatement pst = cn.prepareStatement(sql)) {
-            pst.setString(1, titre);
+            pst.setDate(1, dateDebut);
 
             ResultSet rs = pst.executeQuery();
             if (rs.next()) {
@@ -249,19 +305,17 @@ public class EvenementService implements IGeneralService<Evenement> {
 
         return false;
     }
-    public boolean evenementExisteDejaPourModification(int id, String titre, java.sql.Date dateDebut) {
+    public boolean evenementExisteDejaPourModification(int id, java.sql.Date dateDebut) {
         String sql = """
         SELECT COUNT(*)
         FROM evenement
-        WHERE LOWER(TRIM(titre_event)) = LOWER(TRIM(?))
-          AND date_debut_event = ?
+        WHERE date_debut_event = ?
           AND id <> ?
     """;
 
         try (PreparedStatement pst = cn.prepareStatement(sql)) {
-            pst.setString(1, titre);
-            pst.setDate(2, dateDebut);
-            pst.setInt(3, id);
+            pst.setDate(1, dateDebut);
+            pst.setInt(2, id);
 
             ResultSet rs = pst.executeQuery();
             if (rs.next()) {
@@ -272,6 +326,28 @@ public class EvenementService implements IGeneralService<Evenement> {
         }
 
         return false;
+    }
+
+    public void archiver(Evenement e) {
+        String sql = """
+                UPDATE evenement
+                SET statut_event = ?, visibilite_event = ?, date_mise_a_jour_event = ?
+                WHERE id = ?
+                """;
+
+        try (PreparedStatement ps = cn.prepareStatement(sql)) {
+            ps.setString(1, "Archive");
+            ps.setString(2, "Prive");
+            ps.setDate(3, new java.sql.Date(new java.util.Date().getTime()));
+            ps.setInt(4, e.getId());
+            ps.executeUpdate();
+
+            e.setStatut_event("Archive");
+            e.setVisibilite_event("Prive");
+            e.setDate_mise_a_jour_event(new java.util.Date());
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
     }
 
     public List<Evenement> rechercherEvenements(List<Evenement> liste, String keyword) {

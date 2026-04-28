@@ -15,116 +15,171 @@
     </left>
 
     <center>
-        <ScrollPane fitToWidth="true" styleClass="cmd-scroll">
+        <ScrollPane fitToWidth="true" styleClass="cmd-scroll" hbarPolicy="NEVER">
             <content>
-                <VBox spacing="20" styleClass="cmd-main">
+                <VBox spacing="22" styleClass="cmd-main">
                     <padding>
-                        <Insets top="24" right="28" bottom="28" left="28"/>
+                        <Insets top="26" right="28" bottom="32" left="28"/>
                     </padding>
 
-                    <!-- HEADER -->
-                    <HBox alignment="CENTER_LEFT" spacing="16" styleClass="cmd-header">
-                        <Label text="📦" styleClass="cmd-header-icon"/>
-                        <VBox spacing="3" HBox.hgrow="ALWAYS">
-                            <Label text="Mes commandes" styleClass="cmd-header-title"/>
+                    <!-- ══ HEADER ══ -->
+                    <HBox alignment="CENTER_LEFT" spacing="18" styleClass="cmd-header">
+
+                        <!-- Icône avec fond -->
+                        <VBox styleClass="cmd-header-icon-wrap" alignment="CENTER">
+                            <Label text="📦" styleClass="cmd-header-icon"/>
+                        </VBox>
+
+                        <!-- Texte -->
+                        <VBox spacing="4" HBox.hgrow="ALWAYS">
+                            <Label text="Mes Commandes" styleClass="cmd-header-title"/>
                             <Label text="Suivez l'état de vos commandes en temps réel"
                                    styleClass="cmd-header-subtitle"/>
                         </VBox>
+
+                        <!-- Badge count -->
                         <Label fx:id="lblNbCommandes"
                                text="0 commande(s)"
                                styleClass="cmd-header-badge"/>
+
+                        <!-- Bouton panier -->
                         <Button fx:id="btnPanierCommandes"
                                 text="🛒 Panier (0)"
                                 onAction="#ouvrirPanierPopup"
                                 styleClass="btn-panier"/>
                     </HBox>
 
-                    <!-- STATS -->
-                    <HBox spacing="14">
-                        <VBox styleClass="stat-card" HBox.hgrow="ALWAYS" spacing="6">
-                            <HBox alignment="CENTER_LEFT" spacing="10">
+                    <!-- ══ STATS ROW ══ -->
+                    <HBox spacing="16">
+
+                        <!-- Total -->
+                        <VBox styleClass="stat-card" HBox.hgrow="ALWAYS" spacing="10" alignment="CENTER_LEFT">
+                            <HBox spacing="14" alignment="CENTER_LEFT">
                                 <Label text="📋" styleClass="stat-icon-wrap"/>
-                                <VBox spacing="2">
-                                    <Label text="TOTAL" styleClass="stat-label"/>
+                                <VBox spacing="3">
+                                    <Label text="TOTAL COMMANDES" styleClass="stat-label"/>
                                     <Label fx:id="statTotal" text="0" styleClass="stat-value"/>
                                 </VBox>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Label text="📈 tout" styleClass="stat-trend-neutral"/>
                             </HBox>
                         </VBox>
 
-                        <VBox styleClass="stat-card" HBox.hgrow="ALWAYS" spacing="6">
-                            <HBox alignment="CENTER_LEFT" spacing="10">
-                                <Label text="⏳" styleClass="stat-icon-wrap"/>
-                                <VBox spacing="2">
+                        <!-- En cours -->
+                        <VBox styleClass="stat-card" HBox.hgrow="ALWAYS" spacing="10" alignment="CENTER_LEFT">
+                            <HBox spacing="14" alignment="CENTER_LEFT">
+                                <Label text="⏳" styleClass="stat-icon-wrap"
+                                       style="-fx-background-color: #fef3c7;"/>
+                                <VBox spacing="3">
                                     <Label text="EN COURS" styleClass="stat-label"/>
-                                    <Label fx:id="statEnCours" text="0" styleClass="stat-value stat-value-amber"/>
+                                    <Label fx:id="statEnCours" text="0"
+                                           styleClass="stat-value stat-value-amber"/>
                                 </VBox>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Label text="⚡ actif" styleClass="stat-trend-neutral"
+                                       style="-fx-background-color: #fef3c7; -fx-text-fill: #d97706;"/>
                             </HBox>
                         </VBox>
 
-                        <VBox styleClass="stat-card" HBox.hgrow="ALWAYS" spacing="6">
-                            <HBox alignment="CENTER_LEFT" spacing="10">
-                                <Label text="🚚" styleClass="stat-icon-wrap"/>
-                                <VBox spacing="2">
+                        <!-- En livraison -->
+                        <VBox styleClass="stat-card" HBox.hgrow="ALWAYS" spacing="10" alignment="CENTER_LEFT">
+                            <HBox spacing="14" alignment="CENTER_LEFT">
+                                <Label text="🚚" styleClass="stat-icon-wrap"
+                                       style="-fx-background-color: #dbeafe;"/>
+                                <VBox spacing="3">
                                     <Label text="EN LIVRAISON" styleClass="stat-label"/>
-                                    <Label fx:id="statLivraison" text="0" styleClass="stat-value stat-value-blue"/>
+                                    <Label fx:id="statLivraison" text="0"
+                                           styleClass="stat-value stat-value-blue"/>
                                 </VBox>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Label text="🚀 route" styleClass="stat-trend-neutral"
+                                       style="-fx-background-color: #dbeafe; -fx-text-fill: #2563eb;"/>
                             </HBox>
                         </VBox>
 
-                        <VBox styleClass="stat-card" HBox.hgrow="ALWAYS" spacing="6">
-                            <HBox alignment="CENTER_LEFT" spacing="10">
-                                <Label text="✅" styleClass="stat-icon-wrap"/>
-                                <VBox spacing="2">
+                        <!-- Finalisées -->
+                        <VBox styleClass="stat-card" HBox.hgrow="ALWAYS" spacing="10" alignment="CENTER_LEFT">
+                            <HBox spacing="14" alignment="CENTER_LEFT">
+                                <Label text="✅" styleClass="stat-icon-wrap"
+                                       style="-fx-background-color: #d1fae5;"/>
+                                <VBox spacing="3">
                                     <Label text="FINALISÉES" styleClass="stat-label"/>
-                                    <Label fx:id="statFinalise" text="0" styleClass="stat-value stat-value-green"/>
+                                    <Label fx:id="statFinalise" text="0"
+                                           styleClass="stat-value stat-value-green"/>
                                 </VBox>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Label text="✔ livré" styleClass="stat-trend-up"/>
                             </HBox>
                         </VBox>
+
                     </HBox>
 
-                    <!-- FILTRES -->
+                    <!-- ══ FILTER BAR ══ -->
                     <HBox spacing="10" alignment="CENTER_LEFT" styleClass="filter-bar">
-                        <Button text="Toutes" styleClass="filter-pill-active"
+
+                        <Button text="📋 Toutes"
+                                styleClass="filter-pill-active"
                                 onAction="#filtrerToutes"/>
-                        <Button text="En cours" styleClass="filter-pill"
+                        <Button text="⏳ En cours"
+                                styleClass="filter-pill"
                                 onAction="#filtrerEnCours"/>
-                        <Button text="En livraison" styleClass="filter-pill"
+                        <Button text="🚚 En livraison"
+                                styleClass="filter-pill"
                                 onAction="#filtrerLivraison"/>
-                        <Button text="Finalisées" styleClass="filter-pill"
+                        <Button text="✅ Finalisées"
+                                styleClass="filter-pill"
                                 onAction="#filtrerFinalise"/>
-                        <Button text="En attente" styleClass="filter-pill"
+                        <Button text="🕐 En attente"
+                                styleClass="filter-pill"
                                 onAction="#filtrerAttente"/>
+
                         <Region HBox.hgrow="ALWAYS"/>
+
                         <Button text="🔄 Actualiser"
                                 onAction="#actualiserCommandes"
                                 styleClass="btn-secondary"/>
+                        <Button text="🏪 Pharmacie"
+                                onAction="#retourPharmacie"
+                                styleClass="btn-primary"/>
                     </HBox>
 
-                    <!-- CARTES COMMANDES -->
+                    <!-- ══ COMMANDE CARDS ══ -->
                     <FlowPane fx:id="commandeContainer"
-                              hgap="18"
-                              vgap="18"
+                              hgap="20"
+                              vgap="20"
                               prefWrapLength="1100"/>
 
-                    <!-- EMPTY STATE -->
+                    <!-- ══ EMPTY STATE ══ -->
                     <VBox fx:id="emptyState"
                           alignment="CENTER"
-                          spacing="12"
-                          style="-fx-padding: 60 0 60 0;"
+                          spacing="16"
                           visible="false"
                           managed="false">
-                        <Label text="📦" styleClass="empty-icon"/>
+                        <padding>
+                            <Insets top="60" bottom="60"/>
+                        </padding>
+
+                        <!-- Icône dans un cercle -->
+                        <StackPane alignment="CENTER"
+                                   style="-fx-background-color: #e0f6fa; -fx-background-radius: 999px; -fx-pref-width: 110px; -fx-pref-height: 110px; -fx-min-width: 110px; -fx-min-height: 110px;">
+                            <Label text="📦" style="-fx-font-size: 48px;"/>
+                        </StackPane>
+
                         <Label text="Aucune commande trouvée" styleClass="empty-title"/>
                         <Label text="Vos commandes apparaîtront ici une fois passées."
                                styleClass="empty-sub"/>
-                        <Button text="🏪 Aller à la pharmacie"
-                                onAction="#retourPharmacie"
-                                styleClass="btn-primary"
-                                style="-fx-padding: 12 22; -fx-font-size: 13px;"/>
+
+                        <HBox spacing="12" alignment="CENTER">
+                            <Button text="🏪 Aller à la pharmacie"
+                                    onAction="#retourPharmacie"
+                                    styleClass="btn-primary"
+                                    style="-fx-padding: 12 22; -fx-font-size: 13px;"/>
+                        </HBox>
                     </VBox>
 
                 </VBox>
             </content>
         </ScrollPane>
     </center>
+
 </BorderPane>

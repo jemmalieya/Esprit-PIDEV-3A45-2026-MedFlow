@@ -23,6 +23,7 @@
             hbarPolicy="NEVER"
             vbarPolicy="AS_NEEDED"
             styleClass="main-scroll"
+            stylesheets="@../CSS/booking.css,@../CSS/ai-assistant.css"
             fx:controller="tn.esprit.controllers.ConsultationController">
 
             <content>
@@ -44,6 +45,7 @@
                         <Button text="📅 Booking" styleClass="page-nav-button-active" onAction="#handleShowBookingPage" fx:id="bookingPageBtn"/>
                         <Button text="📋 My Bookings" styleClass="page-nav-button" onAction="#handleShowMyBookingsPage" fx:id="myBookingsPageBtn"/>
                         <Button text="📋 My Medical Records n Reports" styleClass="page-nav-button" onAction="#handleShowMyRecords" fx:id="myRecordsPageBtn"/>
+                        <Button text="🤖 AI Assistant" styleClass="page-nav-button" onAction="#handleShowAiAssistantPage" fx:id="aiAssistantPageBtn"/>
                     </HBox>
 
                     <!-- PAGES CONTAINER (StackPane to switch between pages) -->
@@ -257,6 +259,7 @@
                                             <TableColumn fx:id="recordColDuration" text="Duration" prefWidth="110"/>
                                             <TableColumn fx:id="recordColSignature" text="Signature" prefWidth="140"/>
                                             <TableColumn fx:id="recordColActions" text="Action" prefWidth="90"/>
+                                            <TableColumn fx:id="recordColDownloadPdf" text="Download PDF" prefWidth="150"/>
                                         </columns>
                                     </TableView>
 
@@ -270,10 +273,94 @@
                                                 <TableColumn fx:id="recordPrescriptionDoseColumn" text="Dose" prefWidth="100"/>
                                                 <TableColumn fx:id="recordPrescriptionFrequenceColumn" text="Fréquence" prefWidth="130"/>
                                                 <TableColumn fx:id="recordPrescriptionInstructionsColumn" text="Instructions" prefWidth="220"/>
+                                                <TableColumn fx:id="recordPrescriptionDownloadColumn" text="Download PDF" prefWidth="150"/>
                                             </columns>
                                         </TableView>
 
                                         <Label fx:id="recordNoPrescriptionsLabel" text="There is no prescription for this fiche medicale." styleClass="empty-state-message" visible="false" managed="false" wrapText="true"/>
+                                    </VBox>
+                                </VBox>
+                            </HBox>
+                        </VBox>
+
+                        <!-- PAGE 4: AI ASSISTANT -->
+                        <VBox spacing="24" styleClass="page-content" fx:id="aiAssistantPage" visible="false" managed="false">
+                            <VBox spacing="10" styleClass="booking-card ai-hero-card">
+                                <HBox spacing="12" alignment="CENTER_LEFT">
+                                    <Label text="AI Assistant" styleClass="ai-kicker"/>
+                                    <Label text="Conversation preview" styleClass="ai-kicker ai-kicker-muted"/>
+                                </HBox>
+                                
+                                <Label fx:id="aiAssistantStatusLabel" text="Ready for Dialogflow intent detection" styleClass="helper-text"/>
+                            </VBox>
+
+                            <HBox spacing="20" HBox.hgrow="ALWAYS" alignment="TOP_LEFT">
+                                <VBox spacing="18" styleClass="booking-card ai-conversation-card" HBox.hgrow="ALWAYS">
+                                    <HBox spacing="12" alignment="CENTER_LEFT" styleClass="ai-panel-header">
+                                        <VBox spacing="2" HBox.hgrow="ALWAYS">
+                                            <Label text="Conversation history" styleClass="card-title"/>
+                                            <Label text="User and AI messages stay visible here as a running log." styleClass="helper-text" wrapText="true"/>
+                                        </VBox>
+                                        <Button fx:id="aiVoiceOutputToggleButton"
+                                                text="🔊 Voice On"
+                                                styleClass="ai-chip"
+                                                onAction="#handleToggleAiVoiceOutput"/>
+                                        <Label text="Session active" styleClass="ai-status-badge"/>
+                                    </HBox>
+
+                                    <ScrollPane fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" styleClass="ai-chat-scroll" VBox.vgrow="ALWAYS">
+                                        <content>
+                                            <VBox fx:id="aiConversationHistory" spacing="14" styleClass="ai-chat-history"/>
+                                        </content>
+                                    </ScrollPane>
+
+                                    <HBox spacing="10" alignment="CENTER_LEFT" styleClass="ai-message-composer-bar">
+                                        <TextField fx:id="aiMessageInput"
+                                                   HBox.hgrow="ALWAYS"
+                                                   promptText="Type a message..."
+                                                   styleClass="ai-message-composer-input"
+                                                   onAction="#handleSendAiMessage"/>
+                                        <Label fx:id="aiRecordingIndicator" text="● REC" visible="false" style="-fx-text-fill: #d32f2f; -fx-font-weight: bold; -fx-padding: 0 8 0 8;"/>
+                                        <Button text="🎤"
+                                            fx:id="aiVoiceMessageButton"
+                                            styleClass="ai-icon-action-button"
+                                            onAction="#handleAiVoiceMessage"/>
+                                        <Button text="➤"
+                                                fx:id="aiSendMessageButton"
+                                                styleClass="ai-icon-action-button ai-icon-send-button"
+                                                onAction="#handleSendAiMessage"/>
+                                    </HBox>
+
+                                    <HBox spacing="10" styleClass="ai-chip-row">
+                                        <Button text="Symptom summary" styleClass="ai-chip"/>
+                                        <Button text="Follow-up note" styleClass="ai-chip"/>
+                                        <Button text="Voice recap" styleClass="ai-chip"/>
+                                        <Button text="Book visit" styleClass="ai-chip"/>
+                                    </HBox>
+                                </VBox>
+
+                                <VBox prefWidth="360" spacing="16" styleClass="ai-sidebar-column">
+                                    <VBox spacing="12" styleClass="summary-card ai-tool-card">
+                                        <Label text="Voice note" styleClass="card-title"/>
+                                        <Label text="Design placeholder for audio capture and transcription." styleClass="helper-text" wrapText="true"/>
+                                        <HBox spacing="10" alignment="CENTER_LEFT" styleClass="ai-voice-preview">
+                                            <Label text="🎙" styleClass="ai-voice-icon"/>
+                                            <VBox spacing="2" HBox.hgrow="ALWAYS">
+                                                <Label text="Tap to record" styleClass="ai-voice-title"/>
+                                                <Label text="Waveform, timer, and transcription would appear here later." styleClass="helper-text" wrapText="true"/>
+                                            </VBox>
+                                        </HBox>
+                                        <Button text="Record voice message" styleClass="ai-voice-button"/>
+                                    </VBox>
+
+                                    <VBox spacing="12" styleClass="summary-card ai-tool-card">
+                                        <Label text="Session glance" styleClass="card-title"/>
+                                        <Label text="History is shown as a clear timeline with user and AI sides." styleClass="helper-text" wrapText="true"/>
+                                        <HBox spacing="8" alignment="CENTER_LEFT">
+                                            <Label text="Text" styleClass="ai-mini-pill"/>
+                                            <Label text="Voice" styleClass="ai-mini-pill"/>
+                                            <Label text="History" styleClass="ai-mini-pill"/>
+                                        </HBox>
                                     </VBox>
                                 </VBox>
                             </HBox>

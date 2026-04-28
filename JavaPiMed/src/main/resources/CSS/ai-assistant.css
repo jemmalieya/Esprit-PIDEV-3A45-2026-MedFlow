@@ -1,0 +1,271 @@
+.ai-hero-card {
+    -fx-background-color: linear-gradient(to right, rgba(15,163,191,0.16), rgba(12,28,53,0.06));
+    -fx-border-color: rgba(15,163,191,0.18);
+    -fx-border-radius: 22;
+    -fx-background-radius: 22;
+    -fx-padding: 22;
+}
+
+.ai-kicker {
+    -fx-background-color: linear-gradient(to right, #0fa3bf, #0b89aa);
+    -fx-text-fill: white;
+    -fx-background-radius: 999;
+    -fx-padding: 6 12;
+    -fx-font-size: 12px;
+    -fx-font-weight: 800;
+}
+
+.ai-kicker-muted {
+    -fx-background-color: rgba(16, 40, 58, 0.08);
+    -fx-text-fill: #254253;
+}
+
+.ai-status-badge {
+    -fx-background-color: rgba(15, 163, 191, 0.12);
+    -fx-text-fill: #0b7f95;
+    -fx-background-radius: 999;
+    -fx-padding: 6 12;
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+}
+
+.ai-conversation-card {
+    -fx-background-color: linear-gradient(to bottom right, #ffffff, #f8fcff);
+}
+
+.ai-panel-header {
+    -fx-padding: 0 0 4 0;
+}
+
+.ai-chat-scroll {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-pref-height: 470;
+    -fx-min-height: 470;
+}
+
+.ai-chat-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+.ai-message-composer-bar {
+    -fx-background-color: white;
+    -fx-background-radius: 999;
+    -fx-border-color: rgba(15, 163, 191, 0.22);
+    -fx-border-radius: 999;
+    -fx-padding: 8 10 8 14;
+    -fx-effect: dropshadow(gaussian, rgba(15, 163, 191, 0.18), 14, 0.12, 0, 3);
+}
+
+.ai-message-composer-input {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-text-fill: #1e3c4f;
+    -fx-prompt-text-fill: #7c97a5;
+    -fx-font-size: 14px;
+    -fx-padding: 8 8;
+}
+
+.ai-message-composer-input:focused {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.ai-icon-action-button {
+    -fx-min-width: 40;
+    -fx-min-height: 40;
+    -fx-pref-width: 40;
+    -fx-pref-height: 40;
+    -fx-max-width: 40;
+    -fx-max-height: 40;
+    -fx-background-color: rgba(15, 163, 191, 0.14);
+    -fx-text-fill: #0b7f95;
+    -fx-background-radius: 999;
+    -fx-font-size: 15px;
+    -fx-font-weight: 800;
+    -fx-cursor: hand;
+}
+
+.ai-icon-action-button:hover {
+    -fx-background-color: rgba(15, 163, 191, 0.2);
+}
+
+.ai-icon-send-button {
+    -fx-background-color: linear-gradient(to right, #0fa3bf, #0b89aa);
+    -fx-text-fill: white;
+}
+
+.ai-icon-send-button:hover {
+    -fx-background-color: linear-gradient(to right, #1196b0, #0a7a96);
+}
+
+.ai-chat-history {
+    -fx-background-color: linear-gradient(to bottom, rgba(15,163,191,0.04), rgba(255,255,255,0));
+    -fx-background-radius: 18;
+    -fx-padding: 18;
+}
+
+.ai-date-chip {
+    -fx-background-color: rgba(18, 33, 54, 0.08);
+    -fx-text-fill: #355266;
+    -fx-background-radius: 999;
+    -fx-padding: 6 14;
+    -fx-font-size: 11px;
+    -fx-font-weight: 800;
+}
+
+.ai-message-row {
+    -fx-padding: 2 0;
+}
+
+.ai-avatar {
+    -fx-min-width: 42;
+    -fx-min-height: 42;
+    -fx-pref-width: 42;
+    -fx-pref-height: 42;
+    -fx-max-width: 42;
+    -fx-max-height: 42;
+    -fx-background-radius: 999;
+    -fx-alignment: CENTER;
+}
+
+.ai-avatar-ai {
+    -fx-background-color: linear-gradient(to bottom right, #0fa3bf, #0b89aa);
+    -fx-effect: dropshadow(gaussian, rgba(15,163,191,0.22), 12, 0.15, 0, 3);
+}
+
+.ai-avatar-user {
+    -fx-background-color: linear-gradient(to bottom right, #1b2d45, #20395b);
+    -fx-effect: dropshadow(gaussian, rgba(26, 41, 63, 0.16), 10, 0.12, 0, 2);
+}
+
+.ai-avatar-text {
+    -fx-text-fill: white;
+    -fx-font-size: 11px;
+    -fx-font-weight: 800;
+}
+
+.ai-message-name {
+    -fx-text-fill: #5c7381;
+    -fx-font-size: 11px;
+    -fx-font-weight: 800;
+}
+
+.ai-message-name-user {
+    -fx-alignment: CENTER_RIGHT;
+}
+
+.ai-bubble {
+    -fx-background-radius: 18;
+    -fx-padding: 14 16;
+    -fx-font-size: 13px;
+    -fx-line-spacing: 3;
+}
+
+.ai-bubble-ai {
+    -fx-background-color: #f4fbfe;
+    -fx-text-fill: #244055;
+    -fx-border-color: rgba(15,163,191,0.16);
+    -fx-border-radius: 18;
+}
+
+.ai-bubble-user {
+    -fx-background-color: linear-gradient(to right, #0fa3bf, #0b89aa);
+    -fx-text-fill: white;
+    -fx-border-radius: 18;
+    -fx-effect: dropshadow(gaussian, rgba(15,163,191,0.2), 12, 0.15, 0, 3);
+}
+
+.ai-chip-row {
+    -fx-padding: 2 0 0 0;
+}
+
+.ai-chip {
+    -fx-background-color: rgba(15, 163, 191, 0.08);
+    -fx-text-fill: #0b7f95;
+    -fx-background-radius: 999;
+    -fx-border-color: rgba(15, 163, 191, 0.14);
+    -fx-border-radius: 999;
+    -fx-padding: 8 14;
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-cursor: hand;
+}
+
+.ai-chip:hover {
+    -fx-background-color: rgba(15, 163, 191, 0.14);
+}
+
+.ai-sidebar-column {
+    -fx-alignment: TOP_CENTER;
+}
+
+.ai-tool-card {
+    -fx-background-color: linear-gradient(to bottom right, #ffffff, #f6fbfd);
+    -fx-border-color: rgba(15,163,191,0.12);
+    -fx-border-radius: 20;
+    -fx-background-radius: 20;
+}
+
+.ai-voice-preview {
+    -fx-background-color: rgba(15, 163, 191, 0.08);
+    -fx-background-radius: 18;
+    -fx-padding: 14;
+    -fx-border-color: rgba(15, 163, 191, 0.12);
+    -fx-border-radius: 18;
+}
+
+.ai-voice-icon {
+    -fx-font-size: 20px;
+    -fx-text-fill: #0b89aa;
+}
+
+.ai-voice-title {
+    -fx-text-fill: #163447;
+    -fx-font-size: 14px;
+    -fx-font-weight: 800;
+}
+
+.ai-voice-button {
+    -fx-background-color: linear-gradient(to right, #0fa3bf, #0b89aa);
+    -fx-text-fill: white;
+    -fx-background-radius: 16;
+    -fx-padding: 12 16;
+    -fx-font-size: 13px;
+    -fx-font-weight: 800;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(15,163,191,0.22), 12, 0.15, 0, 3);
+}
+
+.ai-voice-button:hover {
+    -fx-background-color: linear-gradient(to right, #1196b0, #0a7a96);
+}
+
+.ai-composer {
+    -fx-pref-height: 160;
+}
+
+.ai-ghost-button {
+    -fx-background-color: rgba(19, 37, 59, 0.07);
+    -fx-text-fill: #2c495d;
+    -fx-border-color: rgba(19, 37, 59, 0.14);
+}
+
+.ai-secondary-button {
+    -fx-background-color: rgba(15, 163, 191, 0.12);
+    -fx-text-fill: #0b7f95;
+    -fx-border-color: rgba(15, 163, 191, 0.16);
+}
+
+.ai-send-button {
+    -fx-min-width: 140;
+}
+
+.ai-mini-pill {
+    -fx-background-color: rgba(15, 163, 191, 0.1);
+    -fx-text-fill: #0b7f95;
+    -fx-background-radius: 999;
+    -fx-padding: 6 12;
+    -fx-font-size: 11px;
+    -fx-font-weight: 800;
+}

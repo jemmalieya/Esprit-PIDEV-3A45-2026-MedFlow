@@ -227,19 +227,87 @@
                 </children>
             </HBox>
 
-            <VBox styleClass="table-wrapper highlight-table" VBox.vgrow="ALWAYS">
+            <VBox spacing="14.0"
+                  styleClass="admin-table-card"
+                  VBox.vgrow="ALWAYS">
+
                 <children>
-                    <TableView fx:id="reclamationTable" VBox.vgrow="ALWAYS" styleClass="events-table highlight-table-view">
+
+                    <HBox alignment="CENTER_LEFT" spacing="12.0" styleClass="admin-table-top">
+                        <children>
+                            <VBox spacing="3.0">
+                                <children>
+                                    <Label text="Tableau de traitement"
+                                           styleClass="admin-table-title"/>
+
+                                    <Label text="Gérez les réclamations, leurs priorités et les réponses admin."
+                                           styleClass="admin-table-subtitle"/>
+                                </children>
+                            </VBox>
+
+                            <Region HBox.hgrow="ALWAYS"/>
+
+                            <Label text="Back-office"
+                                   styleClass="admin-table-chip"/>
+                        </children>
+                    </HBox>
+
+                    <TableView fx:id="reclamationTable"
+                               VBox.vgrow="ALWAYS"
+                               prefHeight="360.0"
+                               minHeight="300.0"
+                               styleClass="admin-reclamation-table">
+
+                        <placeholder>
+                            <VBox alignment="CENTER" spacing="8.0">
+                                <children>
+                                    <Label text="📭" style="-fx-font-size: 38px;"/>
+                                    <Label text="Aucune réclamation trouvée"
+                                           style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #334155;"/>
+                                    <Label text="Les réclamations apparaîtront ici."
+                                           style="-fx-font-size: 13px; -fx-text-fill: #64748b;"/>
+                                </children>
+                            </VBox>
+                        </placeholder>
+
                         <columns>
-                            <TableColumn fx:id="referenceCol" prefWidth="220.0" text="RÉFÉRENCE"/>
-                            <TableColumn fx:id="typeCol" prefWidth="150.0" text="TYPE"/>
-                            <TableColumn fx:id="statutCol" prefWidth="150.0" text="STATUT"/>
-                            <TableColumn fx:id="prioriteCol" prefWidth="140.0" text="PRIORITÉ"/>
-                            <TableColumn fx:id="descriptionCol" prefWidth="340.0" text="DESCRIPTION"/>
-                            <TableColumn fx:id="actionsCol" prefWidth="200.0" text="ACTIONS"/>
+                            <TableColumn fx:id="referenceCol"
+                                         prefWidth="210.0"
+                                         minWidth="190.0"
+                                         text="RÉFÉRENCE"/>
+
+                            <TableColumn fx:id="typeCol"
+                                         prefWidth="160.0"
+                                         minWidth="145.0"
+                                         text="TYPE"/>
+
+                            <TableColumn fx:id="statutCol"
+                                         prefWidth="155.0"
+                                         minWidth="140.0"
+                                         text="STATUT"/>
+
+                            <TableColumn fx:id="prioriteCol"
+                                         prefWidth="155.0"
+                                         minWidth="140.0"
+                                         text="PRIORITÉ"/>
+
+                            <TableColumn fx:id="descriptionCol"
+                                         prefWidth="430.0"
+                                         minWidth="360.0"
+                                         text="DESCRIPTION"/>
+
+                            <TableColumn fx:id="actionsCol"
+                                         prefWidth="230.0"
+                                         minWidth="210.0"
+                                         text="ACTIONS"/>
                         </columns>
                     </TableView>
+
                 </children>
+
+                <padding>
+                    <Insets top="18.0" right="18.0" bottom="18.0" left="18.0"/>
+                </padding>
             </VBox>
         </VBox>
     </center>

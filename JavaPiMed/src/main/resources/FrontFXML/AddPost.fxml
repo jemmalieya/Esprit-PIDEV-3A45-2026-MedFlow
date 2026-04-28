@@ -121,11 +121,15 @@
                                           GridPane.rowIndex="4"/>
 
                                 <!-- IMAGE -->
-                                <Label text="Image (URL)" GridPane.columnIndex="0" GridPane.rowIndex="6"/>
+                                <Label text="Image web à envoyer vers Cloudinary"
+                                       GridPane.columnIndex="0"
+                                       GridPane.rowIndex="6"/>
+
                                 <TextField fx:id="imageField"
-                                           promptText="https://..."
+                                           promptText="Collez une URL image : https://..."
                                            GridPane.columnIndex="0"
                                            GridPane.rowIndex="7"/>
+
                                 <Label fx:id="imageError"
                                        style="-fx-text-fill: red;"
                                        GridPane.columnIndex="0"

@@ -103,9 +103,9 @@ public class ReclamationListController {
         });
 
         colActions.setCellFactory(param -> new TableCell<>() {
-            private final Button deleteBtn = new Button("🗑 Supprimer");
-            private final Button editBtn = new Button("✏️ Modifier");
-            private final Button viewBtn = new Button("👁 voir reponses");
+            private final Button deleteBtn = new Button("Supprimer");
+            private final Button editBtn = new Button("Modifier");
+            private final Button viewBtn = new Button("Réponses");
 
             {
                 deleteBtn.getStyleClass().add("btn-delete");
@@ -174,7 +174,7 @@ public class ReclamationListController {
                     editBtn.setDisable(isLocked);
                     deleteBtn.setDisable(isLocked);
 
-                    HBox box = new HBox(10, editBtn, deleteBtn, viewBtn);
+                    HBox box = new HBox(8, editBtn, deleteBtn, viewBtn);
                     box.setAlignment(Pos.CENTER);
                     setGraphic(box);
                 }

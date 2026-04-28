@@ -401,3 +401,121 @@
     -fx-font-size: 16px;
     -fx-font-weight: 800;
 }
+
+.event-front-actions {
+    -fx-padding: 2 0 2 0;
+}
+
+.event-front-button-shell {
+    -fx-padding: 0;
+}
+
+.event-front-primary-button,
+.event-front-secondary-button {
+    -fx-background-radius: 18;
+    -fx-border-radius: 18;
+    -fx-padding: 12 20;
+    -fx-font-size: 14px;
+    -fx-font-weight: 900;
+    -fx-cursor: hand;
+    -fx-alignment: CENTER;
+    -fx-text-alignment: CENTER;
+}
+
+.event-front-primary-button {
+    -fx-background-color: linear-gradient(to right, #ffffff, #e9fcff);
+    -fx-text-fill: #084e65;
+    -fx-border-color: #8fd5e2;
+    -fx-border-width: 1.2;
+    -fx-effect: dropshadow(gaussian, rgba(8, 78, 101, 0.12), 14, 0.16, 0, 4);
+}
+
+.event-front-primary-button:hover {
+    -fx-background-color: linear-gradient(to right, #ffffff, #dff8fd);
+    -fx-border-color: #53bfd5;
+    -fx-effect: dropshadow(gaussian, rgba(15, 163, 191, 0.24), 18, 0.20, 0, 5);
+    -fx-translate-y: -1;
+}
+
+.event-front-secondary-button {
+    -fx-background-color: rgba(6, 62, 80, 0.18);
+    -fx-text-fill: white;
+    -fx-border-color: rgba(255,255,255,0.44);
+    -fx-border-width: 1.1;
+}
+
+.event-front-secondary-button:hover {
+    -fx-background-color: rgba(6, 62, 80, 0.28);
+    -fx-border-color: rgba(255,255,255,0.72);
+    -fx-effect: dropshadow(gaussian, rgba(6, 62, 80, 0.22), 16, 0.18, 0, 5);
+    -fx-translate-y: -1;
+}
+
+.event-front-notification-badge {
+    -fx-background-color: #e33b4f;
+    -fx-text-fill: white;
+    -fx-font-size: 11px;
+    -fx-font-weight: 900;
+    -fx-background-radius: 999;
+    -fx-padding: 4 8;
+    -fx-min-width: 22;
+    -fx-alignment: CENTER;
+    -fx-translate-x: 10;
+    -fx-translate-y: -8;
+    -fx-effect: dropshadow(gaussian, rgba(227, 59, 79, 0.28), 10, 0.18, 0, 3);
+}
+
+.notification-history-card {
+    -fx-background-color: linear-gradient(to right, #ffffff, #f7fbfc);
+    -fx-background-radius: 22;
+    -fx-border-color: #d5e6ea;
+    -fx-border-radius: 22;
+    -fx-padding: 18 20;
+    -fx-effect: dropshadow(gaussian, rgba(19, 35, 51, 0.08), 16, 0.14, 0, 4);
+}
+
+.notification-history-card-unread {
+    -fx-background-color: linear-gradient(to right, #f4fcff, #ffffff);
+    -fx-background-radius: 22;
+    -fx-border-color: #56bdd3;
+    -fx-border-width: 1.4;
+    -fx-border-radius: 22;
+    -fx-padding: 18 20;
+    -fx-effect: dropshadow(gaussian, rgba(17, 158, 188, 0.16), 18, 0.16, 0, 5);
+}
+
+.notification-history-title {
+    -fx-text-fill: #102535;
+    -fx-font-size: 22px;
+    -fx-font-weight: 900;
+}
+
+.notification-history-message {
+    -fx-text-fill: #234254;
+    -fx-font-size: 14px;
+    -fx-font-weight: 700;
+}
+
+.notification-history-time {
+    -fx-text-fill: #708897;
+    -fx-font-size: 12px;
+    -fx-font-weight: 800;
+}
+
+.notification-unread-badge {
+    -fx-background-color: #daf7ff;
+    -fx-text-fill: #0b8098;
+    -fx-background-radius: 999;
+    -fx-padding: 6 12;
+    -fx-font-size: 11px;
+    -fx-font-weight: 900;
+}
+
+.notification-read-badge {
+    -fx-background-color: #eef3f5;
+    -fx-text-fill: #637884;
+    -fx-background-radius: 999;
+    -fx-padding: 6 12;
+    -fx-font-size: 11px;
+    -fx-font-weight: 900;
+}

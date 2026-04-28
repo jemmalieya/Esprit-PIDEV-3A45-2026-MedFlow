@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+<?import java.net.URL?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml/1"
+            xmlns="http://javafx.com/javafx/21"
+            prefWidth="1400.0" prefHeight="820.0"
+            fx:controller="tn.esprit.controllers.EvenementController"
+            styleClass="root-pane">
+    <stylesheets>
+        <URL value="@../CSS/booking.css"/>
+        <URL value="@../CSS/evenement.css"/>
+    </stylesheets>
+
+    <left>
+        <fx:include source="Sidebar.fxml"/>
+    </left>
+
+    <center>
+        <ScrollPane fitToWidth="true"
+                    pannable="true"
+                    hbarPolicy="NEVER"
+                    vbarPolicy="AS_NEEDED"
+                    styleClass="main-scroll">
+            <content>
+                <VBox spacing="24" styleClass="main-area">
+                    <padding>
+                        <Insets top="26" right="28" bottom="26" left="28"/>
+                    </padding>
+
+                    <VBox spacing="18" styleClass="participations-header">
+                        <VBox spacing="6">
+                            <Label text="Historique des notifications" styleClass="page-title participations-header-title"/>
+                            <Label fx:id="notificationSummaryLabel"
+                                   text="Suivez les mises a jour de vos evenements en ligne."
+                                   wrapText="true"
+                                   styleClass="page-subtitle participations-header-subtitle"/>
+                        </VBox>
+                        <Button text="Tout marquer lu"
+                                onAction="#marquerNotificationsLues"
+                                styleClass="event-my-participations-button"/>
+                    </VBox>
+
+                    <VBox fx:id="notificationsContainer" spacing="16"/>
+
+                    <Region minHeight="20"/>
+                </VBox>
+            </content>
+        </ScrollPane>
+    </center>
+</BorderPane>

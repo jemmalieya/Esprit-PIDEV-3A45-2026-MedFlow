@@ -66,7 +66,7 @@ public class DashboardBIServiceEvenement {
         for (Evenement e : events) {
             String statut = safe(e.getStatut_event()).toLowerCase();
 
-            if (statut.contains("publi")) publies++;
+            if (statut.contains("publi") || statut.contains("ligne")) publies++;
             else if (statut.contains("brouillon")) brouillons++;
             else if (statut.contains("annul")) annules++;
             else autres++;
@@ -131,7 +131,7 @@ public class DashboardBIServiceEvenement {
         for (Evenement e : events) {
             String statut = safe(e.getStatut_event()).toLowerCase();
 
-            if (statut.contains("publi")) map.put("Publié", map.get("Publié") + 1);
+            if (statut.contains("publi") || statut.contains("ligne")) map.put("Publié", map.get("Publié") + 1);
             else if (statut.contains("brouillon")) map.put("Brouillon", map.get("Brouillon") + 1);
             else if (statut.contains("annul")) map.put("Annulé", map.get("Annulé") + 1);
             else map.put("Autres", map.get("Autres") + 1);
@@ -281,3 +281,4 @@ public class DashboardBIServiceEvenement {
         public List<String> recommandations = new ArrayList<>();
     }
 }
+

@@ -367,11 +367,7 @@ public class BlogController {
 
             String contenu = commentInput.getText() == null ? "" : commentInput.getText().trim();
             if (contenu.isEmpty()) {
-                Alert alert = new Alert(Alert.AlertType.WARNING);
-                alert.setTitle("Commentaire");
-                alert.setHeaderText(null);
-                alert.setContentText("Le commentaire ne peut pas être vide.");
-                alert.showAndWait();
+                showShortCommentBlockedPopup("Veuillez écrire un commentaire avant d’envoyer.");
                 return;
             }
 
@@ -406,12 +402,15 @@ public class BlogController {
                 boolean success = commentaireService.ajouter(commentaire);
 
                 if (!success) {
-                    showModernCommentRefusedAlert();
+                    showShortCommentBlockedPopup("Votre commentaire ne respecte pas les règles de la communauté.");
                     return;
                 }
                 commentInput.clear();
 
                 refreshCommentsList(post, commentsListBox, commentLabel);
+
+            } catch (IllegalArgumentException ex) {
+                showShortCommentBlockedPopup(ex.getMessage());
 
             } catch (Exception ex) {
                 ex.printStackTrace();
@@ -578,7 +577,7 @@ public class BlogController {
                 boolean accepted = commentaireService.commentaireAccepteParModeration(testCommentaire);
 
                 if (!accepted) {
-                    showModernCommentRefusedAlert();
+                    showShortCommentBlockedPopup("Votre commentaire ne respecte pas les règles de la communauté.");
                     return;
                 }
 
@@ -588,8 +587,13 @@ public class BlogController {
                 commentaire.setModeration_label(testCommentaire.getModeration_label());
                 commentaire.setModerated_at(testCommentaire.getModerated_at());
 
-                commentaireService.modifier(commentaire);
-                refreshCommentsList(post, commentsListBox, commentLabel);
+                try {
+                    commentaireService.modifier(commentaire);
+                    refreshCommentsList(post, commentsListBox, commentLabel);
+
+                } catch (IllegalArgumentException ex) {
+                    showShortCommentBlockedPopup(ex.getMessage());
+                }
             }
         });
     }
@@ -1713,6 +1717,97 @@ public class BlogController {
                         "-fx-font-size: 14px;" +
                         "-fx-background-radius: 12;" +
                         "-fx-padding: 10 28;" +
+                        "-fx-cursor: hand;"
+        );
+
+        dialog.showAndWait();
+    }
+
+
+    private void showShortCommentBlockedPopup(String messageText) {
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("Commentaire bloqué");
+        dialog.setHeaderText(null);
+
+        ButtonType closeButton = new ButtonType("Compris", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().add(closeButton);
+
+        VBox root = new VBox(14);
+        root.setAlignment(Pos.CENTER_LEFT);
+        root.setPadding(new Insets(22));
+        root.setPrefWidth(430);
+        root.setStyle(
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 18;" +
+                        "-fx-border-color: #fecaca;" +
+                        "-fx-border-radius: 18;" +
+                        "-fx-border-width: 1;"
+        );
+
+        HBox top = new HBox(12);
+        top.setAlignment(Pos.CENTER_LEFT);
+
+        StackPane iconBox = new StackPane();
+        iconBox.setPrefSize(46, 46);
+        iconBox.setStyle(
+                "-fx-background-color: #fee2e2;" +
+                        "-fx-background-radius: 14;"
+        );
+
+        Label icon = new Label("!");
+        icon.setStyle(
+                "-fx-text-fill: #dc2626;" +
+                        "-fx-font-size: 26px;" +
+                        "-fx-font-weight: bold;"
+        );
+
+        iconBox.getChildren().add(icon);
+
+        VBox textBox = new VBox(4);
+
+        Label title = new Label("Commentaire bloqué");
+        title.setStyle(
+                "-fx-text-fill: #111827;" +
+                        "-fx-font-size: 18px;" +
+                        "-fx-font-weight: bold;"
+        );
+
+        Label subtitle = new Label("Votre commentaire n’a pas été publié.");
+        subtitle.setStyle(
+                "-fx-text-fill: #6b7280;" +
+                        "-fx-font-size: 13px;"
+        );
+
+        textBox.getChildren().addAll(title, subtitle);
+        top.getChildren().addAll(iconBox, textBox);
+
+        Label message = new Label(messageText == null || messageText.isBlank()
+                ? "Veuillez modifier votre commentaire puis réessayer."
+                : messageText);
+        message.setWrapText(true);
+        message.setStyle(
+                "-fx-text-fill: #374151;" +
+                        "-fx-font-size: 14px;" +
+                        "-fx-background-color: #fff7ed;" +
+                        "-fx-padding: 12 14;" +
+                        "-fx-background-radius: 12;"
+        );
+
+        root.getChildren().addAll(top, message);
+
+        dialog.getDialogPane().setContent(root);
+        dialog.getDialogPane().setStyle(
+                "-fx-background-color: transparent;" +
+                        "-fx-padding: 0;"
+        );
+
+        Button closeBtn = (Button) dialog.getDialogPane().lookupButton(closeButton);
+        closeBtn.setStyle(
+                "-fx-background-color: #dc2626;" +
+                        "-fx-text-fill: white;" +
+                        "-fx-font-weight: bold;" +
+                        "-fx-background-radius: 10;" +
+                        "-fx-padding: 8 22;" +
                         "-fx-cursor: hand;"
         );
 

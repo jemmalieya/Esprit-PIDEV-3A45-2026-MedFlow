@@ -242,22 +242,9 @@ public class PanierController {
         imageBox.getStyleClass().add("cart-image-box");
         imageBox.setPrefSize(74, 74);
 
-        String imagePath = produit.getImage_produit();
-        if (imagePath != null && !imagePath.trim().isEmpty()) {
-            try {
-                File file = new File(imagePath);
-                if (file.exists()) {
-                    ImageView imageView = new ImageView(new Image(file.toURI().toString()));
-                    imageView.setFitWidth(60);
-                    imageView.setFitHeight(60);
-                    imageView.setPreserveRatio(true);
-                    imageBox.getChildren().add(imageView);
-                } else {
-                    imageBox.getChildren().add(new Label("🖼"));
-                }
-            } catch (Exception e) {
-                imageBox.getChildren().add(new Label("🖼"));
-            }
+        ImageView imageView = buildProductImageView(produit == null ? null : produit.getImage_produit(), 60, 60);
+        if (imageView != null) {
+            imageBox.getChildren().add(imageView);
         } else {
             imageBox.getChildren().add(new Label("🖼"));
         }
@@ -351,6 +338,37 @@ public class PanierController {
 
         row.getChildren().addAll(imageBox, infoBox, prixBox, qteBox, spacer, totalBox, deleteBtn);
         return row;
+    }
+
+    private ImageView buildProductImageView(String imagePath, double width, double height) {
+        String path = imagePath == null ? "" : imagePath.trim();
+        if (path.isEmpty()) return null;
+
+        try {
+            String source = path;
+            if (!isRemoteImageSource(source)) {
+                File file = new File(source);
+                if (!file.exists()) return null;
+                source = file.toURI().toString();
+            }
+
+            Image image = new Image(source, width, height, true, true, true);
+            if (image.isError()) return null;
+
+            ImageView view = new ImageView(image);
+            view.setFitWidth(width);
+            view.setFitHeight(height);
+            view.setPreserveRatio(true);
+            view.setSmooth(true);
+            return view;
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private boolean isRemoteImageSource(String value) {
+        String source = value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
+        return source.startsWith("http://") || source.startsWith("https://");
     }
 
     // ─────────────────────────────────────────────────────────────────────────

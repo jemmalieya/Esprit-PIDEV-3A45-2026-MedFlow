@@ -874,3 +874,21 @@
 .white-btn:hover {
     -fx-background-color: #f8fbff;
 }
+.commande-toast-success {
+    -fx-background-color: linear-gradient(to right, #16a34a, #22c55e);
+}
+.floating-toast {
+    -fx-background-radius: 14;
+    -fx-padding: 12 16 12 16;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.15), 12, 0.2, 0, 4);
+}
+
+.toast-icon {
+    -fx-font-size: 18px;
+}
+
+.toast-text {
+    -fx-text-fill: white;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}

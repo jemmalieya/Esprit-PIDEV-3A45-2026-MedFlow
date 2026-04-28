@@ -7,6 +7,7 @@ import tn.esprit.tools.MyDataBase;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class RessourceService {
 
@@ -88,6 +89,26 @@ public class RessourceService {
         }
     }
 
+    public void archiver(Ressource r) {
+        String sql = """
+                UPDATE ressource
+                SET est_publique_ressource = ?, date_mise_a_jour_ressource = ?
+                WHERE id = ?
+                """;
+
+        try (PreparedStatement ps = cn.prepareStatement(sql)) {
+            ps.setBoolean(1, false);
+            ps.setDate(2, new java.sql.Date(new java.util.Date().getTime()));
+            ps.setInt(3, r.getId());
+            ps.executeUpdate();
+
+            r.setEst_publique_ressource(false);
+            r.setDate_mise_a_jour_ressource(new java.util.Date());
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+    }
+
     public List<Ressource> recuperer() {
         List<Ressource> list = new ArrayList<>();
         String sql = "SELECT * FROM ressource";
@@ -128,6 +149,54 @@ public class RessourceService {
 
         return list;
     }
+
+    public List<Ressource> recupererParEvenement(int evenementId) {
+        List<Ressource> list = new ArrayList<>();
+        String sql = "SELECT * FROM ressource WHERE evenement_id = ? ORDER BY date_mise_a_jour_ressource DESC, id DESC";
+
+        try (PreparedStatement ps = cn.prepareStatement(sql)) {
+            ps.setInt(1, evenementId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRessource(rs));
+                }
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+
+        return list;
+    }
+
+    public Optional<Ressource> trouverParEvenementNomType(int evenementId, String nom, String type) {
+        String sql = """
+            SELECT *
+            FROM ressource
+            WHERE evenement_id = ?
+              AND LOWER(TRIM(nom_ressource)) = LOWER(TRIM(?))
+              AND LOWER(TRIM(type_ressource)) = LOWER(TRIM(?))
+            ORDER BY id DESC
+            LIMIT 1
+        """;
+
+        try (PreparedStatement ps = cn.prepareStatement(sql)) {
+            ps.setInt(1, evenementId);
+            ps.setString(2, nom);
+            ps.setString(3, type);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return Optional.of(mapRessource(rs));
+                }
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+
+        return Optional.empty();
+    }
+
     public boolean ressourceExisteDeja(int evenementId, String nom, String type) {
         String sql = """
             SELECT COUNT(*)
@@ -178,5 +247,32 @@ public class RessourceService {
         }
 
         return false;
+    }
+
+    private Ressource mapRessource(ResultSet rs) throws SQLException {
+        Ressource r = new Ressource();
+        r.setId(rs.getInt("id"));
+
+        Evenement evenement = new Evenement();
+        evenement.setId(rs.getInt("evenement_id"));
+        r.setEvenement(evenement);
+
+        r.setNom_ressource(rs.getString("nom_ressource"));
+        r.setCategorie_ressource(rs.getString("categorie_ressource"));
+        r.setType_ressource(rs.getString("type_ressource"));
+        r.setChemin_fichier_ressource(rs.getString("chemin_fichier_ressource"));
+        r.setMime_type_ressource(rs.getString("mime_type_ressource"));
+        r.setTaille_kb_ressource(rs.getInt("taille_kb_ressource"));
+        r.setUrl_externe_ressource(rs.getString("url_externe_ressource"));
+        r.setQuantite_disponible_ressource(rs.getInt("quantite_disponible_ressource"));
+        r.setUnite_ressource(rs.getString("unite_ressource"));
+        r.setFournisseur_ressource(rs.getString("fournisseur_ressource"));
+        r.setCout_estime_ressource(rs.getDouble("cout_estime_ressource"));
+        r.setEst_publique_ressource(rs.getBoolean("est_publique_ressource"));
+        r.setNotes_ressource(rs.getString("notes_ressource"));
+        r.setDate_creation_ressource(rs.getDate("date_creation_ressource"));
+        r.setDate_mise_a_jour_ressource(rs.getDate("date_mise_a_jour_ressource"));
+
+        return r;
     }
 }

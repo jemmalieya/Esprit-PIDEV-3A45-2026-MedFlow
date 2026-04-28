@@ -108,7 +108,7 @@
 
                 <Region VBox.vgrow="ALWAYS"/>
 
-                <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="sidebar-item">
+                <HBox alignment="CENTER_LEFT" spacing="10.0" onMouseClicked="#onLogout" styleClass="sidebar-item">
                     <children>
                         <Label text="↪" styleClass="sidebar-item-icon"/>
                         <Label text="Déconnexion" styleClass="sidebar-item-text"/>

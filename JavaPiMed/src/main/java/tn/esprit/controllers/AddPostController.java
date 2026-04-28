@@ -50,6 +50,21 @@ import java.util.List;
 import java.util.Locale;
 import java.io.File;
 
+import javafx.concurrent.Task;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Node;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
+import tn.esprit.entities.OpenAlexReference;
+import tn.esprit.services.OpenAlexService;
+
+import java.awt.Desktop;
+import java.net.URI;
+import java.util.List;
+
+import javafx.scene.control.Dialog;
+
 public class AddPostController {
 
     @FXML private TextField titreField;
@@ -79,6 +94,7 @@ public class AddPostController {
 
     private final PostService postService = new PostService();
     private final GeminiPostAssistantService geminiPostAssistantService = new GeminiPostAssistantService();
+    private final OpenAlexService openAlexService = new OpenAlexService();
 
     private Post postToEdit = null;
     private boolean editMode = false;
@@ -591,40 +607,6 @@ public class AddPostController {
         thread.start();
     }
 
-    private Dialog<Void> createLoadingDialog() {
-        Dialog<Void> dialog = new Dialog<>();
-        dialog.setTitle("Assistant IA");
-        dialog.setHeaderText(null);
-
-        VBox root = new VBox(14);
-        root.setAlignment(Pos.CENTER);
-        root.setPadding(new Insets(28));
-        root.setPrefWidth(420);
-        root.setStyle("-fx-background-color: white; -fx-background-radius: 18;");
-
-        Label icon = new Label("✨");
-        icon.setStyle("-fx-font-size: 42px;");
-
-        Label title = new Label("Assistant IA MedFlow");
-        title.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #111827;");
-
-        Label subtitle = new Label("Analyse du contenu et génération des suggestions...");
-        subtitle.setStyle("-fx-font-size: 14px; -fx-text-fill: #6b7280;");
-        subtitle.setWrapText(true);
-
-        ProgressIndicator loader = new ProgressIndicator();
-        loader.setPrefSize(46, 46);
-
-        root.getChildren().addAll(icon, title, subtitle, loader);
-
-        dialog.getDialogPane().setContent(root);
-        dialog.getDialogPane().getButtonTypes().clear();
-        dialog.getDialogPane().setStyle("-fx-background-color: white;");
-
-        dialog.setOnCloseRequest(e -> closeDialogForce(dialog));
-
-        return dialog;
-    }
 
     private void showAiSuggestionPopup(PostAiSuggestion suggestion) {
         Dialog<ButtonType> dialog = new Dialog<>();
@@ -1634,5 +1616,256 @@ public class AddPostController {
             cloudinaryPostService = new CloudinaryPostService();
         }
         return cloudinaryPostService;
+    }
+
+    @FXML
+    private void handleFindScientificReferences() {
+        String title = titreField.getText() == null ? "" : titreField.getText().trim();
+        String content = contenuArea.getText() == null ? "" : contenuArea.getText().trim();
+
+        String query = (title + " " + content).trim();
+
+        if (query.isBlank()) {
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("Références scientifiques");
+            alert.setHeaderText(null);
+            alert.setContentText("Veuillez saisir un titre ou un contenu pour chercher des références.");
+            alert.showAndWait();
+            return;
+        }
+
+        Dialog<Void> loadingDialog = createLoadingDialog();
+        loadingDialog.show();
+
+        Task<List<OpenAlexReference>> task = new Task<>() {
+            @Override
+            protected List<OpenAlexReference> call() throws Exception {
+                return openAlexService.searchReferences(query, 5);
+            }
+        };
+
+        task.setOnSucceeded(event -> {
+            loadingDialog.close();
+
+            List<OpenAlexReference> references = task.getValue();
+
+            if (references == null || references.isEmpty()) {
+                Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                alert.setTitle("Références scientifiques");
+                alert.setHeaderText(null);
+                alert.setContentText("Aucune référence scientifique trouvée pour ce sujet.");
+                alert.showAndWait();
+                return;
+            }
+
+            showScientificReferencesDialog(references);
+        });
+
+        task.setOnFailed(event -> {
+            loadingDialog.close();
+
+            Throwable ex = task.getException();
+
+            if (ex != null) {
+                ex.printStackTrace();
+            }
+
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Erreur OpenAlex");
+            alert.setHeaderText(null);
+            alert.setContentText("Impossible de récupérer les références scientifiques. Vérifiez votre connexion Internet ou votre clé API.");
+            alert.showAndWait();
+        });
+
+        Thread thread = new Thread(task);
+        thread.setDaemon(true);
+        thread.start();
+    }
+
+    private Dialog<Void> createLoadingDialog() {
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("Recherche");
+        dialog.setHeaderText(null);
+
+        VBox root = new VBox(14);
+        root.setAlignment(Pos.CENTER);
+        root.setPadding(new Insets(25));
+        root.setPrefWidth(350);
+
+        ProgressIndicator progress = new ProgressIndicator();
+        progress.setPrefSize(55, 55);
+
+        Label text = new Label("Recherche des références scientifiques...");
+        text.setStyle("-fx-font-size: 14px; -fx-text-fill: #374151;");
+
+        root.getChildren().addAll(progress, text);
+
+        dialog.getDialogPane().setContent(root);
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CANCEL);
+
+        return dialog;
+    }
+
+    private void showScientificReferencesDialog(List<OpenAlexReference> references) {
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("Références scientifiques");
+        dialog.setHeaderText(null);
+
+        ButtonType closeButton = new ButtonType("Fermer", ButtonBar.ButtonData.CANCEL_CLOSE);
+        dialog.getDialogPane().getButtonTypes().add(closeButton);
+
+        VBox root = new VBox(16);
+        root.setPadding(new Insets(22));
+        root.setPrefWidth(820);
+        root.setStyle(
+                "-fx-background-color: #f8fafc;" +
+                        "-fx-background-radius: 18;"
+        );
+
+        Label title = new Label("📚 Références scientifiques suggérées");
+        title.setStyle(
+                "-fx-font-size: 24px;" +
+                        "-fx-font-weight: bold;" +
+                        "-fx-text-fill: #111827;"
+        );
+
+        Label subtitle = new Label("Ces références proviennent d’OpenAlex et sont liées au titre/contenu du post.");
+        subtitle.setWrapText(true);
+        subtitle.setStyle(
+                "-fx-font-size: 13px;" +
+                        "-fx-text-fill: #6b7280;"
+        );
+
+        VBox listBox = new VBox(12);
+
+        for (OpenAlexReference reference : references) {
+            listBox.getChildren().add(createReferenceCard(reference, dialog));
+        }
+
+        ScrollPane scrollPane = new ScrollPane(listBox);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setPrefHeight(500);
+        scrollPane.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
+
+        root.getChildren().addAll(title, subtitle, scrollPane);
+
+        dialog.getDialogPane().setContent(root);
+        dialog.getDialogPane().setStyle(
+                "-fx-background-color: transparent;" +
+                        "-fx-padding: 0;"
+        );
+
+        Button closeBtn = (Button) dialog.getDialogPane().lookupButton(closeButton);
+        closeBtn.setStyle(
+                "-fx-background-color: #e5e7eb;" +
+                        "-fx-text-fill: #111827;" +
+                        "-fx-font-weight: bold;" +
+                        "-fx-background-radius: 10;" +
+                        "-fx-padding: 8 20;" +
+                        "-fx-cursor: hand;"
+        );
+
+        dialog.showAndWait();
+    }
+
+    private Node createReferenceCard(OpenAlexReference reference, Dialog<Void> dialog) {
+        VBox card = new VBox(10);
+        card.setPadding(new Insets(16));
+        card.setStyle(
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 16;" +
+                        "-fx-border-color: #e5e7eb;" +
+                        "-fx-border-radius: 16;" +
+                        "-fx-effect: dropshadow(gaussian, rgba(15,23,42,0.08), 12, 0, 0, 4);"
+        );
+
+        Label title = new Label(reference.getTitle());
+        title.setWrapText(true);
+        title.setStyle(
+                "-fx-font-size: 16px;" +
+                        "-fx-font-weight: bold;" +
+                        "-fx-text-fill: #111827;"
+        );
+
+        Label meta = new Label(
+                "Année : " + (reference.getYear() > 0 ? reference.getYear() : "Inconnue")
+                        + "  ·  Source : " + safe(reference.getSource())
+                        + "  ·  Citations : " + reference.getCitationCount()
+        );
+        meta.setWrapText(true);
+        meta.setStyle("-fx-font-size: 12px; -fx-text-fill: #6b7280;");
+
+        Label authors = new Label("Auteurs : " + safe(reference.getAuthors()));
+        authors.setWrapText(true);
+        authors.setStyle("-fx-font-size: 13px; -fx-text-fill: #374151;");
+
+        Label link = new Label("Lien : " + safe(reference.getUrl()));
+        link.setWrapText(true);
+        link.setStyle("-fx-font-size: 12px; -fx-text-fill: #2563eb;");
+
+        HBox actions = new HBox(10);
+        actions.setAlignment(Pos.CENTER_LEFT);
+
+        Button openBtn = new Button("Ouvrir le lien");
+        openBtn.setStyle(
+                "-fx-background-color: #eff6ff;" +
+                        "-fx-text-fill: #2563eb;" +
+                        "-fx-font-weight: bold;" +
+                        "-fx-background-radius: 10;" +
+                        "-fx-padding: 8 14;" +
+                        "-fx-cursor: hand;"
+        );
+
+        Button addBtn = new Button("Ajouter au post");
+        addBtn.setStyle(
+                "-fx-background-color: #0891b2;" +
+                        "-fx-text-fill: white;" +
+                        "-fx-font-weight: bold;" +
+                        "-fx-background-radius: 10;" +
+                        "-fx-padding: 8 14;" +
+                        "-fx-cursor: hand;"
+        );
+
+        openBtn.setOnAction(e -> openReferenceLink(reference));
+
+        addBtn.setOnAction(e -> {
+            String oldContent = contenuArea.getText() == null ? "" : contenuArea.getText();
+            contenuArea.setText(oldContent + reference.toPostReferenceText());
+            dialog.close();
+        });
+
+        actions.getChildren().addAll(openBtn, addBtn);
+
+        card.getChildren().addAll(title, meta, authors, link, actions);
+
+        return card;
+    }
+
+    private void openReferenceLink(OpenAlexReference reference) {
+        try {
+            if (reference.getUrl() == null || reference.getUrl().isBlank()) {
+                Alert alert = new Alert(Alert.AlertType.WARNING);
+                alert.setTitle("Lien indisponible");
+                alert.setHeaderText(null);
+                alert.setContentText("Cette référence ne contient pas de lien.");
+                alert.showAndWait();
+                return;
+            }
+
+            Desktop.getDesktop().browse(new URI(reference.getUrl()));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Erreur");
+            alert.setHeaderText(null);
+            alert.setContentText("Impossible d'ouvrir le lien de la référence.");
+            alert.showAndWait();
+        }
+    }
+
+    private String safe(String value) {
+        return value == null || value.isBlank() ? "Non disponible" : value;
     }
 }

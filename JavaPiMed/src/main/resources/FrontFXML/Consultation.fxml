@@ -259,6 +259,7 @@
                                             <TableColumn fx:id="recordColDuration" text="Duration" prefWidth="110"/>
                                             <TableColumn fx:id="recordColSignature" text="Signature" prefWidth="140"/>
                                             <TableColumn fx:id="recordColActions" text="Action" prefWidth="90"/>
+                                            <TableColumn fx:id="recordColDownloadPdf" text="Download PDF" prefWidth="150"/>
                                         </columns>
                                     </TableView>
 
@@ -272,6 +273,7 @@
                                                 <TableColumn fx:id="recordPrescriptionDoseColumn" text="Dose" prefWidth="100"/>
                                                 <TableColumn fx:id="recordPrescriptionFrequenceColumn" text="Fréquence" prefWidth="130"/>
                                                 <TableColumn fx:id="recordPrescriptionInstructionsColumn" text="Instructions" prefWidth="220"/>
+                                                <TableColumn fx:id="recordPrescriptionDownloadColumn" text="Download PDF" prefWidth="150"/>
                                             </columns>
                                         </TableView>
 
@@ -299,6 +301,10 @@
                                             <Label text="Conversation history" styleClass="card-title"/>
                                             <Label text="User and AI messages stay visible here as a running log." styleClass="helper-text" wrapText="true"/>
                                         </VBox>
+                                        <Button fx:id="aiVoiceOutputToggleButton"
+                                                text="🔊 Voice On"
+                                                styleClass="ai-chip"
+                                                onAction="#handleToggleAiVoiceOutput"/>
                                         <Label text="Session active" styleClass="ai-status-badge"/>
                                     </HBox>
 

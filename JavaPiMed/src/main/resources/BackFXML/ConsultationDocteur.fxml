@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?import javafx.scene.chart.*?>
 <?import javafx.scene.control.*?>
+<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.*?>
 
 <AnchorPane xmlns:fx="http://javafx.com/fxml" fx:controller="tn.esprit.controllers.ConsultationDocteur" prefWidth="1400" prefHeight="800" styleClass="root-pane" stylesheets="@CSS/dashboardBackCSS.css,@../CSS/commande_back.css">
@@ -351,6 +352,43 @@
                                                 <TextArea fx:id="resultatsExamensField" promptText="Resultats biologiques / imagerie..." prefRowCount="3" wrapText="true" styleClass="fiche-textarea" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
                                                 <Label fx:id="resultatsExamensValidationLabel" text="" wrapText="true" GridPane.rowIndex="2" GridPane.columnIndex="2" styleClass="validation-message,validation-message-error"/>
                                             </GridPane>
+
+                                            <VBox spacing="8" styleClass="detail-section-divider">
+                                                <Label text="Signature" styleClass="fiche-field-label"/>
+                                                <Label text="La camera s'ouvre dans l'application. La main du docteur est detectee avec ses points d'articulation, puis un pincement pouce-index permet de dessiner la signature." styleClass="consultation-book-text" wrapText="true"/>
+                                                <HBox spacing="12" alignment="TOP_LEFT">
+                                                    <StackPane fx:id="signatureCameraContainer"
+                                                               prefHeight="320"
+                                                               minHeight="320"
+                                                               maxHeight="320"
+                                                               prefWidth="0"
+                                                               HBox.hgrow="ALWAYS"
+                                                               styleClass="mini-image-box"/>
+                                                    <VBox spacing="8" prefWidth="220" minWidth="220" maxWidth="220">
+                                                        <Label text="Apercu capture" styleClass="fiche-field-label"/>
+                                                        <StackPane prefHeight="320"
+                                                                   minHeight="320"
+                                                                   maxHeight="320"
+                                                                   styleClass="mini-image-box">
+                                                            <ImageView fx:id="signaturePreviewImageView"
+                                                                       fitWidth="200"
+                                                                       fitHeight="280"
+                                                                       preserveRatio="true"
+                                                                       pickOnBounds="true"/>
+                                                            <Label fx:id="signaturePreviewPlaceholderLabel"
+                                                                   text="La signature capturee apparait ici."
+                                                                   wrapText="true"
+                                                                   style="-fx-text-fill: #64748b;"
+                                                                   styleClass="detail-date"/>
+                                                        </StackPane>
+                                                    </VBox>
+                                                </HBox>
+                                                <HBox spacing="10" alignment="CENTER_LEFT">
+                                                    <Button fx:id="captureSignatureButton" text="Capturer la signature" onAction="#handleCaptureSignature" styleClass="fiche-primary-button"/>
+                                                    <Button fx:id="clearSignatureButton" text="Effacer la signature" onAction="#handleClearSignature" styleClass="fiche-secondary-button"/>
+                                                    <Label fx:id="signatureStatusLabel" text="Aucune signature capturee." wrapText="true" styleClass="detail-date"/>
+                                                </HBox>
+                                            </VBox>
                                         </VBox>
                                     </VBox>
 

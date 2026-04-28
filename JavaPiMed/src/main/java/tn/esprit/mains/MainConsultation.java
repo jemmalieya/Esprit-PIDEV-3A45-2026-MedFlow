@@ -10,10 +10,48 @@ import java.sql.SQLException;
 
 import tn.esprit.tools.MyDataBase;
 
-public class MainConsultation  {
+public class MainConsultation {
 
 
-    public static void main(String[] args) {
+
+        public static void main(String[] args) throws Exception {
+            String text = "Hello from Java";
+
+            String command = "Add-Type -AssemblyName System.Speech; " +
+                    "$speak = New-Object System.Speech.Synthesis.SpeechSynthesizer; " +
+                    "$speak.Speak('" + text + "');";
+
+            ProcessBuilder pb = new ProcessBuilder(
+                    "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+                    "-NoProfile",
+                    "-ExecutionPolicy", "Bypass",
+                    "-Command",
+                    "Add-Type -AssemblyName System.Speech; " +
+                            "$speak = New-Object System.Speech.Synthesis.SpeechSynthesizer; " +
+                            "$speak.Speak('Bonjour, ceci est un test');"
+            );
+
+            pb.inheritIO();
+
+            Process process = pb.start();
+            int exitCode = process.waitFor();
+
+            System.out.println("Exit code = " + exitCode);
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+   /* public static void main(String[] args) {
 
        
         
@@ -58,10 +96,10 @@ public class MainConsultation  {
                 System.out.println(r);
             }
         }
-*/
+
         ///////////////////////FicheMedicale CRUD Test////////////////////////////////////
          FicheMedicaleService fmService = new FicheMedicaleService();
-      /*  FicheMedicale fm = new FicheMedicale(
+        FicheMedicale fm = new FicheMedicale(
                 64, 
                 "diagnostic test", 
                 "observations test", 
@@ -97,7 +135,7 @@ public class MainConsultation  {
                 System.out.println(f);
             }
         }
-*/
+
         ///////////////////////Prescription CRUD Test////////////////////////////////////
         /// 
         PrescriptionService pService = new PrescriptionService();
@@ -134,8 +172,8 @@ public class MainConsultation  {
                 System.out.println(pr);
             }
         }
-*/
 
     }
 
 }
+*/

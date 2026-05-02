@@ -18,6 +18,13 @@ public class GeminiPostAssistantService {
     public GeminiPostAssistantService() {
         this.apiKey = System.getenv("GEMINI_API_KEY");
         this.httpClient = HttpClient.newHttpClient();
+        
+        if (this.apiKey == null) {
+            System.err.println("[Gemini] ✗ GEMINI_API_KEY non trouvée dans les variables d'environnement");
+            System.err.println("[Gemini] Vérifiez que JetBrains a bien lancé l'app avec les env vars du run config");
+        } else {
+            System.out.println("[Gemini] ✓ GEMINI_API_KEY chargée avec succès");
+        }
     }
 
     public PostAiSuggestion improvePost(String rawContent) {

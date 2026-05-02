@@ -200,7 +200,7 @@ public class CommandeController {
     @FXML private StackPane stripeWebContainer;
     private final StripeCheckoutService stripeCheckoutService = new StripeCheckoutService();
     private final StripeCallbackServer stripeCallbackServer = new StripeCallbackServer();
-   // private final SmsService smsService = new SmsService();
+ //  private final SmsService smsService = new SmsService();
    private final CommandeAnalyseIAService analyseIAService = new CommandeAnalyseIAService();
 
 
@@ -2305,7 +2305,7 @@ public class CommandeController {
                 return;
             }
 //NA7I
-           /* User user = SessionManager.getCurrentUser();
+           /*User user = SessionManager.getCurrentUser();
             boolean smsEnvoye = smsService.envoyerSmsConfirmationCommande(user, commande);
 
             if (smsEnvoye) {
@@ -2335,7 +2335,7 @@ public class CommandeController {
                     "commande-toast-success",
                     "✅"
             ));
-           /*Platform.runLater(() -> showToastOnStage(
+          /* Platform.runLater(() -> showToastOnStage(
                     stage,
                     smsEnvoye
                             ? "Paiement effectué avec succès. SMS de confirmation envoyé."

@@ -7,15 +7,15 @@ public class SystemNotification {
 
     private static TrayIcon trayIcon;
 
-    public static void initTray() {
+    public static boolean initTray() {
         try {
             if (!SystemTray.isSupported()) {
                 System.out.println("SystemTray non supporté");
-                return;
+                return false;
             }
 
             if (trayIcon != null) {
-                return;
+                return true;
             }
 
             SystemTray tray = SystemTray.getSystemTray();
@@ -30,21 +30,29 @@ public class SystemNotification {
             trayIcon.setImageAutoSize(true);
 
             tray.add(trayIcon);
+            return true;
 
         } catch (Exception e) {
             e.printStackTrace();
+            return false;
         }
     }
 
-    public static void showNotification(String title, String message) {
+    public static boolean showNotification(String title, String message) {
         try {
-            initTray();
+            if (!initTray()) {
+                return false;
+            }
 
             if (trayIcon != null) {
                 trayIcon.displayMessage(title, message, TrayIcon.MessageType.INFO);
+                return true;
             }
+
+            return false;
         } catch (Exception e) {
             e.printStackTrace();
+            return false;
         }
     }
 }

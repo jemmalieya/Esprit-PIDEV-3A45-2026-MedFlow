@@ -42,6 +42,8 @@ public class ReclamationListController {
     @FXML
     public void initialize() {
 
+        SystemNotification.initTray();
+
         colContenu.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("contenu"));
         colDescription.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("description"));
         colType.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("type"));
@@ -376,12 +378,14 @@ public class ReclamationListController {
                 boolean hasUnread = reponseService.hasUnreadAdminResponseForPatient(r.getId_reclamation());
 
                 if (hasUnread && !r.isNotification_envoyee()) {
-                    SystemNotification.showNotification(
+                    boolean notified = SystemNotification.showNotification(
                             "Nouvelle réponse admin",
                             "Votre réclamation " + r.getReference_reclamation() + " a reçu une nouvelle réponse."
                     );
 
-                    reclamationService.updateNotificationEnvoyee(r.getId_reclamation(), true);
+                    if (notified) {
+                        reclamationService.updateNotificationEnvoyee(r.getId_reclamation(), true);
+                    }
                 }
             }
 

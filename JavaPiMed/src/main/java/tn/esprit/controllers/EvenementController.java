@@ -111,7 +111,7 @@ public class EvenementController {
     @FXML private TableColumn<Evenement, Void> actionsCol;
 
     @FXML private VBox submenuVBox;
- //   @FXML private Button voirTousBtn;
+    //   @FXML private Button voirTousBtn;
 
     //el container mta3 el events
     @FXML private FlowPane cardsContainer;
@@ -3899,6 +3899,7 @@ public class EvenementController {
             } else {
                 appendCareReply(conversation, "MedFlow local: "
                         + cancellationCareService.replyToMessage(message, ev, user, alternatives, cancellationReason));
+                appendCareReply(conversation, "Diagnostic HF: " + reason);
                 aiStatus.setText("Hugging Face indisponible, reponse locale utilisee: " + shortText(reason, 90));
             }
             if (sendButton != null) {

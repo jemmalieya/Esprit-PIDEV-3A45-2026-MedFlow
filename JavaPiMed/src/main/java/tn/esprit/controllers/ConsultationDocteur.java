@@ -38,8 +38,6 @@ import javafx.scene.shape.Circle;
 import javafx.scene.shape.Line;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.Polyline;
-import javafx.scene.web.WebEngine;
-import javafx.scene.web.WebView;
 import javafx.scene.paint.Color;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.stage.FileChooser;
@@ -55,6 +53,7 @@ import tn.esprit.entities.Prescription;
 import tn.esprit.entities.RendezVous;
 import tn.esprit.entities.User;
 import tn.esprit.services.BrevoEmailService;
+import tn.esprit.services.EmbeddedChromiumService;
 import tn.esprit.services.FicheMedicaleService;
 import tn.esprit.services.HandTrackingService;
 import tn.esprit.services.PrescriptionService;
@@ -355,9 +354,8 @@ public class ConsultationDocteur {
     private List<Prescription> prescriptionsSnapshot = new ArrayList<>();
     private boolean distancielConsultationActive;
     private String activeJitsiRoomName;
-    private WebView jitsiWebView;
-    private boolean jitsiEmbedInitializationAttempted;
-    private boolean jitsiEmbedSupported;
+    private final EmbeddedChromiumService embeddedChromiumService = new EmbeddedChromiumService();
+    private EmbeddedChromiumService.BrowserWindowSession jitsiBrowserSession;
     private Webcam signatureWebcam;
     private Thread signatureCameraThread;
     private ImageView signatureCameraView;
@@ -1436,16 +1434,34 @@ public class ConsultationDocteur {
             jitsiRoomUrlLabel.setText("Room URL: " + url);
         }
 
-        if (ensureEmbeddedJitsiView()) {
-            WebEngine engine = jitsiWebView.getEngine();
-            engine.load(url);
-            if (jitsiStatusLabel != null) {
-                jitsiStatusLabel.setText("Embedded call started for room: " + activeJitsiRoomName);
+        if (jitsiStatusLabel != null) {
+            jitsiStatusLabel.setText("Opening Jitsi room in embedded browser: " + activeJitsiRoomName);
+        }
+
+        try {
+            // Close any existing session
+            if (jitsiBrowserSession != null) {
+                jitsiBrowserSession.close();
             }
-        } else {
-            openJitsiInBrowser(url);
+
+            // Create new embedded Chromium window for Jitsi
+            jitsiBrowserSession = embeddedChromiumService.createBrowserWindowSession(
+                    "MedFlow - Consultation Distanciel",
+                    url,
+                    message -> {
+                        if (jitsiStatusLabel != null && message != null && !message.isBlank()) {
+                            jitsiStatusLabel.setText(message);
+                        }
+                    }
+            );
+            jitsiBrowserSession.show();
+
             if (jitsiStatusLabel != null) {
-                jitsiStatusLabel.setText("Embedded call unavailable on this runtime. Opened in browser for room: " + activeJitsiRoomName);
+                jitsiStatusLabel.setText("Embedded Jitsi call window opened for room: " + activeJitsiRoomName);
+            }
+        } catch (Exception ex) {
+            if (jitsiStatusLabel != null) {
+                jitsiStatusLabel.setText("Failed to open Jitsi: " + ex.getMessage());
             }
         }
 
@@ -1501,20 +1517,29 @@ public class ConsultationDocteur {
     }
 
     private void stopJitsiCall() {
-        if (jitsiWebView != null) {
-            jitsiWebView.getEngine().loadContent("<html><body style='font-family:Segoe UI,Arial;padding:16px;color:#334155;'>Video call is not active.</body></html>");
+        if (jitsiBrowserSession != null) {
+            jitsiBrowserSession.close();
+            jitsiBrowserSession = null;
         }
 
         activeJitsiRoomName = null;
 
         if (jitsiStatusLabel != null) {
-            jitsiStatusLabel.setText("Video call marked as ended.");
+            jitsiStatusLabel.setText("Video call ended.");
         }
         if (jitsiRoomUrlLabel != null) {
             jitsiRoomUrlLabel.setText("Room URL: -");
         }
         if (leaveCallButton != null) {
             leaveCallButton.setDisable(true);
+        }
+
+        if (jitsiWebContainer != null) {
+            jitsiWebContainer.getChildren().clear();
+            Label placeholder = new Label("Video call is not active.");
+            placeholder.setWrapText(true);
+            placeholder.setStyle("-fx-text-fill: #334155; -fx-font-family: 'Segoe UI'; -fx-font-size: 15px; -fx-padding: 16;");
+            jitsiWebContainer.getChildren().add(placeholder);
         }
     }
 
@@ -1539,41 +1564,9 @@ public class ConsultationDocteur {
     }
 
     private boolean ensureEmbeddedJitsiView() {
-        if (jitsiEmbedInitializationAttempted) {
-            return jitsiEmbedSupported;
-        }
-
-        jitsiEmbedInitializationAttempted = true;
-        if (jitsiWebContainer == null) {
-            jitsiEmbedSupported = false;
-            return false;
-        }
-
-        try {
-            jitsiWebView = new WebView();
-            jitsiWebView.setContextMenuEnabled(true);
-            jitsiWebContainer.getChildren().setAll(jitsiWebView);
-            jitsiEmbedSupported = true;
-        } catch (Throwable ex) {
-            jitsiEmbedSupported = false;
-            if (jitsiStatusLabel != null) {
-                jitsiStatusLabel.setText("Embedded video failed to initialize. Browser fallback will be used.");
-            }
-        }
-
-        return jitsiEmbedSupported;
-    }
-
-    private void openJitsiInBrowser(String url) {
-        try {
-            if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
-                Desktop.getDesktop().browse(URI.create(url));
-            } else {
-                showError("Browser unavailable", "Cannot open browser automatically on this environment.\nOpen this URL manually:\n" + url);
-            }
-        } catch (IOException ex) {
-            showError("Jitsi launch failed", "Failed to open Jitsi call in browser: " + ex.getMessage());
-        }
+        // With BrowserWindowSession, we don't need pre-initialization
+        // The window is created on-demand in startJitsiCall()
+        return true;
     }
 
     private void updatePageButtons(int page) {

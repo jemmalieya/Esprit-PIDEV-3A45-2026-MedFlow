@@ -17,6 +17,13 @@
         <jcefmaven.version>143.0.14</jcefmaven.version>
     </properties>
     <dependencies>
+                <!-- Local JCEF dependency (install jcef.jar into local repo or change coordinates) -->
+                <dependency>
+                    <groupId>org.jcef</groupId>
+                    <artifactId>jcef</artifactId>
+                    <version>1.0</version>
+                </dependency>
+
         <dependency>
             <groupId>mysql</groupId>
             <artifactId>mysql-connector-java</artifactId>

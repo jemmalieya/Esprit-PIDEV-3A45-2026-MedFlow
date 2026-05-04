@@ -6,12 +6,12 @@ import me.friwi.jcefmaven.CefAppBuilder;
 import me.friwi.jcefmaven.MavenCefAppHandlerAdapter;
 import org.cef.CefApp;
 import org.cef.CefClient;
+import org.cef.CefSettings;
 import org.cef.browser.CefBrowser;
 import org.cef.browser.CefMessageRouter;
 import org.cef.callback.CefQueryCallback;
 import org.cef.handler.CefDisplayHandlerAdapter;
 import org.cef.handler.CefLifeSpanHandlerAdapter;
-import org.cef.handler.CefLoadHandlerAdapter;
 import org.cef.handler.CefMessageRouterHandlerAdapter;
 
 import javax.swing.JComponent;
@@ -33,6 +33,8 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 public class EmbeddedChromiumService {
@@ -44,6 +46,10 @@ public class EmbeddedChromiumService {
     private static volatile RuntimeException initFailure;
     private static final Set<BrowserWindowSession> OPEN_WINDOWS = ConcurrentHashMap.newKeySet();
     private static volatile boolean noisyConsoleSuppressed;
+
+    static {
+        suppressWebcamLoggerNoise();
+    }
 
     public BrowserSession createBrowserSession(String initialUrl, Consumer<String> statusConsumer) {
         return createBrowserSession(initialUrl, statusConsumer, null);
@@ -61,22 +67,6 @@ public class EmbeddedChromiumService {
                 public void onStatusMessage(CefBrowser browser, String value) {
                     if (value != null && !value.isBlank()) {
                         Platform.runLater(() -> statusConsumer.accept(value));
-                    }
-                }
-            });
-
-            client.addLoadHandler(new CefLoadHandlerAdapter() {
-                @Override
-                public void onLoadEnd(CefBrowser browser, org.cef.browser.CefFrame frame, int httpStatusCode) {
-                    if (frame != null && frame.isMain()) {
-                        Platform.runLater(() -> statusConsumer.accept("Salle chargee dans Chromium embarque."));
-                    }
-                }
-
-                @Override
-                public void onLoadError(CefBrowser browser, org.cef.browser.CefFrame frame, org.cef.handler.CefLoadHandler.ErrorCode errorCode, String errorText, String failedUrl) {
-                    if (frame != null && frame.isMain()) {
-                        Platform.runLater(() -> statusConsumer.accept("Erreur Chromium: " + errorText));
                     }
                 }
             });
@@ -115,18 +105,185 @@ public class EmbeddedChromiumService {
             client.addMessageRouter(router);
         }
 
-        CefBrowser browser = client.createBrowser(initialUrl, false, false);
+        System.out.println("[JITSI-DEBUG] Creating CefBrowser on thread: " + Thread.currentThread().getName());
+        
+        // Create browser on Swing EDT to ensure proper native window initialization
+        final CefBrowser[] browserArray = new CefBrowser[1];
+        final CountDownLatch creationLatch = new CountDownLatch(1);
+        
+        SwingUtilities.invokeLater(() -> {
+            try {
+                System.out.println("[JITSI-DEBUG] CefBrowser.createBrowser() executing on Swing EDT");
+                System.out.println("[JITSI-DEBUG] Loading URL: " + initialUrl);
+                browserArray[0] = client.createBrowser(initialUrl, false, false);
+                System.out.println("[JITSI-DEBUG] CefBrowser created and initialized: " + browserArray[0]);
+                System.out.println("[JITSI-DEBUG] Browser ready to render, native window should be visible");
+            } finally {
+                creationLatch.countDown();
+            }
+        });
+        
+        // Wait for browser to be created (up to 10 seconds)
+        try {
+            if (!creationLatch.await(10, TimeUnit.SECONDS)) {
+                throw new RuntimeException("CefBrowser creation timed out (10 seconds)");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("CefBrowser creation interrupted", e);
+        }
+        
+        if (browserArray[0] == null) {
+            throw new RuntimeException("CefBrowser creation failed - null result");
+        }
+        
+        CefBrowser browser = browserArray[0];
         browserRef[0] = browser;
+
+        System.out.println("[JITSI-DEBUG] Browser created: " + browser);
+        System.out.println("[JITSI-DEBUG] Browser UIComponent: " + browser.getUIComponent());
 
         JPanel panel = new JPanel(new BorderLayout());
         Component browserUi = browser.getUIComponent();
+        System.out.println("[JITSI-DEBUG] Adding browser component to JPanel");
         panel.add(browserUi, BorderLayout.CENTER);
+        
+        // CRITICAL: Explicitly set size on the browser component itself
+        System.out.println("[JITSI-DEBUG] Setting browser component bounds to 0,0,1024,600");
+        browserUi.setBounds(0, 0, 1024, 600);
+        browserUi.validate();
+        System.out.println("[JITSI-DEBUG] Browser component after setBounds: " + browserUi.getBounds());
+        
+        // Set panel size constraints
+        panel.setPreferredSize(new java.awt.Dimension(1024, 600));
+        panel.setMinimumSize(new java.awt.Dimension(320, 220));
+        panel.setBounds(0, 0, 1024, 600);
+        panel.validate();
+        panel.doLayout();
+        
+        System.out.println("[JITSI-DEBUG] JPanel final state: " + panel);
+        System.out.println("[JITSI-DEBUG] JPanel bounds: " + panel.getBounds());
+        System.out.println("[JITSI-DEBUG] JPanel component count: " + panel.getComponentCount());
+        System.out.println("[JITSI-DEBUG] Browser component final bounds: " + browserUi.getBounds());
 
         return new BrowserSession(client, browser, panel);
     }
 
     public void attachToSwingNode(SwingNode swingNode, BrowserSession session) {
-        SwingUtilities.invokeLater(() -> swingNode.setContent(session.component()));
+        System.out.println("[JITSI-DEBUG] attachToSwingNode called");
+        System.out.println("[JITSI-DEBUG] Session component: " + session.component());
+        System.out.println("[JITSI-DEBUG] Component is visible: " + session.component().isVisible());
+        
+        SwingUtilities.invokeLater(() -> {
+            System.out.println("[JITSI-DEBUG] *** Attaching JPanel to SwingNode on Swing EDT ***");
+            swingNode.setContent(session.component());
+            System.out.println("[JITSI-DEBUG] *** SwingNode.setContent() completed ***");
+            
+            // Force Swing to repaint the entire tree
+            session.component().revalidate();
+            session.component().repaint();
+            System.out.println("[JITSI-DEBUG] Component revalidated and repainted");
+        });
+        
+        // Small delay to let Chromium window initialize and render
+        System.out.println("[JITSI-DEBUG] Waiting 1 second for Chromium to initialize rendering...");
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        System.out.println("[JITSI-DEBUG] attachToSwingNode completed");
+    }
+
+    /**
+     * Create a CefBrowser and attach it into the provided SwingNode.
+     * This method inserts an empty JPanel into the SwingNode first so JavaFX
+     * has a visible Swing parent, then creates the browser on the Swing EDT
+     * and adds its native UI component into that panel.
+     */
+    public void createAndAttachBrowser(SwingNode swingNode, String initialUrl, Consumer<String> statusConsumer) {
+        // Work off the FX thread to avoid blocking it
+        new Thread(() -> {
+            try {
+                // Prepare an empty panel and attach it to the SwingNode first
+                JPanel placeholder = new JPanel(new BorderLayout());
+                SwingUtilities.invokeAndWait(() -> swingNode.setContent(placeholder));
+
+                // Give JavaFX a short moment to layout the SwingNode
+                try { Thread.sleep(100); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
+
+                // Create CefClient and browser on Swing EDT and attach to panel
+                CefApp app = ensureApp();
+                CefClient client = app.createClient();
+
+                if (statusConsumer != null) {
+                    client.addDisplayHandler(new CefDisplayHandlerAdapter() {
+                        @Override
+                        public void onStatusMessage(CefBrowser browser, String value) {
+                            if (value != null && !value.isBlank()) {
+                                Platform.runLater(() -> statusConsumer.accept(value));
+                            }
+                        }
+                    });
+                }
+
+                final CefBrowser[] browserHolder = new CefBrowser[1];
+                final java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
+
+                SwingUtilities.invokeLater(() -> {
+                    try {
+                        CefBrowser browser = client.createBrowser(initialUrl, false, false);
+                        browserHolder[0] = browser;
+                        Component ui = browser.getUIComponent();
+                        placeholder.add(ui, BorderLayout.CENTER);
+                        ui.setBounds(0, 0, placeholder.getWidth() > 0 ? placeholder.getWidth() : 1024,
+                                     placeholder.getHeight() > 0 ? placeholder.getHeight() : 600);
+                        placeholder.revalidate();
+                        placeholder.repaint();
+                    } finally {
+                        latch.countDown();
+                    }
+                });
+
+                // Wait for browser creation to complete
+                try {
+                    if (!latch.await(10, java.util.concurrent.TimeUnit.SECONDS)) {
+                        throw new RuntimeException("Timed out creating CefBrowser");
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException(e);
+                }
+
+                CefBrowser browser = browserHolder[0];
+                if (browser == null) {
+                    throw new RuntimeException("Failed to create CefBrowser");
+                }
+
+                // Optionally expose status consumer messages on load events
+                client.addLoadHandler(new org.cef.handler.CefLoadHandlerAdapter() {
+                    @Override
+                    public void onLoadEnd(CefBrowser browser, org.cef.browser.CefFrame frame, int httpStatusCode) {
+                        if (frame != null && frame.isMain() && statusConsumer != null) {
+                            Platform.runLater(() -> statusConsumer.accept("Salle chargee dans Chromium embarque."));
+                        }
+                    }
+
+                    @Override
+                    public void onLoadError(CefBrowser browser, org.cef.browser.CefFrame frame, org.cef.handler.CefLoadHandler.ErrorCode errorCode, String errorText, String failedUrl) {
+                        if (frame != null && frame.isMain() && statusConsumer != null) {
+                            Platform.runLater(() -> statusConsumer.accept("Erreur Chromium: " + errorText));
+                        }
+                    }
+                });
+
+            } catch (Throwable t) {
+                t.printStackTrace();
+                if (statusConsumer != null) {
+                    Platform.runLater(() -> statusConsumer.accept("Chromium embedding failed: " + t.getMessage()));
+                }
+            }
+        }, "jcef-attach-thread").start();
     }
 
     public BrowserWindowSession createBrowserWindowSession(String title, String initialUrl, Consumer<String> statusConsumer) {
@@ -194,6 +351,8 @@ public class EmbeddedChromiumService {
                 Path cacheDir = Paths.get(System.getProperty("user.home"), "MedFlow", "jcef-cache");
 
                 builder.setInstallDir(installDir.toFile());
+                builder.getCefSettings().log_severity = CefSettings.LogSeverity.LOGSEVERITY_DISABLE;
+                builder.getCefSettings().command_line_args_disabled = false;
                 builder.getCefSettings().windowless_rendering_enabled = false;
                 builder.getCefSettings().cache_path = cacheDir.toString();
                 builder.getCefSettings().persist_session_cookies = true;
@@ -261,6 +420,11 @@ public class EmbeddedChromiumService {
                 "Restricted methods will be blocked in a future release unless native access is enabled",
                 "initialize on Thread[",
                 "google_apis\\gcm\\engine\\registration_request.cc:292",
+                "google_apis\\gcm\\engine\\mcs_client.cc:700",
+                "google_apis\\gcm\\engine\\mcs_client.cc:702",
+                "PHONE_REGISTRATION_ERROR",
+                "Authentication Failed: wrong_secret",
+                "Registration response error message: DEPRECATED_ENDPOINT",
                 "Registration response error message: DEPRECATED_ENDPOINT",
                 "Registration response error message: QUOTA_EXCEEDED"
         );
@@ -317,6 +481,12 @@ public class EmbeddedChromiumService {
                 delegate.println(line);
             }
         }
+    }
+
+    private static void suppressWebcamLoggerNoise() {
+        System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "warn");
+        System.setProperty("org.slf4j.simpleLogger.log.com.github.sarxos.webcam", "error");
+        System.setProperty("org.slf4j.simpleLogger.log.com.github.sarxos.webcam.ds.cgt", "error");
     }
 
     public record BrowserSession(CefClient client, CefBrowser browser, JComponent component) {

@@ -135,7 +135,7 @@ public class AdminWelcomeController {
 
     @FXML
     private void openCommandes() {
-        goTo("/FXML/CommandesAdmin.fxml");
+        goTo("/CommandeAdmin.fxml");
     }
 
     @FXML

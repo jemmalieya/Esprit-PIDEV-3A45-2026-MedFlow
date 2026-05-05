@@ -13,8 +13,10 @@ public class MainFx extends Application {
     public void start(Stage stage) throws Exception {
         SystemNotification.initTray();
 
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("/FrontFXML/AuthWelcome.fxml"));
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("/AdminWelcome.fxml"));
         Parent root = loader.load();
+
+               //FrontFXML/AuthWelcome.fxml
 
         Scene scene = new Scene(root, 1280, 720);
 

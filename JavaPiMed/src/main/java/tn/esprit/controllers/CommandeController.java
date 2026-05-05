@@ -1214,6 +1214,13 @@ public class CommandeController {
             commandeSelectionneeBack.setStatut_commande("Livraison");
             service.modifier(commandeSelectionneeBack);
 
+            try {
+                Integer etaMinutes = calculerEtaMinutesPourCommande(commandeSelectionneeBack);
+                EmailServiceProduit.sendCommandeLivraisonStartedEmail(commandeSelectionneeBack, etaMinutes);
+            } catch (Exception mailEx) {
+                mailEx.printStackTrace();
+            }
+
             if (nouveauStatutCombo != null) {
                 nouveauStatutCombo.setValue("Livraison");
             }
@@ -1229,6 +1236,66 @@ public class CommandeController {
         } catch (Exception e) {
             e.printStackTrace();
             showCommandeToast("Erreur demarrage livraison.", "commande-toast-danger", "✖");
+        }
+    }
+
+    private Integer calculerEtaMinutesPourCommande(Commande commande) {
+        try {
+            if (commande == null || commande.getUser() == null) {
+                return null;
+            }
+
+            String destinationAddress = safe(commande.getUser().getAdresseUser());
+            if (destinationAddress.isBlank()) {
+                return null;
+            }
+
+            String apiKey = getGeoapifyApiKey();
+            if (apiKey == null || apiKey.isBlank()) {
+                return null;
+            }
+
+            GeocodingService.GeoPoint destination = geocodingService.geocoderAdresse(destinationAddress);
+
+            String waypoints = URLEncoder.encode(
+                    PHARMACY_LAT + "," + PHARMACY_LNG + "|" + destination.getLat() + "," + destination.getLng(),
+                    StandardCharsets.UTF_8
+            );
+
+            String routingUrl =
+                    "https://api.geoapify.com/v1/routing"
+                            + "?waypoints=" + waypoints
+                            + "&mode=drive"
+                            + "&format=json"
+                            + "&details=route_details"
+                            + "&apiKey=" + URLEncoder.encode(apiKey, StandardCharsets.UTF_8);
+
+            HttpURLConnection conn = (HttpURLConnection) new URL(routingUrl).openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Accept", "application/json");
+
+            if (conn.getResponseCode() != 200) {
+                return null;
+            }
+
+            StringBuilder sb = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    sb.append(line);
+                }
+            }
+
+            double[] metrics = extractDistanceAndDuration(sb.toString());
+            double timeSeconds = metrics[1];
+            if (timeSeconds <= 0) {
+                return null;
+            }
+
+            return (int) Math.max(1, Math.round(timeSeconds / 60.0));
+        } catch (Exception e) {
+            return null;
         }
     }
 

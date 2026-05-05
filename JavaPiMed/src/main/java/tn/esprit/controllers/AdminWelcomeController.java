@@ -150,7 +150,7 @@ public class AdminWelcomeController {
 
     @FXML
     private void openStatsProduits() {
-        goTo("/FXML/StatsProduits.fxml");
+        goTo("/StatProduit.fxml");
     }
 
     @FXML

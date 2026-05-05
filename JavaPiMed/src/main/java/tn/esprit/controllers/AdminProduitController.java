@@ -570,7 +570,7 @@ public class AdminProduitController {
 
     @FXML
     private void openStatsProduits() {
-        goTo("/DashboardAdminBI.fxml");
+        goTo("/StatProduit.fxml");
     }
 
     @FXML

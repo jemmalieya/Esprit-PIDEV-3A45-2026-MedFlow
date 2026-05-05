@@ -140,6 +140,114 @@ public class GroqEventAiClient {
         return content;
     }
 
+    public String generateEventAssistantReply(
+            Evenement event,
+            AiEventIntelligenceService.RiskReport risk,
+            List<AiEventIntelligenceService.Recommendation> recommendations,
+            String question
+    ) throws IOException, InterruptedException {
+        String apiKey = getApiKey();
+        if (apiKey.isBlank()) {
+            throw new IOException("GROQ_EVENT_API_KEY manquant.");
+        }
+
+        String systemPrompt = """
+                Tu es un assistant evenement MedFlow.
+                Tu reponds dans la langue de la question de l'utilisateur: francais, anglais ou arabe.
+                Le ton doit etre clair, naturel, professionnel et utile.
+                Tu reponds uniquement a partir des donnees fournies sur l'evenement.
+                Si une information manque, dis-le clairement sans inventer.
+                Tu peux expliquer: date, lieu, inscription, capacite, statut, objectif, risque, recommandations, participation,
+                interet du sujet, benefices generaux pour participer, logique de l'evenement, utilite des ressources et accessibilite.
+                Si l'utilisateur demande pourquoi participer, explique la valeur generale du theme en restant relie a l'evenement.
+                Maximum 170 mots.
+                """;
+
+        String userPrompt = """
+                Evenement:
+                - titre: %s
+                - type: %s
+                - ville: %s
+                - adresse: %s
+                - statut: %s
+                - visibilite: %s
+                - date debut: %s
+                - date fin: %s
+                - capacite max: %d
+                - inscription obligatoire: %s
+                - date limite inscription: %s
+                - organisateur: %s
+                - description: %s
+                - objectif: %s
+
+                Risque local:
+                - score: %d/100
+                - niveau: %s
+
+                Recommandations:
+                %s
+
+                Question utilisateur:
+                %s
+                """.formatted(
+                safe(event == null ? "" : event.getTitre_event()),
+                safe(event == null ? "" : event.getType_event()),
+                safe(event == null ? "" : event.getVille_event()),
+                safe(event == null ? "" : event.getAdresse_event()),
+                safe(event == null ? "" : event.getStatut_event()),
+                safe(event == null ? "" : event.getVisibilite_event()),
+                event == null || event.getDate_debut_event() == null ? "-" : event.getDate_debut_event().toString(),
+                event == null || event.getDate_fin_event() == null ? "-" : event.getDate_fin_event().toString(),
+                event == null ? 0 : event.getNb_participants_max_event(),
+                event != null && event.isInscription_obligatoire_event() ? "oui" : "non",
+                event == null || event.getDate_limite_inscription_event() == null ? "-" : event.getDate_limite_inscription_event().toString(),
+                safe(event == null ? "" : event.getNom_organisateur_event()),
+                safe(event == null ? "" : event.getDescription_event()),
+                safe(event == null ? "" : event.getObjectif_event()),
+                risk == null ? 0 : risk.score(),
+                risk == null ? "-" : safe(risk.level()),
+                recommendationsForPrompt(recommendations),
+                safe(question)
+        );
+
+        String body = """
+                {
+                  "model": "%s",
+                  "messages": [
+                    {"role": "system", "content": "%s"},
+                    {"role": "user", "content": "%s"}
+                  ],
+                  "temperature": 0.2,
+                  "max_tokens": 320
+                }
+                """.formatted(
+                jsonEscape(getModel()),
+                jsonEscape(systemPrompt),
+                jsonEscape(userPrompt)
+        );
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(getEndpoint()))
+                .timeout(Duration.ofSeconds(25))
+                .header("Authorization", "Bearer " + apiKey)
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/json")
+                .header("User-Agent", "MedFlow-Groq-Event-AI/1.0")
+                .POST(HttpRequest.BodyPublishers.ofString(body))
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            throw new IOException("Erreur Groq " + response.statusCode() + ": " + limit(response.body(), 500));
+        }
+
+        String content = extractAssistantContent(response.body());
+        if (content.isBlank()) {
+            throw new IOException("Reponse Groq vide ou non lisible.");
+        }
+        return content;
+    }
+
     private String getApiKey() {
         ConfigValue value = readConfig("GROQ_EVENT_API_KEY");
         if (value.value().isBlank()) {

@@ -1091,13 +1091,15 @@ public class RessourceController {
         actionsCol.setCellFactory(col -> new TableCell<>() {
             private final Button viewBtn = new Button("Voir");
             private final Button editBtn = new Button("Modifier");
+            private final Button deleteBtn = new Button("Supprimer");
             private final Button archiveBtn = new Button("Historique");
-            private final ToolBar toolBar = new ToolBar(viewBtn, editBtn, archiveBtn);
+            private final ToolBar toolBar = new ToolBar(viewBtn, editBtn, deleteBtn, archiveBtn);
 
             {
                 toolBar.getStyleClass().add("action-toolbar");
                 viewBtn.getStyleClass().add("view-btn");
                 editBtn.getStyleClass().add("edit-btn");
+                deleteBtn.getStyleClass().add("delete-btn");
                 archiveBtn.getStyleClass().add("delete-btn");
 
                 viewBtn.setOnAction(e -> {
@@ -1108,6 +1110,27 @@ public class RessourceController {
                 editBtn.setOnAction(e -> {
                     Ressource r = getTableView().getItems().get(getIndex());
                     ouvrirPageModification(r);
+                });
+
+                deleteBtn.setOnAction(e -> {
+                    Ressource r = getTableView().getItems().get(getIndex());
+
+                    Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+                    confirm.setTitle("Confirmation de suppression");
+                    confirm.setHeaderText(null);
+                    confirm.setContentText("Supprimer definitivement la ressource : " + text(r.getNom_ressource()) + " ?");
+
+                    Optional<ButtonType> result = confirm.showAndWait();
+                    if (result.isPresent() && result.get() == ButtonType.OK) {
+                        ressourceService.supprimer(r);
+                        masterList.removeIf(item -> item.getId() == r.getId());
+                        ressourceTable.refresh();
+                        updateStats();
+
+                        if (inventoryCountLabel != null) {
+                            inventoryCountLabel.setText(masterList.size() + " ressource(s) dans votre espace");
+                        }
+                    }
                 });
 
                 archiveBtn.setOnAction(e -> {

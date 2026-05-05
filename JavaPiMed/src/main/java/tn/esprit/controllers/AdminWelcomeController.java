@@ -140,7 +140,7 @@ public class AdminWelcomeController {
 
     @FXML
     private void openDetection() {
-        goTo("/FXML/DetectionEpidemie.fxml");
+        goTo("/DetectionEpidemie.fxml");
     }
 
     @FXML

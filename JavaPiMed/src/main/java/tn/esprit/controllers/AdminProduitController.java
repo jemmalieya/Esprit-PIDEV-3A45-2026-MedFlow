@@ -565,7 +565,7 @@ public class AdminProduitController {
 
     @FXML
     private void openCommandes() {
-        goTo("/MesCommandesBack.fxml");
+        goTo("/CommandeAdmin.fxml");
     }
 
     @FXML

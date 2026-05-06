@@ -248,6 +248,8 @@ public class UserService implements IGeneralService<User> {
                 if (rs.next()) {
                     User user = mapResultSetToUser(rs);
                     enrichFaceDataIfAvailable(user);
+                    enrichTotpDataIfAvailable(user);
+                    enrichBrevoDataIfAvailable(user);
                     return user;
                 }
             }
@@ -268,6 +270,8 @@ public class UserService implements IGeneralService<User> {
                 User user = mapResultSetToUser(rs);
                 user.setTypeStaff(readOptionalString(rs, "type_staff", "typeStaff"));
                 enrichFaceDataIfAvailable(user);
+                enrichTotpDataIfAvailable(user);
+                enrichBrevoDataIfAvailable(user);
                 return user;
             }
         } catch (SQLException e) {
@@ -306,6 +310,8 @@ public class UserService implements IGeneralService<User> {
                 User user = mapResultSetToUser(rs);
                 user.setTypeStaff(readOptionalString(rs, "type_staff", "typeStaff"));
                 enrichFaceDataIfAvailable(user);
+                enrichTotpDataIfAvailable(user);
+                enrichBrevoDataIfAvailable(user);
                 return user;
             }
         } catch (SQLException e) {
@@ -449,6 +455,96 @@ public class UserService implements IGeneralService<User> {
             }
         } catch (SQLException ignored) {
         }
+    }
+
+    private void enrichTotpDataIfAvailable(User user) {
+        if (user == null) {
+            return;
+        }
+
+        String sql = "SELECT totp_secret, totp_enabled FROM user WHERE id = ?";
+        try (PreparedStatement ps = cnx.prepareStatement(sql)) {
+            ps.setInt(1, user.getId());
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) {
+                    return;
+                }
+                user.setTotpSecret(rs.getString("totp_secret"));
+                user.setTotpEnabled(rs.getBoolean("totp_enabled"));
+            }
+        } catch (SQLException ignored) {
+            // Fallback camelCase schema
+            String fallbackSql = "SELECT totpSecret, totpEnabled FROM user WHERE id = ?";
+            try (PreparedStatement ps = cnx.prepareStatement(fallbackSql)) {
+                ps.setInt(1, user.getId());
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (!rs.next()) {
+                        return;
+                    }
+                    user.setTotpSecret(rs.getString("totpSecret"));
+                    user.setTotpEnabled(rs.getBoolean("totpEnabled"));
+                }
+            } catch (SQLException ignoredToo) {
+            }
+        }
+    }
+
+    private void enrichBrevoDataIfAvailable(User user) {
+        if (user == null) {
+            return;
+        }
+
+        String snakeSql = "SELECT brevo_api_key, brevo_sender_email, brevo_sender_name FROM user WHERE id = ?";
+        String camelSql = "SELECT brevoApiKey AS brevo_api_key, brevoSenderEmail AS brevo_sender_email, brevoSenderName AS brevo_sender_name FROM user WHERE id = ?";
+
+        for (String sql : new String[]{snakeSql, camelSql}) {
+            try (PreparedStatement ps = cnx.prepareStatement(sql)) {
+                ps.setInt(1, user.getId());
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (!rs.next()) {
+                        return;
+                    }
+                    user.setBrevoApiKey(rs.getString("brevo_api_key"));
+                    user.setBrevoSenderEmail(rs.getString("brevo_sender_email"));
+                    user.setBrevoSenderName(rs.getString("brevo_sender_name"));
+                    return;
+                }
+            } catch (SQLException ignored) {
+            }
+        }
+    }
+
+    public boolean saveTotpSettings(int userId, String secret, boolean enabled) {
+        String snakeSql = "UPDATE user SET totp_secret = ?, totp_enabled = ? WHERE id = ?";
+        String camelSql = "UPDATE user SET totpSecret = ?, totpEnabled = ? WHERE id = ?";
+        for (String sql : new String[]{snakeSql, camelSql}) {
+            try (PreparedStatement ps = cnx.prepareStatement(sql)) {
+                ps.setString(1, secret);
+                ps.setBoolean(2, enabled);
+                ps.setInt(3, userId);
+                if (ps.executeUpdate() > 0) {
+                    return true;
+                }
+            } catch (SQLException ignored) {
+            }
+        }
+        return false;
+    }
+
+    public boolean setFaceLoginEnabled(int userId, boolean enabled) {
+        String snakeSql = "UPDATE user SET face_login_enabled = ? WHERE id = ?";
+        String camelSql = "UPDATE user SET faceLoginEnabled = ? WHERE id = ?";
+        for (String sql : new String[]{snakeSql, camelSql}) {
+            try (PreparedStatement ps = cnx.prepareStatement(sql)) {
+                ps.setBoolean(1, enabled);
+                ps.setInt(2, userId);
+                if (ps.executeUpdate() > 0) {
+                    return true;
+                }
+            } catch (SQLException ignored) {
+            }
+        }
+        return false;
     }
 
     private String normalizeFaceEmbedding(String storedValue) {

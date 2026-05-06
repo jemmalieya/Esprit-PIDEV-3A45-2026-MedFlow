@@ -2350,8 +2350,8 @@ public class ConsultationController implements Initializable {
         }
 
         File target = choosePdfDestination(
-                "Save medical record PDF",
-                String.format("fiche-medicale-%d.pdf", ficheMedicale.getId())
+            "Save medical record PDF",
+            "fiche-medicale.pdf"
         );
         if (target == null) {
             return;
@@ -2373,8 +2373,8 @@ public class ConsultationController implements Initializable {
 
         FicheMedicale resolvedFiche = ficheMedicale != null ? ficheMedicale : findMedicalRecordById(prescription.getFiche_medicale_id());
         File target = choosePdfDestination(
-                "Save prescription PDF",
-                String.format("prescription-%d.pdf", prescription.getId())
+            "Save prescription PDF",
+            "prescription.pdf"
         );
         if (target == null) {
             return;
@@ -2423,7 +2423,7 @@ public class ConsultationController implements Initializable {
             summary.setSpacingAfter(14f);
             summary.addCell(createInfoCell("Patient", formatUserName(patient), labelFont, valueFont));
             summary.addCell(createInfoCell("Doctor", formatDoctorName(doctor, rendezVous), labelFont, valueFont));
-            summary.addCell(createInfoCell("Rendez-vous", rendezVous == null ? "-" : "#" + rendezVous.getId(), labelFont, valueFont));
+            summary.addCell(createInfoCell("Rendez-vous", rendezVous == null ? "-" : formatTimestampForPdf(rendezVous.getDatetime()), labelFont, valueFont));
             summary.addCell(createInfoCell("Date", formatTimestampForPdf(recordTimestampForSort(ficheMedicale)), labelFont, valueFont));
             summary.addCell(createInfoCell("Mode", rendezVous == null ? "-" : valueOrDash(rendezVous.getMode()), labelFont, valueFont));
             summary.addCell(createInfoCell("Duration", ficheMedicale.getDuree_minutes() == null ? "-" : ficheMedicale.getDuree_minutes() + " min", labelFont, valueFont));
@@ -2464,9 +2464,9 @@ public class ConsultationController implements Initializable {
             summary.setSpacingAfter(14f);
             summary.addCell(createInfoCell("Patient", formatUserName(patient), labelFont, valueFont));
             summary.addCell(createInfoCell("Doctor", formatDoctorName(doctor, rendezVous), labelFont, valueFont));
-            summary.addCell(createInfoCell("Prescription ID", "#" + prescription.getId(), labelFont, valueFont));
-            summary.addCell(createInfoCell("Fiche medicale", ficheMedicale == null ? "-" : "#" + ficheMedicale.getId(), labelFont, valueFont));
-            summary.addCell(createInfoCell("Rendez-vous", rendezVous == null ? "-" : "#" + rendezVous.getId(), labelFont, valueFont));
+            // Do not show internal numeric IDs in the exported PDF per user preference
+            summary.addCell(createInfoCell("Fiche medicale", ficheMedicale == null ? "-" : formatTimestampForPdf(recordTimestampForSort(ficheMedicale)), labelFont, valueFont));
+            summary.addCell(createInfoCell("Rendez-vous", rendezVous == null ? "-" : formatTimestampForPdf(rendezVous.getDatetime()), labelFont, valueFont));
             summary.addCell(createInfoCell("Date", formatTimestampForPdf(prescription.getCreated_at()), labelFont, valueFont));
             document.add(summary);
 
@@ -2486,6 +2486,11 @@ public class ConsultationController implements Initializable {
             addTextSection(document, "Instructions", valueOrDash(prescription.getInstructions()), sectionTitleFont, valueFont);
             if (ficheMedicale != null) {
                 addTextSection(document, "Diagnostic associe", valueOrDash(ficheMedicale.getDiagnostic()), sectionTitleFont, valueFont);
+            }
+            // add signature from related fiche medicale if present
+            Font mutedFont = new Font(Font.FontFamily.HELVETICA, 10, Font.NORMAL, new BaseColor(100, 116, 139));
+            if (ficheMedicale != null) {
+                addSignatureSection(document, ficheMedicale.getSignature(), sectionTitleFont, valueFont, mutedFont);
             }
 
             document.close();

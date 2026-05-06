@@ -8,13 +8,17 @@ import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.concurrent.Task;
 import javafx.embed.swing.SwingFXUtils;
+import javafx.fxml.FXMLLoader;
 import javafx.fxml.FXML;
 import javafx.geometry.Point2D;
+import javafx.geometry.Insets;
 import javafx.scene.SnapshotParameters;
+import javafx.scene.Node;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.Control;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
@@ -22,6 +26,9 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.ContentDisplay;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.chart.BarChart;
 import javafx.scene.chart.PieChart;
@@ -41,6 +48,7 @@ import javafx.scene.shape.Polyline;
 import javafx.scene.paint.Color;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.stage.FileChooser;
+import javafx.stage.Stage;
 import javafx.stage.Window;
 import javafx.util.converter.DefaultStringConverter;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -48,6 +56,7 @@ import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
+import org.apache.pdfbox.rendering.PDFRenderer;
 import tn.esprit.entities.FicheMedicale;
 import tn.esprit.entities.Prescription;
 import tn.esprit.entities.RendezVous;
@@ -56,6 +65,7 @@ import tn.esprit.services.BrevoEmailService;
 import tn.esprit.services.EmbeddedChromiumService;
 import tn.esprit.services.FicheMedicaleService;
 import tn.esprit.services.HandTrackingService;
+import tn.esprit.services.OcrExtractionService;
 import tn.esprit.services.PrescriptionService;
 import tn.esprit.services.PrescriptionSuggestionService;
 import tn.esprit.services.RendezVousService;
@@ -64,6 +74,7 @@ import tn.esprit.tools.MyDataBase;
 import tn.esprit.tools.SessionManager;
 import com.github.sarxos.webcam.Webcam;
 import com.github.sarxos.webcam.WebcamResolution;
+import com.google.gson.JsonObject;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -82,6 +93,7 @@ import java.awt.Dimension;
 import java.awt.image.BufferedImage;
 import java.net.URI;
 import java.net.URLEncoder;
+import java.net.URL;
 import javax.imageio.ImageIO;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -89,8 +101,10 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ConsultationDocteur {
 
@@ -132,6 +146,9 @@ public class ConsultationDocteur {
     private Button statsPageBtn;
 
     @FXML
+    private Button ocrUploadPageBtn;
+
+    @FXML
     private VBox pageOneContainer;
 
     @FXML
@@ -142,6 +159,9 @@ public class ConsultationDocteur {
 
     @FXML
     private VBox statsPageContainer;
+
+    @FXML
+    private VBox ocrUploadPageContainer;
 
     @FXML
     private TableView<RendezVous> eventTable;
@@ -340,6 +360,22 @@ public class ConsultationDocteur {
     @FXML
     private BarChart<String, Number> urgencyBarChart;
 
+    // OCR Upload Page Components
+    @FXML
+    private ComboBox<String> ocrDocumentTypeCombo;
+    @FXML
+    private ComboBox<String> ocrReferenceCombo;
+    @FXML
+    private StackPane ocrPdfViewerContainer;
+    @FXML
+    private VBox ocrFormContainer;
+    @FXML
+    private Label ocrUploadStatusLabel;
+    @FXML
+    private Button ocrConfirmButton;
+    @FXML
+    private VBox ocrUploadSelectionBox;
+
     private final ObservableList<RendezVous> doctorRendezVous = FXCollections.observableArrayList();
     private final ObservableList<RendezVous> allDoctorRendezVous = FXCollections.observableArrayList();
     private final ObservableList<Prescription> detailPrescriptions = FXCollections.observableArrayList();
@@ -369,6 +405,33 @@ public class ConsultationDocteur {
     private boolean lastPinchActive;
     private boolean signatureDrawn;
     private String lastSignatureStatusMessage;
+    private final AtomicBoolean signatureUiUpdatePending = new AtomicBoolean(false);
+    private volatile WritableImage signatureCameraFxBuffer;
+    private static final double LANDMARK_SMOOTHING_ALPHA = 0.38;
+    private static final double LANDMARK_FAST_ALPHA = 0.78;
+    private static final double LANDMARK_FAST_DISTANCE_THRESHOLD = 10.0;
+    private static final double PEN_SMOOTHING_ALPHA = 0.45;
+    private static final double PEN_FAST_ALPHA = 0.88;
+    private static final double PEN_FAST_DISTANCE_THRESHOLD = 8.0;
+    private static final int PINCH_START_STABLE_FRAMES = 1;
+    private static final int PINCH_STOP_STABLE_FRAMES = 1;
+    private static final int LOST_HAND_CLEAR_FRAMES = 3;
+    private final List<Line> signatureConnectionLines = new ArrayList<>();
+    private final List<Circle> signatureLandmarkCircles = new ArrayList<>();
+    private List<Point2D> smoothedLandmarkPoints = new ArrayList<>();
+    private Point2D smoothedPenPoint;
+    private int pinchStableFrames;
+    private int unpinchStableFrames;
+    private int noHandFrames;
+    private boolean pinchDrawingActive;
+
+    // OCR Upload State
+    private File selectedOcrPdfFile;
+    private String selectedOcrDocumentType;
+    private String selectedOcrReference;
+    private JsonObject extractedOcrData = new JsonObject();
+    private Map<String, Control> ocrFormFields = new HashMap<>();
+    private int selectedOcrReferenceId = -1;
 
     // Initialize method to set up the combo box options
     @FXML
@@ -465,6 +528,9 @@ public class ConsultationDocteur {
                 }
             });
         }
+
+        // Initialize OCR Upload page
+        setupOcrUploadPage();
 
         updateConsultationTimingLabels(null, null, null, "00:00:00");
         configureConsultationModeUi(false, null);
@@ -767,6 +833,32 @@ public class ConsultationDocteur {
     private void handleShowStatsPage(ActionEvent event) {
         refreshStatsData();
         showPage(3);
+    }
+
+    @FXML
+    private void handleShowOcrUploadPage(ActionEvent event) {
+        showPage(4);
+    }
+
+    @FXML
+    private void handleLogout(ActionEvent event) {
+        try {
+            SessionManager.clear();
+
+            URL url = getClass().getResource("/FrontFXML/Login.fxml");
+            if (url == null) {
+                throw new IOException("Fichier introuvable : /FrontFXML/Login.fxml");
+            }
+
+            Parent root = FXMLLoader.load(url);
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+            stage.setScene(new Scene(root, 1400, 820));
+            stage.setTitle("Connexion");
+            stage.setMaximized(true);
+            stage.show();
+        } catch (Exception e) {
+            showError("Erreur Déconnexion", "Impossible de se déconnecter : " + e.getMessage());
+        }
     }
 
     @FXML
@@ -1327,6 +1419,7 @@ public class ConsultationDocteur {
         boolean showPageOne = page == 1;
         boolean showConsultationPage = page == 2;
         boolean showStatsPage = page == 3;
+        boolean showOcrUploadPage = page == 4;
 
         if (homePageContainer != null) {
             homePageContainer.setVisible(showHomePage);
@@ -1346,6 +1439,11 @@ public class ConsultationDocteur {
         if (statsPageContainer != null) {
             statsPageContainer.setVisible(showStatsPage);
             statsPageContainer.setManaged(showStatsPage);
+        }
+
+        if (ocrUploadPageContainer != null) {
+            ocrUploadPageContainer.setVisible(showOcrUploadPage);
+            ocrUploadPageContainer.setManaged(showOcrUploadPage);
         }
 
         if (!showConsultationPage) {
@@ -1574,6 +1672,7 @@ public class ConsultationDocteur {
         setButtonActive(pageOneBtn, page == 1);
         setButtonActive(consultationPageBtn, page == 2);
         setButtonActive(statsPageBtn, page == 3);
+        setButtonActive(ocrUploadPageBtn, page == 4);
     }
 
     private void refreshHomeDashboard() {
@@ -2187,40 +2286,67 @@ public class ConsultationDocteur {
                 return;
             }
 
-            Dimension size = WebcamResolution.VGA.getSize();
+            // Lower capture resolution improves responsiveness for real-time tracking.
+            Dimension size = WebcamResolution.QVGA.getSize();
             signatureWebcam.setViewSize(size);
             signatureWebcam.open(true);
 
             signatureCameraThread = new Thread(() -> {
+                HandTrackingService.HandTrackingResult latestTrackingResult = HandTrackingService.HandTrackingResult.empty(
+                        Math.max(1, size.width),
+                        Math.max(1, size.height),
+                        handTrackingService == null ? "Hand tracking service unavailable" : "Camera warming up..."
+                );
+                final long trackingIntervalNanos = 33_000_000L; // ~30 Hz tracking to reduce landmark lag
+                long lastTrackingAt = 0L;
+
                 while (signatureWebcam != null && signatureWebcam.isOpen()) {
                     BufferedImage frame = signatureWebcam.getImage();
                     if (frame != null) {
-                        HandTrackingService.HandTrackingResult trackingResult;
-                        try {
-                            trackingResult = handTrackingService == null
-                                    ? HandTrackingService.HandTrackingResult.empty(frame.getWidth(), frame.getHeight(), "Hand tracking service unavailable")
-                                    : handTrackingService.track(frame);
-                        } catch (Exception ex) {
+                        long now = System.nanoTime();
+                        if (handTrackingService == null) {
+                            latestTrackingResult = HandTrackingService.HandTrackingResult.empty(
+                                    frame.getWidth(),
+                                    frame.getHeight(),
+                                    "Hand tracking service unavailable"
+                            );
+                        } else if (now - lastTrackingAt >= trackingIntervalNanos) {
+                            try {
+                                latestTrackingResult = handTrackingService.track(frame);
+                            } catch (Exception ex) {
+                                Platform.runLater(() -> {
+                                    if (signatureStatusLabel != null) {
+                                        signatureStatusLabel.setText("Hand tracking error: " + ex.getClass().getSimpleName() + " - " + ex.getMessage());
+                                    }
+                                });
+                                latestTrackingResult = HandTrackingService.HandTrackingResult.empty(
+                                        frame.getWidth(),
+                                        frame.getHeight(),
+                                        "Tracking exception"
+                                );
+                            }
+                            lastTrackingAt = now;
+                        }
+
+                        final HandTrackingService.HandTrackingResult finalTrackingResult = latestTrackingResult;
+                        final WritableImage fxImage = SwingFXUtils.toFXImage(frame, signatureCameraFxBuffer);
+                        if (signatureUiUpdatePending.compareAndSet(false, true)) {
                             Platform.runLater(() -> {
-                                if (signatureStatusLabel != null) {
-                                    signatureStatusLabel.setText("Hand tracking error: " + ex.getClass().getSimpleName() + " - " + ex.getMessage());
+                                try {
+                                    signatureCameraFxBuffer = fxImage;
+                                    if (signatureCameraView != null) {
+                                        signatureCameraView.setImage(fxImage);
+                                    }
+                                    updateHandTrackingOverlay(finalTrackingResult);
+                                } finally {
+                                    signatureUiUpdatePending.set(false);
                                 }
                             });
-                            ex.printStackTrace();
-                            trackingResult = HandTrackingService.HandTrackingResult.empty(frame.getWidth(), frame.getHeight(), "Tracking exception");
                         }
-                        final HandTrackingService.HandTrackingResult finalTrackingResult = trackingResult;
-                        final WritableImage fxImage = SwingFXUtils.toFXImage(frame, null);
-                        Platform.runLater(() -> {
-                            if (signatureCameraView != null) {
-                                signatureCameraView.setImage(fxImage);
-                            }
-                            updateHandTrackingOverlay(finalTrackingResult);
-                        });
                     }
 
                     try {
-                        Thread.sleep(45);
+                        Thread.sleep(16); // keep preview fluid while tracking remains throttled
                     } catch (InterruptedException ex) {
                         Thread.currentThread().interrupt();
                         break;
@@ -2258,12 +2384,18 @@ public class ConsultationDocteur {
         if (signatureCameraView != null) {
             signatureCameraView.setImage(null);
         }
-        if (signatureLandmarkLayer != null) {
-            signatureLandmarkLayer.getChildren().clear();
-        }
+        signatureUiUpdatePending.set(false);
+        signatureCameraFxBuffer = null;
+        clearHandOverlayNodes();
         activeSignatureStroke = null;
         lastSignaturePoint = null;
         lastPinchActive = false;
+        smoothedLandmarkPoints = new ArrayList<>();
+        smoothedPenPoint = null;
+        pinchStableFrames = 0;
+        unpinchStableFrames = 0;
+        noHandFrames = 0;
+        pinchDrawingActive = false;
     }
 
     private void clearSignatureCanvas() {
@@ -2273,6 +2405,10 @@ public class ConsultationDocteur {
         activeSignatureStroke = null;
         lastSignaturePoint = null;
         lastPinchActive = false;
+        smoothedPenPoint = null;
+        pinchStableFrames = 0;
+        unpinchStableFrames = 0;
+        pinchDrawingActive = false;
         signatureDrawn = false;
     }
 
@@ -2392,35 +2528,143 @@ public class ConsultationDocteur {
             return;
         }
 
-        signatureLandmarkLayer.getChildren().clear();
-        if (result == null || !result.handDetected() || handTrackingService == null) {
+        if (result == null || !result.handDetected() || handTrackingService == null || result.landmarks() == null) {
+            noHandFrames++;
+            if (noHandFrames >= LOST_HAND_CLEAR_FRAMES) {
+                clearHandOverlayNodes();
+                smoothedLandmarkPoints = new ArrayList<>();
+            }
             return;
         }
 
-        List<javafx.scene.Node> nodes = new ArrayList<>();
-        List<HandTrackingService.NormalizedLandmark> landmarks = result.landmarks();
-        for (int[] connection : handTrackingService.getHandConnections()) {
-            if (connection[0] >= landmarks.size() || connection[1] >= landmarks.size()) {
-                continue;
-            }
-            Point2D start = mapNormalizedPoint(landmarks.get(connection[0]), result.imageWidth(), result.imageHeight());
-            Point2D end = mapNormalizedPoint(landmarks.get(connection[1]), result.imageWidth(), result.imageHeight());
-            Line line = new Line(start.getX(), start.getY(), end.getX(), end.getY());
-            line.setStroke(Color.web("#38bdf8"));
-            line.setStrokeWidth(1.6);
-            nodes.add(line);
+        noHandFrames = 0;
+
+        List<Point2D> mappedPoints = new ArrayList<>();
+        for (HandTrackingService.NormalizedLandmark landmark : result.landmarks()) {
+            mappedPoints.add(mapNormalizedPoint(landmark, result.imageWidth(), result.imageHeight()));
+        }
+        if (mappedPoints.isEmpty()) {
+            return;
         }
 
-        for (int i = 0; i < landmarks.size(); i++) {
-            Point2D point = mapNormalizedPoint(landmarks.get(i), result.imageWidth(), result.imageHeight());
-            Circle circle = new Circle(point.getX(), point.getY(), i == 8 ? 5.0 : 3.3);
+        smoothedLandmarkPoints = smoothLandmarkPoints(mappedPoints);
+        int[][] connections = handTrackingService.getHandConnections();
+        ensureHandOverlayNodes(smoothedLandmarkPoints.size(), connections);
+
+        for (int i = 0; i < signatureConnectionLines.size(); i++) {
+            Line line = signatureConnectionLines.get(i);
+            int[] connection = connections[i];
+            if (connection[0] < smoothedLandmarkPoints.size() && connection[1] < smoothedLandmarkPoints.size()) {
+                Point2D start = smoothedLandmarkPoints.get(connection[0]);
+                Point2D end = smoothedLandmarkPoints.get(connection[1]);
+                line.setStartX(start.getX());
+                line.setStartY(start.getY());
+                line.setEndX(end.getX());
+                line.setEndY(end.getY());
+                line.setVisible(true);
+            } else {
+                line.setVisible(false);
+            }
+        }
+
+        for (int i = 0; i < signatureLandmarkCircles.size(); i++) {
+            Circle circle = signatureLandmarkCircles.get(i);
+            if (i < smoothedLandmarkPoints.size()) {
+                Point2D point = smoothedLandmarkPoints.get(i);
+                circle.setCenterX(point.getX());
+                circle.setCenterY(point.getY());
+                circle.setVisible(true);
+            } else {
+                circle.setVisible(false);
+            }
+        }
+    }
+
+    private void ensureHandOverlayNodes(int landmarkCount, int[][] connections) {
+        if (signatureLandmarkLayer == null || connections == null) {
+            return;
+        }
+
+        if (signatureConnectionLines.size() == connections.length && signatureLandmarkCircles.size() == landmarkCount) {
+            if (signatureLandmarkLayer.getChildren().isEmpty()) {
+                List<javafx.scene.Node> nodes = new ArrayList<>();
+                nodes.addAll(signatureConnectionLines);
+                nodes.addAll(signatureLandmarkCircles);
+                signatureLandmarkLayer.getChildren().setAll(nodes);
+            }
+            return;
+        }
+
+        signatureConnectionLines.clear();
+        signatureLandmarkCircles.clear();
+
+        for (int i = 0; i < connections.length; i++) {
+            Line line = new Line();
+            line.setStroke(Color.web("#38bdf8"));
+            line.setStrokeWidth(1.6);
+            signatureConnectionLines.add(line);
+        }
+
+        for (int i = 0; i < landmarkCount; i++) {
+            Circle circle = new Circle(i == 8 ? 5.0 : 3.3);
             circle.setFill(i == 8 ? Color.web("#f97316") : Color.web("#f8fafc"));
             circle.setStroke(Color.web("#0f172a"));
             circle.setStrokeWidth(1.0);
-            nodes.add(circle);
+            signatureLandmarkCircles.add(circle);
         }
 
+        List<javafx.scene.Node> nodes = new ArrayList<>();
+        nodes.addAll(signatureConnectionLines);
+        nodes.addAll(signatureLandmarkCircles);
         signatureLandmarkLayer.getChildren().setAll(nodes);
+    }
+
+    private void clearHandOverlayNodes() {
+        signatureConnectionLines.clear();
+        signatureLandmarkCircles.clear();
+        if (signatureLandmarkLayer != null) {
+            signatureLandmarkLayer.getChildren().clear();
+        }
+    }
+
+    private List<Point2D> smoothLandmarkPoints(List<Point2D> currentPoints) {
+        if (smoothedLandmarkPoints == null || smoothedLandmarkPoints.size() != currentPoints.size()) {
+            return new ArrayList<>(currentPoints);
+        }
+
+        List<Point2D> smoothed = new ArrayList<>(currentPoints.size());
+        for (int i = 0; i < currentPoints.size(); i++) {
+            smoothed.add(smoothPointAdaptive(
+                    smoothedLandmarkPoints.get(i),
+                    currentPoints.get(i),
+                    LANDMARK_SMOOTHING_ALPHA,
+                    LANDMARK_FAST_ALPHA,
+                    LANDMARK_FAST_DISTANCE_THRESHOLD
+            ));
+        }
+        return smoothed;
+    }
+
+    private Point2D smoothPoint(Point2D previous, Point2D current, double alpha) {
+        if (previous == null) {
+            return current;
+        }
+        double x = previous.getX() + (current.getX() - previous.getX()) * alpha;
+        double y = previous.getY() + (current.getY() - previous.getY()) * alpha;
+        return new Point2D(x, y);
+    }
+
+    private Point2D smoothPointAdaptive(Point2D previous,
+                                        Point2D current,
+                                        double baseAlpha,
+                                        double fastAlpha,
+                                        double fastDistanceThreshold) {
+        if (previous == null) {
+            return current;
+        }
+        double distance = previous.distance(current);
+        double alpha = distance >= fastDistanceThreshold ? fastAlpha : baseAlpha;
+        return smoothPoint(previous, current, alpha);
     }
 
     private void updateSignatureStrokeFromPinch(HandTrackingService.HandTrackingResult result) {
@@ -2428,6 +2672,10 @@ public class ConsultationDocteur {
             activeSignatureStroke = null;
             lastSignaturePoint = null;
             lastPinchActive = false;
+            smoothedPenPoint = null;
+            pinchStableFrames = 0;
+            unpinchStableFrames = 0;
+            pinchDrawingActive = false;
             if (capturedSignatureImage == null) {
                 updateSignatureStatus(result != null && result.statusMessage() != null
                         ? result.statusMessage()
@@ -2436,10 +2684,25 @@ public class ConsultationDocteur {
             return;
         }
 
-        if (!result.pinchActive() || result.penTip() == null) {
+        if (result.pinchActive() && result.penTip() != null) {
+            pinchStableFrames++;
+            unpinchStableFrames = 0;
+            if (!pinchDrawingActive && pinchStableFrames >= PINCH_START_STABLE_FRAMES) {
+                pinchDrawingActive = true;
+            }
+        } else {
+            unpinchStableFrames++;
+            pinchStableFrames = 0;
+            if (pinchDrawingActive && unpinchStableFrames >= PINCH_STOP_STABLE_FRAMES) {
+                pinchDrawingActive = false;
+            }
+        }
+
+        if (!pinchDrawingActive || result.penTip() == null) {
             activeSignatureStroke = null;
             lastSignaturePoint = null;
             lastPinchActive = false;
+            smoothedPenPoint = null;
             if (capturedSignatureImage == null) {
                 updateSignatureStatus(result.statusMessage() != null
                         ? result.statusMessage() + ". Pinch thumb and index finger to draw."
@@ -2449,17 +2712,25 @@ public class ConsultationDocteur {
         }
 
         Point2D currentPoint = mapNormalizedPoint(result.penTip(), result.imageWidth(), result.imageHeight());
+        smoothedPenPoint = smoothPointAdaptive(
+            smoothedPenPoint,
+            currentPoint,
+            PEN_SMOOTHING_ALPHA,
+            PEN_FAST_ALPHA,
+            PEN_FAST_DISTANCE_THRESHOLD
+        );
+        Point2D drawPoint = smoothedPenPoint;
         if (activeSignatureStroke == null || !lastPinchActive) {
             activeSignatureStroke = createSignatureStroke();
-            activeSignatureStroke.getPoints().addAll(currentPoint.getX(), currentPoint.getY());
+            activeSignatureStroke.getPoints().addAll(drawPoint.getX(), drawPoint.getY());
             if (signatureDrawingLayer != null) {
                 signatureDrawingLayer.getChildren().add(activeSignatureStroke);
             }
-        } else if (lastSignaturePoint == null || lastSignaturePoint.distance(currentPoint) >= 2.0) {
-            activeSignatureStroke.getPoints().addAll(currentPoint.getX(), currentPoint.getY());
+        } else if (lastSignaturePoint == null || lastSignaturePoint.distance(drawPoint) >= 1.6) {
+            activeSignatureStroke.getPoints().addAll(drawPoint.getX(), drawPoint.getY());
         }
 
-        lastSignaturePoint = currentPoint;
+        lastSignaturePoint = drawPoint;
         lastPinchActive = true;
         signatureDrawn = true;
         capturedSignatureImage = null;
@@ -2522,6 +2793,435 @@ public class ConsultationDocteur {
         BufferedImage bufferedImage = SwingFXUtils.fromFXImage(capturedSignatureImage, null);
         ImageIO.write(bufferedImage, "png", signaturePath.toFile());
         return signaturePath.toAbsolutePath().toString();
+    }
+
+    // ============ OCR Upload Page Methods ============
+
+    private void setupOcrUploadPage() {
+        if (ocrDocumentTypeCombo != null) {
+            ObservableList<String> documentTypes = FXCollections.observableArrayList(
+                "Fiche Medicale",
+                "Prescription"
+            );
+            ocrDocumentTypeCombo.setItems(documentTypes);
+            ocrDocumentTypeCombo.setOnAction(event -> handleOcrDocumentTypeChanged());
+        }
+
+        if (ocrReferenceCombo != null) {
+            ocrReferenceCombo.setOnAction(event -> {
+                selectedOcrReference = ocrReferenceCombo.getValue();
+                if (selectedOcrReference != null) {
+                    try {
+                        String[] parts = selectedOcrReference.split(" - ", 2);
+                        selectedOcrReferenceId = Integer.parseInt(parts[0].trim());
+                    } catch (Exception e) {
+                        selectedOcrReferenceId = -1;
+                    }
+                    updateOcrUploadStatus("Référence sélectionnée. Cliquez sur 'Parcourir...' pour choisir un fichier PDF.");
+                }
+            });
+        }
+    }
+
+    private void handleOcrDocumentTypeChanged() {
+        selectedOcrDocumentType = ocrDocumentTypeCombo.getValue();
+        if (selectedOcrDocumentType != null) {
+            loadOcrReferenceList();
+            updateOcrUploadStatus("Type sélectionné: " + selectedOcrDocumentType + ". Choisissez une référence.");
+        }
+        resetOcrUploadState();
+    }
+
+    private void loadOcrReferenceList() {
+        User currentUser = SessionManager.getCurrentUser();
+        if (currentUser == null) {
+            showError("Erreur", "Utilisateur non authentifié");
+            return;
+        }
+
+        int userId = currentUser.getId();
+        ObservableList<String> references = FXCollections.observableArrayList();
+
+        if ("Fiche Medicale".equalsIgnoreCase(selectedOcrDocumentType)) {
+            // Get only rendez-vous that do not already have a fiche medicale
+            List<RendezVous> rendezVousList = rendezVousService.recuperer();
+            for (RendezVous rv : rendezVousList) {
+                if (rv != null && rv.getIdStaff() == userId && ficheMedicaleService.getByRendezVousId(rv.getId()) == null) {
+                    references.add(rv.getId() + " - " +
+                        rv.getDatetime() + " (" + rv.getMode() + ")");
+                }
+            }
+            
+            if (references.isEmpty()) {
+                updateOcrUploadStatus("Aucun rendez-vous disponible: tous les rendez-vous de ce docteur ont déjà une fiche médicale.");
+            }
+        } else if ("Prescription".equalsIgnoreCase(selectedOcrDocumentType)) {
+            // Get list of fiche medicale for this user
+            List<FicheMedicale> fiches = ficheMedicaleService.recuperer();
+            for (FicheMedicale fiche : fiches) {
+                if (fiche != null) {
+                    references.add(fiche.getId() + " - " +
+                        fiche.getDiagnostic() + " (RV:" + fiche.getRendez_vous_id() + ")");
+                }
+            }
+        }
+
+        if (ocrReferenceCombo != null) {
+            ocrReferenceCombo.setItems(references);
+            ocrReferenceCombo.setPrefWidth(300);
+        }
+    }
+
+    @FXML
+    private void handleSelectPdfFile() {
+        if (selectedOcrDocumentType == null || selectedOcrReference == null) {
+            showError("Validation", "Veuillez sélectionnez un type de document et une référence.");
+            return;
+        }
+
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Sélectionner un fichier PDF");
+        fileChooser.getExtensionFilters().addAll(
+            new FileChooser.ExtensionFilter("Fichiers PDF", "*.pdf"),
+            new FileChooser.ExtensionFilter("Tous les fichiers", "*.*")
+        );
+
+        Window window = ocrUploadSelectionBox.getScene().getWindow();
+        File file = fileChooser.showOpenDialog(window);
+
+        if (file != null && file.exists()) {
+            selectedOcrPdfFile = file;
+            performOcrExtraction(file);
+        }
+    }
+
+    private void performOcrExtraction(File pdfFile) {
+        updateOcrUploadStatus("Extraction OCR en cours... Veuillez patienter.");
+        if (ocrConfirmButton != null) {
+            ocrConfirmButton.setDisable(true);
+        }
+
+        Task<String> ocrTask = new Task<String>() {
+            @Override
+            protected String call() {
+                String extractedText = OcrExtractionService.extractTextFromPdf(pdfFile);
+                return extractedText != null ? extractedText : "";
+            }
+        };
+
+        ocrTask.setOnSucceeded(event -> {
+            String extractedText = ocrTask.getValue();
+            if (extractedText.isEmpty()) {
+                showError("Erreur OCR", "Impossible d'extraire le texte du PDF.\n" + OcrExtractionService.getLastError());
+                resetOcrUploadState();
+            } else {
+                extractedOcrData = OcrExtractionService.parseOcrTextByType(extractedText, selectedOcrDocumentType);
+                generateOcrFormFromExtractedData();
+                displayOcrPdfPreview(pdfFile);
+                updateOcrUploadStatus("Extraction réussie. Vérifiez et modifiez les données si nécessaire.");
+                if (ocrConfirmButton != null) {
+                    ocrConfirmButton.setDisable(false);
+                }
+            }
+        });
+
+        ocrTask.setOnFailed(event -> {
+            showError("Erreur", "Erreur lors de l'extraction: " + ocrTask.getException().getMessage());
+            resetOcrUploadState();
+        });
+
+        Thread ocrThread = new Thread(ocrTask);
+        ocrThread.setDaemon(true);
+        ocrThread.start();
+    }
+
+    private void generateOcrFormFromExtractedData() {
+        if (ocrFormContainer == null) return;
+        
+        Platform.runLater(() -> {
+            ocrFormContainer.getChildren().clear();
+            ocrFormFields.clear();
+
+            if ("Fiche Medicale".equalsIgnoreCase(selectedOcrDocumentType)) {
+                addOcrFormField("Diagnostic", "diagnostic");
+                addOcrFormField("Observations", "observations");
+                addOcrFormField("Résultats Examens", "resultatsExamens");
+                addOcrFormField("Durée (minutes)", "dureeMinutes");
+            } else if ("Prescription".equalsIgnoreCase(selectedOcrDocumentType)) {
+                addOcrFormField("Nom du Médicament", "nomMedicament");
+                addOcrFormField("Dose", "dose");
+                addOcrFormField("Fréquence", "frequence");
+                addOcrFormField("Durée", "duree");
+                addOcrFormField("Instructions", "instructions");
+            }
+        });
+    }
+
+    private void addOcrFormField(String label, String fieldKey) {
+        VBox fieldBox = new VBox(6);
+        fieldBox.setStyle("-fx-background-color: #ffffff; -fx-border-color: #d8e3ef; -fx-border-radius: 4; -fx-background-radius: 4; -fx-padding: 8 10 10 10;");
+
+        Label fieldLabel = new Label(label);
+        fieldLabel.setMinHeight(20);
+        fieldLabel.setMaxWidth(Double.MAX_VALUE);
+        fieldLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 12; -fx-text-fill: #1f3f83; -fx-padding: 0 0 2 2;");
+
+        String extractedValue = "";
+        if (extractedOcrData.has(fieldKey)) {
+            extractedValue = extractedOcrData.get(fieldKey).getAsString();
+        }
+
+        Control inputControl;
+
+        if (fieldKey.equals("observations") || fieldKey.equals("resultatsExamens") || fieldKey.equals("instructions")) {
+            TextArea textArea = new TextArea(extractedValue);
+            textArea.setWrapText(true);
+            textArea.setPrefRowCount(3);
+            textArea.setStyle("-fx-control-inner-background: #f9f9f9; -fx-padding: 6;");
+            inputControl = textArea;
+        } else {
+            TextField textField = new TextField(extractedValue);
+            textField.setStyle("-fx-padding: 6; -fx-font-size: 11;");
+            inputControl = textField;
+        }
+
+        ocrFormFields.put(fieldKey, inputControl);
+        fieldBox.getChildren().addAll(fieldLabel, inputControl);
+        ocrFormContainer.getChildren().add(fieldBox);
+    }
+
+    private void displayOcrPdfPreview(File pdfFile) {
+        if (ocrPdfViewerContainer == null) return;
+
+        ocrPdfViewerContainer.getChildren().clear();
+        Label loadingLabel = new Label("Chargement de l'aperçu PDF...");
+        loadingLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #1f3f83;");
+        ocrPdfViewerContainer.getChildren().add(loadingLabel);
+
+        Task<List<WritableImage>> previewTask = new Task<List<WritableImage>>() {
+            @Override
+            protected List<WritableImage> call() throws Exception {
+                return renderPdfPages(pdfFile);
+            }
+        };
+
+        previewTask.setOnSucceeded(event -> {
+            ocrPdfViewerContainer.getChildren().setAll(createPdfPreview(previewTask.getValue()));
+        });
+
+        previewTask.setOnFailed(event -> {
+            Label errorLabel = new Label("Impossible d'afficher le PDF: " + previewTask.getException().getMessage());
+            errorLabel.setWrapText(true);
+            errorLabel.setStyle("-fx-text-fill: #b42318; -fx-font-weight: bold;");
+            ocrPdfViewerContainer.getChildren().setAll(errorLabel);
+        });
+
+        Thread previewThread = new Thread(previewTask, "ocr-pdf-preview");
+        previewThread.setDaemon(true);
+        previewThread.start();
+    }
+
+    private List<WritableImage> renderPdfPages(File pdfFile) throws IOException {
+        List<WritableImage> pages = new ArrayList<>();
+        try (PDDocument document = PDDocument.load(pdfFile)) {
+            PDFRenderer renderer = new PDFRenderer(document);
+            for (int pageIndex = 0; pageIndex < document.getNumberOfPages(); pageIndex++) {
+                BufferedImage pageImage = renderer.renderImageWithDPI(pageIndex, 100);
+                pages.add(SwingFXUtils.toFXImage(pageImage, null));
+            }
+        }
+        return pages;
+    }
+
+    private VBox createPdfPreview(List<WritableImage> pages) {
+        final double minZoom = 0.35;
+        final double maxZoom = 2.5;
+        final double zoomStep = 0.15;
+        final double[] zoom = {0.75};
+
+        Button zoomOutButton = new Button("-");
+        Button resetZoomButton = new Button("100%");
+        Button zoomInButton = new Button("+");
+        Label zoomLabel = new Label();
+
+        zoomOutButton.setStyle("-fx-font-weight: bold; -fx-min-width: 34;");
+        resetZoomButton.setStyle("-fx-font-weight: bold; -fx-min-width: 58;");
+        zoomInButton.setStyle("-fx-font-weight: bold; -fx-min-width: 34;");
+        zoomLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #1f3f83; -fx-min-width: 48;");
+
+        HBox toolbar = new HBox(8, zoomOutButton, resetZoomButton, zoomInButton, zoomLabel);
+        toolbar.setPadding(new Insets(8, 10, 0, 10));
+        toolbar.setStyle("-fx-alignment: center-left; -fx-background-color: #edf3f8;");
+
+        VBox pagesBox = new VBox(14);
+        pagesBox.setPadding(new Insets(14));
+        pagesBox.setStyle("-fx-background-color: #edf3f8; -fx-alignment: top-center;");
+
+        List<ImageView> pageViews = new ArrayList<>();
+
+        for (WritableImage fxImage : pages) {
+            ImageView pageView = new ImageView(fxImage);
+            pageView.setPreserveRatio(true);
+            pageView.setSmooth(true);
+            pageView.setStyle("-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.22), 10, 0.12, 0, 2);");
+            pageViews.add(pageView);
+            pagesBox.getChildren().add(pageView);
+        }
+
+        ScrollPane scrollPane = new ScrollPane(pagesBox);
+        scrollPane.setFitToWidth(false);
+        scrollPane.setFitToHeight(false);
+        scrollPane.setPannable(true);
+        scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        scrollPane.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
+
+        Runnable applyZoom = () -> {
+            zoomLabel.setText(Math.round(zoom[0] * 100) + "%");
+            for (ImageView pageView : pageViews) {
+                pageView.setFitWidth(pageView.getImage().getWidth() * zoom[0]);
+            }
+        };
+
+        zoomOutButton.setOnAction(event -> {
+            zoom[0] = Math.max(minZoom, zoom[0] - zoomStep);
+            applyZoom.run();
+        });
+        zoomInButton.setOnAction(event -> {
+            zoom[0] = Math.min(maxZoom, zoom[0] + zoomStep);
+            applyZoom.run();
+        });
+        resetZoomButton.setOnAction(event -> {
+            zoom[0] = 1.0;
+            applyZoom.run();
+        });
+        applyZoom.run();
+
+        VBox previewBox = new VBox(0, toolbar, scrollPane);
+        VBox.setVgrow(scrollPane, javafx.scene.layout.Priority.ALWAYS);
+        return previewBox;
+    }
+
+    @FXML
+    private void handleConfirmOcrUpload() {
+        if (selectedOcrReferenceId <= 0) {
+            showError("Validation", "Référence invalide.");
+            return;
+        }
+
+        User currentUser = SessionManager.getCurrentUser();
+        if (currentUser == null) {
+            showError("Erreur", "Utilisateur non authentifié.");
+            return;
+        }
+
+        try {
+            if ("Fiche Medicale".equalsIgnoreCase(selectedOcrDocumentType)) {
+                saveOcrFicheMedicaleFromForm(currentUser);
+            } else if ("Prescription".equalsIgnoreCase(selectedOcrDocumentType)) {
+                saveOcrPrescriptionFromForm(currentUser);
+            }
+
+            showInfo("Succès", "Les données ont été enregistrées avec succès.");
+            resetOcrUploadState();
+            if (selectedOcrDocumentType != null) {
+                loadOcrReferenceList();
+            }
+        } catch (Exception e) {
+            showError("Erreur d'enregistrement", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private void saveOcrFicheMedicaleFromForm(User currentUser) throws Exception {
+        String diagnostic = getOcrFormFieldValue("diagnostic");
+        String observations = getOcrFormFieldValue("observations");
+        String resultatsExamens = getOcrFormFieldValue("resultatsExamens");
+        String dureeStr = getOcrFormFieldValue("dureeMinutes");
+        int duree = 0;
+        try {
+            duree = Integer.parseInt(dureeStr.isEmpty() ? "0" : dureeStr);
+        } catch (NumberFormatException e) {
+            duree = 0;
+        }
+
+        FicheMedicale fiche = new FicheMedicale();
+        fiche.setRendez_vous_id(selectedOcrReferenceId);
+        fiche.setDiagnostic(diagnostic);
+        fiche.setObservations(observations);
+        fiche.setResultats_examens(resultatsExamens);
+        fiche.setDuree_minutes(duree);
+        fiche.setSignature("");
+        fiche.setCreated_at(Timestamp.valueOf(LocalDateTime.now()));
+
+        ficheMedicaleService.ajouter(fiche);
+    }
+
+    private void saveOcrPrescriptionFromForm(User currentUser) throws Exception {
+        String nomMedicament = getOcrFormFieldValue("nomMedicament");
+        String dose = getOcrFormFieldValue("dose");
+        String frequence = getOcrFormFieldValue("frequence");
+        String dureeStr = getOcrFormFieldValue("duree");
+        String instructions = getOcrFormFieldValue("instructions");
+        int duree = 0;
+        try {
+            duree = Integer.parseInt(dureeStr.isEmpty() ? "0" : dureeStr);
+        } catch (NumberFormatException e) {
+            duree = 0;
+        }
+
+        Prescription prescription = new Prescription();
+        prescription.setFiche_medicale_id(selectedOcrReferenceId);
+        prescription.setNom_medicament(nomMedicament);
+        prescription.setDose(dose);
+        prescription.setFrequence(frequence);
+        prescription.setDuree(duree);
+        prescription.setInstructions(instructions);
+        prescription.setCreated_at(Timestamp.valueOf(LocalDateTime.now()));
+
+        prescriptionService.ajouter(prescription);
+    }
+
+    private String getOcrFormFieldValue(String fieldKey) {
+        Control control = ocrFormFields.get(fieldKey);
+        if (control instanceof TextField) {
+            return ((TextField) control).getText().trim();
+        } else if (control instanceof TextArea) {
+            return ((TextArea) control).getText().trim();
+        }
+        return "";
+    }
+
+    @FXML
+    private void handleCancelOcrUpload() {
+        resetOcrUploadState();
+        updateOcrUploadStatus("Upload annulé. Sélectionnez un nouveau document et une référence.");
+    }
+
+    private void resetOcrUploadState() {
+        selectedOcrPdfFile = null;
+        selectedOcrReference = null;
+        selectedOcrReferenceId = -1;
+        extractedOcrData = new JsonObject();
+        ocrFormFields.clear();
+        if (ocrFormContainer != null) {
+            ocrFormContainer.getChildren().clear();
+        }
+        if (ocrPdfViewerContainer != null) {
+            ocrPdfViewerContainer.getChildren().clear();
+        }
+        if (ocrConfirmButton != null) {
+            ocrConfirmButton.setDisable(true);
+        }
+        if (ocrReferenceCombo != null) {
+            ocrReferenceCombo.setValue(null);
+        }
+    }
+
+    private void updateOcrUploadStatus(String message) {
+        if (ocrUploadStatusLabel != null) {
+            ocrUploadStatusLabel.setText(message);
+        }
     }
 
     private static class PrescriptionRowControls {

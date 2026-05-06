@@ -45,10 +45,14 @@
 
         <Region VBox.vgrow="ALWAYS"/>
 
-        <HBox alignment="CENTER_LEFT" spacing="10" styleClass="sidebar-item">
-            <Label text="↪" styleClass="sidebar-item-icon"/>
-            <Label text="Déconnexion" styleClass="sidebar-item-text" />
-        </HBox>
+        <Button text="" onAction="#handleLogout" alignment="CENTER_LEFT" maxWidth="Infinity" contentDisplay="GRAPHIC_ONLY" styleClass="sidebar-item,sidebar-btn">
+            <graphic>
+                <HBox alignment="CENTER_LEFT" spacing="10" maxWidth="Infinity">
+                    <Label text="↪" styleClass="sidebar-item-icon"/>
+                    <Label text="Déconnexion" styleClass="sidebar-item-text" />
+                </HBox>
+            </graphic>
+        </Button>
     </VBox>
 
     <VBox spacing="16" styleClass="main-area,main-area-shell" AnchorPane.leftAnchor="266.0" AnchorPane.rightAnchor="12.0" AnchorPane.topAnchor="10.0" AnchorPane.bottomAnchor="10.0">
@@ -62,6 +66,7 @@
             <Button fx:id="pageOneBtn" onAction="#handleShowPageOne" text="Mes Rendez Vous" styleClass="filter-btn"/>
             <Button fx:id="consultationPageBtn" onAction="#handleShowConsultationPage" text="Consultation" styleClass="filter-btn"/>
             <Button fx:id="statsPageBtn" onAction="#handleShowStatsPage" text="Statistiques" styleClass="filter-btn-white"/>
+            <Button fx:id="ocrUploadPageBtn" onAction="#handleShowOcrUploadPage" text="Upload RV &amp; PR" styleClass="filter-btn"/>
         </HBox>
 
         <StackPane VBox.vgrow="ALWAYS">
@@ -494,6 +499,51 @@
                         <Label text="Médicaments les Plus Prescrits" styleClass="stat-label"/>
                         <PieChart fx:id="topMedicamentsPieChart" legendVisible="true" labelsVisible="true" VBox.vgrow="ALWAYS"/>
                     </VBox>
+                </HBox>
+            </VBox>
+
+            <VBox fx:id="ocrUploadPageContainer" spacing="16" visible="false" managed="false">
+                <HBox alignment="CENTER_LEFT" styleClass="top-search-box">
+                    <Label text="Upload Rendez-vous &amp; Prescription (OCR)" styleClass="consultation-page-title"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Label text="Téléchargez un PDF et nous extrairons les données avec OCR" styleClass="consultation-page-subtitle"/>
+                </HBox>
+
+                <VBox spacing="12" styleClass="table-card,detail-panel-card" fx:id="ocrUploadSelectionBox">
+                    <HBox alignment="CENTER_LEFT" spacing="16" fillHeight="false">
+                        <VBox spacing="6">
+                            <Label text="Type de Document" styleClass="fiche-field-label"/>
+                            <ComboBox fx:id="ocrDocumentTypeCombo" promptText="Sélectionnez le type..." styleClass="fiche-input" prefWidth="200"/>
+                        </VBox>
+
+                        <VBox spacing="6" HBox.hgrow="ALWAYS">
+                            <Label text="Sélectionner une Référence" styleClass="fiche-field-label"/>
+                            <ComboBox fx:id="ocrReferenceCombo" promptText="Sélectionnez une référence..." styleClass="fiche-input" HBox.hgrow="ALWAYS"/>
+                        </VBox>
+
+                        <VBox spacing="6" alignment="BOTTOM_CENTER">
+                            <Label text=" " styleClass="fiche-field-label"/>
+                            <Button text="Parcourir..." onAction="#handleSelectPdfFile" styleClass="fiche-primary-button" prefWidth="120"/>
+                        </VBox>
+                    </HBox>
+                    <Label fx:id="ocrUploadStatusLabel" text="Sélectionnez un type de document et une référence, puis choisissez un fichier PDF." styleClass="detail-date" wrapText="true"/>
+                </VBox>
+
+                <HBox spacing="16" VBox.vgrow="ALWAYS">
+                    <StackPane fx:id="ocrPdfViewerContainer" styleClass="mini-image-box" HBox.hgrow="ALWAYS" minWidth="0.0" prefWidth="0.0" maxWidth="Infinity">
+                        <Label text="Aperçu PDF" styleClass="detail-date" />
+                    </StackPane>
+
+                    <ScrollPane fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" styleClass="cmd-scroll" HBox.hgrow="ALWAYS" minWidth="0.0" prefWidth="0.0" maxWidth="Infinity">
+                        <VBox spacing="14" styleClass="table-card,detail-panel-card">
+                            <Label text="Données Extraites" styleClass="section-title"/>
+                            <VBox fx:id="ocrFormContainer" spacing="10" styleClass="home-root-content"/>
+                            <HBox spacing="10" alignment="CENTER_RIGHT">
+                                <Button text="Annuler" onAction="#handleCancelOcrUpload" styleClass="fiche-secondary-button"/>
+                                <Button fx:id="ocrConfirmButton" text="Confirmer et Enregistrer" onAction="#handleConfirmOcrUpload" styleClass="fiche-primary-button"/>
+                            </HBox>
+                        </VBox>
+                    </ScrollPane>
                 </HBox>
             </VBox>
         </StackPane>

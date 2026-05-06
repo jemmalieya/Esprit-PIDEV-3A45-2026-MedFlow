@@ -1,0 +1,285 @@
+.stats-page {
+    -fx-background-color: transparent;
+}
+
+.stats-hero,
+#statsHeroBanner {
+    -fx-background-color:
+        linear-gradient(to bottom right, rgba(6, 22, 37, 0.98), rgba(15, 52, 77, 0.96) 45%, rgba(14, 165, 233, 0.92)),
+        linear-gradient(to right, #061625, #0f344d, #0ea5e9);
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 28;
+    -fx-border-color: rgba(255, 255, 255, 0.24);
+    -fx-border-width: 1.2;
+    -fx-border-radius: 28;
+    -fx-padding: 24 28 22 28;
+    -fx-effect: dropshadow(gaussian, rgba(8, 15, 24, 0.24), 22, 0, 0, 8);
+}
+
+#statsHeroBanner .simple-welcome-title,
+#statsHeroBanner .simple-welcome-text,
+#statsHeroBanner .simple-welcome-subtext,
+.stats-hero .simple-welcome-title,
+.stats-hero .simple-welcome-text,
+.stats-hero .simple-welcome-subtext {
+    -fx-text-fill: white;
+}
+
+#statsHeroBanner .simple-welcome-title {
+    -fx-font-size: 30px;
+    -fx-font-weight: 900;
+}
+
+#statsHeroBanner .simple-welcome-text {
+    -fx-font-size: 15px;
+    -fx-font-weight: 700;
+    -fx-opacity: 0.98;
+}
+
+#statsHeroBanner .simple-welcome-subtext {
+    -fx-font-size: 13px;
+    -fx-font-weight: 600;
+    -fx-opacity: 0.96;
+}
+
+.stats-kpi-grid {
+    -fx-padding: 2 2 8 2;
+}
+
+.stats-kpi-card {
+    -fx-pref-width: 205px;
+    -fx-min-width: 205px;
+    -fx-max-width: 205px;
+    -fx-min-height: 155px;
+    -fx-background-radius: 24;
+    -fx-border-radius: 24;
+    -fx-padding: 20;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.12), 18, 0, 0, 5);
+}
+
+.stats-kpi-title {
+    -fx-text-fill: #0b1f38;
+    -fx-font-size: 13px;
+    -fx-font-weight: 900;
+}
+
+.stats-kpi-value {
+    -fx-text-fill: #0b1f38;
+    -fx-font-size: 34px;
+    -fx-font-weight: 900;
+}
+
+.stats-kpi-note {
+    -fx-text-fill: #4b607d;
+    -fx-font-size: 12px;
+    -fx-font-weight: 600;
+}
+
+.kpi-doctors {
+    -fx-background-color: linear-gradient(to bottom right, #0ea5e9, #14b8a6);
+}
+
+.kpi-rdv {
+    -fx-background-color: linear-gradient(to bottom right, #2563eb, #0ea5e9);
+}
+
+.kpi-fiches {
+    -fx-background-color: linear-gradient(to bottom right, #0f766e, #14b8a6);
+}
+
+.kpi-prescriptions {
+    -fx-background-color: linear-gradient(to bottom right, #7c3aed, #2563eb);
+}
+
+.kpi-duration {
+    -fx-background-color: linear-gradient(to bottom right, #fb7185, #f97316);
+}
+
+.kpi-urgent {
+    -fx-background-color: linear-gradient(to bottom right, #b91c1c, #fb7185);
+}
+
+.consultation-stat-panel {
+    -fx-background-color: rgba(255, 255, 255, 0.96);
+    -fx-background-radius: 28;
+    -fx-border-radius: 28;
+    -fx-border-color: rgba(148, 163, 184, 0.20);
+    -fx-border-width: 1.2;
+    -fx-padding: 24;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.10), 22, 0, 0, 6);
+}
+
+.consultation-stat-panel .page-subtitle,
+.consultation-stat-panel .simple-section-title,
+.consultation-stat-panel .chart-card-title,
+.consultation-stat-panel .stats-kpi-title,
+.consultation-stat-panel .stats-kpi-note {
+    -fx-text-fill: #0f2742;
+}
+
+.chart-shell {
+    -fx-padding: 22;
+}
+
+.chart-row {
+    -fx-alignment: top-left;
+}
+
+.chart-card {
+    -fx-background-color: linear-gradient(to bottom right, #ffffff, #f8fbff);
+    -fx-background-radius: 22;
+    -fx-border-color: #dce7f3;
+    -fx-border-width: 1.1;
+    -fx-border-radius: 22;
+    -fx-padding: 16;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.08), 16, 0, 0, 4);
+}
+
+.chart-card-half {
+    -fx-pref-width: 665px;
+    -fx-max-width: 665px;
+}
+
+.chart-card-full {
+    -fx-pref-width: 1350px;
+}
+
+.chart-card-title {
+    -fx-text-fill: #0b1f38;
+    -fx-font-size: 16px;
+    -fx-font-weight: 900;
+}
+
+.chart-card .chart,
+.chart-card .pie-chart {
+    -fx-background-color: transparent;
+    -fx-pref-height: 320px;
+}
+
+.chart-card .chart-plot-background {
+    -fx-background-color: transparent;
+}
+
+.chart-card .chart-content {
+    -fx-padding: 10;
+}
+
+.chart-card .axis {
+    -fx-tick-label-fill: #334155;
+    -fx-font-size: 11px;
+}
+
+.chart-card .axis-label {
+    -fx-text-fill: #0b1f38;
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+}
+
+.chart-card .chart-legend .label,
+.chart-card .legend-item .label,
+.chart-card .chart-legend-item .label,
+.chart-card .chart-legend-item,
+.chart-card .chart-legend,
+.chart-card .chart-legend > .label {
+    -fx-text-fill: #0f2742;
+    -fx-fill: #0f2742;
+}
+
+.chart-card .tick-label,
+.chart-card .axis .tick-label,
+.chart-card .chart-legend-item,
+.chart-card .chart-pie-label,
+.chart-card .chart-pie-label-line {
+    -fx-text-fill: #0f2742;
+    -fx-fill: #0f2742;
+}
+
+.chart-card .default-color0.chart-series-line {
+    -fx-stroke: linear-gradient(to right, #0ea5e9, #14b8a6);
+    -fx-stroke-width: 3px;
+}
+
+.chart-card .default-color0.chart-line-symbol {
+    -fx-background-color: #14b8a6, white;
+    -fx-background-radius: 8px;
+    -fx-padding: 4px;
+}
+
+.chart-card .chart-legend {
+    -fx-background-color: transparent;
+}
+
+.chart-card .chart-title {
+    -fx-text-fill: #0b1f38;
+    -fx-font-size: 15px;
+    -fx-font-weight: 800;
+}
+
+.consultation-stat-panel .chart .axis,
+.consultation-stat-panel .chart .axis-label,
+.consultation-stat-panel .chart .axis .text,
+.consultation-stat-panel .chart .tick-label,
+.consultation-stat-panel .chart .chart-title,
+.consultation-stat-panel .chart .chart-legend,
+.consultation-stat-panel .chart .chart-legend-item,
+.consultation-stat-panel .chart .chart-legend-item .text,
+.consultation-stat-panel .chart .chart-pie-label {
+    -fx-text-fill: #0f2742;
+    -fx-fill: #0f2742;
+}
+
+.consultation-stat-panel .chart .chart-legend {
+    -fx-background-color: transparent;
+}
+
+.chart-card .default-color0.chart-pie-label,
+.chart-card .default-color1.chart-pie-label,
+.chart-card .default-color2.chart-pie-label,
+.chart-card .default-color3.chart-pie-label,
+.chart-card .default-color4.chart-pie-label,
+.chart-card .default-color5.chart-pie-label,
+.chart-card .default-color6.chart-pie-label,
+.chart-card .default-color7.chart-pie-label {
+    -fx-fill: #0f2742;
+    -fx-text-fill: #0f2742;
+}
+
+.chart-card .chart-bar {
+    -fx-bar-fill: #0ea5e9;
+}
+
+.chart-card .chart-bar:hover {
+    -fx-opacity: 0.92;
+}
+
+.chart-card .pie-chart-legend-item {
+    -fx-text-fill: #4b607d;
+}
+
+/* Strong overrides to defeat global white text from admin-welcome.css */
+.consultation-stat-panel .chart-card .chart-legend .label,
+.consultation-stat-panel .chart-card .chart-legend .label .text,
+.consultation-stat-panel .chart-card .chart-legend .legend-item .label,
+.consultation-stat-panel .chart-card .chart-legend-item,
+.consultation-stat-panel .chart-card .chart-pie-label,
+.consultation-stat-panel .chart-card .chart-pie-label-line,
+.consultation-stat-panel .chart-card .tick-label,
+.consultation-stat-panel .chart-card .axis .tick-label,
+.consultation-stat-panel .chart-card .axis-label,
+.consultation-stat-panel .chart-card .chart-title,
+.consultation-stat-panel .chart-card .chart-legend,
+.consultation-stat-panel .chart-card .pie-chart-legend-item {
+    -fx-text-fill: #0f2742 !important;
+    -fx-fill: #0f2742 !important;
+}
+
+/* If legend nodes use nested text nodes */
+.consultation-stat-panel .chart-card .chart-legend .label * {
+    -fx-fill: #0f2742 !important;
+    -fx-text-fill: #0f2742 !important;
+}
+
+/* Also ensure tick marks and axis labels are dark */
+.consultation-stat-panel .chart-card .axis .tick-mark {
+    -fx-stroke: #0f2742 !important;
+}

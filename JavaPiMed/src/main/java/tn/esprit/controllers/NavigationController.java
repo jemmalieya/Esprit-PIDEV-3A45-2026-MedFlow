@@ -8,6 +8,10 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.stage.Stage;
 import javafx.animation.RotateTransition;
+import javafx.animation.FadeTransition;
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
+import javafx.animation.Timeline;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -21,9 +25,17 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import javafx.scene.transform.Rotate;
+import javafx.embed.swing.SwingFXUtils;
+import java.awt.image.BufferedImage;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.MultiFormatWriter;
+import com.google.zxing.client.j2se.MatrixToImageWriter;
+import com.google.zxing.common.BitMatrix;
+import tn.esprit.services.TotpService;
 
 import tn.esprit.entities.User;
 import tn.esprit.services.UserService;
@@ -31,6 +43,8 @@ import tn.esprit.tools.SessionManager;
 
 import java.io.File;
 import java.time.LocalDate;
+import java.util.Optional;
+import tn.esprit.services.UserProfileGamificationService;
 
 public class NavigationController {
 
@@ -96,6 +110,12 @@ public class NavigationController {
     private Label profileMessageLabel;
 
     @FXML
+    private Label totpStatusLabel;
+
+    @FXML
+    private Label faceLoginStatusLabel;
+
+    @FXML
     private Label profileFirstNameErrorLabel;
 
     @FXML
@@ -112,6 +132,36 @@ public class NavigationController {
 
     @FXML
     private Label profileInitialsLabel;
+
+    @FXML
+    private ProgressBar activationScoreProgress;
+
+    @FXML
+    private Label activationScoreValueLabel;
+
+    @FXML
+    private Label activationLevelValueLabel;
+
+    @FXML
+    private VBox nextActionsContainer;
+
+    @FXML
+    private VBox badgesContainer;
+
+    @FXML
+    private CheckBox prefEmailSecurityAlertsCheck;
+
+    @FXML
+    private CheckBox prefPushLoginAlertsCheck;
+
+    @FXML
+    private Button prefSaveButton;
+
+    @FXML
+    private Label prefStatusLabel;
+
+    @FXML
+    private Label prefSummaryLabel;
 
     // Sidebar user info (présent sur toutes les pages front)
     @FXML
@@ -136,6 +186,8 @@ public class NavigationController {
     private Label sidebarRoleLabel;
 
     private final UserService userService = new UserService();
+    private final TotpService totpService = new TotpService();
+    private final UserProfileGamificationService userProfileGamificationService = new UserProfileGamificationService();
     private String selectedProfileImagePath;
 
     // Etat du flip de la carte sidebar
@@ -149,6 +201,10 @@ public class NavigationController {
     private boolean profileAddressValid;
     private boolean profileCinValid;
     private boolean profileBirthDateValid;
+    private boolean gamificationAnimated;
+    private boolean loadingPreferences;
+    private boolean preferenceListenersAttached;
+    private boolean preferencesDirty;
 
     @FXML
     private void initialize() {
@@ -187,6 +243,9 @@ public class NavigationController {
 
         updateAvatar(profileImageView, profileInitialsLabel, current);
         clearProfileValidationStyles();
+        refreshSecurityStatus(current);
+        initializePreferenceOptions();
+        refreshProfileGamification(current);
         setProfileMessage("", false);
 
         // Live validation listeners
@@ -512,21 +571,305 @@ public class NavigationController {
         current.setNom(nom);
         current.setTelephoneUser(tel);
         current.setAdresseUser(adresse);
-        if (dateNaissance != null) {
-            current.setDateNaissance(dateNaissance);
-        }
+        current.setDateNaissance(dateNaissance);
         if (selectedProfileImagePath != null && !selectedProfileImagePath.isEmpty()) {
             current.setProfilePicture(selectedProfileImagePath);
         }
 
         try {
             userService.modifier(current);
-            setProfileMessage("Profil mis à jour avec succès.", false);
+            setProfileMessage("Profil enregistre avec succes.", false);
             initSidebarUserInfo();
+            refreshProfileGamification(current);
         } catch (Exception e) {
-            e.printStackTrace();
-            setProfileMessage("Erreur lors de la mise à jour du profil.", true);
+            setProfileMessage("Echec de sauvegarde profil: " + e.getMessage(), true);
         }
+    }
+
+    private void initializePreferenceOptions() {
+        attachPreferenceListeners();
+        updatePreferencesSummary();
+        setPreferencesDirty(false);
+    }
+
+    private void attachPreferenceListeners() {
+        if (preferenceListenersAttached) {
+            return;
+        }
+
+        if (prefEmailSecurityAlertsCheck != null) {
+            prefEmailSecurityAlertsCheck.selectedProperty().addListener((obs, oldValue, newValue) -> onPreferenceControlChanged());
+        }
+        if (prefPushLoginAlertsCheck != null) {
+            prefPushLoginAlertsCheck.selectedProperty().addListener((obs, oldValue, newValue) -> onPreferenceControlChanged());
+        }
+
+        preferenceListenersAttached = true;
+    }
+
+    private void onPreferenceControlChanged() {
+        if (loadingPreferences) {
+            return;
+        }
+        setPreferencesDirty(true);
+        updatePreferencesSummary();
+    }
+
+    private void setPreferencesDirty(boolean dirty) {
+        preferencesDirty = dirty;
+        if (prefSaveButton != null) {
+            prefSaveButton.setDisable(!dirty);
+        }
+        if (prefStatusLabel != null) {
+            prefStatusLabel.setText(dirty ? "Modifications non enregistrees" : "Preferences synchronisees");
+            prefStatusLabel.getStyleClass().setAll("pref-status-label", dirty ? "pref-status-dirty" : "pref-status-clean");
+        }
+    }
+
+    private void updatePreferencesSummary() {
+        if (prefSummaryLabel == null) {
+            return;
+        }
+        String sec = prefEmailSecurityAlertsCheck != null && prefEmailSecurityAlertsCheck.isSelected() ? "ON" : "OFF";
+        String push = prefPushLoginAlertsCheck != null && prefPushLoginAlertsCheck.isSelected() ? "ON" : "OFF";
+        prefSummaryLabel.setText("Alertes securite e-mail: " + sec + " | Alertes login push: " + push);
+    }
+
+    private void refreshProfileGamification(User user) {
+        if (user == null || activationScoreProgress == null) {
+            return;
+        }
+
+        try {
+            UserProfileGamificationService.ActivationScoreResponse scoreResponse =
+                    userProfileGamificationService.getActivationScore(user.getId());
+
+            double targetProgress = Math.max(0, Math.min(100, scoreResponse.activationScore())) / 100.0;
+            animateActivationProgress(targetProgress);
+            if (activationScoreValueLabel != null) {
+                activationScoreValueLabel.setText(scoreResponse.activationScore() + "%");
+            }
+            if (activationLevelValueLabel != null) {
+                activationLevelValueLabel.setText(scoreResponse.level());
+            }
+
+            UserProfileGamificationService.NextBestActionsResponse actionsResponse =
+                    userProfileGamificationService.getNextBestActions(user.getId());
+            renderNextActions(actionsResponse.actions());
+
+            UserProfileGamificationService.BadgesResponse badgesResponse =
+                    userProfileGamificationService.getBadges(user.getId());
+            renderBadges(badgesResponse.badges());
+
+            if (!gamificationAnimated) {
+                animateGamificationPanels();
+                gamificationAnimated = true;
+            }
+
+            UserProfileGamificationService.PreferencesResponse preferencesResponse =
+                    userProfileGamificationService.patchPreferences(
+                            user.getId(),
+                            new UserProfileGamificationService.PreferencesPatch(null, null, null, null, null, null)
+                    );
+            applyPreferencesToControls(preferencesResponse.preferences());
+        } catch (Exception e) {
+            setProfileMessage("Impossible de charger les donnees de securite profile.", true);
+        }
+    }
+
+    private void animateActivationProgress(double targetProgress) {
+        if (activationScoreProgress == null) {
+            return;
+        }
+        KeyValue kv = new KeyValue(activationScoreProgress.progressProperty(), targetProgress, javafx.animation.Interpolator.EASE_BOTH);
+        Timeline timeline = new Timeline(new KeyFrame(Duration.millis(700), kv));
+        timeline.play();
+    }
+
+    private void animateGamificationPanels() {
+        animateAppear(nextActionsContainer, 60);
+        animateAppear(badgesContainer, 140);
+        animateAppear(prefEmailSecurityAlertsCheck, 220);
+        animateAppear(prefPushLoginAlertsCheck, 250);
+        animateAppear(prefSaveButton, 280);
+    }
+
+    private void animateAppear(Node node, int delayMs) {
+        if (node == null) {
+            return;
+        }
+        node.setOpacity(0);
+        FadeTransition fade = new FadeTransition(Duration.millis(320), node);
+        fade.setDelay(Duration.millis(delayMs));
+        fade.setFromValue(0);
+        fade.setToValue(1);
+        fade.play();
+    }
+
+    private void renderNextActions(java.util.List<UserProfileGamificationService.NextAction> actions) {
+        if (nextActionsContainer == null) {
+            return;
+        }
+        nextActionsContainer.getChildren().clear();
+
+        if (actions == null || actions.isEmpty()) {
+            Label doneLabel = new Label("Excellent ! Aucun point bloquant, votre profil est complet.");
+            doneLabel.getStyleClass().add("profile-help-text");
+            nextActionsContainer.getChildren().add(doneLabel);
+            return;
+        }
+
+        int max = Math.min(actions.size(), 5);
+        for (int i = 0; i < max; i++) {
+            UserProfileGamificationService.NextAction action = actions.get(i);
+            HBox actionRow = new HBox(10);
+            actionRow.getStyleClass().add("action-item-row");
+
+            Label titleLabel = new Label(action.title());
+            titleLabel.getStyleClass().add("action-item-title");
+
+            Label pointsLabel = new Label("+" + action.rewardPoints() + " pts");
+            pointsLabel.getStyleClass().add("action-item-points");
+
+            Label priorityLabel = new Label(action.priority());
+            String prio = action.priority() == null ? "LOW" : action.priority().trim().toUpperCase();
+            if ("HIGH".equals(prio)) {
+                priorityLabel.getStyleClass().add("action-priority-high");
+            } else if ("MEDIUM".equals(prio)) {
+                priorityLabel.getStyleClass().add("action-priority-medium");
+            } else {
+                priorityLabel.getStyleClass().add("action-priority-low");
+            }
+
+            HBox spacer = new HBox();
+            HBox.setHgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
+            actionRow.getChildren().addAll(titleLabel, spacer, pointsLabel, priorityLabel);
+
+            actionRow.setOpacity(0);
+            nextActionsContainer.getChildren().add(actionRow);
+            FadeTransition rowFade = new FadeTransition(Duration.millis(240), actionRow);
+            rowFade.setDelay(Duration.millis(i * 70L));
+            rowFade.setFromValue(0);
+            rowFade.setToValue(1);
+            rowFade.play();
+        }
+    }
+
+    private void renderBadges(java.util.List<UserProfileGamificationService.BadgeStatus> badges) {
+        if (badgesContainer == null) {
+            return;
+        }
+        badgesContainer.getChildren().clear();
+
+        if (badges == null || badges.isEmpty()) {
+            Label noBadge = new Label("Aucun badge pour le moment.");
+            noBadge.getStyleClass().add("profile-help-text");
+            badgesContainer.getChildren().add(noBadge);
+            return;
+        }
+
+        for (int i = 0; i < badges.size(); i++) {
+            UserProfileGamificationService.BadgeStatus badge = badges.get(i);
+
+            HBox badgeRow = new HBox(8);
+            badgeRow.getStyleClass().add("badge-row");
+
+            Label icon = new Label(badge.unlocked() ? "✓" : "•");
+            icon.getStyleClass().add(badge.unlocked() ? "badge-icon-ok" : "badge-icon-pending");
+
+            Label title = new Label(badge.title());
+            title.getStyleClass().add(badge.unlocked() ? "badge-chip-unlocked" : "badge-chip-locked");
+
+            String progressTxt = (int) Math.round(badge.progress() * 100) + "%";
+            Label progressLabel = new Label(progressTxt);
+            progressLabel.getStyleClass().add("badge-progress-text");
+
+            HBox spacer = new HBox();
+            HBox.setHgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
+            badgeRow.getChildren().addAll(icon, title, spacer, progressLabel);
+
+            badgeRow.setOpacity(0);
+            badgesContainer.getChildren().add(badgeRow);
+            FadeTransition rowFade = new FadeTransition(Duration.millis(260), badgeRow);
+            rowFade.setDelay(Duration.millis(i * 55L));
+            rowFade.setFromValue(0);
+            rowFade.setToValue(1);
+            rowFade.play();
+        }
+    }
+
+    private void applyPreferencesToControls(UserProfileGamificationService.UserPreferences preferences) {
+        if (preferences == null) {
+            return;
+        }
+        loadingPreferences = true;
+        if (prefEmailSecurityAlertsCheck != null) {
+            prefEmailSecurityAlertsCheck.setSelected(preferences.emailSecurityAlerts());
+        }
+        if (prefPushLoginAlertsCheck != null) {
+            prefPushLoginAlertsCheck.setSelected(preferences.pushLoginAlerts());
+        }
+        loadingPreferences = false;
+        updatePreferencesSummary();
+        setPreferencesDirty(false);
+    }
+
+    @FXML
+    private void handleSaveUserPreferences(ActionEvent event) {
+        User current = SessionManager.getCurrentUser();
+        if (current == null) {
+            setProfileMessage("Aucun utilisateur connecte.", true);
+            return;
+        }
+
+        try {
+            UserProfileGamificationService.PreferencesPatch patch = new UserProfileGamificationService.PreferencesPatch(
+                    null,
+                    null,
+                    prefEmailSecurityAlertsCheck == null ? null : prefEmailSecurityAlertsCheck.isSelected(),
+                    null,
+                    prefPushLoginAlertsCheck == null ? null : prefPushLoginAlertsCheck.isSelected(),
+                    null
+            );
+
+            UserProfileGamificationService.PreferencesResponse response =
+                    userProfileGamificationService.patchPreferences(current.getId(), patch);
+
+            applyPreferencesToControls(response.preferences());
+            refreshProfileGamification(current);
+            setProfileMessage("Preferences enregistrees.", false);
+        } catch (Exception e) {
+            setProfileMessage("Erreur lors de l'enregistrement des preferences.", true);
+        }
+    }
+
+
+    private void refreshSecurityStatus(User user) {
+        if (user == null) {
+            return;
+        }
+        if (totpStatusLabel != null) {
+            totpStatusLabel.setText(isTotpEligibleRole(user)
+                    ? (user.isTotpEnabled() ? "Activee" : "Desactivee")
+                    : "Reservee STAFF/ADMIN");
+        }
+        if (faceLoginStatusLabel != null) {
+            faceLoginStatusLabel.setText(user.isFaceLoginEnabled() ? "Activee" : "Desactivee");
+        }
+    }
+
+    private boolean isTotpEligibleRole(User user) {
+        if (user == null || user.getRoleSysteme() == null) {
+            return false;
+        }
+        String role = user.getRoleSysteme().trim().toUpperCase();
+        return "ADMIN".equals(role) || "STAFF".equals(role);
+    }
+
+    private Image generateQrCodeImage(String content, int size) throws Exception {
+        BitMatrix matrix = new MultiFormatWriter().encode(content, BarcodeFormat.QR_CODE, size, size);
+        BufferedImage bufferedImage = MatrixToImageWriter.toBufferedImage(matrix);
+        return SwingFXUtils.toFXImage(bufferedImage, null);
     }
 
     private void markProfileError(TextField field) {
@@ -632,13 +975,9 @@ public class NavigationController {
     }
 
     private void validateProfileBirthDate() {
-        if (profileBirthDatePicker != null && profileBirthDatePicker.getValue() != null) {
-            profileBirthDateValid = true;
-            showFieldError(profileBirthDateErrorLabel, "");
-        } else {
-            profileBirthDateValid = false;
-            showFieldError(profileBirthDateErrorLabel, "⚠ Date de naissance obligatoire.");
-        }
+        // Date de naissance optionnelle: on ne bloque plus la sauvegarde si absente.
+        profileBirthDateValid = true;
+        showFieldError(profileBirthDateErrorLabel, "");
     }
 
     private boolean validateProfileForm() {
@@ -655,7 +994,6 @@ public class NavigationController {
         if (!profilePhoneValid) sb.append("- Téléphone invalide.\n");
         if (!profileAddressValid) sb.append("- Adresse obligatoire.\n");
         if (!profileCinValid) sb.append("- CIN invalide (8 chiffres).\n");
-        if (!profileBirthDateValid) sb.append("- Date de naissance obligatoire.\n");
 
         if (sb.length() > 0) {
             setProfileMessage(sb.toString(), true);
@@ -666,4 +1004,196 @@ public class NavigationController {
         return true;
     }
 
+    @FXML
+    public void handleEnableTotp(ActionEvent event) {
+        User current = SessionManager.getCurrentUser();
+        if (current == null) {
+            setProfileMessage("Aucun utilisateur connecte.", true);
+            return;
+        }
+        if (!isTotpEligibleRole(current)) {
+            setProfileMessage("2FA reservee aux comptes STAFF/ADMIN.", true);
+            return;
+        }
+
+        String secret = totpService.generateSecret();
+        String account = current.getEmailUser() == null || current.getEmailUser().isBlank()
+                ? ("user-" + current.getId())
+                : current.getEmailUser();
+        String otpAuth = totpService.buildOtpAuthUrl("MedFlow", account, secret);
+
+        Image qrImage;
+        try {
+            qrImage = generateQrCodeImage(otpAuth, 240);
+        } catch (Exception ex) {
+            setProfileMessage("Generation QR 2FA impossible.", true);
+            return;
+        }
+
+        Dialog<String> dialog = new Dialog<>();
+        dialog.setTitle("Activer 2FA");
+        dialog.setHeaderText("Scannez le QR code avec Google Authenticator puis entrez le code.");
+        ButtonType verifyButton = new ButtonType("Verifier", ButtonBar.ButtonData.OK_DONE);
+        ButtonType cancelButton = new ButtonType("Annuler", ButtonBar.ButtonData.CANCEL_CLOSE);
+        dialog.getDialogPane().getButtonTypes().addAll(verifyButton, cancelButton);
+
+        ImageView qrView = new ImageView(qrImage);
+        qrView.setFitWidth(240);
+        qrView.setFitHeight(240);
+        qrView.setPreserveRatio(true);
+
+        Label secretLabel = new Label("Secret manuel: " + secret);
+        Label serverHintLabel = new Label("Diagnostic serveur (debug): "
+                + totpService.getCodeAtOffset(secret, -1) + " | "
+                + totpService.getCurrentCode(secret) + " | "
+                + totpService.getCodeAtOffset(secret, 1));
+        serverHintLabel.setWrapText(true);
+        TextField codeField = new TextField();
+        codeField.setPromptText("Code a 6 chiffres");
+
+        VBox content = new VBox(10, qrView, secretLabel, serverHintLabel, codeField);
+        dialog.getDialogPane().setContent(content);
+
+        Node verifyNode = dialog.getDialogPane().lookupButton(verifyButton);
+        verifyNode.setDisable(true);
+        codeField.textProperty().addListener((obs, o, n) -> verifyNode.setDisable(!n.matches("\\d{6}")));
+
+        dialog.setResultConverter(btn -> btn == verifyButton ? codeField.getText() : null);
+        Optional<String> result = dialog.showAndWait();
+        if (result.isEmpty()) {
+            setProfileMessage("Activation 2FA annulee.", true);
+            return;
+        }
+
+        if (!totpService.verifyCode(secret, result.get())) {
+            String prev = totpService.getCodeAtOffset(secret, -1);
+            String now = totpService.getCurrentCode(secret);
+            String next = totpService.getCodeAtOffset(secret, 1);
+            setProfileMessage("Code 2FA invalide. Verifiez l'heure auto du telephone."
+                    + " Codes serveur: [" + prev + ", " + now + ", " + next + "]", true);
+            return;
+        }
+
+        if (!userService.saveTotpSettings(current.getId(), secret, true)) {
+            setProfileMessage("Impossible de sauvegarder la 2FA.", true);
+            return;
+        }
+
+        current.setTotpSecret(secret);
+        current.setTotpEnabled(true);
+        refreshSecurityStatus(current);
+        refreshProfileGamification(current);
+        setProfileMessage("2FA activee avec succes.", false);
+    }
+
+    @FXML
+    public void handleDisableTotp(ActionEvent event) {
+        User current = SessionManager.getCurrentUser();
+        if (current == null) {
+            setProfileMessage("Aucun utilisateur connecte.", true);
+            return;
+        }
+        if (!isTotpEligibleRole(current)) {
+            setProfileMessage("2FA reservee aux comptes STAFF/ADMIN.", true);
+            return;
+        }
+
+        if (!userService.saveTotpSettings(current.getId(), null, false)) {
+            setProfileMessage("Impossible de desactiver la 2FA.", true);
+            return;
+        }
+
+        current.setTotpSecret(null);
+        current.setTotpEnabled(false);
+        refreshSecurityStatus(current);
+        refreshProfileGamification(current);
+        setProfileMessage("2FA desactivee.", false);
+    }
+
+    @FXML
+    public void handleEnableFaceLogin(ActionEvent event) {
+        User current = SessionManager.getCurrentUser();
+        if (current == null) {
+            setProfileMessage("Aucun utilisateur connecte.", true);
+            return;
+        }
+
+        if (current.getFaceReferenceEmbedding() == null || current.getFaceReferenceEmbedding().isBlank()) {
+            setProfileMessage("Aucun visage enregistre. Cliquez sur 'Enroller visage'.", true);
+            return;
+        }
+
+        if (!userService.setFaceLoginEnabled(current.getId(), true)) {
+            setProfileMessage("Impossible d'activer Face Login.", true);
+            return;
+        }
+
+        current.setFaceLoginEnabled(true);
+        refreshSecurityStatus(current);
+        refreshProfileGamification(current);
+        setProfileMessage("Face Login active.", false);
+    }
+
+    @FXML
+    public void handleEnrollFaceFromCompte(ActionEvent event) {
+        User current = SessionManager.getCurrentUser();
+        if (current == null) {
+            setProfileMessage("Aucun utilisateur connecte.", true);
+            return;
+        }
+
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/FrontFXML/FaceEnrollment.fxml"));
+            Parent root = loader.load();
+
+            FaceEnrollmentController controller = loader.getController();
+            controller.setOnEnrollmentComplete(new FaceEnrollmentController.OnEnrollmentComplete() {
+                @Override
+                public void onSuccess(String faceEmbedding) {
+                    boolean saved = userService.updateFaceEnrollment(current.getId(), faceEmbedding);
+                    if (!saved) {
+                        setProfileMessage("Enrolement facial echec: " + userService.getLastFaceEnrollmentError(), true);
+                        return;
+                    }
+                    current.setFaceReferenceEmbedding(faceEmbedding);
+                    current.setFaceLoginEnabled(true);
+                    refreshSecurityStatus(current);
+                    refreshProfileGamification(current);
+                    setProfileMessage("Visage enregistre avec succes. Face Login active.", false);
+                }
+
+                @Override
+                public void onSkip() {
+                    setProfileMessage("Enrolement facial annule.", true);
+                }
+            });
+
+            Stage stage = new Stage();
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.setTitle("MedFlow - Enrolement facial");
+            stage.setScene(new Scene(root));
+            stage.showAndWait();
+        } catch (Exception ex) {
+            setProfileMessage("Impossible d'ouvrir l'enrolement facial.", true);
+        }
+    }
+
+    @FXML
+    public void handleDisableFaceLogin(ActionEvent event) {
+        User current = SessionManager.getCurrentUser();
+        if (current == null) {
+            setProfileMessage("Aucun utilisateur connecte.", true);
+            return;
+        }
+
+        if (!userService.setFaceLoginEnabled(current.getId(), false)) {
+            setProfileMessage("Impossible de desactiver Face Login.", true);
+            return;
+        }
+
+        current.setFaceLoginEnabled(false);
+        refreshSecurityStatus(current);
+        refreshProfileGamification(current);
+        setProfileMessage("Face Login desactive.", false);
+    }
 }

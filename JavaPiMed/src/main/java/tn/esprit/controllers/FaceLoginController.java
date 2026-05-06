@@ -24,6 +24,8 @@ import javafx.util.Duration;
 import java.awt.Dimension;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import tn.esprit.entities.User;
 import tn.esprit.services.FacialRecognitionService;
@@ -31,6 +33,10 @@ import tn.esprit.services.UserService;
 import tn.esprit.tools.SessionManager;
 
 public class FaceLoginController {
+    private static final double FACE_MATCH_THRESHOLD = 92.0;
+    private static final int LOGIN_SAMPLE_TARGET = 12;
+    private static final int LOGIN_MIN_VALID_SAMPLES = 3;
+    private static final long CAMERA_READY_TIMEOUT_MS = 5000;
     @FXML private AnchorPane rootPane;
     @FXML private Label statusLabel;
     @FXML private Label faceStatusLabel;
@@ -38,7 +44,7 @@ public class FaceLoginController {
     @FXML private Canvas cameraCanvas;
     @FXML private ProgressBar enrollmentProgress;
     @FXML private Button cancelButton;
-    
+
     private FacialRecognitionService facialRecognitionService;
     private UserService userService;
     private User targetUser;
@@ -48,6 +54,7 @@ public class FaceLoginController {
     private Webcam webcam;
     private volatile boolean cameraRunning = false;
     private volatile boolean authenticationStarted = false;
+    private volatile BufferedImage latestFrame;
 
     public FaceLoginController() {
         this.userService = new UserService();
@@ -63,24 +70,24 @@ public class FaceLoginController {
     private void setupUI() {
         statusLabel.setText("🎥 Analyzing face...");
         statusLabel.setTextFill(Color.web("#1e91ad"));
-        
+
         instructionLabel.setText("Keep your face centered in the frame\nProcessing...");
         instructionLabel.setWrapText(true);
         instructionLabel.setTextFill(Color.web("#235567"));
-        
+
         faceStatusLabel.setText("Detecting face...");
         faceStatusLabel.setTextFill(Color.web("#f39c12"));
-        
+
         enrollmentProgress.setProgress(0);
-        
+
         cancelButton.setOnAction(e -> handleCancel());
-        
+
         // Start live camera
         if (cameraCanvas != null) {
             startLiveCamera();
         }
     }
-    
+
     private void startLiveCamera() {
         new Thread(() -> {
             try {
@@ -101,6 +108,7 @@ public class FaceLoginController {
                         if (!cameraRunning || webcam == null || !webcam.isOpen()) return;
                         BufferedImage frame = webcam.getImage();
                         if (frame == null) return;
+                        latestFrame = frame;
 
                         GraphicsContext gc = cameraCanvas.getGraphicsContext2D();
                         WritableImage wImg = SwingFXUtils.toFXImage(frame, null);
@@ -154,16 +162,39 @@ public class FaceLoginController {
 
     private void performFaceVerification() {
         try {
-            // Simulate face detection and verification process
-            String mockFaceData = facialRecognitionService.captureFaceForEnrollment(0);
-            
+            if (!waitForCameraReady()) {
+                Platform.runLater(() -> showError("Camera not ready. Retry in a few seconds."));
+                return;
+            }
+
+            List<BufferedImage> samples = new ArrayList<>();
+            for (int i = 0; i < LOGIN_SAMPLE_TARGET; i++) {
+                BufferedImage frame = getLatestOrDirectFrame();
+                if (frame != null) {
+                    samples.add(copyFrame(frame));
+                }
+                Thread.sleep(100);
+            }
+
+            String detectedFaceData;
+            if (samples.size() >= LOGIN_MIN_VALID_SAMPLES) {
+                detectedFaceData = facialRecognitionService.createEmbeddingFromFrames(samples);
+            } else {
+                detectedFaceData = null; // Désactive le fallback single-frame pour plus de sécurité
+            }
+
             Platform.runLater(() -> {
+                if (detectedFaceData == null || detectedFaceData.isBlank()) {
+                    showError("Unable to capture a valid face sample. Retry.");
+                    return;
+                }
+
                 if (targetUser != null && targetUser.getFaceReferenceEmbedding() != null) {
                     double confidence = facialRecognitionService.verifyFace(
-                        mockFaceData, 
-                        targetUser.getFaceReferenceEmbedding()
+                            detectedFaceData,
+                            targetUser.getFaceReferenceEmbedding()
                     );
-                    
+                    System.out.println("[DEBUG] Face login similarity score: " + confidence + "% (user=" + (targetUser.getEmailUser()!=null?targetUser.getEmailUser():targetUser.getId()) + ")");
                     updateVerificationProgress(confidence);
                 } else {
                     showError("No enrolled face found for this user");
@@ -176,14 +207,23 @@ public class FaceLoginController {
 
     private void updateVerificationProgress(double confidence) {
         enrollmentProgress.setProgress(confidence / 100.0);
-        
-        if (confidence > 70) {
+
+        if (confidence > 99.0) {
+            // Embedding trop générique, refuse toute authentification
+            statusLabel.setText("❌ Erreur sécurité : votre enrôlement facial est trop générique (" + String.format("%.1f%%", confidence) + "). Veuillez ré-enrôler votre visage dans de meilleures conditions ou désactiver la fonctionnalité.");
+            statusLabel.setTextFill(Color.web("#e74c3c"));
+            faceStatusLabel.setText("Erreur d'enrôlement");
+            faceStatusLabel.setTextFill(Color.web("#e74c3c"));
+            System.err.println("[SECURITY] Face embedding trop générique, refusé. Score=" + confidence);
+            return;
+        }
+
+        if (confidence >= FACE_MATCH_THRESHOLD) {
             // Authentication successful
             statusLabel.setText("✅ Face recognized!");
             statusLabel.setTextFill(Color.web("#27ae60"));
             faceStatusLabel.setText("Match: " + String.format("%.1f%%", confidence));
             faceStatusLabel.setTextFill(Color.web("#27ae60"));
-            
             // Delay and then redirect
             Timeline timeline = new Timeline(new KeyFrame(Duration.seconds(1.5), e -> handleLoginSuccess()));
             timeline.play();
@@ -191,9 +231,13 @@ public class FaceLoginController {
             // Match failed
             faceStatusLabel.setText("❌ Face not recognized");
             faceStatusLabel.setTextFill(Color.web("#e74c3c"));
-            statusLabel.setText("Confidence: " + String.format("%.1f%%", confidence));
+            String msg = "Confidence: " + String.format("%.1f%%", confidence)
+                    + " (min " + String.format("%.0f%%", FACE_MATCH_THRESHOLD) + ")";
+            if (confidence > 80.0) {
+                msg += "\n⚠️ Votre enrôlement facial est trop permissif. Veuillez ré-enrôler votre visage dans de bonnes conditions (lumière, face centrée).";
+            }
+            statusLabel.setText(msg);
             statusLabel.setTextFill(Color.web("#e74c3c"));
-            
             attemptCount++;
             if (attemptCount >= MAX_ATTEMPTS) {
                 showError("Max attempts reached. Use password login.");
@@ -201,6 +245,44 @@ public class FaceLoginController {
                 timeline.play();
             }
         }
+    }
+
+    private BufferedImage copyFrame(BufferedImage src) {
+        BufferedImage copy = new BufferedImage(src.getWidth(), src.getHeight(), BufferedImage.TYPE_INT_RGB);
+        java.awt.Graphics2D g = copy.createGraphics();
+        g.drawImage(src, 0, 0, null);
+        g.dispose();
+        return copy;
+    }
+
+    private boolean waitForCameraReady() {
+        long deadline = System.currentTimeMillis() + CAMERA_READY_TIMEOUT_MS;
+        while (System.currentTimeMillis() < deadline) {
+            if (cameraRunning && webcam != null && webcam.isOpen() && latestFrame != null) {
+                return true;
+            }
+            try {
+                Thread.sleep(80);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return false;
+            }
+        }
+        return false;
+    }
+
+    private BufferedImage getLatestOrDirectFrame() {
+        BufferedImage frame = latestFrame;
+        if (frame != null) {
+            return frame;
+        }
+        try {
+            if (webcam != null && webcam.isOpen()) {
+                return webcam.getImage();
+            }
+        } catch (Exception ignored) {
+        }
+        return null;
     }
 
     private void stopCamera() {
@@ -215,23 +297,23 @@ public class FaceLoginController {
             showError("User not found");
             return;
         }
-        
+
         // Update user session
         targetUser.setFaceLastVerifiedAt(java.time.LocalDateTime.now());
         SessionManager.setCurrentUser(targetUser);
-        
+
         // Navigate to dashboard
         try {
             Stage stage = (Stage) rootPane.getScene().getWindow();
-            
+
             String fxmlFile = "/EvenementDashboard.fxml";
             String title = "MedFlow - Tableau de bord";
-            
+
             if ("ADMIN".equals(targetUser.getRoleSysteme())) {
                 fxmlFile = "/AdminDashboard.fxml";
                 title = "MedFlow - Tableau de bord Admin";
             }
-            
+
             navigateToStage(stage, fxmlFile, title);
         } catch (Exception e) {
             showError("Navigation error: " + e.getMessage());
@@ -246,7 +328,7 @@ public class FaceLoginController {
             showError("Error: " + e.getMessage());
         }
     }
-    
+
     private void navigateToStage(Stage stage, String resourcePath, String title) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource(resourcePath));

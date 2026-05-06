@@ -1,0 +1,201 @@
+.consultations-page {
+    -fx-background-color: transparent;
+}
+
+.consultation-panel {
+    -fx-background-color: rgba(255, 255, 255, 0.94);
+    -fx-background-radius: 28;
+    -fx-border-radius: 28;
+    -fx-border-color: rgba(148, 163, 184, 0.22);
+    -fx-border-width: 1.2;
+    -fx-padding: 24;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.10), 22, 0, 0, 6);
+}
+
+.consultation-count-pill {
+    -fx-background-color: linear-gradient(to right, #0ea5e9, #14b8a6);
+    -fx-background-radius: 999;
+    -fx-padding: 10 16;
+    -fx-text-fill: white;
+    -fx-font-size: 13px;
+    -fx-font-weight: 900;
+}
+
+.doctor-grid {
+    -fx-padding: 2 2 6 2;
+}
+
+.doctor-card {
+    -fx-pref-width: 295px;
+    -fx-min-height: 190px;
+    -fx-background-color: linear-gradient(to bottom right, #ffffff, #ecfeff);
+    -fx-background-radius: 24;
+    -fx-border-color: #7dd3fc;
+    -fx-border-radius: 24;
+    -fx-border-width: 1.5;
+    -fx-padding: 18;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.10), 18, 0, 0, 5);
+}
+
+.doctor-card:hover {
+    -fx-translate-y: -4px;
+    -fx-effect: dropshadow(gaussian, rgba(20, 184, 166, 0.22), 24, 0, 0, 8);
+}
+
+.doctor-card-selected {
+    -fx-border-color: #14b8a6;
+    -fx-background-color: linear-gradient(to bottom right, #f0fdfa, #ecfeff);
+    -fx-effect: dropshadow(gaussian, rgba(20, 184, 166, 0.30), 28, 0, 0, 8);
+}
+
+.doctor-card-header {
+    -fx-alignment: center-left;
+}
+
+.doctor-avatar {
+    -fx-min-width: 56px;
+    -fx-min-height: 56px;
+    -fx-max-width: 56px;
+    -fx-max-height: 56px;
+    -fx-background-radius: 50;
+    -fx-alignment: center;
+    -fx-background-color: linear-gradient(to bottom right, #14b8a6, #0ea5e9);
+}
+
+.doctor-avatar-text {
+    -fx-text-fill: white;
+    -fx-font-size: 17px;
+    -fx-font-weight: 900;
+}
+
+.doctor-name {
+    -fx-text-fill: #0b1f38;
+    -fx-font-size: 20px;
+    -fx-font-weight: 900;
+}
+
+.doctor-speciality {
+    -fx-text-fill: #0f766e;
+    -fx-font-size: 13px;
+    -fx-font-weight: 800;
+}
+
+.doctor-id-pill {
+    -fx-background-color: rgba(14, 165, 233, 0.10);
+    -fx-background-radius: 999;
+    -fx-text-fill: #0369a1;
+    -fx-font-size: 12px;
+    -fx-font-weight: 900;
+    -fx-padding: 6 10;
+}
+
+.doctor-note {
+    -fx-text-fill: #64748b;
+    -fx-font-size: 12.5px;
+    -fx-font-weight: 600;
+}
+
+.doctor-select-button {
+    -fx-background-color: linear-gradient(to right, #0ea5e9, #14b8a6);
+    -fx-background-radius: 14;
+    -fx-text-fill: white;
+    -fx-font-size: 13px;
+    -fx-font-weight: 900;
+    -fx-padding: 11 18;
+    -fx-cursor: hand;
+}
+
+.doctor-select-button:hover {
+    -fx-background-color: linear-gradient(to right, #0284c7, #0f766e);
+}
+
+.record-switcher {
+    -fx-padding: 4 0 2 0;
+}
+
+.record-switch-button {
+    -fx-background-color: #f8fbff;
+    -fx-border-color: #dce7f3;
+    -fx-border-radius: 16;
+    -fx-background-radius: 16;
+    -fx-text-fill: #0b1f38;
+    -fx-font-size: 13px;
+    -fx-font-weight: 900;
+    -fx-padding: 11 18;
+    -fx-cursor: hand;
+}
+
+.record-switch-button:hover {
+    -fx-background-color: #ecfeff;
+    -fx-border-color: #14b8a6;
+}
+
+.record-switch-button-active {
+    -fx-background-color: linear-gradient(to right, #0ea5e9, #14b8a6);
+    -fx-border-color: transparent;
+    -fx-text-fill: white;
+    -fx-effect: dropshadow(gaussian, rgba(20, 184, 166, 0.28), 16, 0, 0, 4);
+}
+
+.records-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+}
+
+.records-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+.record-list {
+    -fx-padding: 2 2 4 2;
+}
+
+.record-card {
+    -fx-background-color: linear-gradient(to bottom right, #ffffff, #f8fbff);
+    -fx-background-radius: 22;
+    -fx-border-color: #dce7f3;
+    -fx-border-width: 1.2;
+    -fx-border-radius: 22;
+    -fx-padding: 18;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.08), 16, 0, 0, 4);
+}
+
+.record-card-title {
+    -fx-text-fill: #0b1f38;
+    -fx-font-size: 18px;
+    -fx-font-weight: 900;
+}
+
+.record-card-meta {
+    -fx-text-fill: #2563eb;
+    -fx-font-size: 12.5px;
+    -fx-font-weight: 800;
+}
+
+.record-card-text {
+    -fx-text-fill: #4b5563;
+    -fx-font-size: 13px;
+    -fx-font-weight: 600;
+}
+
+.record-empty-state {
+    -fx-background-color: rgba(14, 165, 233, 0.06);
+    -fx-background-radius: 20;
+    -fx-border-color: rgba(14, 165, 233, 0.16);
+    -fx-border-radius: 20;
+    -fx-padding: 18;
+}
+
+.record-empty-text {
+    -fx-text-fill: #5f728c;
+    -fx-font-size: 13px;
+    -fx-font-weight: 600;
+}
+
+.consultation-empty-label {
+    -fx-text-fill: #64748b;
+    -fx-font-size: 14px;
+    -fx-font-weight: 700;
+    -fx-padding: 10 0 0 0;
+}

@@ -1,0 +1,308 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.chart.BarChart?>
+<?import javafx.scene.chart.CategoryAxis?>
+<?import javafx.scene.chart.LineChart?>
+<?import javafx.scene.chart.NumberAxis?>
+<?import javafx.scene.chart.PieChart?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.TitledPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane fx:id="rootPane"
+            prefWidth="1500.0"
+            prefHeight="880.0"
+            styleClass="app-root"
+            stylesheets="@../CSS/admin-welcome.css,@../CSS/stats-consultations.css"
+            xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="tn.esprit.controllers.StatsConsultationsController">
+
+    <left>
+        <BorderPane prefWidth="320.0" styleClass="sidebar">
+
+            <top>
+                <VBox spacing="8">
+                    <padding>
+                        <Insets top="26" right="20" bottom="16" left="20"/>
+                    </padding>
+
+                    <Label text="MedFlow Admin" styleClass="brand-title"/>
+                    <Label text="ESPACE ADMINISTRATION" styleClass="brand-subtitle"/>
+                    <Separator styleClass="side-separator"/>
+                </VBox>
+            </top>
+
+            <center>
+                <ScrollPane fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" styleClass="sidebar-scroll">
+                    <content>
+                        <VBox spacing="10">
+                            <padding>
+                                <Insets top="4" right="18" bottom="16" left="18"/>
+                            </padding>
+
+                            <Button text="Accueil Admin" onAction="#openDashboard" styleClass="nav-button-active"/>
+
+                            <TitledPane text="Utilisateurs" expanded="false" styleClass="sidebar-dropdown">
+                                <content>
+                                    <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Patients" onAction="#openPatients" styleClass="sub-nav-button"/>
+                                        <Button text="Tous les utilisateurs" onAction="#openUsers" styleClass="sub-nav-button"/>
+                                        <Button text="Demandes de rôle" onAction="#openRoles" styleClass="sub-nav-button"/>
+                                        <Button text="Comptes et permissions" onAction="#openUserRoles" styleClass="sub-nav-button"/>
+                                    </VBox>
+                                </content>
+                            </TitledPane>
+
+                            <TitledPane text="Produits" expanded="true" styleClass="sidebar-dropdown">
+                                <content>
+                                    <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Liste des produits" onAction="#openProduits" styleClass="sub-nav-button"/>
+                                        <Button text="Commandes" onAction="#openCommandes" styleClass="sub-nav-button"/>
+                                        <Button text="Détection Épidémie" onAction="#openDetection" styleClass="sub-nav-button"/>
+                                        <Button text="Stock et ruptures" onAction="#openStockRupture" styleClass="sub-nav-button"/>
+                                        <Button text="Statistiques produits" onAction="#openStatsProduits" styleClass="sub-nav-button"/>
+                                    </VBox>
+                                </content>
+                            </TitledPane>
+
+                            <TitledPane text="Événements" expanded="false" styleClass="sidebar-dropdown">
+                                <content>
+                                    <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Liste des événements" onAction="#openEvents" styleClass="sub-nav-button"/>
+                                        <Button text="Participants demandes" onAction="#openEventParticipants" styleClass="sub-nav-button"/>
+                                        <Button text="Ressources" onAction="#openRessources" styleClass="sub-nav-button"/>
+                                        <Button text="Stats événements" onAction="#openStatsEvents" styleClass="sub-nav-button"/>
+                                        <Button text="Stats ressources" onAction="#openStatsRessources" styleClass="sub-nav-button"/>
+                                    </VBox>
+                                </content>
+                            </TitledPane>
+
+                            <TitledPane text="Consultations" expanded="false" styleClass="sidebar-dropdown">
+                                <content>
+                                    <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Consultations par Docteur" onAction="#openConsultations" styleClass="sub-nav-button"/>
+                                        <Button text="Statistiques consultations" onAction="#openStatsConsultations" styleClass="sub-nav-button"/>
+                                    </VBox>
+                                </content>
+                            </TitledPane>
+
+                            <TitledPane text="Réclamations" expanded="false" styleClass="sidebar-dropdown">
+                                <content>
+                                    <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Liste des réclamations" onAction="#openReclamations" styleClass="sub-nav-button"/>
+                                        <Button text="Réponses admin" onAction="#openReponsesReclamations" styleClass="sub-nav-button"/>
+                                        <Button text="Réclamations urgentes" onAction="#openReclamationsUrgentes" styleClass="sub-nav-button"/>
+                                        <Button text="Statistiques réclamations" onAction="#openStatsReclamations" styleClass="sub-nav-button"/>
+                                    </VBox>
+                                </content>
+                            </TitledPane>
+
+                            <TitledPane text="Blog et Posts" expanded="false" styleClass="sidebar-dropdown">
+                                <content>
+                                    <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Liste des posts" onAction="#openPosts" styleClass="sub-nav-button"/>
+                                        <Button text="Commentaires" onAction="#openBlogComments" styleClass="sub-nav-button"/>
+                                        <Button text="Modération blog" onAction="#openBlogModeration" styleClass="sub-nav-button"/>
+                                        <Button text="Posts en attente" onAction="#openPostsEnAttente" styleClass="sub-nav-button"/>
+                                        <Button text="Statistiques blog" onAction="#openStatsBlog" styleClass="sub-nav-button"/>
+                                    </VBox>
+                                </content>
+                            </TitledPane>
+
+                            <Button text="Déconnexion" onAction="#logout" styleClass="logout-button"/>
+                        </VBox>
+                    </content>
+                </ScrollPane>
+            </center>
+
+            <bottom>
+                <VBox spacing="10">
+                    <padding>
+                        <Insets top="12" right="18" bottom="22" left="18"/>
+                    </padding>
+
+                    <Separator styleClass="side-separator"/>
+                    <Button text="Retour Site" onAction="#goBackSite" styleClass="back-site-button"/>
+                </VBox>
+            </bottom>
+
+        </BorderPane>
+    </left>
+
+    <top>
+        <HBox alignment="CENTER_LEFT" spacing="18" styleClass="top-bar">
+            <padding>
+                <Insets top="18" right="28" bottom="18" left="28"/>
+            </padding>
+
+            <Button text="Menu" styleClass="menu-button"/>
+
+            <VBox spacing="3">
+                <Label text="Statistiques consultations" styleClass="page-title"/>
+                <Label fx:id="dateLabel" text="Bienvenue dans votre espace d'administration" styleClass="page-subtitle"/>
+            </VBox>
+
+            <Region HBox.hgrow="ALWAYS"/>
+
+            <TextField fx:id="searchField" promptText="Rechercher un docteur..." styleClass="search-field"/>
+            <Button text="Notif" styleClass="icon-button"/>
+            <Button text="Param" styleClass="icon-button"/>
+            <Label text="A" styleClass="avatar-label"/>
+        </HBox>
+    </top>
+
+    <center>
+        <ScrollPane fitToWidth="true" hbarPolicy="NEVER" styleClass="content-scroll">
+            <content>
+                <VBox spacing="24" styleClass="stats-page">
+                    <padding>
+                        <Insets top="34" right="38" bottom="45" left="38"/>
+                    </padding>
+
+                    <VBox spacing="12" styleClass="simple-welcome-card stats-hero consultation-stat-panel" id="statsHeroBanner">
+                        <Label text="Tableau de bord des consultations" styleClass="simple-welcome-title"/>
+                        <Label text="Vue BI des consultations, des fiches médicales et des prescriptions. Les cartes et graphiques ci-dessous donnent une lecture rapide des volumes, des tendances et des points d’attention."
+                               wrapText="true"
+                               styleClass="simple-welcome-text"/>
+                        <Label fx:id="consultationInsightLabel"
+                               text=""
+                               wrapText="true"
+                               styleClass="simple-welcome-subtext"/>
+                    </VBox>
+
+                    <FlowPane fx:id="statCardsContainer" hgap="18" vgap="18" prefWrapLength="1400" styleClass="stats-kpi-grid">
+                        <VBox styleClass="stats-kpi-card kpi-doctors consultation-stat-panel" spacing="8">
+                            <Label text="Docteurs actifs" styleClass="stats-kpi-title"/>
+                            <Label fx:id="totalDoctorsLabel" text="0" styleClass="stats-kpi-value"/>
+                            <Label text="users avec rôle STAFF et type RESP_PATIENTS" wrapText="true" styleClass="stats-kpi-note"/>
+                        </VBox>
+
+                        <VBox styleClass="stats-kpi-card kpi-rdv consultation-stat-panel" spacing="8">
+                            <Label text="Rendez-vous" styleClass="stats-kpi-title"/>
+                            <Label fx:id="totalRendezVousLabel" text="0" styleClass="stats-kpi-value"/>
+                            <Label text="Volume total de rendez-vous enregistrés" wrapText="true" styleClass="stats-kpi-note"/>
+                        </VBox>
+
+                        <VBox styleClass="stats-kpi-card kpi-fiches consultation-stat-panel" spacing="8">
+                            <Label text="Fiches médicales" styleClass="stats-kpi-title"/>
+                            <Label fx:id="totalFichesLabel" text="0" styleClass="stats-kpi-value"/>
+                            <Label fx:id="ficheCoverageLabel" text="0% couverture" wrapText="true" styleClass="stats-kpi-note"/>
+                        </VBox>
+
+                        <VBox styleClass="stats-kpi-card kpi-prescriptions consultation-stat-panel" spacing="8">
+                            <Label text="Prescriptions" styleClass="stats-kpi-title"/>
+                            <Label fx:id="totalPrescriptionsLabel" text="0" styleClass="stats-kpi-value"/>
+                            <Label fx:id="prescriptionCoverageLabel" text="0% prescription" wrapText="true" styleClass="stats-kpi-note"/>
+                        </VBox>
+
+                        <VBox styleClass="stats-kpi-card kpi-duration consultation-stat-panel" spacing="8">
+                            <Label text="Durée moyenne" styleClass="stats-kpi-title"/>
+                            <Label fx:id="averageDurationLabel" text="-" styleClass="stats-kpi-value"/>
+                            <Label text="Durée moyenne des fiches médicales" wrapText="true" styleClass="stats-kpi-note"/>
+                        </VBox>
+
+                        <VBox styleClass="stats-kpi-card kpi-urgent consultation-stat-panel" spacing="8">
+                            <Label text="Cas urgents" styleClass="stats-kpi-title"/>
+                            <Label fx:id="urgentLabel" text="0" styleClass="stats-kpi-value"/>
+                            <Label text="Rendez-vous marqués urgents" wrapText="true" styleClass="stats-kpi-note"/>
+                        </VBox>
+                    </FlowPane>
+
+                    <VBox spacing="18" styleClass="consultation-stat-panel chart-shell">
+                        <HBox alignment="CENTER_LEFT" spacing="12">
+                            <VBox spacing="3">
+                                <Label text="Tendance mensuelle" styleClass="simple-section-title"/>
+                                <Label fx:id="busiestMonthLabel" text="Mois le plus actif: -" styleClass="page-subtitle"/>
+                            </VBox>
+                            <Region HBox.hgrow="ALWAYS"/>
+                            <Label text="12 derniers mois" styleClass="consultation-count-pill"/>
+                        </HBox>
+
+                        <LineChart fx:id="monthlyAppointmentsChart" createSymbols="true" animated="true" title="Rendez-vous créés par mois">
+                            <xAxis>
+                                <CategoryAxis label="Mois"/>
+                            </xAxis>
+                            <yAxis>
+                                <NumberAxis label="Nombre" forceZeroInRange="true"/>
+                            </yAxis>
+                        </LineChart>
+                    </VBox>
+
+                    <VBox spacing="18" styleClass="consultation-stat-panel chart-shell">
+                        <HBox alignment="CENTER_LEFT" spacing="12">
+                            <VBox spacing="3">
+                                <Label text="Distribution opérationnelle" styleClass="simple-section-title"/>
+                                <Label fx:id="topDoctorLabel" text="Docteur le plus sollicité: -" styleClass="page-subtitle"/>
+                            </VBox>
+                            <Region HBox.hgrow="ALWAYS"/>
+                            <Label text="État global" styleClass="consultation-count-pill"/>
+                        </HBox>
+
+                        <HBox spacing="18" styleClass="chart-row">
+                            <VBox spacing="10" styleClass="chart-card chart-card-half">
+                                <Label text="Statuts des rendez-vous" styleClass="chart-card-title"/>
+                                <PieChart fx:id="statusPieChart" labelsVisible="true" legendVisible="true"/>
+                            </VBox>
+                            <VBox spacing="10" styleClass="chart-card chart-card-half">
+                                <Label text="Modes de consultation" styleClass="chart-card-title"/>
+                                <PieChart fx:id="modePieChart" labelsVisible="true" legendVisible="true"/>
+                            </VBox>
+                        </HBox>
+                    </VBox>
+
+                    <VBox spacing="18" styleClass="consultation-stat-panel chart-shell">
+                        <HBox alignment="CENTER_LEFT" spacing="12">
+                            <VBox spacing="3">
+                                <Label text="Charge et prescription" styleClass="simple-section-title"/>
+                                <Label text="Lecture croisée des fiches, prescriptions et urgences" styleClass="page-subtitle"/>
+                            </VBox>
+                            <Region HBox.hgrow="ALWAYS"/>
+                            <Label text="Top 8" styleClass="consultation-count-pill"/>
+                        </HBox>
+
+                        <HBox spacing="18" styleClass="chart-row">
+                            <VBox spacing="10" styleClass="chart-card chart-card-half">
+                                <Label text="Charge des docteurs" styleClass="chart-card-title"/>
+                                <BarChart fx:id="doctorLoadBarChart" animated="true">
+                                    <xAxis>
+                                        <CategoryAxis label="Docteurs"/>
+                                    </xAxis>
+                                    <yAxis>
+                                        <NumberAxis label="Rendez-vous" forceZeroInRange="true"/>
+                                    </yAxis>
+                                </BarChart>
+                            </VBox>
+                            <VBox spacing="10" styleClass="chart-card chart-card-half">
+                                <Label text="Niveau d'urgence" styleClass="chart-card-title"/>
+                                <BarChart fx:id="urgencyBarChart" animated="true">
+                                    <xAxis>
+                                        <CategoryAxis label="Urgence"/>
+                                    </xAxis>
+                                    <yAxis>
+                                        <NumberAxis label="Cas" forceZeroInRange="true"/>
+                                    </yAxis>
+                                </BarChart>
+                            </VBox>
+                        </HBox>
+
+                        <VBox spacing="10" styleClass="chart-card chart-card-full">
+                            <Label text="Top médicaments prescrits" styleClass="chart-card-title"/>
+                            <PieChart fx:id="medicinePieChart" labelsVisible="true" legendVisible="true"/>
+                        </VBox>
+                    </VBox>
+                </VBox>
+            </content>
+        </ScrollPane>
+    </center>
+
+</BorderPane>

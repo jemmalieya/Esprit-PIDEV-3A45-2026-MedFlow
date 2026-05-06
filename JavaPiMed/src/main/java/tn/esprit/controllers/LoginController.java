@@ -974,6 +974,11 @@ public class LoginController {
             navigateToStage(stage, "/FrontFXML/Accueil.fxml", "MedFlow - Espace Patient");
             return;
         }
+        
+        if ("BADMIN".equals(role)) {
+            navigateToStage(stage, "/AdminWelcome.fxml", "MedFlow - Espace Badmin");
+            return;
+        }
         if ("ADMIN".equals(role)) {
             navigateToStage(stage, "/AdminDashboard.fxml", "MedFlow - Tableau de bord Admin");
             return;

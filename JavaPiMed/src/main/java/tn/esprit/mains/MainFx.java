@@ -17,6 +17,9 @@ public class MainFx extends Application {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/FrontFXML/AuthWelcome.fxml"));
         Parent root = loader.load();
 
+               //FrontFXML/AuthWelcome.fxml
+        ///AdminWelcome.fxml
+
         Scene scene = new Scene(root, 1280, 720);
 
         stage.setScene(scene);

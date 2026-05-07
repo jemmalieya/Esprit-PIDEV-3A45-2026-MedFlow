@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressBar?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.TitledPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane fx:id="rootPane"
+            prefWidth="1500.0"
+            prefHeight="880.0"
+            styleClass="app-root"
+            stylesheets="@CSS/detection-epidemie.css"
+            xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="tn.esprit.controllers.DetectionEpidemieController">
+
+    <left>
+        <BorderPane prefWidth="320.0" styleClass="sidebar">
+
+            <top>
+                <VBox spacing="8">
+                    <padding>
+                        <Insets top="26" right="20" bottom="16" left="20"/>
+                    </padding>
+
+                    <Label text="MedFlow Admin" styleClass="brand-title"/>
+                    <Label text="ESPACE ADMINISTRATION" styleClass="brand-subtitle"/>
+                    <Separator styleClass="side-separator"/>
+                </VBox>
+            </top>
+
+            <center>
+                <ScrollPane fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" styleClass="sidebar-scroll">
+                    <content>
+                        <VBox spacing="10">
+                            <padding>
+                                <Insets top="4" right="18" bottom="16" left="18"/>
+                            </padding>
+
+                            <Button text="Accueil Admin" onAction="#openDashboard" styleClass="nav-button"/>
+
+                            <TitledPane text="Utilisateurs" expanded="false" styleClass="sidebar-dropdown">
+                                <content>
+                                    <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Patients" onAction="#openPatients" styleClass="sub-nav-button"/>
+                                        <Button text="Tous les utilisateurs" onAction="#openUsers" styleClass="sub-nav-button"/>
+                                        <Button text="Demandes de rôle" onAction="#openRoles" styleClass="sub-nav-button"/>
+                                    </VBox>
+                                </content>
+                            </TitledPane>
+
+                            <TitledPane text="Produits" expanded="true" styleClass="sidebar-dropdown">
+                                <content>
+                                    <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Liste des produits" onAction="#openProduits" styleClass="sub-nav-button"/>
+                                        <Button text="Commandes" onAction="#openCommandes" styleClass="sub-nav-button"/>
+                                        <Button text="Détection Épidémie" onAction="#openDetection" styleClass="sub-nav-button-active"/>
+                                        <Button text="Statistiques produits" onAction="#openStatsProduits" styleClass="sub-nav-button"/>
+                                    </VBox>
+                                </content>
+                            </TitledPane>
+
+                            <TitledPane text="Événements" expanded="false" styleClass="sidebar-dropdown">
+                                <content>
+                                    <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Liste des événements" onAction="#openEvents" styleClass="sub-nav-button"/>
+                                        <Button text="Participants demandes" onAction="#openEventParticipants" styleClass="sub-nav-button"/>
+                                        <Button text="Ressources" onAction="#openRessources" styleClass="sub-nav-button"/>
+                                        <Button text="Stats événements" onAction="#openStatsEvents" styleClass="sub-nav-button"/>
+                                    </VBox>
+                                </content>
+                            </TitledPane>
+
+                            <TitledPane text="Consultations" expanded="false" styleClass="sidebar-dropdown">
+                                <content>
+                                    <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Consultations par Docteur" onAction="#openConsultations" styleClass="sub-nav-button"/>
+                                        <Button text="Statistiques consultations" onAction="#openStatsConsultations" styleClass="sub-nav-button"/>
+                                    </VBox>
+                                </content>
+                            </TitledPane>
+
+                            <TitledPane text="Réclamations" expanded="false" styleClass="sidebar-dropdown">
+                                <content>
+                                    <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Liste des réclamations" onAction="#openReclamations" styleClass="sub-nav-button"/>
+                                        <Button text="Statistiques réclamations" onAction="#openStatsReclamations" styleClass="sub-nav-button"/>
+                                    </VBox>
+                                </content>
+                            </TitledPane>
+
+                            <TitledPane text="Blog et Posts" expanded="false" styleClass="sidebar-dropdown">
+                                <content>
+                                    <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Liste des posts" onAction="#openPosts" styleClass="sub-nav-button"/>
+                                        <Button text="Commentaires" onAction="#openBlogComments" styleClass="sub-nav-button"/>
+                                        <Button text="Modération blog" onAction="#openBlogModeration" styleClass="sub-nav-button"/>
+                                    </VBox>
+                                </content>
+                            </TitledPane>
+
+                            <Button text="Déconnexion" onAction="#logout" styleClass="logout-button"/>
+                        </VBox>
+                    </content>
+                </ScrollPane>
+            </center>
+
+            <bottom>
+                <VBox spacing="10">
+                    <padding>
+                        <Insets top="12" right="18" bottom="22" left="18"/>
+                    </padding>
+
+                    <Separator styleClass="side-separator"/>
+                    <Button text="Retour Site" onAction="#goBackSite" styleClass="back-site-button"/>
+                </VBox>
+            </bottom>
+
+        </BorderPane>
+    </left>
+
+    <top>
+        <HBox alignment="CENTER_LEFT" spacing="18" styleClass="top-bar">
+            <padding>
+                <Insets top="18" right="28" bottom="18" left="28"/>
+            </padding>
+
+            <Button text="Menu" styleClass="menu-button"/>
+
+            <VBox spacing="3">
+                <Label text="Détection Épidémie" styleClass="page-title"/>
+                <Label fx:id="dateLabel" text="Admin • Détection Épidémie" styleClass="page-subtitle"/>
+            </VBox>
+
+            <Region HBox.hgrow="ALWAYS"/>
+
+            <TextField fx:id="topSearchField" promptText="Rechercher..." styleClass="search-field"/>
+            <Button text="Notif" styleClass="icon-button"/>
+            <Button text="Param" styleClass="icon-button"/>
+            <Label text="A" styleClass="avatar-label"/>
+        </HBox>
+    </top>
+
+    <center>
+        <ScrollPane fitToWidth="true" hbarPolicy="NEVER" styleClass="content-scroll">
+            <content>
+                <VBox spacing="22" styleClass="page-content">
+                    <padding>
+                        <Insets top="24" right="24" bottom="36" left="24"/>
+                    </padding>
+
+                    <HBox alignment="CENTER_LEFT" spacing="10" styleClass="epidemie-breadcrumb">
+                        <Label text="Détection Épidémie" styleClass="epidemie-breadcrumb-title"/>
+                        <Label text="|" styleClass="epidemie-breadcrumb-sep"/>
+                        <Label text="Admin" styleClass="epidemie-breadcrumb-active"/>
+                        <Label text="›" styleClass="epidemie-breadcrumb-sep"/>
+                        <Label text="Analyse santé" styleClass="epidemie-breadcrumb-muted"/>
+                    </HBox>
+
+                    <HBox spacing="16" alignment="CENTER_LEFT" styleClass="kpi-row">
+
+                        <VBox styleClass="kpi-risk">
+                            <HBox alignment="CENTER_LEFT">
+                                <VBox spacing="6">
+                                    <Label text="Risque épidémique" styleClass="kpi-title"/>
+                                    <Label fx:id="riskLevelLabel" text="Faible" styleClass="risk-low"/>
+                                    <ProgressBar fx:id="riskProgress" progress="0.0" prefWidth="130" styleClass="risk-progress"/>
+                                    <Label fx:id="scoreLabel" text="Score 0/21" styleClass="kpi-subtitle"/>
+                                </VBox>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Label text="△" styleClass="kpi-icon-green"/>
+                            </HBox>
+                        </VBox>
+
+                        <VBox styleClass="kpi-diseases">
+                            <HBox alignment="CENTER_LEFT">
+                                <VBox spacing="6">
+                                    <Label text="Maladies surveillées" styleClass="kpi-title"/>
+                                    <Label fx:id="diseasesCountLabel" text="7" styleClass="kpi-value"/>
+                                    <Label text="catégories analysées" styleClass="kpi-subtitle"/>
+                                </VBox>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Label text="⌁" styleClass="kpi-icon-blue"/>
+                            </HBox>
+                        </VBox>
+
+                        <VBox styleClass="kpi-signals">
+                            <HBox alignment="CENTER_LEFT">
+                                <VBox spacing="6">
+                                    <Label text="Signaux forts" styleClass="kpi-title"/>
+                                    <Label fx:id="signalCountLabel" text="0" styleClass="kpi-value-red"/>
+                                    <Label text="pics détectés ce mois" styleClass="kpi-subtitle"/>
+                                </VBox>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Label text="↯" styleClass="kpi-icon-red"/>
+                            </HBox>
+                        </VBox>
+
+                        <VBox styleClass="kpi-weather">
+                            <HBox alignment="CENTER_LEFT">
+                                <VBox spacing="6">
+                                    <Label text="Risque météo santé" styleClass="kpi-title"/>
+                                    <Label fx:id="weatherRiskLabel" text="Faible" styleClass="risk-low"/>
+                                    <Label fx:id="weatherSmallLabel" text="OpenWeather en attente..." styleClass="kpi-subtitle"/>
+                                </VBox>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Label text="☁" styleClass="kpi-icon-teal"/>
+                            </HBox>
+                        </VBox>
+
+                    </HBox>
+
+                    <HBox spacing="22">
+
+                        <VBox spacing="0" styleClass="signals-card" HBox.hgrow="ALWAYS">
+                            <HBox alignment="CENTER_LEFT" styleClass="card-title-row">
+                                <Label text="Signaux locaux — ventes 7j vs baseline" styleClass="card-title"/>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Button text="Actualiser" onAction="#refreshDashboard" styleClass="small-action-button"/>
+                                <Button text="Analyse Gemini" onAction="#runGeminiAnalysis" styleClass="main-action-button"/>
+                            </HBox>
+
+                            <VBox fx:id="diseaseSignalsContainer" spacing="12" styleClass="signals-list"/>
+                        </VBox>
+
+                        <VBox spacing="0" styleClass="weather-card">
+                            <HBox alignment="CENTER_LEFT" styleClass="card-title-row">
+                                <Label text="Corrélation Météo / Santé" styleClass="card-title"/>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Label text="OpenWeather" styleClass="api-pill"/>
+                            </HBox>
+
+                            <VBox alignment="CENTER" spacing="14" styleClass="weather-blue-box">
+                                <Label text="☁" styleClass="weather-icon"/>
+                                <Label fx:id="weatherTempLabel" text="-- °C" styleClass="weather-temp"/>
+                                <Label fx:id="weatherDescriptionLabel" text="Météo en attente" styleClass="weather-desc"/>
+                                <Label fx:id="weatherDetailsLabel" text="Humidité --%" styleClass="weather-small"/>
+                            </VBox>
+
+                            <VBox spacing="10" styleClass="weather-advice-box">
+                                <Label text="Conseil automatique" styleClass="advice-title"/>
+                                <Label fx:id="weatherAdviceLabel"
+                                       text="Les données météo seront utilisées avec les ventes pour estimer le risque."
+                                       wrapText="true"
+                                       styleClass="advice-text"/>
+                            </VBox>
+                        </VBox>
+
+                    </HBox>
+
+                    <HBox spacing="22">
+
+                        <VBox spacing="0" styleClass="chart-card-large" HBox.hgrow="ALWAYS">
+                            <HBox alignment="CENTER_LEFT" styleClass="card-title-row">
+                                <Label text="Évolution ventes par maladie détectée" styleClass="card-title"/>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Label fx:id="yearLabel" text="2026" styleClass="api-pill"/>
+                            </HBox>
+                            <StackPane fx:id="diseaseChartContainer" styleClass="chart-container"/>
+                        </VBox>
+
+                        <VBox spacing="0" styleClass="chart-card-small">
+                            <HBox alignment="CENTER_LEFT" styleClass="card-title-row">
+                                <Label text="Répartition des risques" styleClass="card-title"/>
+                            </HBox>
+                            <StackPane fx:id="riskPieContainer" styleClass="pie-container"/>
+                        </VBox>
+
+                    </HBox>
+
+                    <VBox spacing="0" styleClass="gemini-card">
+                        <HBox alignment="CENTER_LEFT" styleClass="card-title-row">
+                            <Label text="Prédiction Gemini — Résultat IA" styleClass="card-title"/>
+                            <Region HBox.hgrow="ALWAYS"/>
+                            <Label text="gemini-2.5-flash-lite" styleClass="api-pill"/>
+                        </HBox>
+
+                        <TextArea fx:id="geminiAnalysisText"
+                                  editable="false"
+                                  wrapText="true"
+                                  prefRowCount="8"
+                                  text="Cliquez sur Analyse Gemini pour générer une prédiction : risque, maladie probable, explication et conseils admin."
+                                  styleClass="gemini-text"/>
+                    </VBox>
+
+                </VBox>
+            </content>
+        </ScrollPane>
+    </center>
+
+</BorderPane>

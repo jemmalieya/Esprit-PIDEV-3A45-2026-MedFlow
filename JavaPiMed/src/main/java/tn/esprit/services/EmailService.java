@@ -75,7 +75,12 @@ public class EmailService {
         String env = System.getenv(envKey);
         if (env != null && !env.isBlank()) return env;
         // 2. Propriété système
-        String prop = System.getProperty(propKey);
+        String prop = firstNonBlank(
+                System.getProperty(propKey),
+                System.getProperty(envKey),
+                System.getProperty(envKey.toLowerCase()),
+                System.getProperty(envKey.toLowerCase().replace('_', '.'))
+        );
         if (prop != null && !prop.isBlank()) return prop;
         // 3. Fichier config.properties
         String fileProp = FILE_CONFIG.getProperty(propKey);
@@ -530,6 +535,18 @@ public class EmailService {
 
     private static boolean isBlank(String s) {
         return s == null || s.isBlank();
+    }
+
+    private static String firstNonBlank(String... values) {
+        if (values == null) {
+            return null;
+        }
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value;
+            }
+        }
+        return null;
     }
 
     private static String escapeHtml(String s) {

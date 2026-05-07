@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx/25"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="tn.esprit.controllers.RessourceController"
+            prefWidth="1650.0"
+            prefHeight="960.0"
+            styleClass="root-layout"
+            stylesheets="@CSS/style-ajout-ressource.css">
+
+    <left>
+        <VBox prefWidth="250.0" minWidth="250.0" maxWidth="250.0" styleClass="sidebar">
+            <padding><Insets top="24.0" right="18.0" bottom="24.0" left="18.0"/></padding>
+            <children>
+                <HBox alignment="CENTER_LEFT" spacing="14.0" styleClass="logo-box">
+                    <children>
+                        <StackPane prefWidth="40.0" prefHeight="40.0">
+                            <children>
+                                <Label text="❤" styleClass="logo-heart"/>
+                                <Label text="✚" styleClass="logo-plus"/>
+                            </children>
+                        </StackPane>
+                        <Label text="MEDFLOW" styleClass="logo-text"/>
+                    </children>
+                </HBox>
+                <Region prefHeight="1.0" maxHeight="1.0" styleClass="sidebar-separator"/>
+                <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="sidebar-item">
+                    <children>
+                        <Label text="🩺" styleClass="sidebar-item-icon"/>
+                        <Label text="Dashboard" styleClass="sidebar-item-text"/>
+                    </children>
+                </HBox>
+                <Label text="GESTIONS" styleClass="sidebar-section-title"/>
+                <Button text="" onAction="#toggleSubmenu" alignment="CENTER_LEFT" maxWidth="Infinity" prefWidth="220.0" contentDisplay="GRAPHIC_ONLY" styleClass="sidebar-item, sidebar-btn, active-product-btn">
+                    <graphic>
+                        <HBox alignment="CENTER_LEFT" spacing="10.0" maxWidth="Infinity">
+                            <children>
+                                <Label text="📦" styleClass="sidebar-item-icon"/>
+                                <Label text="Ressources" styleClass="sidebar-item-text"/>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Label fx:id="ressourceArrow" text="⌃" styleClass="sidebar-arrow"/>
+                            </children>
+                        </HBox>
+                    </graphic>
+                </Button>
+                <VBox fx:id="submenuVBox" spacing="18.0" styleClass="submenu-card" managed="false" visible="false" maxWidth="220.0">
+                    <children>
+                        <Label text="GESTION DES RESSOURCES :" styleClass="submenu-title"/>
+                        <Button text="Voir toutes les ressources" onAction="#retourListeRessources" maxWidth="Infinity" alignment="CENTER_LEFT" styleClass="submenu-link"/>
+                        <Button text="Nouveau ressource" onAction="#onNewRessource" maxWidth="Infinity" alignment="CENTER_LEFT" styleClass="submenu-link"/>
+                        <Button text="Gestion evenements" onAction="#onGestionEvenements" maxWidth="Infinity" alignment="CENTER_LEFT" styleClass="submenu-link"/>
+                    </children>
+                </VBox>
+                <Region VBox.vgrow="ALWAYS"/>
+                <HBox alignment="CENTER_LEFT" spacing="10.0" onMouseClicked="#onLogout" styleClass="sidebar-item">
+                    <children>
+                        <Label text="↪" styleClass="sidebar-item-icon"/>
+                        <Label text="Deconnexion" styleClass="sidebar-item-text"/>
+                    </children>
+                </HBox>
+            </children>
+        </VBox>
+    </left>
+
+    <center>
+        <ScrollPane fitToWidth="true" pannable="true" styleClass="main-scroll">
+            <content>
+                <VBox spacing="22" styleClass="page-container">
+                    <padding><Insets top="22" right="28" bottom="28" left="28"/></padding>
+                    <children>
+                        <HBox alignment="CENTER_LEFT" spacing="0" styleClass="top-search-bar">
+                            <children>
+                                <TextField promptText="Search for..." styleClass="search-input" HBox.hgrow="ALWAYS"/>
+                                <Button styleClass="search-btn" text="🔍"/>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Label styleClass="notif-icon" text="🔔"/>
+                            </children>
+                        </HBox>
+
+                        <HBox alignment="CENTER_LEFT">
+                            <children>
+                                <VBox spacing="6">
+                                    <children>
+                                        <Label styleClass="page-title" text="Modifier une Ressource"/>
+                                        <Label styleClass="page-subtitle" text="Mettez a jour la ressource selectionnee"/>
+                                    </children>
+                                </VBox>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Button onAction="#retourListeRessources" styleClass="btn-retour" text="← Retour"/>
+                            </children>
+                        </HBox>
+
+                        <HBox alignment="TOP_LEFT" spacing="24">
+                            <children>
+                                <VBox spacing="18" HBox.hgrow="ALWAYS">
+                                    <children>
+                                        <VBox styleClass="main-card">
+                                            <children>
+                                                <HBox styleClass="card-header"><children><Label styleClass="card-header-title" text="Informations principales"/></children></HBox>
+                                                <VBox spacing="18" styleClass="card-content">
+                                                    <children>
+                                                        <Label styleClass="field-label" text="Evenement *"/>
+                                                        <ComboBox fx:id="cbEvenement" promptText="Choisir un evenement" maxWidth="Infinity" styleClass="custom-combo"/>
+                                                        <Label styleClass="field-label" text="Nom de la ressource *"/>
+                                                        <TextField fx:id="tfNomRessource" promptText="Ex: Agenda PDF / Badge / Projecteur" styleClass="custom-field"/>
+                                                        <Label styleClass="field-label" text="Categorie"/>
+                                                        <TextField fx:id="tfCategorieRessource" promptText="Ex: Document / Materiel / Stock" styleClass="custom-field"/>
+                                                        <Label styleClass="field-label" text="Type *"/>
+                                                        <ComboBox fx:id="cbTypeRessource" promptText="Choisir un type" maxWidth="Infinity" styleClass="custom-combo"/>
+                                                        <Label styleClass="field-label" text="Notes"/>
+                                                        <TextArea fx:id="taNotesRessource" prefRowCount="4" promptText="Informations complementaires..." styleClass="custom-area" wrapText="true"/>
+                                                    </children>
+                                                </VBox>
+                                            </children>
+                                        </VBox>
+                                    </children>
+                                </VBox>
+
+                                <VBox spacing="18" HBox.hgrow="ALWAYS">
+                                    <children>
+                                        <VBox styleClass="main-card">
+                                            <children>
+                                                <HBox styleClass="card-header"><children><Label styleClass="card-header-title" text="Fichier, lien et stock"/></children></HBox>
+                                                <VBox spacing="18" styleClass="card-content">
+                                                    <children>
+                                                        <Label styleClass="field-label" text="Fichier Cloudinary"/>
+                                                        <HBox spacing="10">
+                                                            <children>
+                                                                <TextField fx:id="tfCheminFichier" promptText="https://res.cloudinary.com/..." styleClass="custom-field" HBox.hgrow="ALWAYS"/>
+                                                                <Button text="Uploader" onAction="#choisirFichierCloudinary" styleClass="btn-add"/>
+                                                            </children>
+                                                        </HBox>
+                                                        <HBox spacing="22">
+                                                            <children>
+                                                                <VBox spacing="8" HBox.hgrow="ALWAYS">
+                                                                    <children>
+                                                                        <Label styleClass="field-label" text="Mime type"/>
+                                                                        <TextField fx:id="tfMimeType" promptText="Ex: application/pdf" styleClass="custom-field"/>
+                                                                    </children>
+                                                                </VBox>
+                                                                <VBox spacing="8" HBox.hgrow="ALWAYS">
+                                                                    <children>
+                                                                        <Label styleClass="field-label" text="Taille KB"/>
+                                                                        <TextField fx:id="tfTailleKb" promptText="Ex: 250" styleClass="custom-field"/>
+                                                                    </children>
+                                                                </VBox>
+                                                            </children>
+                                                        </HBox>
+                                                        <Label styleClass="field-label" text="URL externe"/>
+                                                        <TextField fx:id="tfUrlExterne" promptText="https://..." styleClass="custom-field"/>
+                                                        <HBox spacing="22">
+                                                            <children>
+                                                                <VBox spacing="8" HBox.hgrow="ALWAYS">
+                                                                    <children>
+                                                                        <Label styleClass="field-label" text="Quantite"/>
+                                                                        <TextField fx:id="tfQuantite" promptText="Ex: 50" styleClass="custom-field"/>
+                                                                    </children>
+                                                                </VBox>
+                                                                <VBox spacing="8" HBox.hgrow="ALWAYS">
+                                                                    <children>
+                                                                        <Label styleClass="field-label" text="Unite"/>
+                                                                        <TextField fx:id="tfUnite" promptText="Ex: piece" styleClass="custom-field"/>
+                                                                    </children>
+                                                                </VBox>
+                                                            </children>
+                                                        </HBox>
+                                                        <HBox spacing="22">
+                                                            <children>
+                                                                <VBox spacing="8" HBox.hgrow="ALWAYS">
+                                                                    <children>
+                                                                        <Label styleClass="field-label" text="Fournisseur"/>
+                                                                        <TextField fx:id="tfFournisseur" promptText="Nom du fournisseur" styleClass="custom-field"/>
+                                                                    </children>
+                                                                </VBox>
+                                                                <VBox spacing="8" HBox.hgrow="ALWAYS">
+                                                                    <children>
+                                                                        <Label styleClass="field-label" text="Cout estime"/>
+                                                                        <TextField fx:id="tfCoutEstime" promptText="Ex: 120.5" styleClass="custom-field"/>
+                                                                    </children>
+                                                                </VBox>
+                                                            </children>
+                                                        </HBox>
+                                                        <CheckBox fx:id="cbEstPublique" text="Ressource publique" styleClass="checkbox-style"/>
+                                                    </children>
+                                                </VBox>
+                                            </children>
+                                        </VBox>
+                                    </children>
+                                </VBox>
+                            </children>
+                        </HBox>
+
+                        <HBox alignment="CENTER_LEFT" styleClass="bottom-bar">
+                            <children>
+                                <Label text="La ressource reste liee a son evenement, mais vous pouvez changer la relation ici." styleClass="bottom-note"/>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Button onAction="#retourListeRessources" styleClass="btn-cancel" text="Annuler"/>
+                                <Button onAction="#modifierRessource" styleClass="btn-add" text="Enregistrer les modifications"/>
+                            </children>
+                        </HBox>
+                    </children>
+                </VBox>
+            </content>
+        </ScrollPane>
+    </center>
+</BorderPane>

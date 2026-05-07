@@ -1,0 +1,477 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx/25"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="tn.esprit.controllers.EvenementController"
+            prefWidth="1650.0"
+            prefHeight="960.0"
+            styleClass="root-layout"
+            stylesheets="@CSS/style-ajout-evenement.css">
+
+    <!-- ===== SIDEBAR (identical structure to AjouterProduit) ===== -->
+    <left>
+        <VBox prefWidth="250.0" minWidth="250.0" maxWidth="250.0" styleClass="sidebar">
+            <padding>
+                <Insets top="24.0" right="18.0" bottom="24.0" left="18.0"/>
+            </padding>
+            <children>
+
+                <HBox alignment="CENTER_LEFT" spacing="14.0" styleClass="logo-box">
+                    <children>
+                        <StackPane prefWidth="40.0" prefHeight="40.0">
+                            <children>
+                                <Label text="❤" styleClass="logo-heart"/>
+                                <Label text="✚" styleClass="logo-plus"/>
+                            </children>
+                        </StackPane>
+                        <Label text="MEDFLOW" styleClass="logo-text"/>
+                    </children>
+                </HBox>
+
+                <Region prefHeight="1.0" maxHeight="1.0" styleClass="sidebar-separator"/>
+
+                <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="sidebar-item">
+                    <children>
+                        <Label text="🩺" styleClass="sidebar-item-icon"/>
+                        <Label text="Dashboard" styleClass="sidebar-item-text"/>
+                    </children>
+                </HBox>
+
+                <Label text="GESTIONS" styleClass="sidebar-section-title"/>
+
+                <Button fx:id="evenementBtn"
+                        text=""
+                        onAction="#toggleSubmenu"
+                        alignment="CENTER_LEFT"
+                        maxWidth="Infinity"
+                        prefWidth="220.0"
+                        contentDisplay="GRAPHIC_ONLY"
+                        styleClass="sidebar-item, sidebar-btn, active-product-btn">
+                    <graphic>
+                        <HBox alignment="CENTER_LEFT" spacing="10.0" maxWidth="Infinity">
+                            <children>
+                                <Label text="📅" styleClass="sidebar-item-icon"/>
+                                <Label text="Événements" styleClass="sidebar-item-text"/>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Label fx:id="evenementArrow" text="⌃" styleClass="sidebar-arrow"/>
+                            </children>
+                        </HBox>
+                    </graphic>
+                </Button>
+
+                <VBox fx:id="submenuVBox"
+                      spacing="18.0"
+                      styleClass="submenu-card"
+                      managed="false"
+                      visible="false"
+                      maxWidth="220.0">
+                    <children>
+                        <Label text="GESTION DES ÉVÉNEMENTS :" styleClass="submenu-title"/>
+
+                        <Button text="Voir tous les événements"
+                                onAction="#retourListeEvenements"
+                                maxWidth="Infinity"
+                                alignment="CENTER_LEFT"
+                                styleClass="submenu-link"/>
+
+                        <Button text="↗ Tableau de bord Admin BI"
+                                onAction="#onTableauBordAdmin"
+                                maxWidth="Infinity"
+                                alignment="CENTER_LEFT"
+                                styleClass="submenu-link"/>
+
+                        <Button text="Autres actions"
+                                onAction="#onAutresActions"
+                                maxWidth="Infinity"
+                                alignment="CENTER_LEFT"
+                                styleClass="submenu-link"/>
+                    </children>
+                </VBox>
+
+                <Region VBox.vgrow="ALWAYS"/>
+
+                <HBox alignment="CENTER_LEFT" spacing="10.0" onMouseClicked="#onLogout" styleClass="sidebar-item">
+                    <children>
+                        <Label text="↪" styleClass="sidebar-item-icon"/>
+                        <Label text="Déconnexion" styleClass="sidebar-item-text"/>
+                    </children>
+                </HBox>
+
+            </children>
+        </VBox>
+    </left>
+
+    <!-- ===== CENTER : FORM ===== -->
+    <center>
+        <ScrollPane fitToWidth="true"
+                    pannable="true"
+                    styleClass="main-scroll">
+            <content>
+                <VBox spacing="22" styleClass="page-container">
+                    <padding>
+                        <Insets top="22" right="28" bottom="28" left="28"/>
+                    </padding>
+                    <children>
+
+                        <!-- TOP SEARCH BAR -->
+                        <HBox alignment="CENTER_LEFT" spacing="0" styleClass="top-search-bar">
+                            <children>
+                                <TextField promptText="Search for..." styleClass="search-input" HBox.hgrow="ALWAYS"/>
+                                <Button styleClass="search-btn" text="🔍"/>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Label styleClass="notif-icon" text="🔔"/>
+                            </children>
+                        </HBox>
+
+                        <!-- PAGE TITLE + BACK BUTTON -->
+                        <HBox alignment="CENTER_LEFT">
+                            <children>
+                                <VBox spacing="6">
+                                    <children>
+                                        <Label styleClass="page-title" text="Nouvel Événement"/>
+                                        <Label styleClass="page-subtitle" text="Remplissez les informations du nouvel événement"/>
+                                    </children>
+                                </VBox>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Button onAction="#retourListeEvenements"
+                                        styleClass="btn-retour"
+                                        text="← Retour"/>
+                            </children>
+
+                        </HBox>
+
+                        <!-- ===== 2-COLUMN FORM ===== -->
+                        <HBox alignment="TOP_LEFT" spacing="24">
+                            <children>
+
+                                <!-- ============ LEFT COLUMN ============ -->
+                                <VBox spacing="18" HBox.hgrow="ALWAYS">
+                                    <children>
+
+                                        <!-- CARD: Informations principales -->
+                                        <VBox styleClass="main-card">
+                                            <children>
+                                                <HBox styleClass="card-header">
+                                                    <children>
+                                                        <Label styleClass="card-header-title" text="Informations de l'événement"/>
+                                                    </children>
+                                                </HBox>
+                                                <VBox spacing="18" styleClass="card-content">
+                                                    <children>
+
+                                                        <Label styleClass="field-label" text="Titre *"/>
+                                                        <TextField fx:id="tfTitreEvent"
+                                                                   promptText="Ex: Journée de don du sang"
+                                                                   styleClass="custom-field"/>
+
+                                                        <Label styleClass="field-label" text="Slug (url-friendly) *"/>
+                                                        <TextField fx:id="tfSlugEvent"
+                                                                   promptText="ex: journee-don-du-sang"
+                                                                   styleClass="custom-field"/>
+
+                                                        <HBox spacing="22">
+                                                            <children>
+                                                                <VBox spacing="8" HBox.hgrow="ALWAYS">
+                                                                    <children>
+                                                                        <Label styleClass="field-label" text="Type *"/>
+                                                                        <ComboBox fx:id="cbTypeEvent"
+                                                                                  promptText="Choisir un type"
+                                                                                  maxWidth="Infinity"
+                                                                                  styleClass="custom-combo"/>
+                                                                    </children>
+                                                                </VBox>
+                                                                <VBox spacing="8" HBox.hgrow="ALWAYS">
+                                                                    <children>
+                                                                        <Label styleClass="field-label" text="Statut *"/>
+                                                                        <ComboBox fx:id="cbStatutEvent"
+                                                                                  promptText="Choisir un statut"
+                                                                                  maxWidth="Infinity"
+                                                                                  styleClass="custom-combo"/>
+                                                                    </children>
+                                                                </VBox>
+                                                            </children>
+                                                        </HBox>
+
+                                                        <Label styleClass="field-label" text="Description *"/>
+                                                        <TextArea fx:id="taDescriptionEvent"
+                                                                  prefRowCount="4"
+                                                                  promptText="Décrivez l'événement..."
+                                                                  styleClass="custom-area"
+                                                                  wrapText="true"/>
+
+                                                        <Label styleClass="field-label" text="Objectif"/>
+                                                        <TextArea fx:id="taObjectifEvent"
+                                                                  prefRowCount="3"
+                                                                  promptText="Objectif principal..."
+                                                                  styleClass="custom-area"
+                                                                  wrapText="true"/>
+
+                                                    </children>
+                                                </VBox>
+                                            </children>
+                                        </VBox>
+
+                                        <!-- CARD: Dates -->
+                                        <VBox styleClass="main-card">
+                                            <children>
+                                                <HBox styleClass="card-header">
+                                                    <children>
+                                                        <Label styleClass="card-header-title" text="Dates"/>
+                                                    </children>
+                                                </HBox>
+                                                <VBox spacing="18" styleClass="card-content">
+                                                    <children>
+
+                                                        <HBox spacing="22">
+                                                            <children>
+                                                                <VBox spacing="8" HBox.hgrow="ALWAYS">
+                                                                    <children>
+                                                                        <Label styleClass="field-label" text="Date début *"/>
+                                                                        <DatePicker fx:id="dpDateDebut"
+                                                                                    maxWidth="Infinity"
+                                                                                    styleClass="custom-field"/>
+                                                                    </children>
+                                                                </VBox>
+                                                                <VBox spacing="8" HBox.hgrow="ALWAYS">
+                                                                    <children>
+                                                                        <Label styleClass="field-label" text="Date fin *"/>
+                                                                        <DatePicker fx:id="dpDateFin"
+                                                                                    maxWidth="Infinity"
+                                                                                    styleClass="custom-field"/>
+                                                                    </children>
+                                                                </VBox>
+                                                            </children>
+                                                        </HBox>
+
+                                                        <Label styleClass="field-label" text="Date limite d'inscription"/>
+                                                        <DatePicker fx:id="dpDateLimiteInscription"
+                                                                    maxWidth="Infinity"
+                                                                    styleClass="custom-field"/>
+
+                                                    </children>
+                                                </VBox>
+                                            </children>
+                                        </VBox>
+
+                                        <!-- CARD: Lieu -->
+                                        <VBox styleClass="main-card">
+                                            <children>
+                                                <HBox styleClass="card-header">
+                                                    <children>
+                                                        <Label styleClass="card-header-title" text="Lieu"/>
+                                                    </children>
+                                                </HBox>
+                                                <VBox spacing="18" styleClass="card-content">
+                                                    <children>
+
+                                                        <Label styleClass="field-label" text="Nom du lieu *"/>
+                                                        <TextField fx:id="tfNomLieuEvent"
+                                                                   promptText="Ex: Hôpital Charles Nicolle"
+                                                                   styleClass="custom-field"/>
+
+                                                        <Label styleClass="field-label" text="Adresse *"/>
+                                                        <TextField fx:id="tfAdresseEvent"
+                                                                   promptText="Rue ..."
+                                                                   styleClass="custom-field"/>
+
+                                                        <Label styleClass="field-label" text="Ville *"/>
+                                                        <TextField fx:id="tfVilleEvent"
+                                                                   promptText="Tunis"
+                                                                   styleClass="custom-field"/>
+
+                                                    </children>
+                                                </VBox>
+                                            </children>
+                                        </VBox>
+
+                                        <!-- CARD: Contact et Organisateur -->
+                                        <VBox styleClass="main-card">
+                                            <children>
+                                                <HBox styleClass="card-header">
+                                                    <children>
+                                                        <Label styleClass="card-header-title" text="Contact &amp; Organisateur"/>
+                                                    </children>
+                                                </HBox>
+                                                <VBox spacing="18" styleClass="card-content">
+                                                    <children>
+
+                                                        <HBox spacing="22">
+                                                            <children>
+                                                                <VBox spacing="8" HBox.hgrow="ALWAYS">
+                                                                    <children>
+                                                                        <Label styleClass="field-label" text="Email contact *"/>
+                                                                        <TextField fx:id="tfEmailContact"
+                                                                                   promptText="contact@medflow.tn"
+                                                                                   styleClass="custom-field"/>
+                                                                    </children>
+                                                                </VBox>
+                                                                <VBox spacing="8" HBox.hgrow="ALWAYS">
+                                                                    <children>
+                                                                        <Label styleClass="field-label" text="Téléphone contact"/>
+                                                                        <TextField fx:id="tfTelContact"
+                                                                                   promptText="+216 ..."
+                                                                                   styleClass="custom-field"/>
+                                                                    </children>
+                                                                </VBox>
+                                                            </children>
+                                                        </HBox>
+
+                                                        <Label styleClass="field-label" text="Organisateur *"/>
+                                                        <TextField fx:id="tfOrganisateurEvent"
+                                                                   promptText="Nom / Service"
+                                                                   styleClass="custom-field"/>
+
+                                                    </children>
+                                                </VBox>
+                                            </children>
+                                        </VBox>
+
+                                        <!-- BOTTOM BAR -->
+                                        <HBox alignment="CENTER_LEFT" styleClass="bottom-bar">
+                                            <children>
+                                                <Label styleClass="bottom-note"
+                                                       text="Les champs marqués d'un * sont obligatoires"/>
+                                                <Region HBox.hgrow="ALWAYS"/>
+                                                <Button onAction="#retourListeEvenements"
+                                                        styleClass="btn-cancel"
+                                                        text="Annuler"/>
+                                                <Button fx:id="btnAjouterEvent"
+                                                        onAction="#ajouterEvenement"
+                                                        styleClass="btn-add"
+                                                        text="Ajouter l'événement"/>
+                                            </children>
+                                        </HBox>
+
+                                    </children>
+                                </VBox>
+
+                                <!-- ============ RIGHT COLUMN ============ -->
+                                <VBox prefWidth="300" spacing="14" styleClass="status-card-box">
+                                    <children>
+
+                                        <!-- CARD: Participants -->
+                                        <VBox styleClass="main-card">
+                                            <children>
+                                                <HBox styleClass="card-header">
+                                                    <children>
+                                                        <Label styleClass="card-header-title" text="Participants"/>
+                                                    </children>
+                                                </HBox>
+                                                <VBox spacing="18" styleClass="card-content">
+                                                    <children>
+
+                                                        <Label styleClass="field-label" text="Max participants"/>
+                                                        <HBox spacing="0">
+                                                            <children>
+                                                                <TextField fx:id="tfMaxParticipants"
+                                                                           promptText="Ex: 200"
+                                                                           styleClass="custom-field field-left"
+                                                                           HBox.hgrow="ALWAYS"/>
+                                                                <Button focusTraversable="false"
+                                                                        styleClass="field-addon"
+                                                                        text="pers."/>
+                                                            </children>
+                                                        </HBox>
+
+                                                        <CheckBox fx:id="cbInscriptionObligatoire"
+                                                                  text="Inscription obligatoire ?"
+                                                                  styleClass="status-radio"/>
+
+                                                    </children>
+                                                </VBox>
+                                            </children>
+                                        </VBox>
+
+                                        <!-- CARD: Visibilité -->
+                                        <VBox styleClass="main-card">
+                                            <children>
+                                                <HBox styleClass="card-header">
+                                                    <children>
+                                                        <Label styleClass="card-header-title" text="Visibilité"/>
+                                                    </children>
+                                                </HBox>
+                                                <VBox spacing="18" styleClass="card-content">
+                                                    <children>
+
+                                                        <ComboBox fx:id="cbVisibiliteEvent"
+                                                                  promptText="Choisir..."
+                                                                  maxWidth="Infinity"
+                                                                  styleClass="custom-combo"/>
+
+                                                        <Label styleClass="status-help"
+                                                               text="La visibilité contrôle l'affichage côté front."
+                                                               wrapText="true"/>
+
+                                                    </children>
+                                                </VBox>
+                                            </children>
+                                        </VBox>
+
+                                        <!-- CARD: Image couverture -->
+                                        <VBox styleClass="main-card">
+                                            <children>
+                                                <HBox styleClass="card-header">
+                                                    <children>
+                                                        <Label styleClass="card-header-title" text="Image de couverture"/>
+                                                    </children>
+                                                </HBox>
+                                                <VBox spacing="18" styleClass="card-content">
+                                                    <children>
+
+                                                        <VBox styleClass="upload-zone">
+                                                            <children>
+                                                                <HBox alignment="CENTER_LEFT" spacing="10" styleClass="upload-inner">
+                                                                    <children>
+                                                                        <Label fx:id="lblImageEvent"
+                                                                               styleClass="upload-file-label"
+                                                                               text="URL de l'image"/>
+                                                                    </children>
+                                                                </HBox>
+                                                            </children>
+                                                        </VBox>
+
+                                                        <TextField fx:id="tfImageEvent"
+                                                                   promptText="https://.../image.jpg"
+                                                                   styleClass="custom-field"/>
+
+                                                        <Button text="Uploader l'image vers Cloudinary"
+                                                                onAction="#choisirImageDepuisPC"
+                                                                maxWidth="Infinity"
+                                                                styleClass="btn-retour"/>
+
+                                                        <Label styleClass="upload-help"
+                                                               text="Formats acceptés : JPG / PNG / WEBP"/>
+
+                                                    </children>
+                                                </VBox>
+                                            </children>
+                                        </VBox>
+
+                                    </children>
+                                </VBox>
+
+                            </children>
+                        </HBox>
+
+                    </children>
+                </VBox>
+            </content>
+        </ScrollPane>
+    </center>
+
+</BorderPane>

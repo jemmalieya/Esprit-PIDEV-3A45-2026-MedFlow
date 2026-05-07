@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressBar?>
+<?import javafx.scene.canvas.Canvas?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.geometry.Insets?>
+
+<AnchorPane fx:id="rootPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="550.0" prefWidth="650.0" style="-fx-background-color: #f5f7fa;" xmlns="http://javafx.com/javafx/20.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="tn.esprit.controllers.FaceEnrollmentController">
+    
+    <VBox layoutX="0.0" layoutY="0.0" prefHeight="550.0" prefWidth="650.0" spacing="20.0" style="-fx-padding: 25;" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+        
+        <!-- Header -->
+        <VBox spacing="8.0" style="-fx-alignment: center;">
+            <Label text="🎯 Face Enrollment" style="-fx-font-size: 26; -fx-font-weight: bold; -fx-text-fill: #1e91ad;" />
+            <Label text="Set up face recognition for faster login" style="-fx-font-size: 13; -fx-text-fill: #7f8c8d;" />
+        </VBox>
+
+        <!-- Webcam preview section -->
+        <VBox style="-fx-border-color: #d0d8e0; -fx-border-radius: 10; -fx-padding: 15; -fx-background-color: #ffffff; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 5, 0, 0, 2);" spacing="15.0" VBox.vgrow="ALWAYS">
+            
+            <!-- Webcam preview -->
+            <Canvas fx:id="cameraCanvas" width="400" height="300" style="-fx-border-color: #c8d7df; -fx-border-radius: 8; -fx-border-width: 2; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.15), 6, 0, 0, 2);" />
+
+            <!-- Instruction and status -->
+            <VBox spacing="10.0">
+                <Label fx:id="instructionLabel" text="Click 'Start Enrollment' to begin" style="-fx-font-size: 13; -fx-text-fill: #235567; -fx-wrap-text: true;" wrapText="true" />
+                <Label fx:id="statusLabel" text="Ready for enrollment" style="-fx-font-size: 12; -fx-text-fill: #1e91ad; -fx-font-weight: bold;" />
+            </VBox>
+
+            <!-- Progress bar -->
+            <ProgressBar fx:id="enrollmentProgress" prefWidth="400.0" progress="0.0" style="-fx-padding: 2;" />
+        </VBox>
+
+        <!-- Tip box -->
+        <Label text="💡 Make sure you have good lighting and your face is clearly visible. The system will capture 30 frames for best accuracy." style="-fx-font-size: 12; -fx-text-fill: #7f8c8d; -fx-padding: 10; -fx-background-color: #fffbea; -fx-border-color: #f39c12; -fx-border-radius: 5; -fx-border-width: 1;" wrapText="true" />
+
+        <!-- Buttons -->
+        <HBox spacing="10.0" style="-fx-alignment: center;">
+            <Button fx:id="startButton" mnemonicParsing="false" style="-fx-padding: 10 25; -fx-font-size: 13; -fx-text-fill: white; -fx-background-color: #1e91ad; -fx-border-radius: 5; -fx-cursor: hand;" text="Start Enrollment" />
+            <Button fx:id="confirmButton" mnemonicParsing="false" style="-fx-padding: 10 25; -fx-font-size: 13; -fx-text-fill: white; -fx-background-color: #27ae60; -fx-border-radius: 5; -fx-cursor: hand;" text="Confirm" />
+            <Button fx:id="skipButton" mnemonicParsing="false" style="-fx-padding: 10 25; -fx-font-size: 13; -fx-text-fill: white; -fx-background-color: #95a5a6; -fx-border-radius: 5; -fx-cursor: hand;" text="Skip" />
+        </HBox>
+    </VBox>
+</AnchorPane>

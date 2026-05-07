@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Priority?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml/1"
+            xmlns="http://javafx.com/javafx/21"
+            prefWidth="1400.0" prefHeight="820.0"
+            stylesheets="@../CSS/accueil.css"
+            fx:controller="tn.esprit.controllers.NavigationController"
+            styleClass="root-pane">
+
+    <!-- LEFT SIDEBAR -->
+    <left>
+        <fx:include source="Sidebar.fxml"/>
+    </left>
+
+    <!-- MAIN BODY -->
+    <center>
+        <ScrollPane fitToWidth="true"
+                    pannable="true"
+                    hbarPolicy="NEVER"
+                    vbarPolicy="AS_NEEDED"
+                    styleClass="main-scroll">
+
+            <content>
+                <VBox spacing="24" styleClass="main-area">
+                    <padding>
+                        <Insets top="26" right="28" bottom="26" left="28"/>
+                    </padding>
+
+                    <!-- HERO -->
+                    <HBox spacing="22" styleClass="hero-card">
+                        <VBox spacing="12" HBox.hgrow="ALWAYS">
+                            <Label text="Welcome back to MedFlow" styleClass="hero-title"/>
+                            <Label text="Manage your healthcare platform from one modern dashboard. Access users, consultations, complaints, appointments, pharmacy and events quickly."
+                                   wrapText="true"
+                                   styleClass="hero-subtitle"/>
+                            <HBox spacing="12">
+                                <Button text="Start Navigation" styleClass="primary-btn"/>
+                                <Button text="Open Booking" styleClass="secondary-btn"/>
+                            </HBox>
+                        </VBox>
+
+                        <ImageView fitWidth="240" fitHeight="180" preserveRatio="true">
+
+                        </ImageView>
+                    </HBox>
+
+                    <!-- QUICK STATS -->
+                    <HBox spacing="16">
+                        <VBox prefWidth="180" prefHeight="110" styleClass="stat-card">
+                            <Label text="245" styleClass="stat-value"/>
+                            <Label text="Patients" styleClass="stat-label"/>
+                        </VBox>
+
+                        <VBox prefWidth="180" prefHeight="110" styleClass="stat-card">
+                            <Label text="18" styleClass="stat-value"/>
+                            <Label text="Appointments Today" styleClass="stat-label"/>
+                        </VBox>
+
+                        <VBox prefWidth="180" prefHeight="110" styleClass="stat-card">
+                            <Label text="7" styleClass="stat-value"/>
+                            <Label text="Pending Complaints" styleClass="stat-label"/>
+                        </VBox>
+
+                        <VBox prefWidth="180" prefHeight="110" styleClass="stat-card">
+                            <Label text="12" styleClass="stat-value"/>
+                            <Label text="Upcoming Events" styleClass="stat-label"/>
+                        </VBox>
+                    </HBox>
+
+                    <!-- MODULES -->
+                    <HBox alignment="CENTER_LEFT">
+                        <Label text="Main Modules" styleClass="section-title"/>
+                        <HBox HBox.hgrow="ALWAYS"/>
+                        <Button text="See all" styleClass="small-pill-button"/>
+                    </HBox>
+
+                    <FlowPane hgap="18" vgap="18" prefWrapLength="1000">
+                        <VBox prefWidth="210" prefHeight="170" styleClass="module-card">
+                            <Label text="👤" styleClass="module-icon"/>
+                            <Label text="Users" styleClass="module-title"/>
+                            <Label text="Manage accounts, access and profiles."
+                                   wrapText="true"
+                                   styleClass="module-text"/>
+                        </VBox>
+
+                        <VBox prefWidth="210" prefHeight="170" styleClass="module-card">
+                            <Label text="🩺" styleClass="module-icon"/>
+                            <Label text="Consultations" styleClass="module-title"/>
+                            <Label text="Track consultations and medical interactions."
+                                   wrapText="true"
+                                   styleClass="module-text"/>
+                        </VBox>
+
+                        <VBox prefWidth="210" prefHeight="170" styleClass="module-card">
+                            <Label text="📩" styleClass="module-icon"/>
+                            <Label text="Complaints" styleClass="module-title"/>
+                            <Label text="Handle patient feedback and urgent issues."
+                                   wrapText="true"
+                                   styleClass="module-text"/>
+                        </VBox>
+
+                        <VBox prefWidth="210" prefHeight="170" styleClass="module-card">
+                            <Label text="💊" styleClass="module-icon"/>
+                            <Label text="Pharmacy" styleClass="module-title"/>
+                            <Label text="Manage medicine stock and pharmacy services."
+                                   wrapText="true"
+                                   styleClass="module-text"/>
+                        </VBox>
+
+                        <VBox prefWidth="210" prefHeight="170" styleClass="module-card">
+                            <Label text="📅" styleClass="module-icon"/>
+                            <Label text="Appointments" styleClass="module-title"/>
+                            <Label text="Book and manage consultation appointments."
+                                   wrapText="true"
+                                   styleClass="module-text"/>
+                        </VBox>
+
+                        <VBox prefWidth="210" prefHeight="170" styleClass="module-card">
+                            <Label text="🎉" styleClass="module-icon"/>
+                            <Label text="Events" styleClass="module-title"/>
+                            <Label text="Organize campaigns, meetings and events."
+                                   wrapText="true"
+                                   styleClass="module-text"/>
+                        </VBox>
+                    </FlowPane>
+
+                    <!-- LOWER CARDS -->
+                    <HBox spacing="20">
+                        <VBox spacing="14" HBox.hgrow="ALWAYS" styleClass="info-card">
+                            <Label text="Quick Actions" styleClass="card-title"/>
+                            <Button text="Add new user" styleClass="action-btn"/>
+                            <Button text="Book an appointment" styleClass="action-btn"/>
+                            <Button text="Open complaints module" styleClass="action-btn"/>
+                            <Button text="Check pharmacy stock" styleClass="action-btn"/>
+                        </VBox>
+
+                        <VBox spacing="14" HBox.hgrow="ALWAYS" styleClass="info-card">
+                            <Label text="Recent Activity" styleClass="card-title"/>
+                            <Label text="• 3 new appointments created today" styleClass="activity-text"/>
+                            <Label text="• 1 urgent complaint received" styleClass="activity-text"/>
+                            <Label text="• Pharmacy stock updated successfully" styleClass="activity-text"/>
+                            <Label text="• 2 upcoming medical events this week" styleClass="activity-text"/>
+                        </VBox>
+                    </HBox>
+
+                </VBox>
+            </content>
+        </ScrollPane>
+    </center>
+
+</BorderPane>

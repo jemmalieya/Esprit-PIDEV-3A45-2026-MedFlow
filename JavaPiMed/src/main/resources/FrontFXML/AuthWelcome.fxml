@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<AnchorPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="tn.esprit.controllers.AuthWelcomeController"
+            fx:id="rootPane"
+            prefHeight="720.0"
+            prefWidth="1280.0"
+            minWidth="900.0"
+            minHeight="600.0"
+            stylesheets="@../CSS/auth-welcome.css"
+            styleClass="welcome-root">
+
+    <!-- Full-screen hero card -->
+    <VBox fx:id="welcomeCard"
+          styleClass="welcome-card"
+          spacing="0"
+          AnchorPane.topAnchor="40.0"
+          AnchorPane.bottomAnchor="40.0"
+          AnchorPane.leftAnchor="60.0"
+          AnchorPane.rightAnchor="60.0">
+        <padding>
+            <Insets top="44.0" right="52.0" bottom="44.0" left="52.0"/>
+        </padding>
+
+        <!-- Brand badge -->
+        <HBox alignment="CENTER_LEFT">
+            <HBox fx:id="brandBadge" styleClass="welcome-brand-badge" alignment="CENTER">
+                <Label text="✦  MEDFLOW" styleClass="welcome-brand"/>
+            </HBox>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button fx:id="themeToggleBtn"
+                    text="Mode clair"
+                    onAction="#handleToggleTheme"
+                    styleClass="theme-toggle"/>
+        </HBox>
+
+        <Region minHeight="24" maxHeight="24"/>
+
+        <!-- Main headline -->
+        <HBox spacing="0" alignment="CENTER_LEFT">
+            <VBox spacing="4" alignment="CENTER_LEFT">
+                <Label fx:id="titleLine1" text="Bienvenue sur" styleClass="welcome-title" wrapText="false"/>
+                <Label fx:id="titleLine2" text="MedFlow" styleClass="welcome-title-accent" wrapText="false"/>
+            </VBox>
+        </HBox>
+
+        <Region minHeight="16" maxHeight="16"/>
+
+        <!-- Subtitle -->
+        <Label fx:id="subtitleLabel"
+               text="Une experience medicale simple, rapide et lumineuse. Gerez vos rendez-vous, dossiers et alertes en un seul endroit securise."
+               styleClass="welcome-subtitle"
+               wrapText="true"
+               maxWidth="720"/>
+
+        <Region minHeight="32" maxHeight="32"/>
+
+        <!-- Feature pills -->
+        <HBox fx:id="pillsRow" styleClass="welcome-pills-row" spacing="14">
+            <VBox fx:id="pill1" spacing="6" styleClass="welcome-pill" HBox.hgrow="ALWAYS">
+                <Label text="RDV" styleClass="welcome-pill-icon"/>
+                <Label text="Rendez-vous" styleClass="pill-title"/>
+                <Label text="Gestion claire et rapide" styleClass="pill-text"/>
+            </VBox>
+            <VBox fx:id="pill2" spacing="6" styleClass="welcome-pill" HBox.hgrow="ALWAYS">
+                <Label text="DOS" styleClass="welcome-pill-icon"/>
+                <Label text="Dossiers" styleClass="pill-title"/>
+                <Label text="Historique centralise" styleClass="pill-text"/>
+            </VBox>
+            <VBox fx:id="pill3" spacing="6" styleClass="welcome-pill" HBox.hgrow="ALWAYS">
+                <Label text="ALR" styleClass="welcome-pill-icon"/>
+                <Label text="Alertes" styleClass="pill-title"/>
+                <Label text="Suivi instantane" styleClass="pill-text"/>
+            </VBox>
+            <VBox fx:id="pill4" spacing="6" styleClass="welcome-pill" HBox.hgrow="ALWAYS">
+                <Label text="SEC" styleClass="welcome-pill-icon"/>
+                <Label text="Securite" styleClass="pill-title"/>
+                <Label text="Donnees protegees" styleClass="pill-text"/>
+            </VBox>
+        </HBox>
+
+        <Region VBox.vgrow="ALWAYS"/>
+
+        <!-- Divider -->
+        <Region styleClass="welcome-divider" maxWidth="1.7976931348623157E308"/>
+
+        <Region minHeight="22" maxHeight="22"/>
+
+        <!-- CTA buttons -->
+        <HBox fx:id="ctaRow" spacing="14" alignment="CENTER_LEFT" maxWidth="500.0">
+            <Button fx:id="loginBtn" text="→  Se connecter" onAction="#handleGoLogin"
+                    styleClass="welcome-primary" HBox.hgrow="ALWAYS"
+                    maxWidth="1.7976931348623157E308"/>
+            <Button fx:id="signupBtn" text="Creer un compte" onAction="#handleGoSignup"
+                    styleClass="welcome-secondary" HBox.hgrow="ALWAYS"
+                    maxWidth="1.7976931348623157E308"/>
+        </HBox>
+
+        <Region minHeight="14" maxHeight="14"/>
+
+        <Label text="Connexion faciale disponible · Acces Google OAuth · Chiffrement de bout en bout"
+               styleClass="welcome-footer-note"/>
+    </VBox>
+</AnchorPane>

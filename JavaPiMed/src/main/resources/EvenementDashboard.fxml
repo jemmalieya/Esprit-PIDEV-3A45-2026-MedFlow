@@ -1,0 +1,336 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx/25"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="tn.esprit.controllers.EvenementController"
+            prefWidth="1650.0" prefHeight="960.0"
+            stylesheets="@CSS/evenement-dashboard.css"
+            styleClass="root-pane">
+
+    <left>
+        <VBox prefWidth="250.0" minWidth="250.0" maxWidth="250.0" styleClass="sidebar">
+            <children>
+
+                <HBox alignment="CENTER_LEFT" spacing="14.0" styleClass="logo-box">
+                    <children>
+                        <StackPane prefWidth="40.0" prefHeight="40.0">
+                            <children>
+                                <Label text="&#10084;" styleClass="logo-heart"/>
+                                <Label text="+" styleClass="logo-plus"/>
+                            </children>
+                        </StackPane>
+                        <Label text="MEDFLOW" styleClass="logo-text"/>
+                    </children>
+                </HBox>
+
+                <Region prefHeight="1.0" maxHeight="1.0" styleClass="sidebar-separator"/>
+
+                <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="sidebar-item">
+                    <children>
+                        <Label text="Dashboard" styleClass="sidebar-item-text"/>
+                    </children>
+                </HBox>
+
+                <Label text="GESTIONS" styleClass="sidebar-section-title"/>
+
+                <Button fx:id="evenementBtn"
+                        text=""
+                        onAction="#toggleSubmenu"
+                        alignment="CENTER_LEFT"
+                        maxWidth="Infinity"
+                        prefWidth="220.0"
+                        contentDisplay="GRAPHIC_ONLY"
+                        styleClass="sidebar-item, sidebar-btn">
+
+                    <graphic>
+                        <HBox alignment="CENTER_LEFT" spacing="10.0" maxWidth="Infinity">
+                            <children>
+                                <Label text="" styleClass="sidebar-item-icon"/>
+                                <Label text="Evenements" styleClass="sidebar-item-text"/>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Label fx:id="evenementArrow" text="v" styleClass="sidebar-arrow"/>
+                            </children>
+                        </HBox>
+                    </graphic>
+                </Button>
+
+                <VBox fx:id="submenuVBox"
+                      spacing="18.0"
+                      styleClass="submenu-card"
+                      managed="false"
+                      visible="false"
+                      maxWidth="220.0">
+                    <children>
+                        <Label text="GESTION DES EVENEMENTS :" styleClass="submenu-title"/>
+
+                        <Button text="Voir tous les evenements"
+                                onAction="#onVoirTousEvenements"
+                                maxWidth="Infinity"
+                                alignment="CENTER_LEFT"
+                                styleClass="submenu-link"/>
+
+                        <Button text="Tableau de bord BI"
+                                onAction="#onTableauBordAdmin"
+                                maxWidth="Infinity"
+                                alignment="CENTER_LEFT"
+                                styleClass="submenu-link"/>
+
+                        <Button text="Gestion des ressources"
+                                onAction="#onAutresActions"
+                                maxWidth="Infinity"
+                                alignment="CENTER_LEFT"
+                                styleClass="submenu-link"/>
+                    </children>
+                </VBox>
+
+                <Region prefHeight="18.0" maxHeight="18.0"/>
+
+                <Button text=""
+                        onAction="#onGoToFront"
+                        alignment="CENTER_LEFT"
+                        maxWidth="Infinity"
+                        prefWidth="220.0"
+                        contentDisplay="GRAPHIC_ONLY"
+                        styleClass="sidebar-item, sidebar-btn, sidebar-utility-btn">
+                    <graphic>
+                        <HBox alignment="CENTER_LEFT" spacing="10.0" maxWidth="Infinity">
+                            <children>
+                                <Label text="&gt;" styleClass="sidebar-item-icon"/>
+                                <Label text="Espace front" styleClass="sidebar-item-text"/>
+                            </children>
+                        </HBox>
+                    </graphic>
+                </Button>
+
+                <Button text=""
+                        onAction="#onLogout"
+                        alignment="CENTER_LEFT"
+                        maxWidth="Infinity"
+                        prefWidth="220.0"
+                        contentDisplay="GRAPHIC_ONLY"
+                        styleClass="sidebar-item, sidebar-btn, sidebar-utility-btn logout-utility-btn">
+                    <graphic>
+                        <HBox alignment="CENTER_LEFT" spacing="10.0" maxWidth="Infinity">
+                            <children>
+                                <Label text="X" styleClass="sidebar-item-icon"/>
+                                <Label text="Deconnexion" styleClass="sidebar-item-text"/>
+                            </children>
+                        </HBox>
+                    </graphic>
+                </Button>
+
+            </children>
+            <padding>
+                <Insets top="24.0" right="18.0" bottom="24.0" left="18.0"/>
+            </padding>
+        </VBox>
+    </left>
+
+    <center>
+        <VBox spacing="16.0" styleClass="main-area">
+            <padding>
+                <Insets top="14.0" right="22.0" bottom="18.0" left="22.0"/>
+            </padding>
+
+            <HBox alignment="CENTER_LEFT" spacing="14.0" styleClass="top-search-box">
+                <children>
+                    <TextField promptText="" HBox.hgrow="ALWAYS" styleClass="top-search-input"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <HBox fx:id="participationAlertBox"
+                          managed="false"
+                          visible="false"
+                          alignment="CENTER_LEFT"
+                          spacing="12.0"
+                          styleClass="participation-alert-compact">
+                        <children>
+                            <StackPane prefWidth="36.0" prefHeight="36.0" styleClass="participation-alert-icon-box">
+                                <children>
+                                    <Label text="!" styleClass="participation-alert-icon"/>
+                                </children>
+                            </StackPane>
+                            <VBox spacing="1.0">
+                                <children>
+                                    <Label fx:id="participationAlertCountLabel" text="Demandes" styleClass="participation-alert-title compact-alert-title"/>
+                                    <Label fx:id="participationAlertMessageLabel" text="En attente" styleClass="participation-alert-message compact-alert-message"/>
+                                </children>
+                            </VBox>
+                            <Button text="Ouvrir" onAction="#ouvrirAlertDemandesParticipation" styleClass="participation-alert-button compact-alert-button"/>
+                        </children>
+                        <padding>
+                            <Insets top="8.0" right="10.0" bottom="8.0" left="10.0"/>
+                        </padding>
+                    </HBox>
+                </children>
+            </HBox>
+
+            <HBox alignment="CENTER_LEFT" spacing="20.0" styleClass="hero-card">
+                <children>
+                    <StackPane minWidth="88.0" minHeight="88.0" prefWidth="88.0" prefHeight="88.0" styleClass="hero-icon-box">
+                        <children>
+                            <Label text="&#128197;" styleClass="hero-icon"/>
+                        </children>
+                    </StackPane>
+
+                    <VBox spacing="10.0">
+                        <children>
+                            <Label text="Gestion des Evenements" styleClass="hero-title"/>
+                            <HBox spacing="14.0" alignment="CENTER_LEFT">
+                                <children>
+                                    <Label fx:id="inventoryCountLabel" text="0 evenement(s) dans votre espace" styleClass="hero-subtitle"/>
+                                    <Label text="Admin" styleClass="admin-badge"/>
+                                </children>
+                            </HBox>
+                        </children>
+                    </VBox>
+
+                    <Region HBox.hgrow="ALWAYS"/>
+
+                    <VBox spacing="10.0" alignment="CENTER_RIGHT">
+                        <children>
+                            <HBox spacing="10.0" alignment="CENTER_RIGHT">
+                                <children>
+                                    <Button text="Nouvel event" onAction="#onNewEvent" styleClass="yellow-btn"/>
+                                    <Button text="Brouillons" onAction="#onShowDraftEvents" styleClass="white-btn"/>
+                                    <Button text="Tous les events" onAction="#onShowAllEvents" styleClass="white-btn"/>
+                                </children>
+                            </HBox>
+                            <HBox spacing="10.0" alignment="CENTER_RIGHT">
+                                <children>
+                                    <Button text="Calendrier" onAction="#ouvrirCalendrierEvenements" styleClass="white-btn"/>
+                                    <Button text="Assistant IA" onAction="#ouvrirRecommandationsAiBack" styleClass="white-btn"/>
+                                    <Button text="Export PDF" onAction="#handleExportPDF" styleClass="yellow-btn"/>
+                                </children>
+                            </HBox>
+                        </children>
+                    </VBox>
+                </children>
+                <padding>
+                    <Insets top="30.0" right="30.0" bottom="30.0" left="30.0"/>
+                </padding>
+            </HBox>
+            <VBox spacing="16.0" styleClass="list-header-card">
+                <children>
+                    <HBox alignment="CENTER_LEFT" spacing="18.0">
+                        <children>
+                            <HBox spacing="12.0" alignment="CENTER_LEFT">
+                                <children>
+                                    <Label text="&#9776;" styleClass="list-icon"/>
+                                    <Label text="Liste des Evenements" styleClass="list-title"/>
+                                </children>
+                            </HBox>
+
+                            <Region HBox.hgrow="ALWAYS"/>
+
+                            <HBox spacing="12.0" alignment="CENTER_RIGHT">
+                                <children>
+
+                                    <Label text="Filtres" styleClass="pill-label"/>
+
+                                    <ComboBox fx:id="sortCombo" promptText="Trier" styleClass="sort-combo"/>
+                                    <ComboBox fx:id="filterTypeCombo" promptText="Type" styleClass="filter-combo"/>
+                                    <ComboBox fx:id="filterStatutCombo" promptText="Statut" styleClass="filter-combo"/>
+                                    <ComboBox fx:id="filterVilleCombo" promptText="Ville" styleClass="filter-combo"/>
+
+                                </children>
+                            </HBox>
+                        </children>
+                    </HBox>
+
+                    <TextField fx:id="searchField" promptText="Rechercher..." styleClass="search-main-input"/>
+                </children>
+                <padding>
+                    <Insets top="22.0" right="24.0" bottom="22.0" left="24.0"/>
+                </padding>
+            </VBox>
+
+            <HBox spacing="24.0">
+                <children>
+                    <VBox spacing="16.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
+                        <children>
+                            <StackPane prefWidth="46.0" prefHeight="46.0" styleClass="stat-badge blue-badge">
+                                <children>
+                                    <Label text="&#128230;" styleClass="stat-emoji"/>
+                                </children>
+                            </StackPane>
+                            <Label fx:id="totalEventsLabel" text="0" styleClass="stat-number"/>
+                            <Label text="Total Evenements" styleClass="stat-text"/>
+                        </children>
+                    </VBox>
+
+                    <VBox spacing="16.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
+                        <children>
+                            <StackPane prefWidth="46.0" prefHeight="46.0" styleClass="stat-badge green-badge">
+                                <children>
+                                    <Label text="&#9989;" styleClass="stat-emoji"/>
+                                </children>
+                            </StackPane>
+                            <Label fx:id="publiesLabel" text="0" styleClass="stat-number"/>
+                            <Label text="Publies" styleClass="stat-text"/>
+                        </children>
+                    </VBox>
+
+                    <VBox spacing="16.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
+                        <children>
+                            <StackPane prefWidth="46.0" prefHeight="46.0" styleClass="stat-badge orange-badge">
+                                <children>
+                                    <Label text="&#9888;" styleClass="stat-emoji"/>
+                                </children>
+                            </StackPane>
+                            <Label fx:id="brouillonsLabel" text="0" styleClass="stat-number"/>
+                            <Label text="Brouillons" styleClass="stat-text"/>
+                        </children>
+                    </VBox>
+
+                    <VBox spacing="16.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
+                        <children>
+                            <StackPane prefWidth="46.0" prefHeight="46.0" styleClass="stat-badge red-badge">
+                                <children>
+                                    <Label text="&#10006;" styleClass="stat-emoji"/>
+                                </children>
+                            </StackPane>
+                            <Label fx:id="archivesLabel" text="0" styleClass="stat-number"/>
+                            <Label text="Historique / autres" styleClass="stat-text"/>
+                        </children>
+                    </VBox>
+                </children>
+            </HBox>
+
+            <VBox styleClass="table-wrapper" VBox.vgrow="ALWAYS">
+                <children>
+                    <TableView fx:id="evenementTable" VBox.vgrow="ALWAYS" prefHeight="760" minHeight="700" styleClass="events-table">
+                        <columns>
+                            <TableColumn fx:id="titreCol" prefWidth="280.0" text="TITRE"/>
+                            <TableColumn fx:id="typeCol" prefWidth="170.0" text="TYPE"/>
+                            <TableColumn fx:id="villeCol" prefWidth="160.0" text="VILLE"/>
+                            <TableColumn fx:id="statutCol" prefWidth="150.0" text="STATUT"/>
+                            <TableColumn fx:id="organisateurCol" prefWidth="220.0" text="ORGANISATEUR"/>
+                            <TableColumn fx:id="descriptionCol" prefWidth="420.0" text="DESCRIPTION"/>
+                            <TableColumn fx:id="actionsCol" prefWidth="360.0" text="ACTIONS"/>
+                        </columns>
+                    </TableView>
+                </children>
+            </VBox>
+
+
+        </VBox>
+    </center>
+</BorderPane>
+
+
+
+
+
+

@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.chart.BarChart?>
+<?import javafx.scene.chart.CategoryAxis?>
+<?import javafx.scene.chart.LineChart?>
+<?import javafx.scene.chart.NumberAxis?>
+<?import javafx.scene.chart.PieChart?>
+<BorderPane xmlns="http://javafx.com/javafx/25"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="tn.esprit.controllers.BlogController"
+            prefWidth="1650.0" prefHeight="960.0"
+            styleClass="root-pane"
+            stylesheets="@evenement-dashboard.css">
+
+    <left>
+        <VBox prefWidth="250.0" minWidth="250.0" maxWidth="250.0" styleClass="sidebar">
+            <children>
+                <HBox alignment="CENTER_LEFT" spacing="14.0" styleClass="logo-box">
+                    <children>
+                        <StackPane prefWidth="40.0" prefHeight="40.0">
+                            <children>
+                                <Label text="❤" styleClass="logo-heart"/>
+                                <Label text="✚" styleClass="logo-plus"/>
+                            </children>
+                        </StackPane>
+                        <Label text="MEDFLOW" styleClass="logo-text"/>
+                    </children>
+                </HBox>
+
+                <Region prefHeight="1.0" maxHeight="1.0" styleClass="sidebar-separator"/>
+
+                <Label text="GESTIONS" styleClass="sidebar-section-title"/>
+
+                <Button fx:id="reclamationBtn"
+                        text=""
+                        onAction="#toggleSubmenu"
+                        alignment="CENTER_LEFT"
+                        maxWidth="Infinity"
+                        prefWidth="220.0"
+                        contentDisplay="GRAPHIC_ONLY"
+                        styleClass="sidebar-item, sidebar-btn">
+                    <graphic>
+                        <HBox alignment="CENTER_LEFT" spacing="10.0" maxWidth="Infinity">
+                            <children>
+                                <Label text="💬" styleClass="sidebar-item-icon"/>
+                                <Label text="Réclamations" styleClass="sidebar-item-text"/>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Label fx:id="reclamationArrow" text="⌃" styleClass="sidebar-arrow"/>
+                            </children>
+                        </HBox>
+                    </graphic>
+                </Button>
+
+                <VBox fx:id="submenuVBox"
+                      spacing="18.0"
+                      styleClass="submenu-card"
+                      managed="true"
+                      visible="true"
+                      maxWidth="220.0">
+                    <children>
+                        <Label text="STATISTIQUES :" styleClass="submenu-title"/>
+
+                        <Button text="📊 Statistique Réclamation"
+                                onAction="#openReclamationStats"
+                                maxWidth="Infinity"
+                                alignment="CENTER_LEFT"
+                                styleClass="submenu-link"/>
+
+                        <Button text="📰 Statistique Blog"
+                                onAction="#openBlogStats"
+                                maxWidth="Infinity"
+                                alignment="CENTER_LEFT"
+                                styleClass="submenu-link"/>
+                    </children>
+                </VBox>
+
+                <Region VBox.vgrow="ALWAYS"/>
+
+                <Button text="↪ Déconnexion"
+                        onAction="#handleLogout"
+                        alignment="CENTER_LEFT"
+                        maxWidth="Infinity"
+                        prefWidth="220.0"
+                        styleClass="sidebar-item, sidebar-btn"/>
+            </children>
+            <padding>
+                <Insets top="24.0" right="18.0" bottom="24.0" left="18.0"/>
+            </padding>
+        </VBox>
+    </left>
+
+    <center>
+        <VBox spacing="22.0" styleClass="main-area">
+            <padding>
+                <Insets top="18.0" right="22.0" bottom="22.0" left="22.0"/>
+            </padding>
+
+            <HBox alignment="CENTER_LEFT" spacing="20.0" styleClass="hero-card">
+                <children>
+                    <StackPane minWidth="88.0" minHeight="88.0" prefWidth="88.0" prefHeight="88.0" styleClass="hero-icon-box">
+                        <children>
+                            <Label text="📰" styleClass="hero-icon"/>
+                        </children>
+                    </StackPane>
+
+                    <VBox spacing="10.0">
+                        <children>
+                            <Label text="Statistiques du Blog" styleClass="hero-title"/>
+                            <Label text="Vue synthétique et graphique sur les posts et commentaires" styleClass="hero-subtitle"/>
+                        </children>
+                    </VBox>
+
+                    <Region HBox.hgrow="ALWAYS"/>
+
+                    <Button text="💬 Retour Réclamations"
+                            onAction="#backToReponses"
+                            styleClass="white-btn"/>
+                </children>
+                <padding>
+                    <Insets top="30.0" right="30.0" bottom="30.0" left="30.0"/>
+                </padding>
+            </HBox>
+
+            <HBox spacing="24.0">
+                <children>
+                    <VBox spacing="16.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
+                        <children>
+                            <Label fx:id="totalPostsLabel" text="0" styleClass="stat-number"/>
+                            <Label text="Total posts" styleClass="stat-text"/>
+                        </children>
+                    </VBox>
+
+                    <VBox spacing="16.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
+                        <children>
+                            <Label fx:id="totalCommentairesLabel" text="0" styleClass="stat-number"/>
+                            <Label text="Total commentaires" styleClass="stat-text"/>
+                        </children>
+                    </VBox>
+
+                    <VBox spacing="16.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
+                        <children>
+                            <Label fx:id="postsAnonymesLabel" text="0" styleClass="stat-number"/>
+                            <Label text="Posts anonymes" styleClass="stat-text"/>
+                        </children>
+                    </VBox>
+
+                    <VBox spacing="16.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
+                        <children>
+                            <Label fx:id="categoriesLabel" text="0" styleClass="stat-number"/>
+                            <Label text="Catégories utilisées" styleClass="stat-text"/>
+                        </children>
+                    </VBox>
+                </children>
+            </HBox>
+
+            <HBox spacing="20" VBox.vgrow="ALWAYS">
+                <children>
+                    <VBox spacing="12" styleClass="table-wrapper" HBox.hgrow="ALWAYS">
+                        <children>
+                            <Label text="Posts par catégorie" styleClass="list-title"/>
+                            <BarChart fx:id="categoryBarChart" prefHeight="320" categoryGap="18" barGap="6">
+                                <xAxis>
+                                    <CategoryAxis label="Catégorie"/>
+                                </xAxis>
+                                <yAxis>
+                                    <NumberAxis label="Nombre"/>
+                                </yAxis>
+                            </BarChart>
+                        </children>
+                    </VBox>
+
+                    <VBox spacing="12" styleClass="table-wrapper" HBox.hgrow="ALWAYS">
+                        <children>
+                            <Label text="Répartition des posts" styleClass="list-title"/>
+                            <PieChart fx:id="anonymousPieChart" prefHeight="320"/>
+                        </children>
+                    </VBox>
+                </children>
+            </HBox>
+
+            <VBox spacing="12" styleClass="table-wrapper" VBox.vgrow="ALWAYS">
+                <children>
+                    <Label text="Évolution des posts" styleClass="list-title"/>
+                    <LineChart fx:id="postsLineChart" prefHeight="320" createSymbols="true">
+                        <xAxis>
+                            <CategoryAxis label="Date"/>
+                        </xAxis>
+                        <yAxis>
+                            <NumberAxis label="Nombre"/>
+                        </yAxis>
+                    </LineChart>
+                </children>
+            </VBox>
+        </VBox>
+    </center>
+</BorderPane>

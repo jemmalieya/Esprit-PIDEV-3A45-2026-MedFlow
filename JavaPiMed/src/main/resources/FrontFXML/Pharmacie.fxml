@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml/1"
+            xmlns="http://javafx.com/javafx/21"
+            prefWidth="1400.0" prefHeight="820.0"
+            stylesheets="@../CSS/booking.css,@../CSS/pharmacie.css"
+            fx:controller="tn.esprit.controllers.ProduitController"
+            styleClass="root-pane">
+
+    <!-- LEFT SIDEBAR -->
+    <left>
+        <fx:include source="Sidebar.fxml"/>
+    </left>
+
+    <!-- MAIN BODY : StackPane pour superposer le chat flottant -->
+    <center>
+        <StackPane>
+
+            <!-- ══ CONTENU PRINCIPAL ══ -->
+            <ScrollPane pannable="true"
+                        hbarPolicy="NEVER"
+                        vbarPolicy="AS_NEEDED"
+                        fitToWidth="true"
+                        styleClass="main-scroll">
+
+                <content>
+                    <VBox spacing="24" styleClass="main-area">
+                        <padding>
+                            <Insets top="26" right="28" bottom="26" left="28"/>
+                        </padding>
+
+                        <!-- HEADER -->
+                        <VBox spacing="6" styleClass="page-header">
+                            <Label text="Pharmacie" styleClass="page-title"/>
+                            <Label text="Découvrez les produits, recherchez rapidement, filtrez et ajoutez au panier dans une interface moderne."
+                                   wrapText="true"
+                                   styleClass="page-subtitle"/>
+                        </VBox>
+
+                        <!-- HERO -->
+                        <HBox spacing="18" alignment="CENTER_LEFT" styleClass="hero-card">
+                            <children>
+                                <VBox spacing="8" HBox.hgrow="ALWAYS">
+                                    <children>
+                                        <Label text="🩺 Pharmacie intelligente" styleClass="hero-title"/>
+                                        <Label text="Best sellers, recommandations, filtres rapides et panier en session."
+                                               wrapText="true"
+                                               styleClass="hero-subtitle"/>
+                                    </children>
+                                </VBox>
+
+                                <Button text="📇 Contacter pharmacie"
+                                        onAction="#ouvrirContactPharmaciePopup"
+                                        styleClass="hero-contact-btn"/>
+
+                                <Button fx:id="btnPanier"
+                                        text="🛒 Panier (0)"
+                                        onAction="#ouvrirPanierPopup"
+                                        styleClass="hero-cart-btn"/>
+
+                                <Button text="📦 Mes commandes"
+                                        onAction="#ouvrirMesCommandes"
+                                        styleClass="hero-cart-btn"/>
+
+                                <Button fx:id="btnAssistant"
+                                        text="🤖 Assistant"
+                                        onAction="#toggleAssistantPanel"
+                                        styleClass="hero-assistant-btn"/>
+                            </children>
+                        </HBox>
+
+                        <!-- RECHERCHE / FILTRES -->
+                        <VBox spacing="16" styleClass="filter-card">
+                            <children>
+                                <HBox spacing="18" alignment="CENTER_LEFT">
+                                    <children>
+                                        <HBox spacing="10" alignment="CENTER_LEFT" styleClass="search-box" HBox.hgrow="ALWAYS">
+                                            <children>
+                                                <Label text="🔎" styleClass="search-icon"/>
+                                                <TextField fx:id="searchProduitField"
+                                                           promptText="Rechercher (nom, catégorie, description...)"
+                                                           styleClass="search-field"
+                                                           HBox.hgrow="ALWAYS"/>
+                                                <Button fx:id="voiceSearchBtn"
+                                                        text="🎤"
+                                                        onAction="#onVoiceSearchClicked"
+                                                        styleClass="voice-btn"/>
+                                            </children>
+                                        </HBox>
+
+                                        <ComboBox fx:id="triPrixCombo"
+                                                  promptText="Trier prix"
+                                                  styleClass="filter-combo"/>
+
+                                        <ComboBox fx:id="triStockCombo"
+                                                  promptText="Trier stock"
+                                                  styleClass="filter-combo"/>
+
+                                        <ComboBox fx:id="categorieCombo"
+                                                  promptText="Toutes catégories"
+                                                  styleClass="filter-combo"/>
+                                    </children>
+                                </HBox>
+
+                                <HBox alignment="CENTER_LEFT" spacing="8">
+                                    <children>
+                                        <Label text="👜" styleClass="result-icon"/>
+                                        <Label fx:id="resultCountLabel"
+                                               text="0 produit(s) trouvé(s)"
+                                               styleClass="result-label"/>
+                                    </children>
+                                </HBox>
+                            </children>
+                        </VBox>
+
+                        <!-- GRID directement dans le VBox principal — comme l'original -->
+                        <!-- Les recommandations IA s'insèrent dynamiquement avant ce nœud -->
+                        <FlowPane fx:id="productGrid"
+                                  hgap="18"
+                                  vgap="18"
+                                  prefWrapLength="1120"
+                                  styleClass="product-grid"/>
+
+                    </VBox>
+                </content>
+            </ScrollPane>
+
+            <!-- ══ PANNEAU CHAT FLOTTANT (overlay bas-droite, ne perturbe pas le layout) ══ -->
+            <VBox fx:id="assistantPanel"
+                  spacing="0"
+                  styleClass="assistant-panel"
+                  visible="false"
+                  managed="false"
+                  prefWidth="360"
+                  maxWidth="360"
+                  maxHeight="560"
+                  StackPane.alignment="BOTTOM_RIGHT">
+                <StackPane.margin>
+                    <Insets bottom="24" right="24"/>
+                </StackPane.margin>
+
+                <!-- Header -->
+                <HBox styleClass="assistant-panel-header" alignment="CENTER_LEFT" spacing="10">
+                    <padding><Insets top="12" right="14" bottom="12" left="14"/></padding>
+                    <Label text="💊" styleClass="assistant-panel-avatar"/>
+                    <VBox spacing="2" HBox.hgrow="ALWAYS">
+                        <Label text="PharmAssist" styleClass="assistant-panel-name"/>
+                        <HBox spacing="5" alignment="CENTER_LEFT">
+                            <Label text="●" styleClass="assistant-online-dot"/>
+                            <Label text="Assistant pharmacien" styleClass="assistant-panel-status"/>
+                        </HBox>
+                    </VBox>
+                    <Button text="🗑" styleClass="assistant-clear-btn"
+                            onAction="#onClearAssistant"/>
+                    <Button text="✕" styleClass="assistant-close-x-btn"
+                            onAction="#toggleAssistantPanel"/>
+                </HBox>
+
+                <!-- Bienvenue -->
+                <VBox styleClass="assistant-welcome-bar">
+                    <padding><Insets top="8" right="12" bottom="8" left="12"/></padding>
+                    <Label wrapText="true"
+                           text="👋 Posez vos questions : effets secondaires, douleurs, symptômes, conseils..."
+                           styleClass="assistant-welcome-text"/>
+                </VBox>
+
+                <!-- Suggestions rapides -->
+                <VBox fx:id="assistantSuggestionsBar" styleClass="suggestions-bar" spacing="6">
+                    <padding><Insets top="8" right="12" bottom="8" left="12"/></padding>
+                    <Label text="Questions fréquentes :" styleClass="suggestions-label"/>
+                    <FlowPane fx:id="suggestionsFlow" hgap="6" vgap="6" prefWrapLength="330"/>
+                </VBox>
+
+                <!-- Messages scrollables -->
+                <ScrollPane fx:id="assistantScrollPane"
+                            VBox.vgrow="ALWAYS"
+                            fitToWidth="true"
+                            hbarPolicy="NEVER"
+                            vbarPolicy="AS_NEEDED"
+                            prefHeight="300"
+                            styleClass="assistant-scroll">
+                    <content>
+                        <VBox fx:id="assistantMessagesContainer"
+                              spacing="10"
+                              styleClass="messages-container">
+                            <padding>
+                                <Insets top="10" right="12" bottom="10" left="12"/>
+                            </padding>
+                        </VBox>
+                    </content>
+                </ScrollPane>
+
+                <!-- Indicateur typing -->
+                <HBox fx:id="assistantTypingIndicator"
+                      spacing="6" alignment="CENTER_LEFT"
+                      styleClass="typing-indicator"
+                      visible="false" managed="false">
+                    <padding><Insets top="4" right="12" bottom="0" left="12"/></padding>
+                    <Label text="PharmAssist écrit" styleClass="typing-text"/>
+                    <Label text="•••" styleClass="typing-dots"/>
+                </HBox>
+
+                <!-- Barre de saisie -->
+                <VBox styleClass="assistant-input-area" spacing="6">
+                    <padding><Insets top="10" right="12" bottom="12" left="12"/></padding>
+                    <HBox spacing="8" alignment="CENTER">
+                        <TextField fx:id="assistantInputField"
+                                   promptText="Posez votre question…"
+                                   styleClass="assistant-input"
+                                   HBox.hgrow="ALWAYS"
+                                   onAction="#onSendAssistantMessage"/>
+                        <Button text="➤"
+                                styleClass="assistant-send-btn"
+                                onAction="#onSendAssistantMessage"/>
+                    </HBox>
+                    <Label text="⚠ Ne remplace pas un avis médical professionnel."
+                           styleClass="assistant-disclaimer"/>
+                </VBox>
+
+            </VBox>
+
+        </StackPane>
+    </center>
+
+</BorderPane>

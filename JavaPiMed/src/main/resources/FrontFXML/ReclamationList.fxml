@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="tn.esprit.controllers.ReclamationListController"
+            stylesheets="@../CSS/reclamation.css,@../CSS/booking.css"
+            styleClass="root-pane">
+
+    <left>
+        <fx:include source="Sidebar.fxml"/>
+    </left>
+
+    <center>
+
+        <VBox spacing="20" styleClass="main-area">
+
+            <padding>
+                <Insets top="25" right="30" bottom="25" left="30"/>
+            </padding>
+
+            <!-- ================= HEADER ================= -->
+            <VBox spacing="8" styleClass="page-header">
+                <Label text="📊 Liste des Réclamations"
+                       styleClass="page-title"/>
+
+                <Label text="Gestion complète"
+                       styleClass="page-subtitle"/>
+            </VBox>
+
+
+
+            <!-- ================= TABLE CARD MODERNE ================= -->
+            <VBox spacing="16" styleClass="reclamation-table-card" VBox.vgrow="ALWAYS">
+
+                <!-- Top table info -->
+                <HBox alignment="CENTER_LEFT" spacing="12" styleClass="table-top-bar">
+                    <VBox spacing="3">
+                        <Label text="Suivi de mes réclamations"
+                               styleClass="table-card-title"/>
+
+                        <Label text="Consultez le statut, la priorité et les réponses de vos demandes."
+                               styleClass="table-card-subtitle"/>
+                    </VBox>
+
+                    <Region HBox.hgrow="ALWAYS"/>
+
+                    <Label text="Gestion complète"
+                           styleClass="table-chip"/>
+                </HBox>
+
+                <!-- Table -->
+                <TableView fx:id="tableReclamations"
+                           prefHeight="560"
+                           VBox.vgrow="ALWAYS"
+                           styleClass="modern-reclamation-table">
+
+                    <columns>
+                        <TableColumn fx:id="colContenu"
+                                     text="Contenu"
+                                     prefWidth="180"
+                                     minWidth="160"/>
+
+                        <TableColumn fx:id="colDescription"
+                                     text="Description"
+                                     prefWidth="300"
+                                     minWidth="260"/>
+
+                        <TableColumn fx:id="colType"
+                                     text="Type"
+                                     prefWidth="140"
+                                     minWidth="120"/>
+
+                        <TableColumn fx:id="colStatut"
+                                     text="Statut"
+                                     prefWidth="150"
+                                     minWidth="130"/>
+
+                        <TableColumn fx:id="colPriorite"
+                                     text="Priorité"
+                                     prefWidth="150"
+                                     minWidth="130"/>
+
+                        <TableColumn fx:id="colActions"
+                                     text="Actions"
+                                     prefWidth="310"
+                                     minWidth="290"/>
+                    </columns>
+
+                </TableView>
+
+            </VBox>
+
+        </VBox>
+
+    </center>
+
+</BorderPane>

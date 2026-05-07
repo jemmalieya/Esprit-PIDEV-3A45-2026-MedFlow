@@ -1,0 +1,296 @@
+.root {
+    -fx-font-family: "Segoe UI", Arial, sans-serif;
+}
+
+.panier-main {
+    -fx-background-color: linear-gradient(to bottom, #f7faff, #eef4fb);
+    -fx-padding: 28;
+}
+
+.panier-title {
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #163a63;
+}
+
+.panier-subtitle {
+    -fx-font-size: 14px;
+    -fx-text-fill: #6c7a89;
+}
+
+/* Carte globale */
+.checkout-card {
+    -fx-background-color: white;
+    -fx-background-radius: 18;
+    -fx-border-radius: 18;
+    -fx-border-color: #dde7f2;
+    -fx-border-width: 1;
+    -fx-padding: 22;
+    -fx-effect: dropshadow(gaussian, rgba(20, 40, 70, 0.08), 18, 0.18, 0, 4);
+}
+
+/* Liste produits */
+.checkout-items-box {
+    -fx-spacing: 12;
+}
+
+.product-row {
+    -fx-background-color: white;
+    -fx-background-radius: 14;
+    -fx-border-color: #e5edf6;
+    -fx-border-radius: 14;
+    -fx-padding: 14 16 14 16;
+    -fx-alignment: center-left;
+    -fx-spacing: 18;
+}
+
+.product-row:hover {
+    -fx-background-color: #f8fbff;
+}
+
+.checkout-product-name {
+    -fx-font-size: 15px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #183b66;
+}
+
+.checkout-product-qty {
+    -fx-font-size: 13px;
+    -fx-text-fill: #5f7187;
+}
+
+.checkout-product-price {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #0d8f6f;
+}
+
+/* Bloc résumé */
+.checkout-summary-box {
+    -fx-background-color: white;
+    -fx-background-radius: 18;
+    -fx-border-color: #dde7f2;
+    -fx-border-radius: 18;
+    -fx-padding: 22;
+    -fx-spacing: 18;
+    -fx-effect: dropshadow(gaussian, rgba(20, 40, 70, 0.08), 18, 0.18, 0, 4);
+}
+
+.checkout-summary-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #183b66;
+}
+
+.resume-label {
+    -fx-font-size: 14px;
+    -fx-text-fill: #6a7a8c;
+}
+
+.resume-price-small {
+    -fx-font-size: 15px;
+    -fx-font-weight: 600;
+    -fx-text-fill: #264a73;
+}
+
+.resume-total-box {
+    -fx-background-color: linear-gradient(to right, #eff7ff, #f7fbff);
+    -fx-background-radius: 14;
+    -fx-padding: 14 16 14 16;
+    -fx-border-color: #dbe8f6;
+    -fx-border-radius: 14;
+}
+
+.resume-total-label {
+    -fx-font-size: 17px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #163a63;
+}
+
+.resume-total-price {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #10a37f;
+}
+
+/* Conditions */
+.terms-box {
+    -fx-background-color: #f8fbff;
+    -fx-background-radius: 14;
+    -fx-border-color: #dbe8f6;
+    -fx-border-radius: 14;
+    -fx-padding: 14 16 14 16;
+    -fx-spacing: 12;
+}
+
+.check-box {
+    -fx-text-fill: #1c3553;
+    -fx-font-size: 14px;
+}
+
+.check-box .box {
+    -fx-background-color: white;
+    -fx-border-color: #9cb6d3;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+}
+
+.check-box:selected .mark {
+    -fx-background-color: white;
+}
+
+.check-box:selected .box {
+    -fx-background-color: #1e90ff;
+    -fx-border-color: #1e90ff;
+}
+
+/* Bouton voir conditions */
+.conditions-btn {
+    -fx-background-color: #eef5ff;
+    -fx-text-fill: #1d4f91;
+    -fx-font-size: 13px;
+    -fx-font-weight: 600;
+    -fx-background-radius: 12;
+    -fx-border-radius: 12;
+    -fx-border-color: #cfe0f6;
+    -fx-padding: 10 16 10 16;
+    -fx-cursor: hand;
+}
+
+.conditions-btn:hover {
+    -fx-background-color: #e2efff;
+}
+
+/* Bouton retour */
+.back-btn {
+    -fx-background-color: white;
+    -fx-text-fill: #2f4d6d;
+    -fx-font-size: 14px;
+    -fx-font-weight: 600;
+    -fx-background-radius: 12;
+    -fx-border-radius: 12;
+    -fx-border-color: #d8e4f0;
+    -fx-padding: 12 18 12 18;
+    -fx-cursor: hand;
+}
+
+.back-btn:hover {
+    -fx-background-color: #f7faff;
+}
+
+/* Bouton payer */
+.pay-btn {
+    -fx-background-color: linear-gradient(to right, #10a37f, #0f8e72);
+    -fx-text-fill: white;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 12;
+    -fx-border-radius: 12;
+    -fx-padding: 12 24 12 24;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(16, 163, 127, 0.22), 12, 0.2, 0, 3);
+}
+
+.pay-btn:hover {
+    -fx-background-color: linear-gradient(to right, #11b48b, #10957a);
+}
+
+.pay-btn:disabled {
+    -fx-opacity: 0.55;
+    -fx-background-color: #b6c3cf;
+    -fx-text-fill: white;
+    -fx-effect: none;
+}
+
+.stripe-payment-box {
+    -fx-background-color: white;
+    -fx-background-radius: 18;
+    -fx-border-color: #dde7f2;
+    -fx-border-radius: 18;
+    -fx-padding: 18;
+    -fx-spacing: 12;
+    -fx-effect: dropshadow(gaussian, rgba(20, 40, 70, 0.08), 18, 0.18, 0, 4);
+}
+
+.stripe-webview {
+    -fx-background-color: white;
+    -fx-border-color: #dbe8f6;
+    -fx-border-radius: 14;
+    -fx-background-radius: 14;
+}
+
+/* Petit badge sécurité */
+.security-chip {
+    -fx-background-color: #edfdf7;
+    -fx-text-fill: #118567;
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-background-radius: 20;
+    -fx-padding: 8 14 8 14;
+    -fx-border-color: #c8f3e4;
+    -fx-border-radius: 20;
+}
+
+/* Scroll */
+.scroll-pane {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.scroll-pane > .viewport {
+    -fx-background-color: transparent;
+}
+.terms-dialog {
+    -fx-background-color: linear-gradient(to bottom, #f8fbff, #eef5fc);
+    -fx-background-radius: 20;
+    -fx-border-color: #d9e6f3;
+    -fx-border-radius: 20;
+    -fx-padding: 0;
+}
+
+.terms-dialog .header-panel {
+    -fx-background-color: linear-gradient(to right, #1d4f91, #2563a6);
+    -fx-background-radius: 20 20 0 0;
+    -fx-padding: 18 22 18 22;
+}
+
+.terms-dialog .header-panel .label {
+    -fx-text-fill: white;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+}
+
+.terms-dialog .content.label {
+    -fx-text-fill: #24415f;
+    -fx-font-size: 14px;
+    -fx-line-spacing: 4px;
+    -fx-padding: 18 22 10 22;
+}
+
+.terms-dialog:header *.header-panel *.content {
+    -fx-background-color: transparent;
+}
+
+.terms-dialog > *.button-bar > *.container {
+    -fx-padding: 0 18 18 18;
+    -fx-background-color: transparent;
+}
+
+.terms-dialog .button {
+    -fx-background-color: linear-gradient(to right, #1e90ff, #1976d2);
+    -fx-text-fill: white;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 12;
+    -fx-border-radius: 12;
+    -fx-padding: 10 22 10 22;
+    -fx-cursor: hand;
+}
+
+.terms-dialog .button:hover {
+    -fx-background-color: linear-gradient(to right, #33a0ff, #1c82df);
+}
+
+.terms-dialog .graphic-container {
+    -fx-padding: 4 0 0 0;
+}

@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="tn.esprit.controllers.ReclamationController"
+            stylesheets="@../CSS/reclamation.css,@../CSS/booking.css"
+            styleClass="root-pane"
+            prefWidth="1400" prefHeight="820">
+
+    <!-- SIDEBAR (INCHANGÉ) -->
+    <left>
+        <fx:include source="Sidebar.fxml"/>
+    </left>
+
+    <!-- ================= CENTER ================= -->
+    <center>
+        <ScrollPane fitToWidth="true" styleClass="main-scroll">
+            <content>
+
+                <VBox spacing="18" styleClass="main-area">
+
+                    <padding>
+                        <Insets top="25" right="30" bottom="25" left="30"/>
+                    </padding>
+
+                    <!-- ================= HEADER ================= -->
+                    <VBox spacing="8" styleClass="page-header">
+                        <Label text="📋 Gestion des Réclamations"
+                               styleClass="page-title"/>
+
+                        <Label text="Créer une nouvelle réclamation rapidement"
+                               styleClass="page-subtitle"/>
+                    </VBox>
+
+                    <!-- ================= FORM CENTERED ================= -->
+                    <HBox alignment="CENTER" styleClass="form-wrapper">
+
+                        <VBox spacing="18"
+                              styleClass="reclamation-form-card"
+                              prefWidth="620"
+                              maxWidth="620">
+
+                            <!-- TOP FORM TITLE -->
+                            <VBox spacing="6">
+                                <Label text="Nouvelle Réclamation"
+                                       styleClass="form-main-title"/>
+
+                                <Label text="Décrivez votre problème ou utilisez la dictée vocale avec traduction automatique."
+                                       wrapText="true"
+                                       styleClass="form-main-subtitle"/>
+                            </VBox>
+
+                            <!-- MINI API BADGES -->
+                            <HBox spacing="10" styleClass="api-badges-row">
+                                <Label text="API Speech-to-Text" styleClass="api-badge"/>
+                                <Label text="Traduction IA" styleClass="api-badge"/>
+                                <Label text="Analyse urgence" styleClass="api-badge"/>
+                            </HBox>
+
+                            <!-- CONTENU -->
+                            <VBox spacing="7" styleClass="field-block">
+                                <HBox alignment="CENTER_LEFT" spacing="8">
+                                    <Label text="Contenu" styleClass="input-label"/>
+                                    <Region HBox.hgrow="ALWAYS"/>
+                                    <Label text="Obligatoire" styleClass="required-chip"/>
+                                </HBox>
+
+                                <TextField fx:id="tfContenu"
+                                           promptText="Ex : Problème de paiement, service, livraison..."
+                                           styleClass="modern-input"/>
+
+                                <HBox alignment="CENTER_LEFT" spacing="10">
+                                    <Button text="🎤 Dicter le contenu"
+                                            onAction="#dicterContenu"
+                                            styleClass="btn-voice"/>
+
+                                    <Label text="Parlez, l’API remplit ce champ automatiquement."
+                                           styleClass="hint-label"/>
+                                </HBox>
+
+                                <Label fx:id="errContenu" styleClass="error-label"/>
+                            </VBox>
+
+                            <!-- DESCRIPTION -->
+                            <VBox spacing="7" styleClass="field-block">
+                                <HBox alignment="CENTER_LEFT" spacing="8">
+                                    <Label text="Description détaillée" styleClass="input-label"/>
+                                    <Region HBox.hgrow="ALWAYS"/>
+                                    <Label text="Min. 10 caractères" styleClass="required-chip"/>
+                                </HBox>
+
+                                <TextArea fx:id="taDescription"
+                                          promptText="Expliquez votre problème en détail..."
+                                          wrapText="true"
+                                          prefRowCount="7"
+                                          styleClass="modern-textarea"/>
+
+                                <HBox alignment="CENTER_LEFT" spacing="10">
+                                    <Button text="🎤 Dicter la description"
+                                            onAction="#dicterDescription"
+                                            styleClass="btn-voice"/>
+
+                                    <Label text="Vous pouvez parler en français ou anglais."
+                                           styleClass="hint-label"/>
+                                </HBox>
+
+                                <Label fx:id="errDescription" styleClass="error-label"/>
+                            </VBox>
+
+                            <!-- TYPE -->
+                            <VBox spacing="7" styleClass="field-block">
+                                <Label text="Type de réclamation" styleClass="input-label"/>
+
+                                <ComboBox fx:id="cbType"
+                                          promptText="Choisir un type"
+                                          prefWidth="220"
+                                          styleClass="modern-combo"/>
+
+                                <Label fx:id="errType" styleClass="error-label"/>
+                            </VBox>
+
+                            <!-- VOICE STATUS -->
+                            <VBox spacing="5" styleClass="voice-result-card">
+                                <Label text="Résultat vocal / traduction"
+                                       styleClass="voice-result-title"/>
+
+                                <Label fx:id="lblVoiceStatus"
+                                       text="Aucun texte vocal détecté pour le moment."
+                                       wrapText="true"
+                                       styleClass="voice-status"/>
+                            </VBox>
+
+                            <!-- ACTIONS PRINCIPALES -->
+                            <HBox spacing="12" alignment="CENTER_LEFT" styleClass="form-actions">
+                                <Button text="➕ Envoyer la Réclamation"
+                                        onAction="#ajouterReclamation"
+                                        styleClass="hero-cart-btn"/>
+
+                                <Button text="🧹 Vider"
+                                        onAction="#viderChamps"
+                                        styleClass="clear-btn"/>
+                            </HBox>
+
+                            <!-- ACTIONS SECONDAIRES -->
+                            <HBox spacing="12" alignment="CENTER_LEFT">
+                                <Button text="📊 Voir toutes les réclamations"
+                                        onAction="#goToList"
+                                        styleClass="outline-btn"/>
+
+                                <Button text="❌ Annuler"
+                                        onAction="#goToList"
+                                        styleClass="cancel-btn"/>
+                            </HBox>
+
+                            <Label fx:id="lblMessage"
+                                   wrapText="true"
+                                   styleClass="global-message"/>
+
+                        </VBox>
+
+                    </HBox>
+                </VBox>
+
+            </content>
+        </ScrollPane>
+    </center>
+
+</BorderPane>

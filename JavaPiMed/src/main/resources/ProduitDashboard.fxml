@@ -1,0 +1,304 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx/26"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="tn.esprit.controllers.ProduitController"
+            prefWidth="1400.0" prefHeight="850.0"
+            stylesheets="@CSS/produit-dashboard.css"
+            styleClass="root-pane">
+
+    <left>
+        <VBox prefWidth="250.0" minWidth="250.0" maxWidth="250.0" styleClass="sidebar">
+            <padding>
+                <Insets top="24.0" right="18.0" bottom="24.0" left="18.0"/>
+            </padding>
+
+            <children>
+                <HBox alignment="CENTER_LEFT" spacing="14.0" styleClass="logo-box">
+                    <children>
+                        <StackPane prefWidth="40.0" prefHeight="40.0">
+                            <children>
+                                <Label text="❤" styleClass="logo-heart"/>
+                                <Label text="✚" styleClass="logo-plus"/>
+                            </children>
+                        </StackPane>
+                        <Label text="MEDFLOW" styleClass="logo-text"/>
+                    </children>
+                </HBox>
+
+                <Region prefHeight="1.0" maxHeight="1.0" styleClass="sidebar-separator"/>
+
+                <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="sidebar-item">
+                    <children>
+                        <Label text="🩺" styleClass="sidebar-item-icon"/>
+                        <Label text="Dashboard" styleClass="sidebar-item-text"/>
+                    </children>
+                </HBox>
+
+                <Label text="GESTIONS" styleClass="sidebar-section-title"/>
+
+                <Button fx:id="produitBtn"
+                        text=""
+                        onAction="#toggleSubmenu"
+                        alignment="CENTER_LEFT"
+                        maxWidth="Infinity"
+                        prefWidth="220.0"
+                        contentDisplay="GRAPHIC_ONLY"
+                        styleClass="sidebar-item, sidebar-btn, active-product-btn">
+                    <graphic>
+                        <HBox alignment="CENTER_LEFT" spacing="10.0" maxWidth="Infinity">
+                            <children>
+                                <Label text="📦" styleClass="sidebar-item-icon"/>
+                                <Label text="Produits" styleClass="sidebar-item-text"/>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Label fx:id="produitArrow" text="⌃" styleClass="sidebar-arrow"/>
+                            </children>
+                        </HBox>
+                    </graphic>
+                </Button>
+
+                <VBox fx:id="submenuVBox"
+                      spacing="18.0"
+                      styleClass="submenu-card"
+                      managed="true"
+                      visible="true"
+                      maxWidth="220.0">
+                    <children>
+                        <Label text="GESTION DES PRODUITS :" styleClass="submenu-title"/>
+
+                        <Button text="Voir tous les produits"
+                                onAction="#onVoirTousProduits"
+                                maxWidth="Infinity"
+                                alignment="CENTER_LEFT"
+                                styleClass="submenu-link"/>
+
+                        <Button text="↗ Dashboard Admin BI"
+                                onAction="#onTableauBordAdmin"
+                                maxWidth="Infinity"
+                                alignment="CENTER_LEFT"
+                                styleClass="submenu-link"/>
+
+                        <Button text="Autres actions"
+                                onAction="#onAutresActions"
+                                maxWidth="Infinity"
+                                alignment="CENTER_LEFT"
+                                styleClass="submenu-link"/>
+                    </children>
+                </VBox>
+
+                <Region VBox.vgrow="ALWAYS"/>
+
+                <Button text=""
+                        onAction="#onGoToFront"
+                        alignment="CENTER_LEFT"
+                        maxWidth="Infinity"
+                        prefWidth="220.0"
+                        contentDisplay="GRAPHIC_ONLY"
+                        styleClass="sidebar-item, sidebar-btn">
+                    <graphic>
+                        <HBox alignment="CENTER_LEFT" spacing="10.0" maxWidth="Infinity">
+                            <children>
+                                <Label text="⇢" styleClass="sidebar-item-icon"/>
+                                <Label text="Espace front" styleClass="sidebar-item-text"/>
+                            </children>
+                        </HBox>
+                    </graphic>
+                </Button>
+
+                <Button text=""
+                        onAction="#onLogout"
+                        alignment="CENTER_LEFT"
+                        maxWidth="Infinity"
+                        prefWidth="220.0"
+                        contentDisplay="GRAPHIC_ONLY"
+                        styleClass="sidebar-item, sidebar-btn">
+                    <VBox.margin>
+                        <Insets top="12.0" right="0.0" bottom="0.0" left="0.0"/>
+                    </VBox.margin>
+                    <graphic>
+                        <HBox alignment="CENTER_LEFT" spacing="10.0" maxWidth="Infinity">
+                            <children>
+                                <Label text="↪" styleClass="sidebar-item-icon"/>
+                                <Label text="Déconnexion" styleClass="sidebar-item-text"/>
+                            </children>
+                        </HBox>
+                    </graphic>
+                </Button>
+            </children>
+        </VBox>
+    </left>
+
+    <center>
+        <VBox spacing="22.0" styleClass="main-area">
+            <padding>
+                <Insets top="18.0" right="22.0" bottom="18.0" left="22.0"/>
+            </padding>
+
+            <HBox alignment="CENTER_LEFT" spacing="14.0" styleClass="top-search-box">
+                <children>
+                    <TextField promptText="" HBox.hgrow="ALWAYS" styleClass="top-search-input"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Label text="🔔" styleClass="notif-icon"/>
+                </children>
+            </HBox>
+
+            <HBox alignment="CENTER_LEFT" spacing="20.0" styleClass="hero-card">
+                <padding>
+                    <Insets top="30.0" right="30.0" bottom="30.0" left="30.0"/>
+                </padding>
+
+                <children>
+                    <StackPane minWidth="88.0" minHeight="88.0" prefWidth="88.0" prefHeight="88.0" styleClass="hero-icon-box">
+                        <children>
+                            <Label text="📦" styleClass="hero-icon"/>
+                        </children>
+                    </StackPane>
+
+                    <VBox spacing="10.0">
+                        <children>
+                            <Label text="Gestion des Produits" styleClass="hero-title"/>
+                            <HBox spacing="14.0" alignment="CENTER_LEFT">
+                                <children>
+                                    <Label fx:id="inventoryCountLabel" text="0 produit(s) dans votre inventaire" styleClass="hero-subtitle"/>
+                                    <Label text="🛡 Admin" styleClass="admin-badge"/>
+                                </children>
+                            </HBox>
+                        </children>
+                    </VBox>
+
+                    <Region HBox.hgrow="ALWAYS"/>
+
+                    <HBox spacing="16.0" alignment="CENTER_RIGHT">
+                        <children>
+                            <Button text="⊕ Nouveau Produit" onAction="#onNewProduit" styleClass="yellow-btn"/>
+                            <Button text="📋 Voir les Commandes" onAction="#onVoirCommandes" styleClass="white-btn"/>
+                        </children>
+                    </HBox>
+                </children>
+            </HBox>
+
+            <VBox spacing="16.0" styleClass="list-header-card">
+                <padding>
+                    <Insets top="22.0" right="24.0" bottom="22.0" left="24.0"/>
+                </padding>
+
+                <children>
+                    <HBox alignment="CENTER_LEFT" spacing="18.0">
+                        <children>
+                            <HBox spacing="12.0" alignment="CENTER_LEFT">
+                                <children>
+                                    <Label text="☰" styleClass="list-icon"/>
+                                    <Label text="Liste des Produits" styleClass="list-title"/>
+                                </children>
+                            </HBox>
+
+                            <Region HBox.hgrow="ALWAYS"/>
+
+                            <HBox spacing="12.0" alignment="CENTER_RIGHT">
+                                <children>
+                                    <Label fx:id="alerteInventaireLabel" text="🔔 Alerte Inventaire 0" styleClass="pill-label"/>
+                                    <ComboBox fx:id="sortCombo" styleClass="sort-combo"/>
+                                </children>
+                            </HBox>
+                        </children>
+                    </HBox>
+
+                    <TextField fx:id="searchField" promptText="Rechercher..." styleClass="search-main-input"/>
+                </children>
+            </VBox>
+
+            <HBox spacing="24.0">
+                <children>
+                    <VBox spacing="16.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
+                        <children>
+                            <StackPane prefWidth="46.0" prefHeight="46.0" styleClass="stat-badge blue-badge">
+                                <children>
+                                    <Label text="📦" styleClass="stat-emoji"/>
+                                </children>
+                            </StackPane>
+                            <Label fx:id="totalProduitsLabel" text="0" styleClass="stat-number"/>
+                            <Label text="📦 Total Produits" styleClass="stat-text"/>
+                        </children>
+                    </VBox>
+
+                    <VBox spacing="16.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
+                        <children>
+                            <StackPane prefWidth="46.0" prefHeight="46.0" styleClass="stat-badge green-badge">
+                                <children>
+                                    <Label text="✅" styleClass="stat-emoji"/>
+                                </children>
+                            </StackPane>
+                            <Label fx:id="disponiblesLabel" text="0" styleClass="stat-number"/>
+                            <Label text="✅ Disponibles" styleClass="stat-text"/>
+                        </children>
+                    </VBox>
+
+                    <VBox spacing="16.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
+                        <children>
+                            <StackPane prefWidth="46.0" prefHeight="46.0" styleClass="stat-badge orange-badge">
+                                <children>
+                                    <Label text="⚠" styleClass="stat-emoji"/>
+                                </children>
+                            </StackPane>
+                            <Label fx:id="ruptureLabel" text="0" styleClass="stat-number"/>
+                            <Label text="⚠ En Rupture" styleClass="stat-text"/>
+                        </children>
+                    </VBox>
+
+                    <VBox spacing="16.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
+                        <children>
+                            <StackPane prefWidth="46.0" prefHeight="46.0" styleClass="stat-badge red-badge">
+                                <children>
+                                    <Label text="❌" styleClass="stat-emoji"/>
+                                </children>
+                            </StackPane>
+                            <Label fx:id="indisponiblesLabel" text="0" styleClass="stat-number"/>
+                            <Label text="❌ Indisponibles" styleClass="stat-text"/>
+                        </children>
+                    </VBox>
+                </children>
+            </HBox>
+
+            <ScrollPane fitToWidth="true"
+                        VBox.vgrow="ALWAYS"
+                        vbarPolicy="AS_NEEDED"
+                        hbarPolicy="NEVER"
+                        pannable="true"
+                        styleClass="table-scroll-pane">
+                <content>
+                    <VBox styleClass="table-like-wrapper">
+                        <children>
+                            <HBox spacing="0.0" styleClass="table-like-header">
+                                <children>
+                                    <Label text="🖼 IMAGE" styleClass="header-cell-image"/>
+                                    <Label text="🏷 NOM" styleClass="header-cell-nom"/>
+                                    <Label text="💰 PRIX" styleClass="header-cell-prix"/>
+                                    <Label text="📦 QUANTITÉ" styleClass="header-cell-qte"/>
+                                    <Label text="🗂 CATÉGORIE" styleClass="header-cell-cat"/>
+                                    <Label text="✅ STATUT" styleClass="header-cell-statut"/>
+                                    <Label text="📝 DESCRIPTION" styleClass="header-cell-desc"/>
+                                    <Label text="⚙ ACTIONS" styleClass="header-cell-actions"/>
+                                </children>
+                            </HBox>
+
+                            <VBox fx:id="produitsListContainer" styleClass="rows-container"/>
+                        </children>
+                    </VBox>
+                </content>
+            </ScrollPane>
+
+        </VBox>
+    </center>
+</BorderPane>

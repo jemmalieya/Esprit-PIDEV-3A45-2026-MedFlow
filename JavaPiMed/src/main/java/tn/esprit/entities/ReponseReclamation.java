@@ -5,20 +5,24 @@ import java.time.LocalDateTime;
 public class ReponseReclamation {
 
     private int id_reponse;
-    private int id_reclamation;
+    private Reclamation reclamation; // ✅ objet complet
     private String message;
     private String type_reponse;
     private LocalDateTime date_creation_rep;
     private LocalDateTime date_modification_rep;
     private boolean is_read;
+    private String auteur;
+    private String role_emetteur;
+    private boolean lu_par_admin;
+    private boolean lu_par_patient;
 
     public ReponseReclamation() {
     }
 
-    public ReponseReclamation(int id_reclamation, String message, String type_reponse,
+    public ReponseReclamation(Reclamation reclamation, String message, String type_reponse,
                               LocalDateTime date_creation_rep, LocalDateTime date_modification_rep,
                               boolean is_read) {
-        this.id_reclamation = id_reclamation;
+        this.reclamation = reclamation;
         this.message = message;
         this.type_reponse = type_reponse;
         this.date_creation_rep = date_creation_rep;
@@ -26,17 +30,19 @@ public class ReponseReclamation {
         this.is_read = is_read;
     }
 
-    public ReponseReclamation(int id_reponse, int id_reclamation, String message, String type_reponse,
+    public ReponseReclamation(int id_reponse, Reclamation reclamation, String message, String type_reponse,
                               LocalDateTime date_creation_rep, LocalDateTime date_modification_rep,
                               boolean is_read) {
         this.id_reponse = id_reponse;
-        this.id_reclamation = id_reclamation;
+        this.reclamation = reclamation;
         this.message = message;
         this.type_reponse = type_reponse;
         this.date_creation_rep = date_creation_rep;
         this.date_modification_rep = date_modification_rep;
         this.is_read = is_read;
     }
+
+    // ================= GETTERS / SETTERS =================
 
     public int getId_reponse() {
         return id_reponse;
@@ -46,12 +52,12 @@ public class ReponseReclamation {
         this.id_reponse = id_reponse;
     }
 
-    public int getId_reclamation() {
-        return id_reclamation;
+    public Reclamation getReclamation() {
+        return reclamation;
     }
 
-    public void setId_reclamation(int id_reclamation) {
-        this.id_reclamation = id_reclamation;
+    public void setReclamation(Reclamation reclamation) {
+        this.reclamation = reclamation;
     }
 
     public String getMessage() {
@@ -94,15 +100,50 @@ public class ReponseReclamation {
         this.is_read = is_read;
     }
 
+    public String getAuteur() {
+        return auteur;
+    }
+
+    public void setAuteur(String auteur) {
+        this.auteur = auteur;
+    }
+
+    public String getRole_emetteur() {
+        return role_emetteur;
+    }
+
+    public void setRole_emetteur(String role_emetteur) {
+        this.role_emetteur = role_emetteur;
+    }
+
+    public boolean isLu_par_admin() {
+        return lu_par_admin;
+    }
+
+    public void setLu_par_admin(boolean lu_par_admin) {
+        this.lu_par_admin = lu_par_admin;
+    }
+
+    public boolean isLu_par_patient() {
+        return lu_par_patient;
+    }
+
+    public void setLu_par_patient(boolean lu_par_patient) {
+        this.lu_par_patient = lu_par_patient;
+    }
     @Override
     public String toString() {
         return "ReponseReclamation{" +
                 "id_reponse=" + id_reponse +
-                ", id_reclamation=" + id_reclamation +
+                ", reclamation=" + (reclamation != null ? reclamation.getId_reclamation() : null) +
                 ", message='" + message + '\'' +
                 ", type_reponse='" + type_reponse + '\'' +
+                ", auteur='" + auteur + '\'' +
+                ", role_emetteur='" + role_emetteur + '\'' +
                 ", date_creation_rep=" + date_creation_rep +
                 ", date_modification_rep=" + date_modification_rep +
+                ", lu_par_admin=" + lu_par_admin +
+                ", lu_par_patient=" + lu_par_patient +
                 ", is_read=" + is_read +
                 '}';
     }

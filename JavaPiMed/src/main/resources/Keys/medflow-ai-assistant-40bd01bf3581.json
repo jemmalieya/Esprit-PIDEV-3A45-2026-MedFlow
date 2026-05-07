@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "medflow-ai-assistant",
+  "private_key_id": "40bd01bf35813264118b53899c78706895aed6ed",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDzCkojpnRZ/q3d\nwz9dwMkmqubkAIoQTM4sCUYSjSI+seyJSpqarxsmmkreE43qhF3iglVuPGBlsE62\nAyssso7AnLZ/SdPSqAjUS3/xzLYVN5XY+yJDoJ0s+EDRv7o/613MVNNTBBRMM9P5\nlDuXooA+j6stkK9XNsrYJQ08SzeCScsyfqT/+wpumvPeaROr7jwMMiaqWdwOpnlS\nvaBhmFNNuvTZvTCKC0m4Lw++Sz6jF/bakR46aYre1tkdBMgMPWtgeSV2QK2dH408\n6iG65MPmty2UCRCYkz90ivsTGwbMhiBXCzk417izl72LyBvwbdqcSbN5o8oDPL9g\nRrAmMslpAgMBAAECggEAA+01G0j+c5cR/zJYrdBDFIF5s1islY/iG40tgUT5UJbY\nD4Dhr53xRyEPLguV+3WDduW10UillfSaLvL56BIJ8z1zVHbjqdexmp/a8gC4txRj\nv49q8CzSNHaEOJQbo2b8DnFj5fRVZISu8boyyy1ytQZyvlMw0mysX6XbzJvnMMI6\n2DZd75UDTXkCsS+PXEKodqHeUxBAUTeFoNcJgW+D1qiB0u5TcixF5e/gAf5Mmo0A\nFM1iD7plEzLzqHQsgnweuCtMJUTow4A1XqPz5TLyFRVH7o4v2/NzXdrVtvAE8JOC\n//mmvAvrL8sbygCmYV2950RqPp4dynMAhvD6V2ezwQKBgQD7YMdEhaS9AXOT3YOE\nPjZllXCpFFxy2HSn+9UyGKMhRS1HJ0LzmH/nMi0h32UnT9Qwwusm58C+AOYl1Qhl\nR3csEA9cCTZLZQyd38tNFI7CP0UDnVlmX90SQESVPYEx8N61naiW1TrgRgTqv+Cu\nnkA+bIg57PSK2htU+/rgZ/T3qQKBgQD3gkP1cwSBvQitgx+i2bjAMUX7pBRMxKus\nu0KN7Zv60u8t+BK6A+iugXHFSK5HCj86B7Mad/VEhisl94t8DOhWP9RK0jqzdC42\n8sHShAF5Nk2PrTeyjb4MWGb4/J8jT1Hn7oiiIsFNr+mQuNrHuUdfcBH1q5GoO745\n3+v5n4NbwQKBgQCIu9uoKgmxxVhY1eTzyeNM3jypu6mNzq+lsBYHad9R+Y7nZTPF\nzO3FlEV4Z0teVs3UuDGwt97fex209mvaq0TnctTn+xrNZ+m09kZfZw9AGaowjSZT\nyVE23D5x70KXJ638nAVYBiRAWdXS2wwb73iCfAade4aJAJpdX7LW3bUiAQKBgBOd\npVkslmzZ2Hg37ifv7W59+TfqVxmGdLyp0qqA7F3CneYcxQ8tBCHgbG3gRr+mlkA5\nH/63Bx85Ku5FYi6gr0E2qdKMOs7CJG+Cac4PXDaJETiT19g0150O3IpbKxmXTbx9\n8SI4cu1/RZmMrPorOvbbYPEBeffFVFwt3PvZooWBAoGBALpHYr7we+B4iZvzIBjm\nKgmWt28VxX6YQe0pCzjbwp/xkjPWypNpvFoKierAnQ+DelNl4QWghzAsLO0dpITJ\n10Uq8mdIp2lROtFry8FHtCSpD5DbtEscRgmhVqZEQyx65qaU8/JmzoIlzXgpdWJW\nZbgdrw+EAM+j/oVKg6yLj0ZN\n-----END PRIVATE KEY-----\n",
+  "client_email": "meflow@medflow-ai-assistant.iam.gserviceaccount.com",
+  "client_id": "101654936070944583773",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/meflow%40medflow-ai-assistant.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

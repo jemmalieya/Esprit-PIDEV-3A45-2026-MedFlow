@@ -115,7 +115,7 @@ public class AdminWelcomeController {
 
     @FXML
     private void openUsers() {
-        goTo("/FXML/UtilisateursAdmin.fxml");
+        goTo("/BackFXML/BAdminUsers.fxml");
     }
 
     @FXML

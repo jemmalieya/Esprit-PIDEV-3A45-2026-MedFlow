@@ -2,17 +2,25 @@ package tn.esprit.controllers;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.MultiFormatWriter;
+import com.google.zxing.client.j2se.MatrixToImageWriter;
+import com.google.zxing.common.BitMatrix;
 import javafx.animation.FadeTransition;
 import javafx.animation.Interpolator;
+import javafx.animation.KeyFrame;
 import javafx.animation.PauseTransition;
 import javafx.animation.ParallelTransition;
 import javafx.animation.ScaleTransition;
 import javafx.animation.SequentialTransition;
+import javafx.animation.Timeline;
 import javafx.animation.TranslateTransition;
 import javafx.application.Platform;
+import javafx.embed.swing.SwingFXUtils;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.concurrent.Worker;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -25,22 +33,34 @@ import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.control.TextInputControl;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.web.WebEngine;
+import javafx.scene.web.WebView;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import netscape.javascript.JSObject;
 import org.mindrot.jbcrypt.BCrypt;
 import tn.esprit.entities.User;
 import tn.esprit.services.EmailService;
+import tn.esprit.services.RecaptchaService;
+import tn.esprit.services.TotpService;
 import tn.esprit.services.UserService;
 import tn.esprit.tools.AuthThemeManager;
 import tn.esprit.tools.SessionManager;
 
 import java.awt.Desktop;
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
@@ -62,6 +82,7 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.prefs.Preferences;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -75,6 +96,13 @@ public class LoginController {
     @FXML private Label statusLabel;
     @FXML private Label emailErrorLabel;
     @FXML private Label passwordErrorLabel;
+    @FXML private VBox recaptchaContainer;
+    @FXML private Button openRecaptchaBtn;
+    @FXML private Label recaptchaStateLabel;
+    private WebView recaptchaWebView;
+    private Stage recaptchaStage;
+    private String recaptchaWidgetUrl;
+    private Timeline recaptchaPollingTimeline;
 
     // Legacy fields (kept for compatibility – may be null in new fxml)
     @FXML private StackPane shellRoot;
@@ -96,10 +124,22 @@ public class LoginController {
     private static final String DARK_CLASS = "auth-page-login";
     private static final String LIGHT_CLASS = "auth-page-light";
 
+    private static final String PREF_KEY_EMAIL = "remembered_email";
+    private static final String PREF_KEY_REMEMBER = "remember_me";
+    private static final Preferences PREFS = Preferences.userNodeForPackage(LoginController.class);
+    private static final double RECAPTCHA_MODAL_WIDTH = 640;
+    private static final double RECAPTCHA_MODAL_MIN_HEIGHT = 720;
+    private static final double RECAPTCHA_MODAL_MAX_HEIGHT = 720;
+
     private final UserService userService = new UserService();
+    private final TotpService totpService = new TotpService();
+    private final RecaptchaService recaptchaService = new RecaptchaService();
+
     private boolean emailValid;
     private boolean passwordValid;
     private boolean panelRevealed;
+    private String recaptchaToken;
+    private long recaptchaTokenIssuedAtMs;
 
     @FXML
     private void initialize() {
@@ -135,10 +175,23 @@ public class LoginController {
         if (emailField != null) emailField.textProperty().addListener((obs, o, n) -> validateEmail());
         if (passwordField != null) passwordField.textProperty().addListener((obs, o, n) -> validatePassword());
 
+        // Pré-remplir les champs si "se souvenir de moi" était coché
+        String remembered = PREFS.get(PREF_KEY_REMEMBER, "");
+        if (rememberMeCheckBox != null) {
+            boolean checked = "true".equals(remembered);
+            rememberMeCheckBox.setSelected(checked);
+            if (checked) {
+                String email = PREFS.get(PREF_KEY_EMAIL, "");
+                if (emailField != null) emailField.setText(email);
+            }
+        }
+
         if (autoRevealOnLoad) {
             autoRevealOnLoad = false;
             Platform.runLater(this::revealLoginPanel);
         }
+
+        setupRecaptchaWidget();
     }
 
     @FXML
@@ -299,19 +352,46 @@ public class LoginController {
             return;
         }
 
+        if (recaptchaService.isConfigured()) {
+            if (recaptchaToken == null || recaptchaToken.isBlank()) {
+                showStatus("Veuillez valider le reCAPTCHA.", false);
+                openRecaptchaModal();
+                return;
+            }
+
+            RecaptchaService.VerificationResult captchaResult = recaptchaService.verifyToken(recaptchaToken);
+            if (!captchaResult.isSuccess()) {
+                showStatus(captchaResult.getMessage(), false);
+                resetRecaptchaWidget();
+                return;
+            }
+        }
+
         String email = emailField.getText() == null ? "" : emailField.getText().trim();
         String password = passwordField.getText() == null ? "" : passwordField.getText().trim();
-
         User user = userService.authenticate(email, password);
         if (user == null) {
             showStatus("Identifiants invalides.", false);
+            resetRecaptchaWidget();
             return;
         }
         if (!user.isVerified()) {
             showStatus("Votre compte n'est pas encore verifie.", false);
+            resetRecaptchaWidget();
             return;
         }
-
+        if (!handleTotpForUserLogin(user)) {
+            resetRecaptchaWidget();
+            return;
+        }
+        // Gestion du "se souvenir de moi"
+        if (rememberMeCheckBox != null && rememberMeCheckBox.isSelected()) {
+            PREFS.put(PREF_KEY_EMAIL, email);
+            PREFS.put(PREF_KEY_REMEMBER, "true");
+        } else {
+            PREFS.remove(PREF_KEY_EMAIL);
+            PREFS.put(PREF_KEY_REMEMBER, "false");
+        }
         SessionManager.setCurrentUser(user);
         redirectAfterLogin(event, user);
     }
@@ -320,12 +400,236 @@ public class LoginController {
     private void handleClear(ActionEvent event) {
         emailField.clear();
         passwordField.clear();
+        recaptchaToken = null;
+        resetRecaptchaWidget();
         rememberMeCheckBox.setSelected(false);
+        // Nettoyer les préférences
+        PREFS.remove(PREF_KEY_EMAIL);
+        PREFS.put(PREF_KEY_REMEMBER, "false");
         emailField.setStyle("");
         passwordField.setStyle("");
         showFieldError(emailErrorLabel, "");
         showFieldError(passwordErrorLabel, "");
         hideStatus();
+    }
+
+    private void setupRecaptchaWidget() {
+        if (recaptchaContainer == null) return;
+
+        if (!recaptchaService.isConfigured()) {
+            recaptchaContainer.setManaged(false);
+            recaptchaContainer.setVisible(false);
+            return;
+        }
+
+        recaptchaWidgetUrl = recaptchaService.startLocalServer();
+        if (recaptchaWidgetUrl == null) {
+            try {
+                recaptchaWidgetUrl = getClass().getResource("/web/recaptcha-widget.html").toExternalForm()
+                        + "?siteKey=" + urlEncode(recaptchaService.getSiteKey());
+            } catch (Exception e) {
+                recaptchaContainer.setManaged(false);
+                recaptchaContainer.setVisible(false);
+                return;
+            }
+        }
+
+        updateRecaptchaVisualState(false);
+        if (openRecaptchaBtn != null) {
+            openRecaptchaBtn.setDisable(false);
+        }
+    }
+
+    @FXML
+    private void handleOpenRecaptchaModal(ActionEvent event) {
+        openRecaptchaModal();
+    }
+
+    private void openRecaptchaModal() {
+        if (recaptchaWidgetUrl == null || recaptchaWidgetUrl.isBlank()) {
+            showStatus("reCAPTCHA indisponible pour le moment.", false);
+            return;
+        }
+
+        if (recaptchaStage != null && recaptchaStage.isShowing()) {
+            recaptchaStage.toFront();
+            return;
+        }
+
+        try {
+            recaptchaWebView = new WebView();
+            recaptchaWebView.setContextMenuEnabled(false);
+            recaptchaWebView.setZoom(1.08);
+            recaptchaWebView.setPrefHeight(RECAPTCHA_MODAL_MIN_HEIGHT - 150);
+            recaptchaWebView.setMinHeight(RECAPTCHA_MODAL_MIN_HEIGHT - 150);
+
+            Label title = new Label("Verification reCAPTCHA");
+            title.getStyleClass().add("recaptcha-modal-title");
+
+            Button closeBtn = new Button("Fermer");
+            closeBtn.getStyleClass().add("recaptcha-modal-close");
+            closeBtn.setOnAction(e -> {
+                if (recaptchaStage != null && recaptchaStage.isShowing()) {
+                    recaptchaStage.hide();
+                }
+            });
+
+            Region spacer = new Region();
+            HBox.setHgrow(spacer, Priority.ALWAYS);
+
+            HBox header = new HBox(10, title, spacer, closeBtn);
+            header.getStyleClass().add("recaptcha-modal-header");
+
+            Label subtitle = new Label("Validez le challenge pour continuer la connexion.");
+            subtitle.getStyleClass().add("recaptcha-modal-subtitle");
+
+            StackPane captchaHolder = new StackPane(recaptchaWebView);
+            captchaHolder.getStyleClass().add("recaptcha-web-holder");
+            VBox.setVgrow(captchaHolder, Priority.ALWAYS);
+
+            VBox box = new VBox(10, header, subtitle, captchaHolder);
+            box.getStyleClass().add("recaptcha-modal-root");
+
+            Scene scene = new Scene(box, RECAPTCHA_MODAL_WIDTH, RECAPTCHA_MODAL_MIN_HEIGHT);
+            scene.getStylesheets().add(getClass().getResource("/CSS/login.css").toExternalForm());
+
+            recaptchaStage = new Stage();
+            recaptchaStage.initModality(Modality.WINDOW_MODAL);
+            if (rootPane != null && rootPane.getScene() != null) {
+                recaptchaStage.initOwner((Stage) rootPane.getScene().getWindow());
+            }
+            recaptchaStage.setTitle("MedFlow - Verification anti-bot");
+            recaptchaStage.setScene(scene);
+            recaptchaStage.setMinWidth(RECAPTCHA_MODAL_WIDTH);
+            recaptchaStage.setMinHeight(RECAPTCHA_MODAL_MIN_HEIGHT);
+            recaptchaStage.setWidth(RECAPTCHA_MODAL_WIDTH);
+            recaptchaStage.setHeight(RECAPTCHA_MODAL_MIN_HEIGHT);
+            recaptchaStage.setResizable(false);
+            recaptchaStage.setOnHidden(e -> {
+                stopRecaptchaPolling();
+                recaptchaWebView = null;
+            });
+
+            WebEngine engine = recaptchaWebView.getEngine();
+            engine.setJavaScriptEnabled(true);
+            engine.getLoadWorker().stateProperty().addListener((obs, oldState, newState) -> {
+                if (newState == Worker.State.SUCCEEDED) {
+                    JSObject window = (JSObject) engine.executeScript("window");
+                    window.setMember("javaRecaptcha", new RecaptchaBridge());
+                }
+            });
+            String loadUrl = recaptchaWidgetUrl
+                    + (recaptchaWidgetUrl.contains("?") ? "&" : "?")
+                    + "siteKey=" + urlEncode(recaptchaService.getSiteKey())
+                    + "&ts=" + System.currentTimeMillis();
+            engine.load(loadUrl);
+            startRecaptchaPolling();
+
+            recaptchaStage.show();
+            recaptchaStage.toFront();
+        } catch (Exception e) {
+            showStatus("Impossible d'ouvrir la verification reCAPTCHA.", false);
+        }
+    }
+
+    private void resetRecaptchaWidget() {
+        recaptchaToken = null;
+        recaptchaTokenIssuedAtMs = 0;
+        stopRecaptchaPolling();
+        updateRecaptchaVisualState(false);
+        if (recaptchaWebView != null) {
+            try {
+                recaptchaWebView.getEngine().executeScript("window.resetRecaptcha && window.resetRecaptcha();");
+            } catch (Exception ignored) {
+                // Ignore JS reset errors; widget can still be reopened.
+            }
+        }
+        if (recaptchaStage != null && recaptchaStage.isShowing()) recaptchaStage.hide();
+    }
+
+    private void updateRecaptchaVisualState(boolean verified) {
+        if (recaptchaStateLabel != null) {
+            recaptchaStateLabel.setText(verified ? "Verifie" : "Non verifie");
+            recaptchaStateLabel.getStyleClass().removeAll("recaptcha-ok", "recaptcha-pending");
+            recaptchaStateLabel.getStyleClass().add(verified ? "recaptcha-ok" : "recaptcha-pending");
+        }
+        if (openRecaptchaBtn != null) {
+            openRecaptchaBtn.setText(verified ? "Reverifier" : "Verifier maintenant");
+        }
+    }
+
+    private void startRecaptchaPolling() {
+        stopRecaptchaPolling();
+        recaptchaPollingTimeline = new Timeline(new KeyFrame(Duration.millis(350), e -> captureRecaptchaTokenFromWebView()));
+        recaptchaPollingTimeline.setCycleCount(Timeline.INDEFINITE);
+        recaptchaPollingTimeline.play();
+    }
+
+    private void stopRecaptchaPolling() {
+        if (recaptchaPollingTimeline != null) {
+            recaptchaPollingTimeline.stop();
+            recaptchaPollingTimeline = null;
+        }
+    }
+
+    private void captureRecaptchaTokenFromWebView() {
+        if (recaptchaWebView == null) {
+            return;
+        }
+        try {
+            Object raw = recaptchaWebView.getEngine().executeScript("window.getRecaptchaResponseValue && window.getRecaptchaResponseValue();");
+            if (raw instanceof String token && !token.isBlank()) {
+                acceptRecaptchaToken(token);
+            }
+        } catch (Exception ignored) {
+            // Le widget n'est peut-etre pas encore pret; on reessaie au prochain tick.
+        }
+    }
+
+    private void acceptRecaptchaToken(String token) {
+        if (token == null || token.isBlank()) {
+            return;
+        }
+        recaptchaToken = token;
+        recaptchaTokenIssuedAtMs = System.currentTimeMillis();
+        updateRecaptchaVisualState(true);
+        stopRecaptchaPolling();
+        if (recaptchaStage != null && recaptchaStage.isShowing()) {
+            recaptchaStage.hide();
+        }
+    }
+
+    public class RecaptchaBridge {
+        public void onToken(String token) {
+            Platform.runLater(() -> {
+                acceptRecaptchaToken(token);
+            });
+        }
+
+        public void onExpired() {
+            Platform.runLater(() -> {
+                // Quand la modal se ferme juste apres succes, Google peut emettre un expired.
+                if (recaptchaToken != null && (System.currentTimeMillis() - recaptchaTokenIssuedAtMs) < 2500) {
+                    return;
+                }
+                recaptchaToken = null;
+                recaptchaTokenIssuedAtMs = 0;
+                updateRecaptchaVisualState(false);
+            });
+        }
+
+        public void onError(String message) {
+            Platform.runLater(() -> {
+                recaptchaToken = null;
+                recaptchaTokenIssuedAtMs = 0;
+                updateRecaptchaVisualState(false);
+                showStatus(message == null ? "Erreur reCAPTCHA." : message, false);
+            });
+        }
+
+        public void onHeightChanged(double height) {
+            // Modal fixe volontairement pour un rendu stable et propre.
+        }
     }
 
     @FXML
@@ -574,18 +878,147 @@ public class LoginController {
         }
     }
 
+    private boolean handleTotpForUserLogin(User user) {
+        if (!requiresTotpForRole(user)) {
+            return true;
+        }
+
+        String secret = user.getTotpSecret();
+        boolean enabled = user.isTotpEnabled();
+        if (!enabled || secret == null || secret.isBlank()) {
+            // 2FA optionnelle: on ne bloque pas le login si l'utilisateur ne l'a pas activée.
+            return true;
+        }
+
+        String otp = promptTotpCode("Verification 2FA", "Entrez le code Google Authenticator pour continuer.");
+        if (otp == null) {
+            showStatus("Connexion annulee (2FA non valide).", false);
+            return false;
+        }
+        if (!totpService.verifyCode(secret, otp)) {
+            String prev = totpService.getCodeAtOffset(secret, -1);
+            String now = totpService.getCurrentCode(secret);
+            String next = totpService.getCodeAtOffset(secret, 1);
+            showStatus("Code 2FA invalide. Codes serveur: [" + prev + ", " + now + ", " + next + "]", false);
+            return false;
+        }
+        return true;
+    }
+
+    private boolean enrollTotp(User user) {
+        String secret = totpService.generateSecret();
+        String account = user.getEmailUser() == null || user.getEmailUser().isBlank() ? ("user-" + user.getId()) : user.getEmailUser();
+        String otpAuth = totpService.buildOtpAuthUrl("MedFlow", account, secret);
+
+        Image qrImage;
+        try {
+            qrImage = generateQrCodeImage(otpAuth, 240);
+        } catch (Exception e) {
+            showStatus("Impossible de generer le QR code 2FA.", false);
+            return false;
+        }
+
+        Dialog<String> dialog = new Dialog<>();
+        dialog.setTitle("Activation Google Authenticator");
+        dialog.setHeaderText("Scannez ce QR code avec Google Authenticator, puis entrez le code a 6 chiffres.");
+
+        ButtonType verifyButton = new ButtonType("Verifier", ButtonBar.ButtonData.OK_DONE);
+        ButtonType cancelButton = new ButtonType("Annuler", ButtonBar.ButtonData.CANCEL_CLOSE);
+        dialog.getDialogPane().getButtonTypes().addAll(verifyButton, cancelButton);
+
+        ImageView qrView = new ImageView(qrImage);
+        qrView.setFitWidth(240);
+        qrView.setFitHeight(240);
+        qrView.setPreserveRatio(true);
+
+        Label secretLabel = new Label("Secret manuel: " + secret);
+        secretLabel.setWrapText(true);
+
+        TextField codeField = new TextField();
+        codeField.setPromptText("Code 6 chiffres");
+
+        VBox content = new VBox(10);
+        content.getChildren().addAll(qrView, secretLabel, codeField);
+        dialog.getDialogPane().setContent(content);
+
+        Node verifyNode = dialog.getDialogPane().lookupButton(verifyButton);
+        verifyNode.setDisable(true);
+        codeField.textProperty().addListener((obs, oldVal, newVal) -> verifyNode.setDisable(!newVal.matches("\\d{6}")));
+
+        dialog.setResultConverter(btn -> btn == verifyButton ? codeField.getText() : null);
+        Optional<String> result = dialog.showAndWait();
+        if (result.isEmpty()) {
+            showStatus("Activation 2FA annulee.", false);
+            return false;
+        }
+
+        String code = result.get();
+        if (!totpService.verifyCode(secret, code)) {
+            String prev = totpService.getCodeAtOffset(secret, -1);
+            String now = totpService.getCurrentCode(secret);
+            String next = totpService.getCodeAtOffset(secret, 1);
+            showStatus("Code Google Authenticator invalide. Codes serveur: [" + prev + ", " + now + ", " + next + "]", false);
+            return false;
+        }
+
+        boolean saved = userService.saveTotpSettings(user.getId(), secret, true);
+        if (!saved) {
+            showStatus("Impossible de sauvegarder la configuration 2FA.", false);
+            return false;
+        }
+
+        user.setTotpSecret(secret);
+        user.setTotpEnabled(true);
+        showStatus("2FA active avec succes.", true);
+        return true;
+    }
+
+    private String promptTotpCode(String title, String header) {
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle(title);
+        dialog.setHeaderText(header);
+        dialog.setContentText("Code:");
+
+        Optional<String> result = dialog.showAndWait();
+        if (result.isEmpty()) {
+            return null;
+        }
+        String code = result.get().trim();
+        return code.matches("\\d{6}") ? code : null;
+    }
+
+    private boolean requiresTotpForRole(User user) {
+        String role = user == null || user.getRoleSysteme() == null ? "" : user.getRoleSysteme().trim().toUpperCase();
+        return "ADMIN".equals(role) || "STAFF".equals(role);
+    }
+
+    private Image generateQrCodeImage(String content, int size) throws Exception {
+        BitMatrix matrix = new MultiFormatWriter().encode(content, BarcodeFormat.QR_CODE, size, size);
+        BufferedImage bufferedImage = MatrixToImageWriter.toBufferedImage(matrix);
+        return SwingFXUtils.toFXImage(bufferedImage, null);
+    }
+
     private void styleDialog(Dialog<?> dialog, String accentColor) {
         if (dialog == null || dialog.getDialogPane() == null) {
             return;
         }
+        // Style verre givré (frosted glass)
         dialog.getDialogPane().setStyle(
-                "-fx-background-color: linear-gradient(to bottom, #f8fbff, #ffffff);"
-                        + "-fx-border-color: " + accentColor + "33;"
-                        + "-fx-border-width: 1;"
-                        + "-fx-border-radius: 14;"
-                        + "-fx-background-radius: 14;"
-                        + "-fx-padding: 8;"
+                "-fx-background-color: rgba(255,255,255,0.75);"
+                        + "-fx-border-color: #60a5fa;"
+                        + "-fx-border-width: 2;"
+                        + "-fx-border-radius: 22;"
+                        + "-fx-background-radius: 22;"
+                        + "-fx-effect: dropshadow(gaussian, #ffffff99, 24, 0.3, 0, 6);"
+                        + "-fx-padding: 28 40 28 40;"
+                        + "-fx-min-width: 420px;"
+                        + "-fx-max-width: 600px;"
         );
+        dialog.getDialogPane().setMinWidth(420);
+        dialog.getDialogPane().setPrefWidth(480);
+        dialog.getDialogPane().setMaxWidth(600);
+        // Note : l'effet de flou (-fx-backdrop-filter: blur(12px);) n'est pas supporté nativement par JavaFX,
+        // mais le reste du style donne un effet "frosted glass" moderne.
     }
 
     private void styleDialogButtons(Dialog<?> dialog, ButtonType primaryBtn, ButtonType secondaryBtn, String accentColor) {
@@ -693,7 +1126,7 @@ public class LoginController {
             return null;
         });
     }
-    
+
     @FXML
     private void handleFaceLogin(ActionEvent event) {
         String email = emailField.getText() == null ? "" : emailField.getText().trim().toLowerCase();
@@ -713,7 +1146,7 @@ public class LoginController {
         }
 
         showStatus("Loading facial recognition...", true);
-        
+
         try {
             openFaceLoginWindow(targetUser);
             hideStatus();

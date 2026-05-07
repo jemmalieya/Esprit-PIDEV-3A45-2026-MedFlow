@@ -1,0 +1,14 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="MainFx" type="Application" factoryName="Application">
+    <envs>
+      <env name="RECAPTCHA_SITE_KEY" value="6LcJH90sAAAAAPErI_9u0A3_FFhhrP8-RQqXqTuA" />
+      <env name="RECAPTCHA_SECRET_KEY" value="6LcJH90sAAAAAA0Ay5zZZ41nSPUjrhV9VFHvzBUp" />
+    </envs>
+    <option name="MAIN_CLASS_NAME" value="tn.esprit.mains.MainFx" />
+    <module name="JavaPiMed" />
+    <option name="VM_PARAMETERS" value="--module-path &quot;C:\Program Files (x86)\java\javafx-sdk-26\lib&quot; --add-modules javafx.controls,javafx.fxml,javafx.web,javafx.swing,javafx.media --add-opens javafx.graphics/com.sun.javafx.sg.prism=ALL-UNNAMED" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

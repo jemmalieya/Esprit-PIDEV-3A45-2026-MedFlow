@@ -309,6 +309,10 @@ public class FaceLoginController {
             String fxmlFile = "/EvenementDashboard.fxml";
             String title = "MedFlow - Tableau de bord";
 
+            if ("BADMIN".equalsIgnoreCase(targetUser.getRoleSysteme())) {
+                fxmlFile = "/BackFXML/BAdminUsers.fxml";
+                title = "MedFlow - Espace Badmin";
+            } else
             if ("ADMIN".equals(targetUser.getRoleSysteme())) {
                 fxmlFile = "/AdminDashboard.fxml";
                 title = "MedFlow - Tableau de bord Admin";

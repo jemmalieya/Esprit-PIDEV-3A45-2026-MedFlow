@@ -321,14 +321,21 @@ public class UserService implements IGeneralService<User> {
     }
 
     public boolean updateStatutCompte(int userId, String statutCompte) {
-        String sql = "UPDATE user SET statut_compte = ? WHERE id = ?";
-        try (PreparedStatement ps = cnx.prepareStatement(sql)) {
+        String snake = "UPDATE user SET statut_compte = ? WHERE id = ?";
+        String camel = "UPDATE user SET statutCompte = ? WHERE id = ?";
+        try (PreparedStatement ps = cnx.prepareStatement(snake)) {
             ps.setString(1, statutCompte);
             ps.setInt(2, userId);
             return ps.executeUpdate() > 0;
-        } catch (SQLException e) {
-            System.out.println("Erreur lors de la mise a jour du statut compte : " + e.getMessage());
-            return false;
+        } catch (SQLException first) {
+            try (PreparedStatement ps = cnx.prepareStatement(camel)) {
+                ps.setString(1, statutCompte);
+                ps.setInt(2, userId);
+                return ps.executeUpdate() > 0;
+            } catch (SQLException second) {
+                System.out.println("Erreur lors de la mise a jour du statut compte : " + second.getMessage());
+                return false;
+            }
         }
     }
 

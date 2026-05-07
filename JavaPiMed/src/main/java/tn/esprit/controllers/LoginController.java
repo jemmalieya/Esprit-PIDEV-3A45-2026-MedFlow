@@ -8,16 +8,19 @@ import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
 import javafx.animation.FadeTransition;
 import javafx.animation.Interpolator;
+import javafx.animation.KeyFrame;
 import javafx.animation.PauseTransition;
 import javafx.animation.ParallelTransition;
 import javafx.animation.ScaleTransition;
 import javafx.animation.SequentialTransition;
+import javafx.animation.Timeline;
 import javafx.animation.TranslateTransition;
 import javafx.application.Platform;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.concurrent.Worker;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -37,13 +40,20 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.web.WebEngine;
+import javafx.scene.web.WebView;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import netscape.javascript.JSObject;
 import org.mindrot.jbcrypt.BCrypt;
 import tn.esprit.entities.User;
 import tn.esprit.services.EmailService;
+import tn.esprit.services.RecaptchaService;
 import tn.esprit.services.TotpService;
 import tn.esprit.services.UserService;
 import tn.esprit.tools.AuthThemeManager;
@@ -86,6 +96,13 @@ public class LoginController {
     @FXML private Label statusLabel;
     @FXML private Label emailErrorLabel;
     @FXML private Label passwordErrorLabel;
+    @FXML private VBox recaptchaContainer;
+    @FXML private Button openRecaptchaBtn;
+    @FXML private Label recaptchaStateLabel;
+    private WebView recaptchaWebView;
+    private Stage recaptchaStage;
+    private String recaptchaWidgetUrl;
+    private Timeline recaptchaPollingTimeline;
 
     // Legacy fields (kept for compatibility – may be null in new fxml)
     @FXML private StackPane shellRoot;
@@ -110,13 +127,19 @@ public class LoginController {
     private static final String PREF_KEY_EMAIL = "remembered_email";
     private static final String PREF_KEY_REMEMBER = "remember_me";
     private static final Preferences PREFS = Preferences.userNodeForPackage(LoginController.class);
+    private static final double RECAPTCHA_MODAL_WIDTH = 640;
+    private static final double RECAPTCHA_MODAL_MIN_HEIGHT = 720;
+    private static final double RECAPTCHA_MODAL_MAX_HEIGHT = 720;
 
     private final UserService userService = new UserService();
     private final TotpService totpService = new TotpService();
+    private final RecaptchaService recaptchaService = new RecaptchaService();
 
     private boolean emailValid;
     private boolean passwordValid;
     private boolean panelRevealed;
+    private String recaptchaToken;
+    private long recaptchaTokenIssuedAtMs;
 
     @FXML
     private void initialize() {
@@ -167,6 +190,8 @@ public class LoginController {
             autoRevealOnLoad = false;
             Platform.runLater(this::revealLoginPanel);
         }
+
+        setupRecaptchaWidget();
     }
 
     @FXML
@@ -326,18 +351,37 @@ public class LoginController {
             showStatus("Veuillez corriger les champs en rouge.", false);
             return;
         }
+
+        if (recaptchaService.isConfigured()) {
+            if (recaptchaToken == null || recaptchaToken.isBlank()) {
+                showStatus("Veuillez valider le reCAPTCHA.", false);
+                openRecaptchaModal();
+                return;
+            }
+
+            RecaptchaService.VerificationResult captchaResult = recaptchaService.verifyToken(recaptchaToken);
+            if (!captchaResult.isSuccess()) {
+                showStatus(captchaResult.getMessage(), false);
+                resetRecaptchaWidget();
+                return;
+            }
+        }
+
         String email = emailField.getText() == null ? "" : emailField.getText().trim();
         String password = passwordField.getText() == null ? "" : passwordField.getText().trim();
         User user = userService.authenticate(email, password);
         if (user == null) {
             showStatus("Identifiants invalides.", false);
+            resetRecaptchaWidget();
             return;
         }
         if (!user.isVerified()) {
             showStatus("Votre compte n'est pas encore verifie.", false);
+            resetRecaptchaWidget();
             return;
         }
         if (!handleTotpForUserLogin(user)) {
+            resetRecaptchaWidget();
             return;
         }
         // Gestion du "se souvenir de moi"
@@ -356,6 +400,8 @@ public class LoginController {
     private void handleClear(ActionEvent event) {
         emailField.clear();
         passwordField.clear();
+        recaptchaToken = null;
+        resetRecaptchaWidget();
         rememberMeCheckBox.setSelected(false);
         // Nettoyer les préférences
         PREFS.remove(PREF_KEY_EMAIL);
@@ -365,6 +411,225 @@ public class LoginController {
         showFieldError(emailErrorLabel, "");
         showFieldError(passwordErrorLabel, "");
         hideStatus();
+    }
+
+    private void setupRecaptchaWidget() {
+        if (recaptchaContainer == null) return;
+
+        if (!recaptchaService.isConfigured()) {
+            recaptchaContainer.setManaged(false);
+            recaptchaContainer.setVisible(false);
+            return;
+        }
+
+        recaptchaWidgetUrl = recaptchaService.startLocalServer();
+        if (recaptchaWidgetUrl == null) {
+            try {
+                recaptchaWidgetUrl = getClass().getResource("/web/recaptcha-widget.html").toExternalForm()
+                        + "?siteKey=" + urlEncode(recaptchaService.getSiteKey());
+            } catch (Exception e) {
+                recaptchaContainer.setManaged(false);
+                recaptchaContainer.setVisible(false);
+                return;
+            }
+        }
+
+        updateRecaptchaVisualState(false);
+        if (openRecaptchaBtn != null) {
+            openRecaptchaBtn.setDisable(false);
+        }
+    }
+
+    @FXML
+    private void handleOpenRecaptchaModal(ActionEvent event) {
+        openRecaptchaModal();
+    }
+
+    private void openRecaptchaModal() {
+        if (recaptchaWidgetUrl == null || recaptchaWidgetUrl.isBlank()) {
+            showStatus("reCAPTCHA indisponible pour le moment.", false);
+            return;
+        }
+
+        if (recaptchaStage != null && recaptchaStage.isShowing()) {
+            recaptchaStage.toFront();
+            return;
+        }
+
+        try {
+            recaptchaWebView = new WebView();
+            recaptchaWebView.setContextMenuEnabled(false);
+            recaptchaWebView.setZoom(1.08);
+            recaptchaWebView.setPrefHeight(RECAPTCHA_MODAL_MIN_HEIGHT - 150);
+            recaptchaWebView.setMinHeight(RECAPTCHA_MODAL_MIN_HEIGHT - 150);
+
+            Label title = new Label("Verification reCAPTCHA");
+            title.getStyleClass().add("recaptcha-modal-title");
+
+            Button closeBtn = new Button("Fermer");
+            closeBtn.getStyleClass().add("recaptcha-modal-close");
+            closeBtn.setOnAction(e -> {
+                if (recaptchaStage != null && recaptchaStage.isShowing()) {
+                    recaptchaStage.hide();
+                }
+            });
+
+            Region spacer = new Region();
+            HBox.setHgrow(spacer, Priority.ALWAYS);
+
+            HBox header = new HBox(10, title, spacer, closeBtn);
+            header.getStyleClass().add("recaptcha-modal-header");
+
+            Label subtitle = new Label("Validez le challenge pour continuer la connexion.");
+            subtitle.getStyleClass().add("recaptcha-modal-subtitle");
+
+            StackPane captchaHolder = new StackPane(recaptchaWebView);
+            captchaHolder.getStyleClass().add("recaptcha-web-holder");
+            VBox.setVgrow(captchaHolder, Priority.ALWAYS);
+
+            VBox box = new VBox(10, header, subtitle, captchaHolder);
+            box.getStyleClass().add("recaptcha-modal-root");
+
+            Scene scene = new Scene(box, RECAPTCHA_MODAL_WIDTH, RECAPTCHA_MODAL_MIN_HEIGHT);
+            scene.getStylesheets().add(getClass().getResource("/CSS/login.css").toExternalForm());
+
+            recaptchaStage = new Stage();
+            recaptchaStage.initModality(Modality.WINDOW_MODAL);
+            if (rootPane != null && rootPane.getScene() != null) {
+                recaptchaStage.initOwner((Stage) rootPane.getScene().getWindow());
+            }
+            recaptchaStage.setTitle("MedFlow - Verification anti-bot");
+            recaptchaStage.setScene(scene);
+            recaptchaStage.setMinWidth(RECAPTCHA_MODAL_WIDTH);
+            recaptchaStage.setMinHeight(RECAPTCHA_MODAL_MIN_HEIGHT);
+            recaptchaStage.setWidth(RECAPTCHA_MODAL_WIDTH);
+            recaptchaStage.setHeight(RECAPTCHA_MODAL_MIN_HEIGHT);
+            recaptchaStage.setResizable(false);
+            recaptchaStage.setOnHidden(e -> {
+                stopRecaptchaPolling();
+                recaptchaWebView = null;
+            });
+
+            WebEngine engine = recaptchaWebView.getEngine();
+            engine.setJavaScriptEnabled(true);
+            engine.getLoadWorker().stateProperty().addListener((obs, oldState, newState) -> {
+                if (newState == Worker.State.SUCCEEDED) {
+                    JSObject window = (JSObject) engine.executeScript("window");
+                    window.setMember("javaRecaptcha", new RecaptchaBridge());
+                }
+            });
+            String loadUrl = recaptchaWidgetUrl
+                    + (recaptchaWidgetUrl.contains("?") ? "&" : "?")
+                    + "siteKey=" + urlEncode(recaptchaService.getSiteKey())
+                    + "&ts=" + System.currentTimeMillis();
+            engine.load(loadUrl);
+            startRecaptchaPolling();
+
+            recaptchaStage.show();
+            recaptchaStage.toFront();
+        } catch (Exception e) {
+            showStatus("Impossible d'ouvrir la verification reCAPTCHA.", false);
+        }
+    }
+
+    private void resetRecaptchaWidget() {
+        recaptchaToken = null;
+        recaptchaTokenIssuedAtMs = 0;
+        stopRecaptchaPolling();
+        updateRecaptchaVisualState(false);
+        if (recaptchaWebView != null) {
+            try {
+                recaptchaWebView.getEngine().executeScript("window.resetRecaptcha && window.resetRecaptcha();");
+            } catch (Exception ignored) {
+                // Ignore JS reset errors; widget can still be reopened.
+            }
+        }
+        if (recaptchaStage != null && recaptchaStage.isShowing()) recaptchaStage.hide();
+    }
+
+    private void updateRecaptchaVisualState(boolean verified) {
+        if (recaptchaStateLabel != null) {
+            recaptchaStateLabel.setText(verified ? "Verifie" : "Non verifie");
+            recaptchaStateLabel.getStyleClass().removeAll("recaptcha-ok", "recaptcha-pending");
+            recaptchaStateLabel.getStyleClass().add(verified ? "recaptcha-ok" : "recaptcha-pending");
+        }
+        if (openRecaptchaBtn != null) {
+            openRecaptchaBtn.setText(verified ? "Reverifier" : "Verifier maintenant");
+        }
+    }
+
+    private void startRecaptchaPolling() {
+        stopRecaptchaPolling();
+        recaptchaPollingTimeline = new Timeline(new KeyFrame(Duration.millis(350), e -> captureRecaptchaTokenFromWebView()));
+        recaptchaPollingTimeline.setCycleCount(Timeline.INDEFINITE);
+        recaptchaPollingTimeline.play();
+    }
+
+    private void stopRecaptchaPolling() {
+        if (recaptchaPollingTimeline != null) {
+            recaptchaPollingTimeline.stop();
+            recaptchaPollingTimeline = null;
+        }
+    }
+
+    private void captureRecaptchaTokenFromWebView() {
+        if (recaptchaWebView == null) {
+            return;
+        }
+        try {
+            Object raw = recaptchaWebView.getEngine().executeScript("window.getRecaptchaResponseValue && window.getRecaptchaResponseValue();");
+            if (raw instanceof String token && !token.isBlank()) {
+                acceptRecaptchaToken(token);
+            }
+        } catch (Exception ignored) {
+            // Le widget n'est peut-etre pas encore pret; on reessaie au prochain tick.
+        }
+    }
+
+    private void acceptRecaptchaToken(String token) {
+        if (token == null || token.isBlank()) {
+            return;
+        }
+        recaptchaToken = token;
+        recaptchaTokenIssuedAtMs = System.currentTimeMillis();
+        updateRecaptchaVisualState(true);
+        stopRecaptchaPolling();
+        if (recaptchaStage != null && recaptchaStage.isShowing()) {
+            recaptchaStage.hide();
+        }
+    }
+
+    public class RecaptchaBridge {
+        public void onToken(String token) {
+            Platform.runLater(() -> {
+                acceptRecaptchaToken(token);
+            });
+        }
+
+        public void onExpired() {
+            Platform.runLater(() -> {
+                // Quand la modal se ferme juste apres succes, Google peut emettre un expired.
+                if (recaptchaToken != null && (System.currentTimeMillis() - recaptchaTokenIssuedAtMs) < 2500) {
+                    return;
+                }
+                recaptchaToken = null;
+                recaptchaTokenIssuedAtMs = 0;
+                updateRecaptchaVisualState(false);
+            });
+        }
+
+        public void onError(String message) {
+            Platform.runLater(() -> {
+                recaptchaToken = null;
+                recaptchaTokenIssuedAtMs = 0;
+                updateRecaptchaVisualState(false);
+                showStatus(message == null ? "Erreur reCAPTCHA." : message, false);
+            });
+        }
+
+        public void onHeightChanged(double height) {
+            // Modal fixe volontairement pour un rendu stable et propre.
+        }
     }
 
     @FXML
@@ -1140,6 +1405,10 @@ public class LoginController {
         String role = user.getRoleSysteme() == null ? "PATIENT" : user.getRoleSysteme().trim().toUpperCase();
         if ("PATIENT".equals(role) || role.isBlank()) {
             navigateToStage(stage, "/FrontFXML/Accueil.fxml", "MedFlow - Espace Patient");
+            return;
+        }
+        if ("BADMIN".equals(role)) {
+            navigateToStage(stage, "/AdminWelcome.fxml", "MedFlow - Espace Badmin");
             return;
         }
         if ("ADMIN".equals(role)) {

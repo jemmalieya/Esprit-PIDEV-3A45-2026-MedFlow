@@ -17,8 +17,19 @@ import java.io.IOException;
 import java.net.URL;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Map;
 
 public class AdminWelcomeController {
+
+    private static final Map<String, String> FXML_ALIASES = Map.of(
+            "/FXML/AjoutProduit.fxml", "/AjouterProduit.fxml",
+            "/FXML/AjoutEvenement.fxml", "/AjouterEvenement.fxml",
+            "/FXML/Login.fxml", "/FrontFXML/Login.fxml",
+            "/FXML/PostsEnAttente.fxml", "/PendingPostsAdmin.fxml",
+            "/FXML/StatsBlog.fxml", "/BlogStats.fxml",
+            "/FXML/StatsReclamations.fxml", "/ReclamationStats.fxml",
+            "/FXML/ConsultationsParDocteur.fxml", "/BackFXML/ConsultationDocteur.fxml"
+    );
 
     @FXML
     private BorderPane rootPane;
@@ -155,27 +166,32 @@ public class AdminWelcomeController {
 
     @FXML
     private void openEvents() {
-        goTo("/FXML/EvenementsAdmin.fxml");
+        AdminEvenementController.showSection(AdminEvenementController.Section.LIST_EVENTS);
+        goTo("/AdminEvenement.fxml");
     }
 
     @FXML
     private void openEventParticipants() {
-        goTo("/FXML/ParticipantsEvenement.fxml");
+        AdminEvenementController.showSection(AdminEvenementController.Section.PARTICIPANT_REQUESTS);
+        goTo("/AdminEvenement.fxml");
     }
 
     @FXML
     private void openRessources() {
-        goTo("/FXML/RessourcesAdmin.fxml");
+        AdminEvenementController.showSection(AdminEvenementController.Section.RESOURCES);
+        goTo("/AdminEvenement.fxml");
     }
 
     @FXML
     private void openStatsEvents() {
-        goTo("/FXML/StatsEvenements.fxml");
+        AdminEvenementController.showSection(AdminEvenementController.Section.EVENT_STATS);
+        goTo("/AdminEvenement.fxml");
     }
 
     @FXML
     private void openStatsRessources() {
-        goTo("/FXML/StatsRessources.fxml");
+        AdminEvenementController.showSection(AdminEvenementController.Section.RESOURCE_STATS);
+        goTo("/AdminEvenement.fxml");
     }
 
     @FXML
@@ -252,10 +268,11 @@ public class AdminWelcomeController {
 
     private void goTo(String fxmlPath) {
         try {
-            URL url = getClass().getResource(fxmlPath);
+            String resolvedPath = resolveFxmlPath(fxmlPath);
+            URL url = getClass().getResource(resolvedPath);
 
             if (url == null) {
-                showWarning("Page introuvable : " + fxmlPath + "\n\nRemplace ce chemin par le vrai nom de ton fichier FXML.");
+                showWarning("Page introuvable : " + fxmlPath + "\n\nChemin testÃ© : " + resolvedPath);
                 return;
             }
 
@@ -266,6 +283,10 @@ public class AdminWelcomeController {
             e.printStackTrace();
             showWarning("Erreur lors de l'ouverture de la page : " + fxmlPath);
         }
+    }
+
+    private String resolveFxmlPath(String fxmlPath) {
+        return FXML_ALIASES.getOrDefault(fxmlPath, fxmlPath);
     }
 
     private void showInfo(String message) {

@@ -145,6 +145,9 @@
                                            text="Analyse locale"
                                            wrapText="true"
                                            styleClass="ai-status-chip"/>
+                                    <Button text="Assistant evenement"
+                                            onAction="#ouvrirAssistantEvenementFront"
+                                            styleClass="event-link-button"/>
                                 </HBox>
                                 <FlowPane fx:id="aiFrontRecommendationsContainer"
                                           hgap="12"
@@ -246,6 +249,10 @@
                                     <Label fx:id="weatherHumidityLabel" text="-" styleClass="weather-chip"/>
                                 </HBox>
                                 <Label fx:id="weatherWindLabel" text="-" wrapText="true" styleClass="weather-note-label"/>
+                                <Label fx:id="weatherDecisionLabel"
+                                       text="La meteo aide a justifier un maintien, un report, une annulation ou un passage en ligne."
+                                       wrapText="true"
+                                       styleClass="weather-decision-label"/>
                             </VBox>
 
                             <HBox spacing="12">

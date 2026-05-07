@@ -20,9 +20,11 @@ import java.util.regex.Pattern;
 
 public class ParticipationDemandeService {
     private final Connection cnx;
+    private final EvenementService evenementService;
 
     public ParticipationDemandeService() {
         this.cnx = MyDataBase.getInstance().getCnx();
+        this.evenementService = new EvenementService();
     }
 
     public List<ParticipationDemande> getDemandes(Evenement evenement) {
@@ -72,7 +74,7 @@ public class ParticipationDemandeService {
                 if (ParticipationDemande.STATUS_ACCEPTED.equals(status)
                         && !ParticipationDemande.STATUS_ACCEPTED.equals(currentStatus)
                         && !hasRemainingCapacity(evenement, demandes)) {
-                    throw new SQLException("Capacite maximale atteinte. Placez ce participant en liste d'attente ou liberez une place.");
+                    augmenterCapaciteEvenement(evenement);
                 }
                 demande.setStatus(status);
                 demande.setAdminNote(adminNote);
@@ -163,6 +165,17 @@ public class ParticipationDemandeService {
                 return;
             }
         }
+    }
+
+    private void augmenterCapaciteEvenement(Evenement evenement) throws SQLException {
+        if (evenement == null) {
+            return;
+        }
+
+        int capaciteActuelle = Math.max(0, evenement.getNb_participants_max_event());
+        int nouvelleCapacite = capaciteActuelle <= 0 ? 1 : capaciteActuelle + 1;
+        evenementService.modifierCapacite(evenement.getId(), nouvelleCapacite);
+        evenement.setNb_participants_max_event(nouvelleCapacite);
     }
 
     private void persist(Evenement evenement, List<ParticipationDemande> demandes) throws SQLException {

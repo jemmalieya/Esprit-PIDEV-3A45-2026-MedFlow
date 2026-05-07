@@ -43,11 +43,19 @@
 
                     <!-- ✅ KEEP YOUR ORIGINAL TEAL HEADER -->
                     <HBox spacing="18" alignment="CENTER_LEFT" styleClass="page-header">
-                        <VBox spacing="6" HBox.hgrow="ALWAYS">
-                            <Label text="Evenement" styleClass="page-title"/>
-                            <Label text="Decouvrez les evenements MedFlow et suivez vos demandes de participation."
+                        <StackPane minWidth="84" minHeight="84" prefWidth="84" prefHeight="84" styleClass="page-header-icon-wrap">
+                            <Label text="EVT" styleClass="page-header-icon"/>
+                        </StackPane>
+                        <VBox spacing="8" HBox.hgrow="ALWAYS">
+                            <Label text="Evenements MedFlow" styleClass="page-title"/>
+                            <Label text="Consultez les evenements disponibles, suivez vos demandes de participation et accedez rapidement a vos notifications."
                                    wrapText="true"
                                    styleClass="page-subtitle"/>
+                            <HBox spacing="10" alignment="CENTER_LEFT">
+                                <Label text="Catalogue en direct" styleClass="page-header-pill"/>
+                                <Label text="Participation simplifiee" styleClass="page-header-pill-soft"/>
+                                <Label text="Suivi personnel" styleClass="page-header-pill-soft"/>
+                            </HBox>
                         </VBox>
                         <VBox fx:id="eventUpdateToast"
                               visible="false"
@@ -60,6 +68,11 @@
                                    styleClass="event-update-toast-message"/>
                         </VBox>
                         <VBox spacing="10" alignment="CENTER_RIGHT" styleClass="event-front-actions">
+                            <Button text="Evenements passes"
+                                    onAction="#ouvrirEvenementsPasses"
+                                    wrapText="true"
+                                    minWidth="190.0"
+                                    styleClass="event-front-secondary-button"/>
                             <StackPane alignment="TOP_RIGHT" styleClass="event-front-button-shell">
                                 <Button text="Notifications"
                                         onAction="#ouvrirNotificationsEvenement"
@@ -82,10 +95,11 @@
                     </HBox>
 
                     <!-- TITLE -->
-                    <VBox spacing="6">
-                        <Label text="Upcoming Events" style="-fx-font-size:18px; -fx-font-weight: bold;"/>
-                        <Label text="Discover all events added from the database."
-                               style="-fx-text-fill:#6e8c97;"/>
+                    <VBox spacing="8" styleClass="events-intro-card">
+                        <Label text="Evenements a venir" styleClass="events-intro-title"/>
+                        <Label text="Retrouvez ici l'ensemble des evenements publies, classes pour vous aider a choisir rapidement ceux qui vous interessent."
+                               wrapText="true"
+                               styleClass="events-intro-text"/>
                     </VBox>
 
                     <!-- ✅ EVENT CARDS FROM DATABASE -->

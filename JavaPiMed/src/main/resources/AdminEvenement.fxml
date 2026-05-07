@@ -1,0 +1,343 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.chart.BarChart?>
+<?import javafx.scene.chart.CategoryAxis?>
+<?import javafx.scene.chart.LineChart?>
+<?import javafx.scene.chart.NumberAxis?>
+<?import javafx.scene.chart.PieChart?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.TitledPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane fx:id="rootPane"
+            prefWidth="1500.0"
+            prefHeight="880.0"
+            styleClass="app-root"
+            stylesheets="@CSS/admin-evenement.css"
+            xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="tn.esprit.controllers.AdminEvenementController">
+
+    <left>
+        <BorderPane prefWidth="320.0" styleClass="sidebar">
+            <top>
+                <VBox spacing="8">
+                    <padding>
+                        <Insets top="26" right="20" bottom="16" left="20"/>
+                    </padding>
+                    <Label text="MedFlow Admin" styleClass="brand-title"/>
+                    <Label text="ESPACE ADMINISTRATION" styleClass="brand-subtitle"/>
+                    <Separator styleClass="side-separator"/>
+                </VBox>
+            </top>
+
+            <center>
+                <ScrollPane fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" styleClass="sidebar-scroll">
+                    <content>
+                        <VBox spacing="10">
+                            <padding>
+                                <Insets top="4" right="18" bottom="16" left="18"/>
+                            </padding>
+
+                            <Button text="Accueil Admin" onAction="#openDashboard" styleClass="nav-button"/>
+
+                            <TitledPane text="Utilisateurs" expanded="false" styleClass="sidebar-dropdown">
+                                <content>
+                                    <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Patients" onAction="#openPatients" styleClass="sub-nav-button"/>
+                                        <Button text="Tous les utilisateurs" onAction="#openUsers" styleClass="sub-nav-button"/>
+                                        <Button text="Demandes de rôle" onAction="#openRoles" styleClass="sub-nav-button"/>
+                                    </VBox>
+                                </content>
+                            </TitledPane>
+
+                            <TitledPane text="Produits" expanded="false" styleClass="sidebar-dropdown">
+                                <content>
+                                    <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Liste des produits" onAction="#openProduits" styleClass="sub-nav-button"/>
+                                        <Button text="Commandes" onAction="#openCommandes" styleClass="sub-nav-button"/>
+                                        <Button text="Détection Épidémie" onAction="#openDetection" styleClass="sub-nav-button"/>
+                                    </VBox>
+                                </content>
+                            </TitledPane>
+
+                            <TitledPane text="Événements" expanded="true" styleClass="sidebar-dropdown">
+                                <content>
+                                    <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Liste des événements" onAction="#openEvents" styleClass="sub-nav-button-active"/>
+                                        <Button text="Participants demandes" onAction="#openEventParticipants" styleClass="sub-nav-button"/>
+                                        <Button text="Ressources" onAction="#openRessources" styleClass="sub-nav-button"/>
+                                        <Button text="Stats événements" onAction="#openStatsEvents" styleClass="sub-nav-button"/>
+                                        <Button text="Stats ressources" onAction="#openStatsRessources" styleClass="sub-nav-button"/>
+                                    </VBox>
+                                </content>
+                            </TitledPane>
+
+                            <TitledPane text="Consultations" expanded="false" styleClass="sidebar-dropdown">
+                                <content>
+                                    <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Consultations par Docteur" onAction="#openConsultations" styleClass="sub-nav-button"/>
+                                        <Button text="Statistiques consultations" onAction="#openStatsConsultations" styleClass="sub-nav-button"/>
+                                    </VBox>
+                                </content>
+                            </TitledPane>
+
+                            <TitledPane text="Réclamations" expanded="false" styleClass="sidebar-dropdown">
+                                <content>
+                                    <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Liste des réclamations" onAction="#openReclamations" styleClass="sub-nav-button"/>
+                                        <Button text="Statistiques réclamations" onAction="#openStatsReclamations" styleClass="sub-nav-button"/>
+                                    </VBox>
+                                </content>
+                            </TitledPane>
+
+                            <TitledPane text="Blog et Posts" expanded="false" styleClass="sidebar-dropdown">
+                                <content>
+                                    <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Liste des posts" onAction="#openPosts" styleClass="sub-nav-button"/>
+                                        <Button text="Commentaires" onAction="#openBlogComments" styleClass="sub-nav-button"/>
+                                        <Button text="Modération blog" onAction="#openBlogModeration" styleClass="sub-nav-button"/>
+                                    </VBox>
+                                </content>
+                            </TitledPane>
+
+                            <Button text="Déconnexion" onAction="#logout" styleClass="logout-button"/>
+                        </VBox>
+                    </content>
+                </ScrollPane>
+            </center>
+
+            <bottom>
+                <VBox spacing="10">
+                    <padding>
+                        <Insets top="12" right="18" bottom="22" left="18"/>
+                    </padding>
+                    <Separator styleClass="side-separator"/>
+                    <Button text="Retour Site" onAction="#goBackSite" styleClass="back-site-button"/>
+                </VBox>
+            </bottom>
+        </BorderPane>
+    </left>
+
+    <top>
+        <HBox alignment="CENTER_LEFT" spacing="18" styleClass="top-bar">
+            <padding>
+                <Insets top="18" right="28" bottom="18" left="28"/>
+            </padding>
+            <Button text="Menu" styleClass="menu-button"/>
+            <VBox spacing="3">
+                <Label fx:id="pageTitleLabel" text="Gestion des événements" styleClass="page-title"/>
+                <Label fx:id="dateLabel" text="Admin • Événements" styleClass="page-subtitle"/>
+            </VBox>
+            <Region HBox.hgrow="ALWAYS"/>
+            <HBox spacing="10" alignment="CENTER_LEFT" styleClass="top-bar-badge">
+                <Label text="Vue admin" styleClass="top-bar-badge-text"/>
+            </HBox>
+            <TextField fx:id="topSearchField" promptText="Rechercher..." styleClass="search-field"/>
+            <Button text="Alertes" styleClass="icon-button"/>
+            <Button text="Reglages" styleClass="icon-button"/>
+            <Label text="B" styleClass="avatar-label"/>
+        </HBox>
+    </top>
+
+    <center>
+        <ScrollPane fitToWidth="true" hbarPolicy="NEVER" styleClass="content-scroll">
+            <content>
+                <VBox spacing="24" styleClass="page-content">
+                    <padding>
+                        <Insets top="28" right="34" bottom="40" left="34"/>
+                    </padding>
+
+                    <HBox alignment="CENTER_LEFT" spacing="10" styleClass="produit-breadcrumb">
+                        <Label text="Gestion des événements" styleClass="produit-breadcrumb-title"/>
+                        <Label text="|" styleClass="produit-breadcrumb-sep"/>
+                        <Label text="Admin" styleClass="produit-breadcrumb-active"/>
+                        <Label text="›" styleClass="produit-breadcrumb-sep"/>
+                        <Label fx:id="breadcrumbSectionLabel" text="Liste des événements" styleClass="produit-breadcrumb-muted"/>
+                    </HBox>
+
+                    <HBox alignment="CENTER_LEFT" spacing="18" styleClass="section-hero-card">
+                        <StackPane prefWidth="78" prefHeight="78" styleClass="section-hero-icon-wrap">
+                            <Label text="EVT" styleClass="section-hero-icon"/>
+                        </StackPane>
+                        <VBox spacing="8">
+                            <Label fx:id="heroTitleLabel" text="Liste des événements" styleClass="section-hero-title"/>
+                            <Label fx:id="pageSubtitleLabel" text="Catalogue complet et participation BADMIN" styleClass="section-hero-subtitle"/>
+                            <Label fx:id="heroSubtitleLabel"
+                                   text="Visualisez les événements, consultez les détails et participez depuis l'espace BADMIN sans quitter l'administration."
+                                   wrapText="true"
+                                   styleClass="section-hero-text"/>
+                            <FlowPane hgap="10" vgap="10">
+                                <Label fx:id="heroChipOneLabel" text="Pilotage en direct" styleClass="hero-tag"/>
+                                <Label fx:id="heroChipTwoLabel" text="Participation BADMIN" styleClass="hero-tag-soft"/>
+                                <Label fx:id="heroChipThreeLabel" text="Vue calendrier" styleClass="hero-tag-soft"/>
+                            </FlowPane>
+                        </VBox>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <VBox spacing="10" alignment="CENTER_RIGHT">
+                            <Label fx:id="heroBadgeLabel" text="Section active" styleClass="hero-tag"/>
+                            <Label fx:id="sectionChipLabel" text="Catalogue" styleClass="hero-tag-soft"/>
+                        </VBox>
+                    </HBox>
+
+                    <HBox spacing="22" alignment="CENTER_LEFT" styleClass="produit-kpi-row">
+                        <VBox styleClass="stat-total">
+                            <Label fx:id="kpi1TitleLabel" text="Total événements" styleClass="stat-title"/>
+                            <Label fx:id="kpi1ValueLabel" text="0" styleClass="stat-value"/>
+                            <Label fx:id="kpi1SubtitleLabel" text="Base admin disponible" styleClass="stat-subtitle"/>
+                        </VBox>
+                        <VBox styleClass="stat-disponible">
+                            <Label fx:id="kpi2TitleLabel" text="Publiés" styleClass="stat-title"/>
+                            <Label fx:id="kpi2ValueLabel" text="0" styleClass="stat-value"/>
+                            <Label fx:id="kpi2SubtitleLabel" text="Événements visibles" styleClass="stat-subtitle"/>
+                        </VBox>
+                        <VBox styleClass="stat-rupture">
+                            <Label fx:id="kpi3TitleLabel" text="Participants" styleClass="stat-title"/>
+                            <Label fx:id="kpi3ValueLabel" text="0" styleClass="stat-value"/>
+                            <Label fx:id="kpi3SubtitleLabel" text="Demandes acceptées" styleClass="stat-subtitle"/>
+                        </VBox>
+                        <VBox styleClass="stat-stock">
+                            <Label fx:id="kpi4TitleLabel" text="En attente" styleClass="stat-title"/>
+                            <Label fx:id="kpi4ValueLabel" text="0" styleClass="stat-value"/>
+                            <Label fx:id="kpi4SubtitleLabel" text="À traiter" styleClass="stat-subtitle"/>
+                        </VBox>
+                    </HBox>
+
+                    <HBox fx:id="filterCard" alignment="CENTER_LEFT" spacing="14" styleClass="filter-card">
+                        <TextField fx:id="searchField" promptText="Rechercher..." styleClass="filter-input"/>
+                        <ComboBox fx:id="sortCombo" promptText="Trier..." styleClass="filter-combo"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Label fx:id="resultCountLabel" text="0 ligne(s)" styleClass="result-label"/>
+                    </HBox>
+
+                    <VBox fx:id="experienceDeck" spacing="18" styleClass="experience-deck">
+                        <HBox fx:id="pulseRow" spacing="16" alignment="CENTER_LEFT"/>
+
+                        <HBox fx:id="operationsRow" spacing="18" alignment="TOP_LEFT">
+                            <VBox fx:id="securityCard" spacing="14" styleClass="ops-card ops-card-security" HBox.hgrow="ALWAYS">
+                                <HBox alignment="CENTER_LEFT" spacing="10">
+                                    <Label text="Bouclier" styleClass="ops-card-badge"/>
+                                    <Label text="Securite operationnelle" styleClass="ops-card-title"/>
+                                </HBox>
+                                <Label fx:id="securityHeadlineLabel" text="Aucune alerte critique pour le moment." styleClass="ops-card-headline" wrapText="true"/>
+                                <VBox spacing="10">
+                                    <HBox spacing="10" alignment="CENTER_LEFT">
+                                        <Label text="Validation" styleClass="ops-metric-label"/>
+                                        <Region HBox.hgrow="ALWAYS"/>
+                                        <Label fx:id="securityPendingLabel" text="0 en attente" styleClass="ops-metric-value"/>
+                                    </HBox>
+                                    <HBox spacing="10" alignment="CENTER_LEFT">
+                                        <Label text="Brouillons" styleClass="ops-metric-label"/>
+                                        <Region HBox.hgrow="ALWAYS"/>
+                                        <Label fx:id="securityDraftLabel" text="0 fiche a completer" styleClass="ops-metric-value"/>
+                                    </HBox>
+                                    <HBox spacing="10" alignment="CENTER_LEFT">
+                                        <Label text="Dates limites" styleClass="ops-metric-label"/>
+                                        <Region HBox.hgrow="ALWAYS"/>
+                                        <Label fx:id="securityDeadlineLabel" text="0 urgence" styleClass="ops-metric-value"/>
+                                    </HBox>
+                                </VBox>
+                                <Label fx:id="securityAdviceLabel" text="Conseil : gardez les evenements publies avec contact, date limite et capacite coherents." styleClass="ops-card-footnote" wrapText="true"/>
+                            </VBox>
+
+                            <VBox fx:id="participationHubCard" spacing="14" styleClass="ops-card ops-card-participation" HBox.hgrow="ALWAYS">
+                                <HBox alignment="CENTER_LEFT" spacing="10">
+                                    <Label text="Mon espace" styleClass="ops-card-badge"/>
+                                    <Label text="Participation admin" styleClass="ops-card-title"/>
+                                </HBox>
+                                <Label fx:id="participationHubTitleLabel" text="Choix recommande pour BADMIN" styleClass="ops-card-headline"/>
+                                <Label fx:id="participationHubEventLabel" text="Aucun evenement conseille pour le moment." styleClass="ops-card-event" wrapText="true"/>
+                                <Label fx:id="participationHubMetaLabel" text="Selection basee sur la prochaine date disponible et votre statut actuel." styleClass="ops-card-footnote" wrapText="true"/>
+                                <HBox spacing="10" alignment="CENTER_LEFT">
+                                    <Button fx:id="participationHubButton" text="Participer maintenant" onAction="#participateInSuggestedEvent" styleClass="primary-action-btn"/>
+                                    <Button fx:id="participationDetailsButton" text="Voir la fiche" onAction="#openSuggestedEventDetails" styleClass="secondary-action-btn"/>
+                                </HBox>
+                            </VBox>
+
+                        </HBox>
+                    </VBox>
+
+                    <VBox fx:id="chartsSection" spacing="18" visible="false" managed="false">
+                        <HBox spacing="18">
+                            <VBox spacing="10" styleClass="chart-card" HBox.hgrow="ALWAYS">
+                                <Label fx:id="chartOneTitleLabel" text="Evolution" styleClass="chart-title"/>
+                                <Label fx:id="chartOneSubtitleLabel" text="Activite sur la periode" styleClass="chart-subtitle"/>
+                                <LineChart fx:id="eventsLineChart" prefHeight="320" animated="false" createSymbols="true" VBox.vgrow="ALWAYS">
+                                    <xAxis>
+                                        <CategoryAxis/>
+                                    </xAxis>
+                                    <yAxis>
+                                        <NumberAxis/>
+                                    </yAxis>
+                                </LineChart>
+                            </VBox>
+
+                            <VBox spacing="10" styleClass="chart-card pie-card">
+                                <Label fx:id="chartTwoTitleLabel" text="Repartition" styleClass="chart-title"/>
+                                <Label fx:id="chartTwoSubtitleLabel" text="Distribution principale" styleClass="chart-subtitle"/>
+                                <PieChart fx:id="statsPieChart" prefHeight="320"/>
+                            </VBox>
+                        </HBox>
+
+                        <HBox spacing="18">
+                            <VBox spacing="10" styleClass="chart-card" HBox.hgrow="ALWAYS">
+                                <Label fx:id="chartThreeTitleLabel" text="Comparaison 1" styleClass="chart-title"/>
+                                <Label fx:id="chartThreeSubtitleLabel" text="Vue categories" styleClass="chart-subtitle"/>
+                                <BarChart fx:id="primaryBarChart" animated="false" prefHeight="320" VBox.vgrow="ALWAYS">
+                                    <xAxis>
+                                        <CategoryAxis/>
+                                    </xAxis>
+                                    <yAxis>
+                                        <NumberAxis/>
+                                    </yAxis>
+                                </BarChart>
+                            </VBox>
+
+                            <VBox spacing="10" styleClass="chart-card" HBox.hgrow="ALWAYS">
+                                <Label fx:id="chartFourTitleLabel" text="Comparaison 2" styleClass="chart-title"/>
+                                <Label fx:id="chartFourSubtitleLabel" text="Vue complementaire" styleClass="chart-subtitle"/>
+                                <BarChart fx:id="secondaryBarChart" animated="false" prefHeight="320" VBox.vgrow="ALWAYS">
+                                    <xAxis>
+                                        <CategoryAxis/>
+                                    </xAxis>
+                                    <yAxis>
+                                        <NumberAxis/>
+                                    </yAxis>
+                                </BarChart>
+                            </VBox>
+                        </HBox>
+                    </VBox>
+
+                    <VBox fx:id="insightsCard" spacing="16" styleClass="table-card">
+                        <padding>
+                            <Insets top="20" right="22" bottom="22" left="22"/>
+                        </padding>
+                        <Label fx:id="insightsTitleLabel" text="Lecture rapide" styleClass="table-title"/>
+                        <HBox fx:id="insightsRow" spacing="16"/>
+                    </VBox>
+
+                    <VBox spacing="0" styleClass="table-card">
+                        <HBox alignment="CENTER_LEFT" styleClass="table-title-row">
+                            <Label fx:id="tableTitleLabel" text="Liste complète des événements" styleClass="table-title"/>
+                            <Region HBox.hgrow="ALWAYS"/>
+                            <Label fx:id="tableHelpLabel" text="Le détail permet à BADMIN de participer sans passer par le front." styleClass="table-help"/>
+                        </HBox>
+                        <HBox fx:id="tableHeader" alignment="CENTER_LEFT" styleClass="table-header"/>
+                        <VBox fx:id="rowsContainer" spacing="0"/>
+                    </VBox>
+                </VBox>
+            </content>
+        </ScrollPane>
+    </center>
+</BorderPane>

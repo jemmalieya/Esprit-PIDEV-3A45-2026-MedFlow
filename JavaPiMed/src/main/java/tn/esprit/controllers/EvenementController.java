@@ -148,6 +148,7 @@ public class EvenementController {
     @FXML private TextField tfOrganisateurEvent;
     @FXML private TextField tfImageEvent;
     @FXML private Label frontPageMarker;
+    @FXML private Label passedEventsPageMarker;
     @FXML private Label biPeriodeLabel;
 
     @FXML private DatePicker biDateDebutPicker;
@@ -273,6 +274,7 @@ public class EvenementController {
     @FXML private Label weatherTempLabel;
     @FXML private Label weatherHumidityLabel;
     @FXML private Label weatherWindLabel;
+    @FXML private Label weatherDecisionLabel;
     @FXML private FlowPane aiFrontRecommendationsContainer;
     @FXML private FlowPane accessibilityResourcesContainer;
     @FXML private Label accessibilityStatusLabel;
@@ -333,8 +335,8 @@ public class EvenementController {
     }
 
     private void ensureOnlineStatusOptions() {
-        if (getStatutCombo() != null && !getStatutCombo().getItems().contains("En ligne")) {
-            getStatutCombo().getItems().add("En ligne");
+        if (getStatutCombo() != null) {
+            configureStatutOptionsForCurrentForm();
         }
         if (filterStatutCombo != null && !filterStatutCombo.getItems().contains("En ligne")) {
             filterStatutCombo.getItems().add("En ligne");
@@ -363,9 +365,7 @@ public class EvenementController {
         }
 
         if (getStatutCombo() != null && getStatutCombo().getItems().isEmpty()) {
-            getStatutCombo().setItems(FXCollections.observableArrayList(
-                    "Brouillon", "Publié", "Annulé"
-            ));
+            configureStatutOptionsForCurrentForm();
         }
 
         if (getVisibiliteCombo() != null && getVisibiliteCombo().getItems().isEmpty()) {
@@ -387,14 +387,17 @@ public class EvenementController {
             cardsContainer.getChildren().clear();
 
             boolean isFront = (frontPageMarker != null);
-            if (isFront) {
-                events = events.stream().filter(this::isVisibleOnFront).toList();
+            boolean isPastFrontPage = (passedEventsPageMarker != null);
+            if (isFront || isPastFrontPage) {
+                events = events.stream()
+                        .filter(isPastFrontPage ? this::isPastVisibleOnFront : this::isVisibleOnFront)
+                        .toList();
                 updateFrontCancellationToast();
             }
 
             for (Evenement ev : events) {
                 cardsContainer.getChildren().add(
-                        isFront ? createEventCardFront(ev) : createEventCardBack(ev)
+                        (isFront || isPastFrontPage) ? createEventCardFront(ev) : createEventCardBack(ev)
                 );
             }
         } catch (Exception e) {
@@ -1153,16 +1156,11 @@ public class EvenementController {
 
         try {
             Date dateDebut = Date.valueOf(getDateDebutPicker().getValue());
-            boolean existe = evenementService.evenementExisteDeja(dateDebut);
+            String titre = safeValue(getTitreField() == null ? "" : getTitreField().getText());
+            boolean existe = evenementService.evenementExisteDeja(titre, dateDebut);
             if (existe) {
                 showAlert(Alert.AlertType.WARNING, "Evenement deja existant",
-                        "Un autre evenement existe deja avec la meme date de debut.");
-                return;
-            }
-
-            if (existe) {
-                showAlert(Alert.AlertType.WARNING, "Événement déjà existant",
-                        "Un événement avec le même titre .");
+                        "Un autre evenement avec le meme titre et la meme date de debut existe deja. Gardez le meme nom si vous voulez, mais changez la date de debut.");
                 return;
             }
 
@@ -1197,20 +1195,16 @@ public class EvenementController {
         try {
             String previousStatus = safeValue(evenementAModifier.getStatut_event());
             Date dateDebut = Date.valueOf(getDateDebutPicker().getValue());
+            String titre = safeValue(getTitreField() == null ? "" : getTitreField().getText());
 
             boolean existe = evenementService.evenementExisteDejaPourModification(
                     evenementAModifier.getId(),
+                    titre,
                     dateDebut
             );
             if (existe) {
                 showAlert(Alert.AlertType.WARNING, "Evenement deja existant",
-                        "Un autre evenement existe deja avec la meme date de debut.");
-                return;
-            }
-
-            if (existe) {
-                showAlert(Alert.AlertType.WARNING, "Événement déjà existant",
-                        "Un autre événement avec le même titre et la même date de début existe déjà.");
+                        "Un autre evenement avec le meme titre et la meme date de debut existe deja. Gardez le meme nom si vous voulez, mais changez la date de debut.");
                 return;
             }
 
@@ -1284,13 +1278,14 @@ public class EvenementController {
         if (evenementAModifier == null || getTitreField() == null) return;
 
         isLoading = true;
+        configureStatutOptionsForCurrentForm();
 
         getTitreField().setText(safeValue(evenementAModifier.getTitre_event()));
         if (getSlugField() != null) getSlugField().setText(safeValue(evenementAModifier.getSlug_event()));
         if (getTypeCombo() != null) getTypeCombo().setValue(safeValue(evenementAModifier.getType_event()));
         if (getDescriptionArea() != null) getDescriptionArea().setText(safeValue(evenementAModifier.getDescription_event()));
         if (getObjectifArea() != null) getObjectifArea().setText(safeValue(evenementAModifier.getObjectif_event()));
-        if (getStatutCombo() != null) getStatutCombo().setValue(safeValue(evenementAModifier.getStatut_event()));
+        if (getStatutCombo() != null) getStatutCombo().setValue(normalizeStatutLabel(safeValue(evenementAModifier.getStatut_event())));
         if (getMotifAnnulationArea() != null) {
             getMotifAnnulationArea().setText(safeValue(evenementService.recupererMotifAnnulation(evenementAModifier.getId())));
         }
@@ -1327,7 +1322,7 @@ public class EvenementController {
         if (getVisibiliteCombo() != null) getVisibiliteCombo().setValue(safeValue(evenementAModifier.getVisibilite_event()));
 
         if (publicationMode) {
-            if (getStatutCombo() != null) getStatutCombo().setValue("Publie");
+            if (getStatutCombo() != null) getStatutCombo().setValue("Publié");
             if (getVisibiliteCombo() != null) getVisibiliteCombo().setValue("Public");
             publicationMode = false;
         }
@@ -1370,6 +1365,7 @@ public class EvenementController {
         if (getDateLimitePicker() != null) getDateLimitePicker().setValue(null);
         if (getImageField() != null) getImageField().clear();
         if (getVisibiliteCombo() != null) getVisibiliteCombo().setValue(null);
+        configureStatutOptionsForCurrentForm();
 
         validateAllFields();
     }
@@ -1934,9 +1930,7 @@ public class EvenementController {
                 if (!isVisibleOnFront(ev)) {
                     toolBar.getItems().add(publishBtn);
                 }
-                if (isBrouillon(ev)) {
-                    toolBar.getItems().add(deleteBtn);
-                }
+                toolBar.getItems().add(deleteBtn);
                 toolBar.getItems().add(archiveBtn);
                 setGraphic(toolBar);
             }
@@ -2200,7 +2194,7 @@ public class EvenementController {
             updateStats();
 
             if (ParticipationDemande.STATUS_ACCEPTED.equals(status)) {
-                showParticipationBackOfficeMessage("Decision enregistree", "La demande est acceptee. Aucun SMS n'a ete envoye automatiquement. Utilisez le bouton Envoyer SMS si besoin.");
+                showParticipationBackOfficeMessage("Decision enregistree", "La demande est acceptee. Si l'evenement etait complet, la capacite maximale a ete augmentee automatiquement. Aucun SMS n'a ete envoye automatiquement. Utilisez le bouton Envoyer SMS si besoin.");
             } else if (ParticipationDemande.STATUS_REFUSED.equals(status)) {
                 showParticipationBackOfficeMessage("Decision enregistree", "La demande est refusee. Aucun SMS n'a ete envoye automatiquement. Utilisez le bouton Envoyer SMS si besoin.");
             } else {
@@ -2506,7 +2500,7 @@ public class EvenementController {
     private VBox createAiFrontRecommendationCard(AiEventIntelligenceService.Recommendation recommendation) {
         Evenement event = recommendation.event();
         VBox card = new VBox(8);
-        card.setPrefWidth(245);
+        card.setPrefWidth(320);
         card.getStyleClass().add("ai-reco-card");
 
         Label score = new Label(String.format(Locale.US, "Score %.1f/10", recommendation.score()));
@@ -2520,15 +2514,13 @@ public class EvenementController {
         meta.setWrapText(true);
         meta.getStyleClass().add("ai-reco-meta");
 
-        Label reasons = new Label(String.join(" ", recommendation.reasons()));
-        reasons.setWrapText(true);
-        reasons.getStyleClass().add("ai-reco-reasons");
+        VBox criteriaBox = createRecommendationCriteriaBox(recommendation.reasons(), 3);
 
         Button open = new Button("Voir");
         open.getStyleClass().add("event-link-button");
         open.setOnAction(e -> ouvrirDetailEvenementFront(event));
 
-        card.getChildren().addAll(score, title, meta, reasons, open);
+        card.getChildren().addAll(score, title, meta, criteriaBox, open);
         return card;
     }
 
@@ -2682,7 +2674,7 @@ public class EvenementController {
     private VBox createAiBackRecommendationCard(AiEventIntelligenceService.Recommendation recommendation) {
         Evenement event = recommendation.event();
         VBox card = new VBox(8);
-        card.setPrefWidth(270);
+        card.setPrefWidth(320);
         card.getStyleClass().add("ai-reco-card");
 
         Label score = new Label(String.format(Locale.US, "%.1f/10", recommendation.score()));
@@ -2696,11 +2688,9 @@ public class EvenementController {
         meta.setWrapText(true);
         meta.getStyleClass().add("ai-reco-meta");
 
-        Label reasons = new Label(String.join(" ", recommendation.reasons()));
-        reasons.setWrapText(true);
-        reasons.getStyleClass().add("ai-reco-reasons");
+        VBox criteriaBox = createRecommendationCriteriaBox(recommendation.reasons(), 5);
 
-        card.getChildren().addAll(score, title, meta, reasons);
+        card.getChildren().addAll(score, title, meta, criteriaBox);
         return card;
     }
 
@@ -3073,6 +3063,7 @@ public class EvenementController {
         if (weatherTempLabel != null) weatherTempLabel.setText("-");
         if (weatherHumidityLabel != null) weatherHumidityLabel.setText("-");
         if (weatherWindLabel != null) weatherWindLabel.setText("-");
+        if (weatherDecisionLabel != null) weatherDecisionLabel.setText("Analyse meteo en cours pour justifier un maintien, un passage en ligne ou un report.");
 
         Thread worker = new Thread(() -> {
             try {
@@ -3093,6 +3084,7 @@ public class EvenementController {
                     if (weatherTempLabel != null) weatherTempLabel.setText(weather.temperature());
                     if (weatherHumidityLabel != null) weatherHumidityLabel.setText("Humidite " + weather.humidity());
                     if (weatherWindLabel != null) weatherWindLabel.setText("Vent " + weather.wind());
+                    if (weatherDecisionLabel != null) weatherDecisionLabel.setText(buildWeatherOperationalReason(ev, weather));
                 });
             } catch (Exception e) {
                 Platform.runLater(() -> {
@@ -3103,6 +3095,7 @@ public class EvenementController {
                     if (weatherTempLabel != null) weatherTempLabel.setText("-");
                     if (weatherHumidityLabel != null) weatherHumidityLabel.setText("-");
                     if (weatherWindLabel != null) weatherWindLabel.setText("Verifiez la connexion internet ou l'adresse de l'evenement.");
+                    if (weatherDecisionLabel != null) weatherDecisionLabel.setText("Sans donnees meteo fiables, aucune decision automatique de maintien, annulation ou passage en ligne ne doit etre prise.");
                 });
             }
         }, "event-map-weather-loader");
@@ -4503,6 +4496,426 @@ public class EvenementController {
     }
 
     @FXML
+    private void ouvrirAssistantEvenementFront() {
+        Evenement ev = evenementSelectionneFront;
+        if (ev == null) {
+            showAlert(Alert.AlertType.INFORMATION, "Assistant evenement", "Aucun evenement selectionne.");
+            return;
+        }
+
+        try {
+            List<Evenement> allEvents = evenementService.recuperer();
+            List<ParticipationDemande> demandes = participationService.getDemandes(ev);
+            AiEventIntelligenceService.RiskReport risk = aiEventIntelligenceService.analyzeRisk(ev, demandes, allEvents);
+            List<AiEventIntelligenceService.Recommendation> recommendations =
+                    aiEventIntelligenceService.recommendForEvent(ev, SessionManager.getCurrentUser(), allEvents, 4);
+
+            ouvrirAssistantEvenementDialog(ev, risk, recommendations);
+        } catch (Exception e) {
+            showAlert(Alert.AlertType.ERROR, "Assistant evenement", "Impossible d'ouvrir l'assistant : " + e.getMessage());
+        }
+    }
+
+    private void ouvrirAssistantEvenementDialog(
+            Evenement ev,
+            AiEventIntelligenceService.RiskReport risk,
+            List<AiEventIntelligenceService.Recommendation> recommendations
+    ) {
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("Assistant evenement");
+        dialog.setHeaderText(null);
+        applyBookingStyles(dialog);
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+
+        VBox content = new VBox(12);
+        content.getStyleClass().add("care-room-card");
+        content.setPrefWidth(640);
+
+        Label badge = new Label("AI EVENT ASSISTANT");
+        badge.getStyleClass().add("care-room-overline");
+
+        Label title = new Label("Posez vos questions sur cet evenement");
+        title.setWrapText(true);
+        title.getStyleClass().add("care-room-title");
+
+        Label status = new Label(groqEventAiClient.isConfigured()
+                ? "Mode IA cloud: reponses detaillees FR / EN / AR."
+                : "Mode local: reponses evenement FR / EN / AR.");
+        status.setWrapText(true);
+        status.getStyleClass().add("care-room-ai-status");
+
+        TextArea conversation = new TextArea();
+        conversation.setEditable(false);
+        conversation.setWrapText(true);
+        conversation.setPrefRowCount(10);
+        conversation.setPrefHeight(320);
+        conversation.getStyleClass().add("care-room-chat");
+        conversation.setText(buildEventAssistantOpening(ev, risk));
+
+        TextField input = new TextField();
+        input.setPromptText("Ex: ou se passe l'evenement ? faut-il s'inscrire ? quel est le risque ? pourquoi cet evenement est recommande ?");
+        input.getStyleClass().add("modern-text-field");
+
+        HBox shortcuts = new HBox(8);
+        shortcuts.setAlignment(Pos.CENTER_LEFT);
+        shortcuts.getStyleClass().add("event-assistant-shortcuts");
+        shortcuts.getChildren().addAll(
+                createAssistantShortcutButton("Pourquoi participer ?", "Pourquoi cet evenement est utile et interessant a suivre ?", input),
+                createAssistantShortcutButton("Why join?", "Why is this event worth attending?", input),
+                createAssistantShortcutButton("لماذا أشارك؟", "لماذا المشاركة في هذا الحدث مفيدة؟", input)
+        );
+
+        Button send = new Button("Envoyer");
+        send.getStyleClass().add("confirm-button");
+        send.setOnAction(e -> {
+            String question = safeValue(input.getText()).trim();
+            if (question.isBlank()) return;
+            appendCareReply(conversation, "Vous: " + question);
+            input.clear();
+            repondreAssistantEvenement(question, ev, risk, recommendations, conversation, status, send);
+        });
+        input.setOnAction(e -> send.fire());
+
+        HBox inputRow = new HBox(10, input, send);
+        inputRow.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(input, Priority.ALWAYS);
+
+        content.getChildren().addAll(badge, title, status, conversation, shortcuts, inputRow);
+        dialog.getDialogPane().setContent(content);
+        dialog.getDialogPane().setMinWidth(680);
+
+        Button close = (Button) dialog.getDialogPane().lookupButton(ButtonType.CLOSE);
+        close.setText("Fermer");
+        close.getStyleClass().add("cancel-button");
+
+        dialog.showAndWait();
+    }
+
+    private void repondreAssistantEvenement(
+            String question,
+            Evenement ev,
+            AiEventIntelligenceService.RiskReport risk,
+            List<AiEventIntelligenceService.Recommendation> recommendations,
+            TextArea conversation,
+            Label status,
+            Button sendButton
+    ) {
+        if (!groqEventAiClient.isConfigured()) {
+            appendCareReply(conversation, "Assistant evenement: " + buildLocalEventAssistantReply(question, ev, risk, recommendations));
+            status.setText("Mode local: reponse basee sur les informations connues de l'evenement.");
+            return;
+        }
+
+        status.setText("Assistant evenement: analyse en cours...");
+        sendButton.setDisable(true);
+
+        Task<String> task = new Task<>() {
+            @Override
+            protected String call() throws Exception {
+                return groqEventAiClient.generateEventAssistantReply(ev, risk, recommendations, question);
+            }
+        };
+
+        task.setOnSucceeded(e -> {
+            appendCareReply(conversation, "Assistant evenement: " + task.getValue());
+            status.setText("Mode IA cloud: Groq actif.");
+            sendButton.setDisable(false);
+        });
+
+        task.setOnFailed(e -> {
+            appendCareReply(conversation, "Assistant evenement: " + buildLocalEventAssistantReply(question, ev, risk, recommendations));
+            status.setText("Groq indisponible, reponse locale utilisee.");
+            sendButton.setDisable(false);
+        });
+
+        Thread worker = new Thread(task, "event-question-assistant");
+        worker.setDaemon(true);
+        worker.start();
+    }
+
+    private String buildEventAssistantOpening(Evenement ev, AiEventIntelligenceService.RiskReport risk) {
+        return "Bonjour. Je suis l'assistant evenement MedFlow.\n"
+                + "Hello. I am your MedFlow event assistant.\n"
+                + "مرحبا. أنا مساعد الحدث من MedFlow.\n\n"
+                + "Je peux expliquer la date, le lieu, l'inscription, la capacite, le risque, les recommandations,\n"
+                + "mais aussi pourquoi ce theme peut etre utile a suivre et comment l'evenement peut vous aider.\n\n"
+                + "Evenement actuel: " + valueOrDash(ev.getTitre_event())
+                + " | Niveau de risque: " + (risk == null ? "-" : risk.level()) + ".";
+    }
+
+    private String buildLocalEventAssistantReply(
+            String question,
+            Evenement ev,
+            AiEventIntelligenceService.RiskReport risk,
+            List<AiEventIntelligenceService.Recommendation> recommendations
+    ) {
+        String q = safeValue(question).toLowerCase(Locale.ROOT);
+        String language = detectAssistantLanguage(question);
+
+        if (q.contains("ou") || q.contains("lieu") || q.contains("adresse") || q.contains("ville")) {
+            return switch (language) {
+                case "en" -> "The event takes place at " + valueOrDash(ev.getNom_lieu_event()) + ", "
+                        + valueOrDash(ev.getAdresse_event()) + ", " + valueOrDash(ev.getVille_event()) + ".";
+                case "ar" -> "يقام الحدث في " + valueOrDash(ev.getNom_lieu_event()) + "، "
+                        + valueOrDash(ev.getAdresse_event()) + "، " + valueOrDash(ev.getVille_event()) + ".";
+                default -> "L'evenement se passe a " + valueOrDash(ev.getNom_lieu_event()) + ", "
+                        + valueOrDash(ev.getAdresse_event()) + ", " + valueOrDash(ev.getVille_event()) + ".";
+            };
+        }
+        if (q.contains("quand") || q.contains("date")) {
+            return switch (language) {
+                case "en" -> "The event is scheduled from " + dateText(ev.getDate_debut_event()) + " to " + dateText(ev.getDate_fin_event()) + ".";
+                case "ar" -> "الحدث مبرمج من " + dateText(ev.getDate_debut_event()) + " إلى " + dateText(ev.getDate_fin_event()) + ".";
+                default -> "L'evenement est prevu du " + dateText(ev.getDate_debut_event()) + " au " + dateText(ev.getDate_fin_event()) + ".";
+            };
+        }
+        if (q.contains("inscri") || q.contains("particip")) {
+            return switch (language) {
+                case "en" -> "Registration required: " + (ev.isInscription_obligatoire_event() ? "yes" : "no")
+                        + ". Deadline: " + dateText(ev.getDate_limite_inscription_event()) + ".";
+                case "ar" -> "هل التسجيل إجباري: " + (ev.isInscription_obligatoire_event() ? "نعم" : "لا")
+                        + ". آخر أجل للتسجيل: " + dateText(ev.getDate_limite_inscription_event()) + ".";
+                default -> "Inscription obligatoire: " + (ev.isInscription_obligatoire_event() ? "oui" : "non")
+                        + ". Date limite: " + dateText(ev.getDate_limite_inscription_event()) + ".";
+            };
+        }
+        if (q.contains("capac") || q.contains("place")) {
+            return switch (language) {
+                case "en" -> "The planned maximum capacity for this event is " + ev.getNb_participants_max_event() + " participants.";
+                case "ar" -> "الطاقة القصوى المبرمجة لهذا الحدث هي " + ev.getNb_participants_max_event() + " مشارك.";
+                default -> "La capacite maximale prevue pour cet evenement est de " + ev.getNb_participants_max_event() + " participant(s).";
+            };
+        }
+        if (q.contains("statut")) {
+            return switch (language) {
+                case "en" -> "The current event status is " + valueOrDash(ev.getStatut_event())
+                        + " with visibility " + valueOrDash(ev.getVisibilite_event()) + ".";
+                case "ar" -> "الحالة الحالية للحدث هي " + valueOrDash(ev.getStatut_event())
+                        + " مع مستوى ظهور " + valueOrDash(ev.getVisibilite_event()) + ".";
+                default -> "Le statut actuel de l'evenement est " + valueOrDash(ev.getStatut_event())
+                        + " avec une visibilite " + valueOrDash(ev.getVisibilite_event()) + ".";
+            };
+        }
+        if (q.contains("objectif") || q.contains("but")) {
+            return switch (language) {
+                case "en" -> "Event objective: " + valueOrDash(ev.getObjectif_event());
+                case "ar" -> "هدف الحدث: " + valueOrDash(ev.getObjectif_event());
+                default -> "Objectif de l'evenement: " + valueOrDash(ev.getObjectif_event());
+            };
+        }
+        if (q.contains("risque") || q.contains("score")) {
+            return switch (language) {
+                case "en" -> "The risk score is " + (risk == null ? "-" : risk.score() + "/100")
+                        + " with level " + (risk == null ? "-" : risk.level())
+                        + ". It measures the organizational risk of the event.";
+                case "ar" -> "درجة المخاطر هي " + (risk == null ? "-" : risk.score() + "/100")
+                        + " بمستوى " + (risk == null ? "-" : risk.level())
+                        + ". هذا المؤشر يقيس المخاطر التنظيمية للحدث.";
+                default -> "Le score de risque est de " + (risk == null ? "-" : risk.score() + "/100")
+                        + " avec un niveau " + (risk == null ? "-" : risk.level())
+                        + ". Ce score mesure le risque organisationnel de l'evenement.";
+            };
+        }
+        if (q.contains("recommand")) {
+            if (recommendations == null || recommendations.isEmpty()) {
+                return switch (language) {
+                    case "en" -> "No reliable recommendation is available at the moment.";
+                    case "ar" -> "لا توجد توصية موثوقة متاحة حاليا.";
+                    default -> "Aucune recommandation fiable n'est disponible pour le moment.";
+                };
+            }
+            AiEventIntelligenceService.Recommendation top = recommendations.get(0);
+            return switch (language) {
+                case "en" -> "The main recommendation is " + valueOrDash(top.event().getTitre_event())
+                        + " because " + (top.reasons().isEmpty() ? "it stays close to this event." : top.reasons().get(0));
+                case "ar" -> "التوصية الأساسية هي " + valueOrDash(top.event().getTitre_event())
+                        + " لأن " + (top.reasons().isEmpty() ? "هذا الحدث قريب من الحدث الحالي." : top.reasons().get(0));
+                default -> "La recommandation principale est " + valueOrDash(top.event().getTitre_event())
+                        + " car " + (top.reasons().isEmpty() ? "elle reste proche de cet evenement." : top.reasons().get(0));
+            };
+        }
+        if (q.contains("why") || q.contains("pourquoi") || q.contains("لماذا") || q.contains("good") || q.contains("interesting") || q.contains("interess") || q.contains("useful") || q.contains("utile")) {
+            return buildGeneralParticipationAnswer(language, ev);
+        }
+        if (q.contains("resource") || q.contains("ressource") || q.contains("material") || q.contains("materiel") || q.contains("accessibil")) {
+            return buildResourceRelatedAnswer(language, ev);
+        }
+
+        return switch (language) {
+            case "en" -> "I can help with date, place, registration, capacity, status, risk, recommendations, why this topic matters, and how the event may help participants.";
+            case "ar" -> "يمكنني مساعدتك بخصوص التاريخ والمكان والتسجيل والسعة والحالة والمخاطر والتوصيات، وأيضا لماذا هذا الموضوع مهم وكيف يمكن أن يفيد الحدث المشاركين.";
+            default -> "Je peux vous aider sur la date, le lieu, l'inscription, la capacite, le statut, le risque, les recommandations, l'interet du sujet et l'utilite generale de cet evenement.";
+        };
+    }
+
+    private Button createAssistantShortcutButton(String label, String question, TextField input) {
+        Button button = new Button(label);
+        button.getStyleClass().add("event-link-button");
+        button.setOnAction(e -> input.setText(question));
+        return button;
+    }
+
+    private String detectAssistantLanguage(String question) {
+        String value = safeValue(question);
+        if (value.matches(".*[\\u0600-\\u06FF].*")) {
+            return "ar";
+        }
+
+        String normalized = value.toLowerCase(Locale.ROOT);
+        if (normalized.contains("why") || normalized.contains("where") || normalized.contains("when")
+                || normalized.contains("can i") || normalized.contains("should i") || normalized.contains("worth")) {
+            return "en";
+        }
+        return "fr";
+    }
+
+    private String buildGeneralParticipationAnswer(String language, Evenement ev) {
+        String type = valueOrDash(ev.getType_event());
+        String title = valueOrDash(ev.getTitre_event());
+        String objectif = valueOrDash(ev.getObjectif_event());
+
+        return switch (language) {
+            case "en" -> "This " + type + " can be worth attending because it gives structured information, practical exchange, and direct contact around the topic \"" + title + "\". "
+                    + "Its value depends on your interests, but this kind of event is generally useful for learning, networking, understanding the subject better, and discovering available support or resources. "
+                    + "Event objective: " + objectif + ".";
+            case "ar" -> "قد تكون المشاركة في هذا " + type + " مفيدة لأنه يوفر معلومات منظمة وتبادلا عمليا واتصالا مباشرا حول موضوع \"" + title + "\". "
+                    + "بشكل عام هذا النوع من الفعاليات يساعد على الفهم الأفضل والتعلم وبناء العلاقات واكتشاف الموارد أو وسائل الدعم المتاحة. "
+                    + "هدف الحدث: " + objectif + ".";
+            default -> "Participer a ce " + type + " peut etre interessant car il apporte un cadre clair pour apprendre, echanger, comprendre le sujet \"" + title + "\" et identifier des ressources ou opportunites utiles. "
+                    + "De facon generale, ce type d'evenement aide a mieux s'informer, a rencontrer des personnes concernees par le meme theme et a donner un contexte concret au sujet. "
+                    + "Objectif annonce: " + objectif + ".";
+        };
+    }
+
+    private String buildResourceRelatedAnswer(String language, Evenement ev) {
+        return switch (language) {
+            case "en" -> "For an event, resources usually matter for logistics, accessibility, participant comfort, and content quality. "
+                    + "Examples include room setup, support material, signage, assistive equipment, and organization tools. "
+                    + "For this event, resources should support the announced objective: " + valueOrDash(ev.getObjectif_event()) + ".";
+            case "ar" -> "في أي حدث، الموارد مهمة للتنظيم والولوجية وراحة المشاركين وجودة المحتوى. "
+                    + "قد تشمل تجهيز القاعة والمواد المساندة واللافتات ووسائل المساعدة وأدوات التنظيم. "
+                    + "في هذا الحدث يجب أن تخدم الموارد الهدف المعلن: " + valueOrDash(ev.getObjectif_event()) + ".";
+            default -> "Dans un evenement, les ressources servent surtout la logistique, l'accessibilite, le confort participant et la qualite de l'experience. "
+                    + "Cela peut inclure le materiel, la signaletique, les supports, les equipements d'aide et les moyens d'organisation. "
+                    + "Pour cet evenement, les ressources devraient soutenir l'objectif suivant: " + valueOrDash(ev.getObjectif_event()) + ".";
+        };
+    }
+
+    @FXML
+    private void ouvrirEvenementsPasses() {
+        loadScene("/FrontFXML/EvenementsPasses.fxml", "Evenements passes");
+    }
+
+    private void configureStatutOptionsForCurrentForm() {
+        if (getStatutCombo() == null) {
+            return;
+        }
+
+        List<String> options = evenementAModifier == null
+                ? List.of("Brouillon", "Publié", "En ligne")
+                : List.of("Brouillon", "Publié", "En ligne", "Annulé");
+
+        String currentValue = normalizeStatutLabel(getStatutCombo().getValue());
+        getStatutCombo().setItems(FXCollections.observableArrayList(options));
+        if (currentValue != null && options.contains(currentValue)) {
+            getStatutCombo().setValue(currentValue);
+        }
+    }
+
+    private String normalizeStatutLabel(String value) {
+        String normalized = safeValue(value).trim().toLowerCase(Locale.ROOT);
+        if (normalized.equals("publie")) return "Publié";
+        if (normalized.equals("annule")) return "Annulé";
+        return value;
+    }
+
+    private String buildWeatherOperationalReason(Evenement ev, EventLocationService.WeatherInfo weather) {
+        String condition = safeValue(weather == null ? "" : weather.condition()).toLowerCase(Locale.ROOT);
+        double wind = extractFirstNumber(weather == null ? "" : weather.wind());
+        double humidity = extractFirstNumber(weather == null ? "" : weather.humidity());
+        boolean outdoorLike = isOutdoorEvent(ev);
+
+        if (condition.contains("orage") || condition.contains("storm") || condition.contains("thunder")) {
+            return outdoorLike
+                    ? "Alerte meteo forte: pour un evenement exterieur, un report ou une annulation peut etre justifie pour raison de securite."
+                    : "Meteo severe: si l'acces au lieu devient difficile, un passage en ligne est plus coherent qu'un maintien sans adaptation.";
+        }
+        if (condition.contains("pluie") || condition.contains("rain") || humidity >= 85) {
+            return outdoorLike
+                    ? "Pluie ou forte humidite: ces conditions peuvent justifier un passage en ligne ou une reorganisation d'un evenement exterieur."
+                    : "Conditions humides: la meteo aide surtout a anticiper retards, acces plus lent et communication preventive aux participants.";
+        }
+        if (wind >= 45) {
+            return "Vent fort detecte: la meteo fournit un motif objectif pour renforcer la securite, limiter certaines activites ou adapter le format.";
+        }
+        if (condition.contains("neige") || condition.contains("snow")) {
+            return "Conditions difficiles detectees: la meteo permet de justifier un report, une annulation ou un format en ligne avec une raison concrete.";
+        }
+
+        return "Conditions stables: la meteo confirme le maintien de l'evenement et aide a preparer l'accueil, l'acces et la communication du jour J.";
+    }
+
+    private VBox createRecommendationCriteriaBox(List<String> reasons, int maxItems) {
+        VBox box = new VBox(6);
+        box.getStyleClass().add("ai-reco-reasons");
+
+        Label title = new Label("Criteres");
+        title.getStyleClass().add("ai-reco-criteria-title");
+        box.getChildren().add(title);
+
+        List<String> limited = reasons == null ? List.of() : reasons.stream()
+                .filter(reason -> reason != null && !reason.isBlank())
+                .limit(Math.max(1, maxItems))
+                .toList();
+
+        if (limited.isEmpty()) {
+            Label line = new Label("• Alternative publique disponible.");
+            line.setWrapText(true);
+            line.getStyleClass().add("ai-reco-criteria-line");
+            box.getChildren().add(line);
+            return box;
+        }
+
+        for (String reason : limited) {
+            Label line = new Label("• " + reason);
+            line.setWrapText(true);
+            line.getStyleClass().add("ai-reco-criteria-line");
+            box.getChildren().add(line);
+        }
+
+        return box;
+    }
+
+    private boolean isOutdoorEvent(Evenement ev) {
+        String type = safeValue(ev == null ? "" : ev.getType_event()).toLowerCase(Locale.ROOT);
+        String lieu = safeValue(ev == null ? "" : ev.getNom_lieu_event()).toLowerCase(Locale.ROOT);
+        String description = safeValue(ev == null ? "" : ev.getDescription_event()).toLowerCase(Locale.ROOT);
+        String fullText = type + " " + lieu + " " + description;
+        return fullText.contains("campagne")
+                || fullText.contains("plein air")
+                || fullText.contains("exterieur")
+                || fullText.contains("extérieur")
+                || fullText.contains("outdoor");
+    }
+
+    private double extractFirstNumber(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return -1;
+        }
+
+        java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("(-?\\d+(?:[.,]\\d+)?)").matcher(raw);
+        if (!matcher.find()) {
+            return -1;
+        }
+
+        try {
+            return Double.parseDouble(matcher.group(1).replace(',', '.'));
+        } catch (NumberFormatException ex) {
+            return -1;
+        }
+    }
+
+    @FXML
     private void handleExportPDF() {
         try {
             Evenement selectedEvent = evenementTable != null ? evenementTable.getSelectionModel().getSelectedItem() : null;
@@ -4536,7 +4949,32 @@ public class EvenementController {
     private boolean isVisibleOnFront(Evenement evenement) {
         String statut = safeValue(evenement.getStatut_event()).toLowerCase(Locale.ROOT);
         String visibilite = safeValue(evenement.getVisibilite_event()).toLowerCase(Locale.ROOT);
-        return (statut.contains("publi") || statut.contains("ligne")) && visibilite.contains("public");
+        return (statut.contains("publi") || statut.contains("ligne"))
+                && visibilite.contains("public")
+                && !isPastEvent(evenement);
+    }
+
+    private boolean isPastVisibleOnFront(Evenement evenement) {
+        String statut = safeValue(evenement.getStatut_event()).toLowerCase(Locale.ROOT);
+        String visibilite = safeValue(evenement.getVisibilite_event()).toLowerCase(Locale.ROOT);
+        return (statut.contains("publi") || statut.contains("ligne"))
+                && visibilite.contains("public")
+                && isPastEvent(evenement);
+    }
+
+    private boolean isPastEvent(Evenement evenement) {
+        if (evenement == null) {
+            return false;
+        }
+
+        LocalDate today = LocalDate.now();
+        LocalDate endDate = convertToLocalDate(evenement.getDate_fin_event());
+        if (endDate != null) {
+            return endDate.isBefore(today);
+        }
+
+        LocalDate startDate = convertToLocalDate(evenement.getDate_debut_event());
+        return startDate != null && startDate.isBefore(today);
     }
 
     private String formatNotificationTimestamp(LocalDateTime createdAt) {

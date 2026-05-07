@@ -18,8 +18,8 @@ import java.util.regex.Pattern;
 public class EventLocationService {
 
     private static final String DEFAULT_COUNTRY = "Tunisia";
-    private static final String EVENT_LOCATIONIQ_API_KEY = System.getenv("EVENT_LOCATIONIQ_API_KEY");
-    private static final String EVENT_OPENWEATHER_API_KEY = System.getenv("EVENT_OPENWEATHER_API_KEY");
+    private static final String EVENT_LOCATIONIQ_API_KEY = readConfig("EVENT_LOCATIONIQ_API_KEY");
+    private static final String EVENT_OPENWEATHER_API_KEY = readConfig("EVENT_OPENWEATHER_API_KEY");
     private static final Pattern LAT_PATTERN = Pattern.compile("\"lat\"\\s*:\\s*\"([^\"]+)\"");
     private static final Pattern LON_PATTERN = Pattern.compile("\"lon\"\\s*:\\s*\"([^\"]+)\"");
     private static final Pattern OPENWEATHER_DESCRIPTION_PATTERN = Pattern.compile("\"description\"\\s*:\\s*\"([^\"]+)\"");
@@ -316,6 +316,20 @@ public class EventLocationService {
             case "medenine" -> new EventLocation(query, "33.3549", "10.5055");
             default -> null;
         };
+    }
+
+    private static String readConfig(String key) {
+        String value = System.getenv(key);
+        if (value != null && !value.isBlank()) {
+            return value.trim();
+        }
+
+        value = System.getProperty(key);
+        if (value != null && !value.isBlank()) {
+            return value.trim();
+        }
+
+        return "";
     }
 
     private void appendPart(StringBuilder builder, String value) {

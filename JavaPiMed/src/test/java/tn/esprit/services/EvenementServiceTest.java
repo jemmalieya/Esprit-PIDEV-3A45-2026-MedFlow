@@ -148,8 +148,12 @@ public class EvenementServiceTest {
         Evenement ev = buildTestEvenement("EvenementTestJUnit");
         service.ajouter(ev);
 
-        boolean existe = service.evenementExisteDeja(Date.valueOf("2025-09-01"));
+        boolean existe = service.evenementExisteDeja("EvenementTestJUnit", Date.valueOf("2025-09-01"));
         assertTrue(existe,
-                "La méthode doit détecter qu'un événement avec ce titre existe déjà.");
+                "La méthode doit détecter qu'un événement avec le même titre et la même date existe déjà.");
+
+        boolean fauxPositif = service.evenementExisteDeja("AutreEvenementJUnit", Date.valueOf("2025-09-01"));
+        assertFalse(fauxPositif,
+                "Un événement avec la même date mais un titre différent ne doit pas être considéré comme un doublon.");
     }
 }

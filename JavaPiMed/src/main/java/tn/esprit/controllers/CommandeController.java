@@ -200,7 +200,7 @@ public class CommandeController {
     @FXML private StackPane stripeWebContainer;
     private final StripeCheckoutService stripeCheckoutService = new StripeCheckoutService();
     private final StripeCallbackServer stripeCallbackServer = new StripeCallbackServer();
- //  private final SmsService smsService = new SmsService();
+   private final SmsService smsService = new SmsService();
    private final CommandeAnalyseIAService analyseIAService = new CommandeAnalyseIAService();
 
 
@@ -2372,14 +2372,14 @@ public class CommandeController {
                 return;
             }
 //NA7I
-           /*User user = SessionManager.getCurrentUser();
+           User user = SessionManager.getCurrentUser();
             boolean smsEnvoye = smsService.envoyerSmsConfirmationCommande(user, commande);
 
             if (smsEnvoye) {
                 System.out.println("SMS de confirmation envoyé.");
             } else {
                 System.out.println("Échec envoi SMS.");
-            }*/
+            }
 
             commandeSelectionneeFront = commande;
             CartSession.viderPanier();
@@ -2402,14 +2402,14 @@ public class CommandeController {
                     "commande-toast-success",
                     "✅"
             ));
-          /* Platform.runLater(() -> showToastOnStage(
+           Platform.runLater(() -> showToastOnStage(
                     stage,
                     smsEnvoye
                             ? "Paiement effectué avec succès. SMS de confirmation envoyé."
                             : "Paiement effectué avec succès. Échec de l'envoi du SMS.",
                     smsEnvoye ? "commande-toast-success" : "commande-toast-warning",
                     smsEnvoye ? "✅" : "⚠"
-            ));*/
+            ));
 
         } catch (Exception e) {
             e.printStackTrace();

@@ -167,7 +167,7 @@
 
                         <HBox spacing="14" alignment="CENTER_RIGHT">
                             <Button text="Cancel" styleClass="cancel-button"/>
-                            <Button text="Confirm Appointment" styleClass="confirm-button" onAction="#handleConfirmAppointment"/>
+                            <Button text="Confirm Appointment" styleClass="confirm-button" onAction="#handleConfirmAppointmentV2"/>
                         </HBox>
                     </VBox>
                         </VBox>

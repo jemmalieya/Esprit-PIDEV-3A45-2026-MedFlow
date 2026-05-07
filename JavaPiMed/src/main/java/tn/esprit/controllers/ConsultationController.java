@@ -1,4 +1,3 @@
-
 package tn.esprit.controllers;
 
 import javafx.application.Platform;
@@ -634,30 +633,33 @@ public class ConsultationController implements Initializable {
         // Check for null or missing fields
         if (dateTime == null) {
             errors.add("❌ Date & Time: Please select a date and time slot from the calendar");
+        } else if (dateTime.isBefore(LocalDateTime.now())) {
+            errors.add("⏰ Date & Time: The appointment date/time cannot be in the past");
         }
 
+        // Check mode
         if (mode == null || mode.isBlank()) {
             errors.add("❌ Booking Mode: Please choose a booking mode (Presentiel or En ligne)");
         }
 
+        // Check motif
         if (motif == null || motif.isBlank()) {
             errors.add("❌ Reason for Visit: Please enter a reason for the appointment");
         }
 
-        // Check if doctor exists first
+        // Check doctor
         if (idStaff <= 0) {
-            errors.add("👨‍⚕️ Doctor: Please select a valid doctor");
+            errors.add("👨‍⚕️ Doctor: Please select a valid doctor ID");
         } else {
             User doctor = userService.recupererParId(idStaff);
             if (doctor == null) {
                 errors.add("👨‍⚕️ Doctor: The selected doctor does not exist. Please choose another doctor");
             } else {
-                // Only check availability if doctor exists and dateTime is valid
+                // Check availability if all prerequisites met
                 if (dateTime != null && selectedDoctorId != null && selectedDoctorId > 0) {
                     LocalDateTime slotHour = dateTime.withMinute(0).withSecond(0).withNano(0);
                     if (selectedDoctorReservedSlots.contains(slotHour)) {
-                        String doctorName = buildDoctorDisplayName(doctor);
-                        errors.add("📅 Doctor Availability: " + doctorName + " is already booked at this time. Please select another time slot");
+                        errors.add("📅 Doctor Availability: " + doctor.getPrenom() + " " + doctor.getNom() + " is already booked at this time. Please select another time slot");
                     }
                 }
             }
@@ -2224,9 +2226,18 @@ public class ConsultationController implements Initializable {
             return false;
         }
 
-        User doctor = userService.findById(parsedId);
+        // Check if doctor exists among available staff
+        List<User> availableDoctors = userService.getStaffByRoleAndType("STAFF", "RESP_PATIENTS");
+        User doctor = null;
+        for (User doc : availableDoctors) {
+            if (doc.getId() == parsedId) {
+                doctor = doc;
+                break;
+            }
+        }
+
         if (doctor == null) {
-            applyValidationState(doctorField1, doctorIdValidationLabel, false, "No staff member was found with ID " + parsedId + ".");
+            applyValidationState(doctorField1, doctorIdValidationLabel, false, "The selected doctor does not exist. Please choose another doctor");
             return false;
         }
 
@@ -2800,6 +2811,155 @@ public class ConsultationController implements Initializable {
             return false;
         }
     }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // NEW V2 FUNCTIONS - ALTERNATIVE BOOKING FLOW (Bypass original issues)
+    // ═══════════════════════════════════════════════════════════════════
+
+    /**
+     * V2: Get doctor from available staff list (more reliable than recupererParId)
+     */
+    private User getDoctorFromListV2(int staffId) {
+        if (staffId <= 0) {
+            return null;
+        }
+        
+        List<User> availableDoctors = userService.getStaffByRoleAndType("STAFF", "RESP_PATIENTS");
+        for (User doctor : availableDoctors) {
+            if (doctor != null && doctor.getId() == staffId) {
+                return doctor;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * V2: Validate all booking inputs with direct list lookup
+     */
+    private List<String> collectBookingValidationErrorsV2(int patientId, int idStaff, LocalDateTime dateTime, 
+                                                         String mode, String motif) {
+        List<String> errors = new ArrayList<>();
+
+        // Check date/time
+        if (dateTime == null) {
+            errors.add("❌ Date & Time: Please select a date and time slot from the calendar");
+        } else if (dateTime.isBefore(LocalDateTime.now())) {
+            errors.add("⏰ Date & Time: The appointment date/time cannot be in the past");
+        }
+
+        // Check mode
+        if (mode == null || mode.isBlank()) {
+            errors.add("❌ Booking Mode: Please choose a booking mode (Presentiel or En ligne)");
+        }
+
+        // Check motif
+        if (motif == null || motif.isBlank()) {
+            errors.add("❌ Reason for Visit: Please enter a reason for the appointment");
+        }
+
+        // Check doctor using V2 method
+        if (idStaff <= 0) {
+            errors.add("👨‍⚕️ Doctor: Please select a valid doctor ID");
+        } else {
+            User doctor = getDoctorFromListV2(idStaff);
+            if (doctor == null) {
+                errors.add("👨‍⚕️ Doctor: The selected doctor does not exist in the available staff list. Please try selecting another doctor");
+            } else {
+                // Check availability if all prerequisites met
+                if (dateTime != null && selectedDoctorId != null && selectedDoctorId > 0) {
+                    LocalDateTime slotHour = dateTime.withMinute(0).withSecond(0).withNano(0);
+                    if (selectedDoctorReservedSlots.contains(slotHour)) {
+                        errors.add("📅 Doctor Availability: " + buildDoctorDisplayName(doctor) + " is already booked at this time. Please select another time slot");
+                    }
+                }
+            }
+        }
+
+        // Check for duplicate booking
+        if (dateTime != null && mode != null && !mode.isBlank() && motif != null && !motif.isBlank()) {
+            String cleanedMode = mode.trim();
+            String cleanedMotif = motif.trim();
+            if (hasDuplicateRendezVous(null, Timestamp.valueOf(dateTime), patientId, idStaff, cleanedMode, cleanedMotif)) {
+                errors.add("🔄 Duplicate Booking: You already have a booking with the same details");
+            }
+        }
+
+        return errors;
+    }
+
+    /**
+     * V2: Save appointment using V2 validation
+     */
+    private void saveAppointmentV2(int patientId, int idStaff, LocalDateTime dateTime, String mode, String motif) {
+        if (dateTime == null) {
+            throw new IllegalArgumentException("Please select a date and time slot from the calendar.");
+        }
+        if (mode == null || mode.isBlank()) {
+            throw new IllegalArgumentException("Please choose a booking mode.");
+        }
+        if (motif == null || motif.isBlank()) {
+            throw new IllegalArgumentException("Please enter a motif.");
+        }
+
+        String cleanedMode = mode.trim();
+        String cleanedMotif = motif.trim();
+
+        // Verify doctor exists using V2 method
+        User doctor = getDoctorFromListV2(idStaff);
+        if (doctor == null) {
+            throw new IllegalArgumentException("Selected doctor does not exist. Please select another doctor.");
+        }
+
+        if (dateTime.isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("The appointment date/time must be in the future.");
+        }
+
+        if (hasDuplicateRendezVous(null, Timestamp.valueOf(dateTime), patientId, idStaff, cleanedMode, cleanedMotif)) {
+            throw new IllegalArgumentException("A booking with the same date/time, doctor, mode and motif already exists.");
+        }
+
+        String urgencyLevel = determineUrgencyLevel(cleanedMotif);
+        RendezVous rendezVous = new RendezVous(
+                Timestamp.valueOf(dateTime),
+                "Demande",
+                cleanedMode,
+                cleanedMotif,
+                new Timestamp(System.currentTimeMillis()),
+                patientId,
+                idStaff,
+                urgencyLevel
+        );
+
+        rendezVousService.ajouter(rendezVous);
+    }
+
+    /**
+     * V2: Handle confirm appointment with bypass logic
+     */
+    @FXML
+    private void handleConfirmAppointmentV2(ActionEvent event) {
+        try {
+            int patientId = requireSessionPatientId();
+            int idStaff = parseRequiredInt(doctorField1, "Doctor/Staff ID");
+            String mode = modeComboBox != null ? modeComboBox.getValue() : null;
+            String motif = motifArea != null ? motifArea.getText() : null;
+
+            // Use V2 validation
+            List<String> errors = collectBookingValidationErrorsV2(patientId, idStaff, selectedDateTime, mode, motif);
+            if (!errors.isEmpty()) {
+                showDetailedErrors("Booking Cannot Be Completed", errors);
+                return;
+            }
+
+            saveAppointmentV2(patientId, idStaff, selectedDateTime, mode, motif);
+            reloadReservedSlotsForSelectedDoctor();
+            showInfo("Success", "Appointment saved successfully.");
+            loadMyBookings();
+        } catch (IllegalArgumentException ex) {
+            showError("Validation error", ex.getMessage());
+        } catch (Exception ex) {
+            showError("Unexpected error", "Failed to save appointment: " + ex.getMessage());
+        }
+    }
+
 }
-
-

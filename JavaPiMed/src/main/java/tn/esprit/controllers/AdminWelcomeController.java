@@ -28,7 +28,7 @@ public class AdminWelcomeController {
             "/FXML/PostsEnAttente.fxml", "/PendingPostsAdmin.fxml",
             "/FXML/StatsBlog.fxml", "/BlogStats.fxml",
             "/FXML/StatsReclamations.fxml", "/ReclamationStats.fxml",
-            "/FXML/ConsultationsParDocteur.fxml", "/BackFXML/ConsultationDocteur.fxml"
+            "/FXML/ConsultationsParDocteur.fxml", "/FXML/ConsultationsParDocteur.fxml"
     );
 
     @FXML

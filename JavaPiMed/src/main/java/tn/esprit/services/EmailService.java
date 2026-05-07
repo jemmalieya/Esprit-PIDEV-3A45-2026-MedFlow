@@ -205,22 +205,33 @@ public class EmailService {
      */
     public static void sendStaffRejectionEmail(User user) {
         if (user == null || isBlank(user.getEmailUser())) return;
-        sendStaffRejectionEmail(user, null, null);
+        sendStaffRejectionEmail(user, null, null, null);
     }
 
     /**
      * Envoie un email de notification de refus de la demande staff avec piece jointe PDF.
      */
     public static void sendStaffRejectionEmail(User user, byte[] pdfBytes, String pdfName) {
+        sendStaffRejectionEmail(user, null, pdfBytes, pdfName);
+    }
+
+    /**
+     * Envoie un email de notification de refus de la demande staff avec motif admin et piece jointe PDF.
+     */
+    public static void sendStaffRejectionEmail(User user, String reason, byte[] pdfBytes, String pdfName) {
         if (user == null || isBlank(user.getEmailUser())) return;
 
         String name = firstName(user);
+        String normalizedReason = safe(reason).isBlank()
+                ? "Pieces manquantes ou dossier incomplet."
+                : reason;
         String subject = "❌ MedFlow – Demande staff refusée";
         String html = buildHtml(
                 "Bonjour, " + name,
                 "Votre demande d'accès staff a été <strong style='color:#dc2626;'>refusée</strong> par l'équipe MedFlow.",
                 new String[]{
                         "Votre demande n'a pas pu être validée à ce stade.",
+                        "Motif administratif : <strong>" + escapeHtml(normalizedReason) + "</strong>",
                         "Vous pouvez contacter l'administrateur pour plus d'informations.",
                         "Vous avez la possibilité de soumettre une nouvelle demande après vérification de vos documents.",
                         "Une fiche de décision est jointe à cet email."

@@ -18,10 +18,10 @@
             prefWidth="1500.0"
             prefHeight="880.0"
             styleClass="app-root"
-            stylesheets="@../CSS/badmin-users.css,@../CSS/admin-welcome.css"
+            stylesheets="@../CSS/badmin-users.css,@../CSS/badmin-risk-journal.css,@../CSS/admin-welcome.css"
             xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="tn.esprit.controllers.BAdminUsersController">
+            fx:controller="tn.esprit.controllers.BAdminRiskJournalController">
 
     <left>
         <BorderPane prefWidth="320.0" styleClass="sidebar">
@@ -49,8 +49,8 @@
                             <TitledPane text="Utilisateurs" expanded="true" styleClass="sidebar-dropdown">
                                 <content>
                                     <VBox spacing="6" styleClass="dropdown-content">
-                                        <Button text="Tous les utilisateurs" onAction="#openUsers" styleClass="sub-nav-button-active"/>
-                                        <Button text="Risque &amp; Journal" onAction="#openRiskJournal" styleClass="sub-nav-button"/>
+                                        <Button text="Tous les utilisateurs" onAction="#openUsers" styleClass="sub-nav-button"/>
+                                        <Button text="Risque &amp; Journal" onAction="#openRiskJournal" styleClass="sub-nav-button-active"/>
                                     </VBox>
                                 </content>
                             </TitledPane>
@@ -132,14 +132,15 @@
             </padding>
 
             <Button text="Menu" styleClass="menu-button"/>
-
             <VBox spacing="3">
-                <Label text="Centre de Gestion Admin" styleClass="page-title"/>
-                <Label text="Gestion des utilisateurs" styleClass="page-subtitle"/>
+                <Label text="Sécurité utilisateurs &amp; Journal" styleClass="page-title"/>
+                <Label text="Comptes à risque + traçabilité admin" styleClass="page-subtitle"/>
             </VBox>
 
             <Region HBox.hgrow="ALWAYS"/>
-            <TextField fx:id="searchField" promptText="Rechercher..." styleClass="search-field"/>
+            <Button text="Actualiser risques" onAction="#onRefreshRiskData" styleClass="risk-action-btn"/>
+            <Button text="Actualiser journal" onAction="#onRefreshJournalData" styleClass="risk-action-btn-soft"/>
+            <TextField fx:id="searchField" promptText="Filtrer risques / actions..." styleClass="search-field"/>
             <Button text="Notif" styleClass="icon-button"/>
             <Button text="Param" styleClass="icon-button"/>
             <Label text="A" styleClass="avatar-label"/>
@@ -152,52 +153,62 @@
                 <Insets top="28" right="34" bottom="34" left="34"/>
             </padding>
 
-            <VBox spacing="8" styleClass="simple-welcome-card" id="infoBoxColor">
-                <Label text="Gestion des utilisateurs" styleClass="simple-welcome-title"/>
-                <Label text="Liste des comptes avec action bannir/debannir." styleClass="simple-welcome-text"/>
-            </VBox>
-
             <HBox spacing="14" styleClass="users-kpi-row">
-                <VBox styleClass="users-kpi-card users-kpi-total" HBox.hgrow="ALWAYS">
-                    <Label text="Total" styleClass="users-kpi-title"/>
-                    <Label fx:id="totalUsersCountLabel" text="0" styleClass="users-kpi-value"/>
+                <VBox styleClass="users-kpi-card,users-kpi-banned" HBox.hgrow="ALWAYS">
+                    <Label text="Comptes à risque" styleClass="users-kpi-title"/>
+                    <Label fx:id="riskUsersCountLabel" text="0" styleClass="users-kpi-value"/>
                 </VBox>
-                <VBox styleClass="users-kpi-card users-kpi-active" HBox.hgrow="ALWAYS">
-                    <Label text="Actifs" styleClass="users-kpi-title"/>
-                    <Label fx:id="activeUsersCountLabel" text="0" styleClass="users-kpi-value"/>
+                <VBox styleClass="users-kpi-card,users-kpi-total" HBox.hgrow="ALWAYS">
+                    <Label text="Comptes verrouillés" styleClass="users-kpi-title"/>
+                    <Label fx:id="lockedAccountsCountLabel" text="0" styleClass="users-kpi-value"/>
                 </VBox>
-                <VBox styleClass="users-kpi-card users-kpi-banned" HBox.hgrow="ALWAYS">
-                    <Label text="Bannis" styleClass="users-kpi-title"/>
-                    <Label fx:id="bannedUsersCountLabel" text="0" styleClass="users-kpi-value"/>
+                <VBox styleClass="users-kpi-card,users-kpi-staff" HBox.hgrow="ALWAYS">
+                    <Label text="Signaux Face ID" styleClass="users-kpi-title"/>
+                    <Label fx:id="faceFailCountLabel" text="0" styleClass="users-kpi-value"/>
                 </VBox>
-                <VBox styleClass="users-kpi-card users-kpi-staff" HBox.hgrow="ALWAYS">
-                    <Label text="Staff" styleClass="users-kpi-title"/>
-                    <Label fx:id="staffUsersCountLabel" text="0" styleClass="users-kpi-value"/>
+                <VBox styleClass="users-kpi-card,users-kpi-active" HBox.hgrow="ALWAYS">
+                    <Label text="IP/Pays suspects" styleClass="users-kpi-title"/>
+                    <Label fx:id="suspectGeoCountLabel" text="0" styleClass="users-kpi-value"/>
+                </VBox>
+                <VBox styleClass="users-kpi-card,users-kpi-total" HBox.hgrow="ALWAYS">
+                    <Label text="Actions journalisées" styleClass="users-kpi-title"/>
+                    <Label fx:id="journalCountLabel" text="0" styleClass="users-kpi-value"/>
                 </VBox>
             </HBox>
 
             <VBox spacing="0" styleClass="users-table-card" VBox.vgrow="ALWAYS">
                 <HBox alignment="CENTER_LEFT" styleClass="users-table-title-row">
-                    <Label text="Tableau des utilisateurs" styleClass="users-table-title"/>
-                    <Region HBox.hgrow="ALWAYS"/>
-                    <Label text="Rôle, vérification et statut visibles d'un coup" styleClass="users-table-hint"/>
+                    <Label text="Liste prioritaire des comptes à risque" styleClass="users-table-title"/>
                 </HBox>
-
-                <TableView fx:id="usersTable" VBox.vgrow="ALWAYS" styleClass="users-table">
+                <TableView fx:id="riskTable" VBox.vgrow="ALWAYS" styleClass="users-table,risk-table">
                     <columns>
-                        <TableColumn fx:id="idColumn" text="ID" prefWidth="70"/>
-                        <TableColumn fx:id="nomColumn" text="Nom complet" prefWidth="220"/>
-                        <TableColumn fx:id="emailColumn" text="Email" prefWidth="260"/>
-                        <TableColumn fx:id="roleColumn" text="Role" prefWidth="120"/>
-                        <TableColumn fx:id="verifiedColumn" text="Verification" prefWidth="130"/>
-                        <TableColumn fx:id="statutColumn" text="Statut" prefWidth="120"/>
-                        <TableColumn fx:id="actionColumn" text="Action" prefWidth="140"/>
+                        <TableColumn fx:id="riskIdColumn" text="ID" prefWidth="70"/>
+                        <TableColumn fx:id="riskUserColumn" text="Utilisateur" prefWidth="180"/>
+                        <TableColumn fx:id="riskEmailColumn" text="Email" prefWidth="220"/>
+                        <TableColumn fx:id="riskScoreColumn" text="Score" prefWidth="80"/>
+                        <TableColumn fx:id="riskSignalsColumn" text="Signaux" prefWidth="260"/>
+                        <TableColumn fx:id="riskLastLoginColumn" text="Dernière connexion" prefWidth="260"/>
+                        <TableColumn fx:id="riskLockColumn" text="Verrou" prefWidth="230"/>
+                    </columns>
+                </TableView>
+            </VBox>
+
+            <VBox spacing="0" styleClass="users-table-card" VBox.vgrow="ALWAYS">
+                <HBox alignment="CENTER_LEFT" styleClass="users-table-title-row">
+                    <Label text="Journal admin des actions utilisateurs" styleClass="users-table-title"/>
+                </HBox>
+                <TableView fx:id="journalTable" VBox.vgrow="ALWAYS" styleClass="users-table,journal-table">
+                    <columns>
+                        <TableColumn fx:id="journalWhenColumn" text="Quand" prefWidth="170"/>
+                        <TableColumn fx:id="journalAdminColumn" text="Admin" prefWidth="180"/>
+                        <TableColumn fx:id="journalActionColumn" text="Action" prefWidth="160"/>
+                        <TableColumn fx:id="journalTargetColumn" text="Cible" prefWidth="160"/>
+                        <TableColumn fx:id="journalDetailsColumn" text="Détails" prefWidth="520"/>
                     </columns>
                 </TableView>
             </VBox>
         </VBox>
     </center>
-
 </BorderPane>
 
 

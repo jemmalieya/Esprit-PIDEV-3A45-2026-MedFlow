@@ -121,9 +121,6 @@
 									<Button onAction="#onOpenStatsPage" styleClass="hero-icon-btn,hero-icon-btn-blue" contentDisplay="GRAPHIC_ONLY">
 										<graphic><VBox alignment="CENTER" spacing="2.0"><children><Label text="ST" styleClass="hero-action-emoji"/><Label text="Stats" styleClass="hero-action-label"/></children></VBox></graphic>
 									</Button>
-									<Button onAction="#onExportSmartReport" styleClass="hero-icon-btn,hero-icon-btn-amber" contentDisplay="GRAPHIC_ONLY">
-										<graphic><VBox alignment="CENTER" spacing="2.0"><children><Label text="PF" styleClass="hero-action-emoji"/><Label text="PDF" styleClass="hero-action-label"/></children></VBox></graphic>
-									</Button>
 									<Button onAction="#onGoToFront" styleClass="hero-icon-btn,hero-icon-btn-white" contentDisplay="GRAPHIC_ONLY">
 										<graphic><VBox alignment="CENTER" spacing="2.0"><children><Label text="FR" styleClass="hero-action-emoji"/><Label text="Front" styleClass="hero-action-label"/></children></VBox></graphic>
 									</Button>

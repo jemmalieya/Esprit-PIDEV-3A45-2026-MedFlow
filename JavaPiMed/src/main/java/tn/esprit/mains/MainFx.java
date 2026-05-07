@@ -9,10 +9,15 @@ import tn.esprit.tools.EnvLoader;
 import tn.esprit.tools.SystemNotification;
 
 public class MainFx extends Application {
-
+    private static final double APP_WIDTH = 1400;
+    private static final double APP_HEIGHT = 820;
+    private boolean applyingWindowSize;
+    private boolean preferredMaximized;
     @Override
     public void start(Stage stage) throws Exception {
         SystemNotification.initTray();
+        configurePrimaryStage(stage);
+
 
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/FrontFXML/AuthWelcome.fxml"));
         Parent root = loader.load();
@@ -26,6 +31,57 @@ public class MainFx extends Application {
         stage.setTitle("MedFlow - Bienvenue");
         stage.setMaximized(true);
         stage.show();
+    }
+    private void configurePrimaryStage(Stage stage) {
+        stage.setMinWidth(APP_WIDTH);
+        stage.setMinHeight(APP_HEIGHT);
+        stage.sceneProperty().addListener((obs, oldScene, newScene) -> applyStandardWindowSize(stage));
+        stage.maximizedProperty().addListener((obs, wasMaximized, isMaximized) -> {
+            if (!applyingWindowSize) {
+                preferredMaximized = isMaximized;
+            }
+        });
+        stage.widthProperty().addListener((obs, oldWidth, newWidth) -> {
+            if (!applyingWindowSize
+                    && !preferredMaximized
+                    && !stage.isMaximized()
+                    && Math.abs(newWidth.doubleValue() - APP_WIDTH) > 0.5) {
+                applyStandardWindowSize(stage);
+            }
+        });
+        stage.heightProperty().addListener((obs, oldHeight, newHeight) -> {
+            if (!applyingWindowSize
+                    && !preferredMaximized
+                    && !stage.isMaximized()
+                    && Math.abs(newHeight.doubleValue() - APP_HEIGHT) > 0.5) {
+                applyStandardWindowSize(stage);
+            }
+        });
+    }
+
+    private void applyStandardWindowSize(Stage stage) {
+        if (applyingWindowSize) {
+            return;
+        }
+
+        applyingWindowSize = true;
+        try {
+            if (preferredMaximized) {
+                if (!stage.isMaximized()) {
+                    stage.setMaximized(true);
+                }
+                return;
+            }
+
+            if (stage.isMaximized()) {
+                stage.setMaximized(false);
+            }
+            stage.setWidth(APP_WIDTH);
+            stage.setHeight(APP_HEIGHT);
+            stage.centerOnScreen();
+        } finally {
+            applyingWindowSize = false;
+        }
     }
 
     public static void main(String[] args) {

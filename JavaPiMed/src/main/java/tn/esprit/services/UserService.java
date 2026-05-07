@@ -10,6 +10,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class UserService implements IGeneralService<User> {
 
@@ -321,21 +322,70 @@ public class UserService implements IGeneralService<User> {
     }
 
     public boolean updateStatutCompte(int userId, String statutCompte) {
-        String snake = "UPDATE user SET statut_compte = ? WHERE id = ?";
-        String camel = "UPDATE user SET statutCompte = ? WHERE id = ?";
-        try (PreparedStatement ps = cnx.prepareStatement(snake)) {
+        return updateStatutCompte(userId, statutCompte, null);
+    }
+
+    public boolean updateStatutCompte(int userId, String statutCompte, String banReason) {
+        String normalizedStatus = statutCompte == null ? "" : statutCompte.trim().toUpperCase(Locale.ROOT);
+        boolean isBan = normalizedStatus.contains("BAN");
+        String normalizedReason = normalizeReason(banReason);
+        LocalDateTime now = LocalDateTime.now();
+
+        String snakeExtended = "UPDATE user SET statut_compte = ?, ban_reason = ?, banned_at = ? WHERE id = ?";
+        String camelExtended = "UPDATE user SET statutCompte = ?, banReason = ?, bannedAt = ? WHERE id = ?";
+        String snakeSimple = "UPDATE user SET statut_compte = ? WHERE id = ?";
+        String camelSimple = "UPDATE user SET statutCompte = ? WHERE id = ?";
+
+        if (executeStatusUpdateExtended(snakeExtended, userId, statutCompte, isBan, normalizedReason, now)) {
+            return true;
+        }
+        if (executeStatusUpdateExtended(camelExtended, userId, statutCompte, isBan, normalizedReason, now)) {
+            return true;
+        }
+        if (executeStatusUpdateSimple(snakeSimple, userId, statutCompte)) {
+            return true;
+        }
+        if (executeStatusUpdateSimple(camelSimple, userId, statutCompte)) {
+            return true;
+        }
+
+        System.out.println("Erreur lors de la mise a jour du statut compte");
+        return false;
+    }
+
+    private boolean executeStatusUpdateSimple(String sql, int userId, String statutCompte) {
+        try (PreparedStatement ps = cnx.prepareStatement(sql)) {
             ps.setString(1, statutCompte);
             ps.setInt(2, userId);
             return ps.executeUpdate() > 0;
-        } catch (SQLException first) {
-            try (PreparedStatement ps = cnx.prepareStatement(camel)) {
-                ps.setString(1, statutCompte);
-                ps.setInt(2, userId);
-                return ps.executeUpdate() > 0;
-            } catch (SQLException second) {
-                System.out.println("Erreur lors de la mise a jour du statut compte : " + second.getMessage());
-                return false;
+        } catch (SQLException e) {
+            return false;
+        }
+    }
+
+    private boolean executeStatusUpdateExtended(
+            String sql,
+            int userId,
+            String statutCompte,
+            boolean isBan,
+            String banReason,
+            LocalDateTime now
+    ) {
+        try (PreparedStatement ps = cnx.prepareStatement(sql)) {
+            ps.setString(1, statutCompte);
+
+            if (isBan) {
+                ps.setString(2, banReason);
+                ps.setTimestamp(3, Timestamp.valueOf(now));
+            } else {
+                ps.setNull(2, Types.VARCHAR);
+                ps.setNull(3, Types.TIMESTAMP);
             }
+
+            ps.setInt(4, userId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            return false;
         }
     }
 
@@ -406,6 +456,16 @@ public class UserService implements IGeneralService<User> {
         user.setStaffRequestProofPath(readOptionalString(rs, "staff_request_proof_path", "staffRequestProofPath"));
         user.setStaffDocuments(readOptionalString(rs, "staff_documents", "staffDocuments"));
         user.setStaffRequestReason(readOptionalString(rs, "staff_request_reason", "staffRequestReason"));
+        user.setBanReason(readOptionalString(rs, "ban_reason", "banReason"));
+        user.setBannedAt(readOptionalTimestamp(rs, "banned_at", "bannedAt"));
+        user.setFaceLoginEnabled(readOptionalBoolean(rs, "face_login_enabled", "faceLoginEnabled"));
+        user.setFaceEnrolledAt(readOptionalTimestamp(rs, "face_enrolled_at", "faceEnrolledAt"));
+        user.setFaceLastVerifiedAt(readOptionalTimestamp(rs, "face_last_verified_at", "faceLastVerifiedAt"));
+        user.setFaceFailedAttempts(readOptionalInt(rs, "face_failed_attempts", "faceFailedAttempts"));
+        user.setFaceLockedUntil(readOptionalTimestamp(rs, "face_locked_until", "faceLockedUntil"));
+        user.setLastLoginIp(readOptionalString(rs, "last_login_ip", "lastLoginIp"));
+        user.setLastLoginCountry(readOptionalString(rs, "last_login_country", "lastLoginCountry"));
+        user.setLastLoginAt(readOptionalTimestamp(rs, "last_login_at", "lastLoginAt"));
         return user;
     }
 
@@ -430,6 +490,58 @@ public class UserService implements IGeneralService<User> {
             }
         }
         return null;
+    }
+
+    private int readOptionalInt(ResultSet rs, String... columnNames) {
+        for (String columnName : columnNames) {
+            try {
+                int value = rs.getInt(columnName);
+                if (!rs.wasNull()) {
+                    return value;
+                }
+            } catch (SQLException ignored) {
+            }
+        }
+        return 0;
+    }
+
+    private boolean readOptionalBoolean(ResultSet rs, String... columnNames) {
+        for (String columnName : columnNames) {
+            try {
+                boolean value = rs.getBoolean(columnName);
+                if (!rs.wasNull()) {
+                    return value;
+                }
+            } catch (SQLException ignored) {
+            }
+        }
+        return false;
+    }
+
+    public List<User> findRiskUsers() {
+        List<User> users = new ArrayList<>();
+
+        String snakeQuery = "SELECT id, cin, profile_picture, nom, prenom, date_naissance, telephone_user, email_user, adresse_user, password, is_verified, statut_compte, role_systeme, face_login_enabled, face_enrolled_at, face_last_verified_at, face_failed_attempts, face_locked_until, last_login_ip, last_login_country, last_login_at FROM user ORDER BY id DESC";
+        String camelQuery = "SELECT id, cin, profilePicture AS profile_picture, nom, prenom, dateNaissance AS date_naissance, telephoneUser AS telephone_user, emailUser AS email_user, adresseUser AS adresse_user, password, isVerified AS is_verified, statutCompte AS statut_compte, roleSysteme AS role_systeme, faceLoginEnabled AS face_login_enabled, faceEnrolledAt AS face_enrolled_at, faceLastVerifiedAt AS face_last_verified_at, faceFailedAttempts AS face_failed_attempts, faceLockedUntil AS face_locked_until, lastLoginIp AS last_login_ip, lastLoginCountry AS last_login_country, lastLoginAt AS last_login_at FROM user ORDER BY id DESC";
+
+        if (loadRiskUsersWithQuery(users, snakeQuery)) {
+            return users;
+        }
+        loadRiskUsersWithQuery(users, camelQuery);
+        return users;
+    }
+
+    private boolean loadRiskUsersWithQuery(List<User> target, String sql) {
+        try (PreparedStatement ps = cnx.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            target.clear();
+            while (rs.next()) {
+                target.add(mapResultSetToUser(rs));
+            }
+            return true;
+        } catch (SQLException e) {
+            return false;
+        }
     }
 
     private void enrichFaceDataIfAvailable(User user) {
@@ -609,24 +721,29 @@ public class UserService implements IGeneralService<User> {
     }
 
     public boolean reviewStaffRequest(int userId, boolean approve, Integer reviewedBy) {
+        return reviewStaffRequest(userId, approve, reviewedBy, null);
+    }
+
+    public boolean reviewStaffRequest(int userId, boolean approve, Integer reviewedBy, String decisionReason) {
         String requestStatus = approve ? "APPROVED" : "REJECTED";
         String accountStatus = approve ? "ACTIF" : "REFUSE";
+        String normalizedReason = approve ? null : normalizeReason(decisionReason);
 
-        String snakeUpdate = "UPDATE user SET is_verified = ?, statut_compte = ?, staff_request_status = ?, staff_reviewed_at = ?, staff_reviewed_by = ? WHERE id = ? AND role_systeme = 'STAFF'";
-        String camelUpdate = "UPDATE user SET isVerified = ?, statutCompte = ?, staffRequestStatus = ?, staffReviewedAt = ?, staffReviewedBy = ? WHERE id = ? AND roleSysteme = 'STAFF'";
+        String snakeUpdate = "UPDATE user SET is_verified = ?, statut_compte = ?, staff_request_status = ?, staff_reviewed_at = ?, staff_reviewed_by = ?, staff_request_reason = ? WHERE id = ? AND role_systeme = 'STAFF'";
+        String camelUpdate = "UPDATE user SET isVerified = ?, statutCompte = ?, staffRequestStatus = ?, staffReviewedAt = ?, staffReviewedBy = ?, staffRequestReason = ? WHERE id = ? AND roleSysteme = 'STAFF'";
         String snakeLegacy = "UPDATE user SET is_verified = ?, statut_compte = ? WHERE id = ? AND role_systeme = 'STAFF'";
         String camelLegacy = "UPDATE user SET isVerified = ?, statutCompte = ? WHERE id = ? AND roleSysteme = 'STAFF'";
 
-        if (executeReviewUpdate(snakeUpdate, userId, approve, accountStatus, requestStatus, reviewedBy, true)) {
+        if (executeReviewUpdate(snakeUpdate, userId, approve, accountStatus, requestStatus, reviewedBy, normalizedReason, true)) {
             return true;
         }
-        if (executeReviewUpdate(camelUpdate, userId, approve, accountStatus, requestStatus, reviewedBy, true)) {
+        if (executeReviewUpdate(camelUpdate, userId, approve, accountStatus, requestStatus, reviewedBy, normalizedReason, true)) {
             return true;
         }
-        if (executeReviewUpdate(snakeLegacy, userId, approve, accountStatus, requestStatus, reviewedBy, false)) {
+        if (executeReviewUpdate(snakeLegacy, userId, approve, accountStatus, requestStatus, reviewedBy, normalizedReason, false)) {
             return true;
         }
-        return executeReviewUpdate(camelLegacy, userId, approve, accountStatus, requestStatus, reviewedBy, false);
+        return executeReviewUpdate(camelLegacy, userId, approve, accountStatus, requestStatus, reviewedBy, normalizedReason, false);
     }
 
     private boolean executeReviewUpdate(
@@ -636,6 +753,7 @@ public class UserService implements IGeneralService<User> {
             String accountStatus,
             String requestStatus,
             Integer reviewedBy,
+            String decisionReason,
             boolean includeReviewColumns
     ) {
         try (PreparedStatement ps = cnx.prepareStatement(sql)) {
@@ -650,7 +768,12 @@ public class UserService implements IGeneralService<User> {
                 } else {
                     ps.setInt(5, reviewedBy);
                 }
-                ps.setInt(6, userId);
+                if (decisionReason == null || decisionReason.isBlank()) {
+                    ps.setNull(6, Types.VARCHAR);
+                } else {
+                    ps.setString(6, decisionReason);
+                }
+                ps.setInt(7, userId);
             } else {
                 ps.setInt(3, userId);
             }
@@ -659,6 +782,14 @@ public class UserService implements IGeneralService<User> {
         } catch (SQLException e) {
             return false;
         }
+    }
+
+    private String normalizeReason(String value) {
+        if (value == null) {
+            return null;
+        }
+        String cleaned = value.trim();
+        return cleaned.isBlank() ? null : cleaned;
     }
 
     // ══════════════════════════════════════════════════════════════════════════

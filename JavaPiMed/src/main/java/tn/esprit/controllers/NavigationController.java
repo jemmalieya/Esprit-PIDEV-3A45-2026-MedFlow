@@ -47,6 +47,8 @@ import java.util.Optional;
 import tn.esprit.services.UserProfileGamificationService;
 
 public class NavigationController {
+    private static final double APP_WIDTH = 1400;
+    private static final double APP_HEIGHT = 820;
 
     @FXML
     private void handleRendezVous(ActionEvent event) {
@@ -418,6 +420,18 @@ public class NavigationController {
             e.printStackTrace();
         }
     }
+
+
+    private void applyStandardWindowSize(Stage stage) {
+        stage.setMinWidth(APP_WIDTH);
+        stage.setMinHeight(APP_HEIGHT);
+        if (!stage.isMaximized()) {
+            stage.setWidth(APP_WIDTH);
+            stage.setHeight(APP_HEIGHT);
+            stage.centerOnScreen();
+        }
+    }
+
 
     private void applyRolePermissions() {
         User current = SessionManager.getCurrentUser();

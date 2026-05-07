@@ -54,6 +54,7 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import tn.esprit.entities.User;
+import tn.esprit.services.AdminActionLogService;
 import tn.esprit.services.EmailService;
 import tn.esprit.services.UserService;
 import tn.esprit.services.StaffRequestAIAnalysisService;
@@ -159,6 +160,7 @@ public class UserController {
     // ── Shared state ───────────────────────────────────────────────────────────
 
     private final UserService userService = new UserService();
+    private final AdminActionLogService actionLogService = new AdminActionLogService();
     private final ObservableList<User> masterList = FXCollections.observableArrayList();
     private final ObservableList<User> pendingStaffRequests = FXCollections.observableArrayList();
     private FilteredList<User> filteredList;
@@ -361,12 +363,24 @@ public class UserController {
 
                     Optional<ButtonType> result = confirm.showAndWait();
                     if (result.isPresent() && result.get() == ButtonType.OK) {
-                        boolean updated = userService.updateStatutCompte(user.getId(), nextStatus);
+                        String reason = null;
+                        if (!banned) {
+                            reason = promptMandatoryReason(
+                                    "Motif de bannissement",
+                                    "Veuillez saisir la raison du bannissement",
+                                    "Ex: non-respect des regles, documents frauduleux, etc.",
+                                    ""
+                            );
+                            if (reason == null) {
+                                return;
+                            }
+                        }
+
+                        boolean updated = userService.updateStatutCompte(user.getId(), nextStatus, reason);
                         if (updated) {
                             user.setStatutCompte(nextStatus);
                             if (!banned) {
                                 String adminName = resolveAdminSignatureName();
-                                String reason = "Decision administrative";
                                 byte[] pdf = DecisionPdfService.buildAccountBanPdf(user, reason, adminName);
                                 EmailService.sendAccountBanEmail(user, reason, pdf, buildDecisionPdfName("ban", user));
                             }
@@ -611,11 +625,21 @@ public class UserController {
         Optional<ButtonType> result = confirm.showAndWait();
         if (result.isEmpty() || result.get() != ButtonType.OK) return;
 
+        String decisionReason = approve ? resolveStaffDecisionReason(selected) : promptMandatoryReason(
+                "Motif de refus",
+                "Veuillez saisir le motif du refus",
+                "Ex: fichiers manquants, diplome non lisible, informations incompletes...",
+                resolveStaffDecisionReason(selected)
+        );
+        if (!approve && decisionReason == null) {
+            return;
+        }
+
         Integer reviewerId = null;
         User current = SessionManager.getCurrentUser();
         if (current != null && current.getId() > 0) reviewerId = current.getId();
 
-        boolean ok = userService.reviewStaffRequest(selected.getId(), approve, reviewerId);
+        boolean ok = userService.reviewStaffRequest(selected.getId(), approve, reviewerId, decisionReason);
         if (!ok) {
             showError("Demandes staff", "Impossible de mettre à jour cette demande.");
             return;
@@ -624,14 +648,16 @@ public class UserController {
         try {
             if (approve) {
                 String adminName = resolveAdminSignatureName();
-                String reason = resolveStaffDecisionReason(selected);
-                byte[] pdf = DecisionPdfService.buildStaffApprovalPdf(selected, adminName, reason);
+                byte[] pdf = DecisionPdfService.buildStaffApprovalPdf(selected, adminName, decisionReason);
                 EmailService.sendStaffApprovalEmail(selected, pdf, buildDecisionPdfName("approbation_staff", selected));
+                actionLogService.logAction(adminName, "STAFF_APPROVE", "USER", selected.getId(),
+                        "Demande staff approuvee. Motif: " + safe(decisionReason));
             } else {
                 String adminName = resolveAdminSignatureName();
-                String reason = resolveStaffDecisionReason(selected);
-                byte[] pdf = DecisionPdfService.buildStaffRejectionPdf(selected, adminName, reason);
-                EmailService.sendStaffRejectionEmail(selected, pdf, buildDecisionPdfName("refus_staff", selected));
+                byte[] pdf = DecisionPdfService.buildStaffRejectionPdf(selected, adminName, decisionReason);
+                EmailService.sendStaffRejectionEmail(selected, decisionReason, pdf, buildDecisionPdfName("refus_staff", selected));
+                actionLogService.logAction(adminName, "STAFF_REJECT", "USER", selected.getId(),
+                        "Demande staff refusee. Motif: " + safe(decisionReason));
             }
         } catch (Exception emailEx) {
             System.err.println("[UserController] Erreur envoi email staff : " + emailEx.getMessage());
@@ -1666,6 +1692,32 @@ public class UserController {
     private String buildDecisionPdfName(String prefix, User user) {
         String idPart = user == null ? "unknown" : String.valueOf(user.getId());
         return "decision_" + prefix + "_" + idPart + ".pdf";
+    }
+
+    private String promptMandatoryReason(String title, String header, String prompt, String initialValue) {
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle(title);
+        dialog.setHeaderText(header);
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        TextArea reasonArea = new TextArea(safe(initialValue));
+        reasonArea.setPromptText(prompt);
+        reasonArea.setWrapText(true);
+        reasonArea.setPrefRowCount(5);
+        reasonArea.setPrefColumnCount(40);
+        dialog.getDialogPane().setContent(reasonArea);
+
+        Optional<ButtonType> result = dialog.showAndWait();
+        if (result.isEmpty() || result.get() != ButtonType.OK) {
+            return null;
+        }
+
+        String reason = safe(reasonArea.getText()).trim();
+        if (reason.isBlank()) {
+            showError(title, "Le motif est obligatoire.");
+            return null;
+        }
+        return reason;
     }
 
     private double ratio(int part, int total) {

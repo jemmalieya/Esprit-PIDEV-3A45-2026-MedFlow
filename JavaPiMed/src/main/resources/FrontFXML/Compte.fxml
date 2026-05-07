@@ -37,6 +37,7 @@
                 pannable="true"
                 hbarPolicy="NEVER"
                 vbarPolicy="AS_NEEDED"
+                fitToWidth="true"
                 styleClass="main-scroll">
 
             <content>

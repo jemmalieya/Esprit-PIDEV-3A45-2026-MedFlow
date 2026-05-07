@@ -1,0 +1,323 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.net.URL?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.chart.BarChart?>
+<?import javafx.scene.chart.CategoryAxis?>
+<?import javafx.scene.chart.LineChart?>
+<?import javafx.scene.chart.NumberAxis?>
+<?import javafx.scene.chart.PieChart?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.TitledPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane fx:id="rootPane"
+            prefWidth="1500.0"
+            prefHeight="880.0"
+            styleClass="app-root blog-stats-root"
+            xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="tn.esprit.controllers.BlogStatsAdminController">
+
+    <stylesheets>
+        <URL value="@CSS/admin-welcome.css"/>
+        <URL value="@CSS/blog-stats.css"/>
+    </stylesheets>
+
+    <left>
+        <BorderPane prefWidth="320.0" styleClass="sidebar">
+
+            <top>
+                <VBox spacing="8">
+                    <padding>
+                        <Insets top="26" right="20" bottom="16" left="20"/>
+                    </padding>
+
+                    <Label text="MedFlow Admin" styleClass="brand-title"/>
+                    <Label text="ESPACE ADMINISTRATION" styleClass="brand-subtitle"/>
+                    <Separator styleClass="side-separator"/>
+                </VBox>
+            </top>
+
+            <center>
+                <ScrollPane fitToWidth="true"
+                            hbarPolicy="NEVER"
+                            vbarPolicy="AS_NEEDED"
+                            styleClass="sidebar-scroll">
+                    <content>
+                        <VBox spacing="10">
+                            <padding>
+                                <Insets top="4" right="18" bottom="16" left="18"/>
+                            </padding>
+
+                            <Button text="Accueil Admin" styleClass="nav-button"/>
+
+                            <TitledPane text="Utilisateurs" expanded="false" styleClass="sidebar-dropdown">
+                                <content>
+                                    <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Patients" styleClass="sub-nav-button"/>
+                                        <Button text="Tous les utilisateurs" styleClass="sub-nav-button"/>
+                                        <Button text="Demandes de rôle" styleClass="sub-nav-button"/>
+                                        <Button text="Comptes et permissions" styleClass="sub-nav-button"/>
+                                    </VBox>
+                                </content>
+                            </TitledPane>
+
+                            <TitledPane text="Produits" expanded="false" styleClass="sidebar-dropdown">
+                                <content>
+                                    <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Liste des produits" styleClass="sub-nav-button"/>
+                                        <Button text="Commandes" styleClass="sub-nav-button"/>
+                                        <Button text="Détection Épidémie" styleClass="sub-nav-button"/>
+                                        <Button text="Stock et ruptures" styleClass="sub-nav-button"/>
+                                        <Button text="Statistiques produits" styleClass="sub-nav-button"/>
+                                    </VBox>
+                                </content>
+                            </TitledPane>
+
+                            <TitledPane text="Événements" expanded="false" styleClass="sidebar-dropdown">
+                                <content>
+                                    <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Liste des événements" styleClass="sub-nav-button"/>
+                                        <Button text="Participants demandes" styleClass="sub-nav-button"/>
+                                        <Button text="Ressources" styleClass="sub-nav-button"/>
+                                        <Button text="Stats événements" styleClass="sub-nav-button"/>
+                                        <Button text="Stats ressources" styleClass="sub-nav-button"/>
+                                    </VBox>
+                                </content>
+                            </TitledPane>
+
+                            <TitledPane text="Consultations" expanded="false" styleClass="sidebar-dropdown">
+                                <content>
+                                    <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Consultations par Docteur" styleClass="sub-nav-button"/>
+                                        <Button text="Rendez-vous" styleClass="sub-nav-button"/>
+                                        <Button text="Statistiques consultations" styleClass="sub-nav-button"/>
+                                    </VBox>
+                                </content>
+                            </TitledPane>
+
+                            <TitledPane text="Réclamations" expanded="false" styleClass="sidebar-dropdown">
+                                <content>
+                                    <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Liste des réclamations" styleClass="sub-nav-button"/>
+                                        <Button text="Statistiques réclamations"
+                                                onAction="#openReclamationStats"
+                                                styleClass="sub-nav-button"/>
+                                    </VBox>
+                                </content>
+                            </TitledPane>
+
+                            <TitledPane text="Blog et Posts" expanded="true" styleClass="sidebar-dropdown">
+                                <content>
+                                    <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Liste des posts" styleClass="sub-nav-button"/>
+                                        <Button text="Posts en attente"
+                                                onAction="#openPendingPostsAdminPage"
+                                                styleClass="sub-nav-button"/>
+                                        <Button text="Statistiques blog"
+                                                onAction="#openBlogStats"
+                                                styleClass="sub-nav-button-active"/>
+                                    </VBox>
+                                </content>
+                            </TitledPane>
+
+                            <Button text="Déconnexion"
+                                    onAction="#handleLogout"
+                                    styleClass="logout-button"/>
+                        </VBox>
+                    </content>
+                </ScrollPane>
+            </center>
+
+            <bottom>
+                <VBox spacing="10">
+                    <padding>
+                        <Insets top="12" right="18" bottom="22" left="18"/>
+                    </padding>
+
+                    <Separator styleClass="side-separator"/>
+                    <Button text="Retour Site" styleClass="back-site-button"/>
+                </VBox>
+            </bottom>
+
+        </BorderPane>
+    </left>
+
+    <top>
+        <HBox alignment="CENTER_LEFT" spacing="18" styleClass="top-bar">
+            <padding>
+                <Insets top="18" right="28" bottom="18" left="28"/>
+            </padding>
+
+            <Button text="Menu" styleClass="menu-button"/>
+
+            <VBox spacing="3">
+                <Label text="Statistiques Blog" styleClass="page-title"/>
+                <Label text="Analyse des posts, commentaires, catégories et publications anonymes"
+                       styleClass="page-subtitle"/>
+            </VBox>
+
+            <Region HBox.hgrow="ALWAYS"/>
+
+            <TextField promptText="Rechercher..." styleClass="search-field"/>
+            <Button text="Notif" styleClass="icon-button"/>
+            <Button text="Param" styleClass="icon-button"/>
+            <Label text="B" styleClass="avatar-label"/>
+        </HBox>
+    </top>
+
+    <center>
+        <ScrollPane fitToWidth="true"
+                    hbarPolicy="NEVER"
+                    vbarPolicy="AS_NEEDED"
+                    styleClass="content-scroll">
+            <content>
+                <VBox spacing="24" styleClass="blog-stats-content">
+                    <padding>
+                        <Insets top="34" right="38" bottom="45" left="38"/>
+                    </padding>
+
+                    <VBox spacing="10" styleClass="blog-hero-card">
+                        <Label text="Vue globale du blog MedFlow" styleClass="blog-hero-title"/>
+                        <Label text="Suivez l’activité du blog, les catégories les plus utilisées, les commentaires et l’évolution des publications."
+                               wrapText="true"
+                               styleClass="blog-hero-subtitle"/>
+
+                        <HBox spacing="10" styleClass="blog-hero-tags">
+                            <Label text="Posts" styleClass="hero-chip"/>
+                            <Label text="Commentaires" styleClass="hero-chip"/>
+                            <Label text="Catégories" styleClass="hero-chip"/>
+                            <Label text="Anonymat" styleClass="hero-chip"/>
+                        </HBox>
+                    </VBox>
+
+                    <HBox spacing="18">
+
+                        <VBox spacing="8" HBox.hgrow="ALWAYS" styleClass="stat-kpi-card kpi-blue">
+                            <Label text="Total Posts" styleClass="stat-kpi-title"/>
+                            <Label fx:id="totalPostsLabel" text="0" styleClass="stat-kpi-value"/>
+                            <Label text="Nombre total des publications" wrapText="true" styleClass="stat-kpi-caption"/>
+                        </VBox>
+
+                        <VBox spacing="8" HBox.hgrow="ALWAYS" styleClass="stat-kpi-card kpi-green">
+                            <Label text="Commentaires" styleClass="stat-kpi-title"/>
+                            <Label fx:id="totalCommentairesLabel" text="0" styleClass="stat-kpi-value"/>
+                            <Label text="Interactions des utilisateurs" wrapText="true" styleClass="stat-kpi-caption"/>
+                        </VBox>
+
+                        <VBox spacing="8" HBox.hgrow="ALWAYS" styleClass="stat-kpi-card kpi-orange">
+                            <Label text="Posts Anonymes" styleClass="stat-kpi-title"/>
+                            <Label fx:id="postsAnonymesLabel" text="0" styleClass="stat-kpi-value"/>
+                            <Label text="Publications sans identité visible" wrapText="true" styleClass="stat-kpi-caption"/>
+                        </VBox>
+
+                        <VBox spacing="8" HBox.hgrow="ALWAYS" styleClass="stat-kpi-card kpi-purple">
+                            <Label text="Catégories" styleClass="stat-kpi-title"/>
+                            <Label fx:id="categoriesLabel" text="0" styleClass="stat-kpi-value"/>
+                            <Label text="Thèmes différents utilisés" wrapText="true" styleClass="stat-kpi-caption"/>
+                        </VBox>
+
+                    </HBox>
+
+                    <GridPane hgap="22" vgap="22">
+
+                        <VBox spacing="14"
+                              GridPane.columnIndex="0"
+                              GridPane.rowIndex="0"
+                              styleClass="chart-card large-chart-card">
+                            <HBox alignment="CENTER_LEFT" spacing="10">
+                                <VBox spacing="3">
+                                    <Label text="Évolution des posts" styleClass="chart-title"/>
+                                    <Label text="Nombre de publications par date" styleClass="chart-subtitle"/>
+                                </VBox>
+                            </HBox>
+
+                            <LineChart fx:id="postsLineChart"
+                                       animated="true"
+                                       createSymbols="true"
+                                       prefHeight="330"
+                                       styleClass="modern-chart">
+                                <xAxis>
+                                    <CategoryAxis label="Date"/>
+                                </xAxis>
+                                <yAxis>
+                                    <NumberAxis label="Posts"/>
+                                </yAxis>
+                            </LineChart>
+                        </VBox>
+
+                        <VBox spacing="14"
+                              GridPane.columnIndex="1"
+                              GridPane.rowIndex="0"
+                              styleClass="chart-card side-insight-card">
+                            <Label text="Résumé rapide" styleClass="chart-title"/>
+                            <Label text="Cette page vous aide à comprendre l’activité du blog : volume de posts, commentaires, catégories populaires et part des posts anonymes."
+                                   wrapText="true"
+                                   styleClass="insight-text"/>
+
+                            <Separator/>
+
+                            <Label text="Conseil admin" styleClass="insight-title"/>
+                            <Label text="Surveillez les catégories très actives pour adapter la modération et proposer du contenu plus utile aux patients."
+                                   wrapText="true"
+                                   styleClass="insight-text"/>
+
+                            <Region VBox.vgrow="ALWAYS"/>
+
+                            <Label text="Statistiques mises à jour automatiquement au chargement de la page."
+                                   wrapText="true"
+                                   styleClass="insight-note"/>
+                        </VBox>
+
+                        <VBox spacing="14"
+                              GridPane.columnIndex="0"
+                              GridPane.rowIndex="1"
+                              styleClass="chart-card">
+                            <Label text="Posts par catégorie" styleClass="chart-title"/>
+                            <Label text="Répartition des publications selon les thèmes" styleClass="chart-subtitle"/>
+
+                            <BarChart fx:id="categoryBarChart"
+                                      animated="false"
+                                      legendVisible="false"
+                                      prefHeight="330"
+                                      styleClass="modern-chart">
+                                <xAxis>
+                                    <CategoryAxis label="Catégories"/>
+                                </xAxis>
+                                <yAxis>
+                                    <NumberAxis label="Nombre"/>
+                                </yAxis>
+                            </BarChart>
+                        </VBox>
+
+                        <VBox spacing="14"
+                              GridPane.columnIndex="1"
+                              GridPane.rowIndex="1"
+                              styleClass="chart-card">
+                            <Label text="Posts anonymes / non anonymes" styleClass="chart-title"/>
+                            <Label text="Comparaison des publications anonymes" styleClass="chart-subtitle"/>
+
+                            <PieChart fx:id="anonymousPieChart"
+                                      labelsVisible="true"
+                                      legendVisible="true"
+                                      prefHeight="330"
+                                      styleClass="modern-pie-chart"/>
+                        </VBox>
+
+                    </GridPane>
+
+                </VBox>
+            </content>
+        </ScrollPane>
+    </center>
+
+</BorderPane>

@@ -1,21 +1,25 @@
+
+
 package tn.esprit.services;
 
 import tn.esprit.entities.User;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.Base64;
+import java.util.Properties;
 
 /**
  * Service d'envoi des emails MedFlow.
  *
- * Configuration (via variables d'environnement OU proprietes systeme) :
- *   BREVO_API_KEY      / brevo.api.key
- *   BREVO_SENDER_EMAIL / brevo.sender.email
- *   BREVO_SENDER_NAME  / brevo.sender.name (defaut: MedFlow)
- *   BREVO_API_URL      / brevo.api.url     (defaut: https://api.brevo.com/v3/smtp/email)
+ * Configuration (par ordre de priorité) :
+ *   1. Variables d'environnement : BREVO_API_KEY, BREVO_SENDER_EMAIL, BREVO_SENDER_NAME, BREVO_API_URL
+ *   2. Propriétés système        : brevo.api.key, brevo.sender.email, brevo.sender.name, brevo.api.url
+ *   3. Fichier de config         : src/main/resources/config.properties
  *
  * Compatibilite: MEDFLOW_MAIL_USER / mail.user est aussi accepte pour l'email expediteur.
  */
@@ -27,6 +31,24 @@ public class EmailService {
     private static final String SENDER_NAME;
     private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
 
+    /** Propriétés chargées depuis config.properties (classpath). */
+    private static final Properties FILE_CONFIG = loadFileConfig();
+
+    private static Properties loadFileConfig() {
+        Properties props = new Properties();
+        try (InputStream is = EmailService.class.getResourceAsStream("/config.properties")) {
+            if (is != null) {
+                props.load(is);
+                System.out.println("[EmailService] config.properties chargé avec succès.");
+            } else {
+                System.err.println("[EmailService] config.properties introuvable dans le classpath.");
+            }
+        } catch (IOException e) {
+            System.err.println("[EmailService] Impossible de lire config.properties : " + e.getMessage());
+        }
+        return props;
+    }
+
     static {
         BREVO_API_URL = getSetting("BREVO_API_URL", "brevo.api.url", "https://api.brevo.com/v3/smtp/email");
         BREVO_API_KEY = getSetting("BREVO_API_KEY", "brevo.api.key", null);
@@ -36,13 +58,36 @@ public class EmailService {
         }
         SENDER_EMAIL = configuredSender;
         SENDER_NAME = getSetting("BREVO_SENDER_NAME", "brevo.sender.name", "MedFlow");
+
+        // Log de l'état de configuration au démarrage
+        if (isBlank(BREVO_API_KEY) || isBlank(SENDER_EMAIL)) {
+            System.err.println("[EmailService] ATTENTION : Brevo non configuré !");
+            System.err.println("[EmailService] -> Éditez src/main/resources/config.properties et renseignez :");
+            System.err.println("[EmailService]    brevo.api.key=<votre clé API Brevo>");
+            System.err.println("[EmailService]    brevo.sender.email=<votre email vérifié Brevo>");
+        } else {
+            System.out.println("[EmailService] Brevo configuré pour l'expéditeur : " + SENDER_EMAIL);
+        }
     }
 
     private static String getSetting(String envKey, String propKey, String defaultValue) {
+        // 1. Variable d'environnement
         String env = System.getenv(envKey);
         if (env != null && !env.isBlank()) return env;
-        String prop = System.getProperty(propKey);
+        // 2. Propriété système
+        String prop = firstNonBlank(
+                System.getProperty(propKey),
+                System.getProperty(envKey),
+                System.getProperty(envKey.toLowerCase()),
+                System.getProperty(envKey.toLowerCase().replace('_', '.'))
+        );
         if (prop != null && !prop.isBlank()) return prop;
+        // 3. Fichier config.properties
+        String fileProp = FILE_CONFIG.getProperty(propKey);
+        if (fileProp != null && !fileProp.isBlank()
+                && !fileProp.startsWith("VOTRE_") && !fileProp.startsWith("votre-")) {
+            return fileProp;
+        }
         return defaultValue;
     }
 
@@ -213,6 +258,41 @@ public class EmailService {
         sendAsync(toEmail, subject, html);
     }
 
+    /**
+     * Envoie une alerte securite en utilisant les credentials Brevo de l'entite user.
+     */
+    public static void sendSecurityAlertEmail(User user, String alertTitle, String alertReason, int riskScore, String riskLevel) {
+        if (user == null || isBlank(user.getEmailUser())) {
+            return;
+        }
+
+        String userBrevoApiKey = safe(user.getBrevoApiKey());
+        String userBrevoSenderEmail = safe(user.getBrevoSenderEmail());
+        String userBrevoSenderName = safe(user.getBrevoSenderName());
+
+        if (isBlank(userBrevoApiKey) || isBlank(userBrevoSenderEmail)) {
+            System.err.println("[EmailService] Credentials Brevo manquants pour userId=" + user.getId() + ". Alerte email ignoree.");
+            return;
+        }
+
+        String senderName = isBlank(userBrevoSenderName) ? "MedFlow" : userBrevoSenderName;
+        String subject = "Alerte securite MedFlow - " + safe(alertTitle);
+        String html = buildHtml(
+                "Activite de connexion inhabituelle detectee",
+                "Nous avons detecte une activite de connexion qui necessite votre attention.",
+                new String[]{
+                        "Niveau de risque : <strong>" + escapeHtml(safe(riskLevel)) + "</strong>",
+                        "Score de risque : <strong>" + riskScore + "</strong>",
+                        "Motif : <strong>" + escapeHtml(safe(alertReason)) + "</strong>",
+                        "Si ce n'est pas vous, changez votre mot de passe immediatement et activez la 2FA."
+                },
+                "#dc2626",
+                "Alerte securite"
+        );
+
+        sendAsyncWithBrevo(user.getEmailUser(), subject, html, userBrevoApiKey, userBrevoSenderEmail, senderName);
+    }
+
     // ──────────────────────────────────────────────────────────────────────────
     //  Internal sending logic
     // ──────────────────────────────────────────────────────────────────────────
@@ -246,6 +326,19 @@ public class EmailService {
         thread.start();
     }
 
+    private static void sendAsyncWithBrevo(String to, String subject, String html, String apiKey, String senderEmail, String senderName) {
+        Thread thread = new Thread(() -> {
+            try {
+                sendWithBrevoCredentials(to, subject, html, apiKey, senderEmail, senderName);
+            } catch (Exception e) {
+                System.err.println("[EmailService] Erreur envoi alerte securite a " + to + " : " + e.getMessage());
+            }
+        });
+        thread.setDaemon(true);
+        thread.setName("email-sender-security");
+        thread.start();
+    }
+
     private static void send(String to, String subject, String html) throws Exception {
         if (isBlank(BREVO_API_KEY) || isBlank(SENDER_EMAIL)) {
             System.err.println("[EmailService] Brevo non configure. Definissez BREVO_API_KEY et BREVO_SENDER_EMAIL.");
@@ -274,6 +367,29 @@ public class EmailService {
         }
 
         System.out.println("[EmailService] Email envoye via Brevo a : " + to);
+    }
+
+    private static void sendWithBrevoCredentials(String to, String subject, String html, String apiKey, String senderEmail, String senderName) throws Exception {
+        String payload = "{"
+                + "\"sender\":{\"name\":\"" + escapeJson(senderName) + "\",\"email\":\"" + escapeJson(senderEmail) + "\"},"
+                + "\"to\":[{\"email\":\"" + escapeJson(to) + "\"}],"
+                + "\"subject\":\"" + escapeJson(subject) + "\","
+                + "\"htmlContent\":\"" + escapeJson(html) + "\""
+                + "}";
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BREVO_API_URL))
+                .header("accept", "application/json")
+                .header("api-key", apiKey)
+                .header("content-type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(payload))
+                .build();
+
+        HttpResponse<String> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            throw new IllegalStateException("Brevo user refuse l'envoi (" + response.statusCode() + "): " + truncate(response.body(), 280));
+        }
+        System.out.println("[EmailService] Alerte securite envoyee via Brevo user a : " + to);
     }
 
     private static void sendWithAttachment(String to, String subject, String html, String fileName, byte[] content) throws Exception {
@@ -421,6 +537,18 @@ public class EmailService {
         return s == null || s.isBlank();
     }
 
+    private static String firstNonBlank(String... values) {
+        if (values == null) {
+            return null;
+        }
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value;
+            }
+        }
+        return null;
+    }
+
     private static String escapeHtml(String s) {
         if (s == null) return "";
         return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
@@ -439,5 +567,59 @@ public class EmailService {
     private static String truncate(String value, int maxLen) {
         if (value == null) return "";
         return value.length() <= maxLen ? value : value.substring(0, maxLen) + "...";
+    }
+    /**
+     * Envoie un email de notification de déban (réactivation du compte).
+     */
+    public static void sendAccountUnbanEmail(User user) {
+        if (user == null || isBlank(user.getEmailUser())) return;
+
+        String name = firstName(user);
+        String subject = "MedFlow - Réactivation de votre compte";
+        String html = buildHtml(
+                "Votre compte a été réactivé !",
+                "Votre compte MedFlow a été <strong style='color:#059669;'>débloqué</strong> par l'administration.",
+                new String[]{
+                        "Vous pouvez à nouveau accéder à tous nos services.",
+                        "Merci de votre confiance."
+                },
+                "#059669",
+                "Compte réactivé"
+        );
+        sendAsync(user.getEmailUser(), subject, html);
+    }
+    /**
+     * Envoie un email de verrouillage de compte avec un token de déverrouillage.
+     * Le token est valable 30 minutes.
+     */
+    public static void sendAccountLockedEmail(User user, String unlockToken) {
+        if (user == null || isBlank(user.getEmailUser())) return;
+
+        String name = firstName(user);
+        String subject = "🔐 MedFlow – Compte verrouillé pour activité suspecte";
+        String html = buildHtml(
+                "Votre compte a été temporairement verrouillé",
+                "Nous avons détecté une activité de connexion <strong style='color:#dc2626;'>suspecte</strong> sur votre compte MedFlow. Par mesure de sécurité, votre accès a été suspendu.",
+                new String[]{
+                        "Pour déverrouiller votre compte, utilisez ce code : "
+                        + "<span style='display:inline-block;font-size:26px;font-weight:900;letter-spacing:8px;color:#dc2626;"
+                        + "padding:6px 16px;background:#fef2f2;border-radius:10px;border:2px solid #dc2626;'>"
+                        + escapeHtml(unlockToken) + "</span>",
+                        "Ce code est <strong>valide pendant 30 minutes</strong>.",
+                        "Si vous êtes bien à l'origine de cette connexion, entrez le code dans l'application pour récupérer l'accès.",
+                        "Si ce n'est <strong>pas vous</strong>, ignorez ce message — votre compte reste verrouillé automatiquement."
+                },
+                "#dc2626",
+                "COMPTE VERROUILLÉ"
+        );
+        sendAsync(user.getEmailUser(), subject, html);
+    }
+
+    // À placer dans EmailService.java, à la fin de la classe (avant la dernière accolade fermante)
+    public static void sendSimpleUnbanEmail(String to) {
+        if (to == null || to.isBlank()) return;
+        String subject = "Votre compte MedFlow a été réactivé";
+        String html = "<p>Bonjour,<br>Votre compte a été débloqué. Vous pouvez à nouveau accéder à tous nos services.<br>Merci de votre confiance.</p>";
+        sendAsync(to, subject, html); // Cette méthode existe déjà dans EmailService
     }
 }

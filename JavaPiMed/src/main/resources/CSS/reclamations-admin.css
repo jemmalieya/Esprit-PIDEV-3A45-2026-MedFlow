@@ -1,0 +1,342 @@
+.reclamations-admin-content {
+    -fx-background-color: linear-gradient(to bottom, #f8fbff 0%, #f1f5f9 100%);
+}
+
+/* HERO */
+.rec-hero-card {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #0891b2 0%, #2563eb 55%, #14b8a6 100%);
+    -fx-background-radius: 26px;
+    -fx-border-radius: 26px;
+    -fx-padding: 30px;
+    -fx-effect: dropshadow(gaussian, rgba(37, 99, 235, 0.22), 22, 0.14, 0, 8);
+    -fx-border-color: rgba(255,255,255,0.18);
+    -fx-border-width: 1px;
+}
+
+.rec-hero-icon-box {
+    -fx-background-color: rgba(255,255,255,0.16);
+    -fx-background-radius: 22px;
+    -fx-border-color: rgba(255,255,255,0.25);
+    -fx-border-radius: 22px;
+    -fx-border-width: 1.5px;
+}
+
+.rec-hero-icon {
+    -fx-font-size: 34px;
+    -fx-font-family: "Segoe UI Emoji", "Segoe UI Symbol";
+}
+
+.rec-hero-title {
+    -fx-text-fill: white;
+    -fx-font-size: 30px;
+    -fx-font-weight: 800;
+    -fx-font-family: "Segoe UI", Arial, sans-serif;
+}
+
+.rec-hero-subtitle {
+    -fx-text-fill: rgba(255,255,255,0.90);
+    -fx-font-size: 15px;
+    -fx-font-family: "Segoe UI", Arial, sans-serif;
+}
+
+.rec-hero-badge {
+    -fx-background-color: rgba(255,255,255,0.16);
+    -fx-background-radius: 999px;
+    -fx-border-color: rgba(255,255,255,0.25);
+    -fx-border-radius: 999px;
+    -fx-padding: 7px 14px;
+    -fx-text-fill: white;
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-font-family: "Segoe UI Emoji", "Segoe UI";
+}
+
+/* STATS */
+.rec-stat-card {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, white 0%, #f8fafc 100%);
+    -fx-background-radius: 22px;
+    -fx-border-radius: 22px;
+    -fx-padding: 22px;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.08), 14, 0.12, 0, 4);
+    -fx-border-width: 1px;
+}
+
+.blue-card { -fx-border-color: #bfdbfe; }
+.orange-card { -fx-border-color: #fde68a; }
+.green-card { -fx-border-color: #bbf7d0; }
+.red-card { -fx-border-color: #fecaca; }
+
+.rec-stat-icon {
+    -fx-background-radius: 16px;
+    -fx-min-width: 48px;
+    -fx-min-height: 48px;
+    -fx-max-width: 48px;
+    -fx-max-height: 48px;
+}
+
+.blue-icon { -fx-background-color: linear-gradient(to bottom right, #60a5fa, #2563eb); }
+.orange-icon { -fx-background-color: linear-gradient(to bottom right, #fbbf24, #ea580c); }
+.green-icon { -fx-background-color: linear-gradient(to bottom right, #34d399, #059669); }
+.red-icon { -fx-background-color: linear-gradient(to bottom right, #f87171, #dc2626); }
+
+.rec-stat-emoji {
+    -fx-font-size: 22px;
+    -fx-font-family: "Segoe UI Emoji", "Segoe UI Symbol";
+}
+
+.rec-stat-number {
+    -fx-text-fill: #0f172a;
+    -fx-font-size: 34px;
+    -fx-font-weight: 800;
+    -fx-font-family: "Segoe UI", Arial, sans-serif;
+}
+
+.rec-stat-text {
+    -fx-text-fill: #64748b;
+    -fx-font-size: 14px;
+    -fx-font-weight: 600;
+}
+
+/* MAIN CARD */
+.reclamations-table-card {
+    -fx-background-color: white;
+    -fx-background-radius: 24px;
+    -fx-border-radius: 24px;
+    -fx-padding: 24px;
+    -fx-border-color: #e2e8f0;
+    -fx-border-width: 1px;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.08), 18, 0.12, 0, 6);
+}
+
+.rec-section-title {
+    -fx-text-fill: #0f172a;
+    -fx-font-size: 23px;
+    -fx-font-weight: 800;
+}
+
+.rec-section-subtitle {
+    -fx-text-fill: #64748b;
+    -fx-font-size: 13px;
+}
+
+.secondary-action-btn {
+    -fx-background-color: #eff6ff;
+    -fx-text-fill: #2563eb;
+    -fx-font-size: 13px;
+    -fx-font-weight: 800;
+    -fx-background-radius: 14px;
+    -fx-border-radius: 14px;
+    -fx-border-color: #bfdbfe;
+    -fx-padding: 11px 18px;
+    -fx-cursor: hand;
+}
+
+.secondary-action-btn:hover {
+    -fx-background-color: #dbeafe;
+}
+
+/* FILTERS */
+.rec-filter-field {
+    -fx-background-color: #f8fafc;
+    -fx-border-color: #e2e8f0;
+    -fx-border-radius: 16px;
+    -fx-background-radius: 16px;
+    -fx-padding: 14px 18px;
+    -fx-font-size: 14px;
+    -fx-text-fill: #0f172a;
+    -fx-prompt-text-fill: #94a3b8;
+}
+
+.rec-filter-field:focused {
+    -fx-background-color: white;
+    -fx-border-color: #14b8a6;
+    -fx-border-width: 2px;
+}
+
+.rec-filter-combo {
+    -fx-background-color: #f8fafc;
+    -fx-border-color: #e2e8f0;
+    -fx-border-radius: 16px;
+    -fx-background-radius: 16px;
+    -fx-padding: 6px 10px;
+    -fx-font-size: 13px;
+}
+
+/* TABLE */
+.rec-table-wrapper {
+    -fx-background-color: #f8fafc;
+    -fx-background-radius: 20px;
+    -fx-border-radius: 20px;
+    -fx-border-color: #e2e8f0;
+    -fx-border-width: 1px;
+}
+
+.rec-table {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-background-radius: 20px;
+    -fx-table-cell-border-color: transparent;
+}
+
+.rec-table .column-header-background {
+    -fx-background-color: linear-gradient(to right, #0f172a, #1e3a8a);
+    -fx-background-radius: 20px 20px 0 0;
+}
+
+.rec-table .column-header {
+    -fx-background-color: transparent;
+    -fx-pref-height: 48px;
+    -fx-border-color: transparent;
+}
+
+.rec-table .column-header .label {
+    -fx-text-fill: white;
+    -fx-font-size: 12px;
+    -fx-font-weight: 800;
+    -fx-alignment: CENTER_LEFT;
+}
+
+.rec-table .table-row-cell {
+    -fx-background-color: white;
+    -fx-border-color: transparent transparent #e5e7eb transparent;
+    -fx-border-width: 0 0 1px 0;
+    -fx-cell-size: 60px;
+}
+
+.rec-table .table-row-cell:odd {
+    -fx-background-color: #f8fafc;
+}
+
+.rec-table .table-row-cell:hover {
+    -fx-background-color: #eff6ff;
+}
+
+.rec-table .table-row-cell:selected {
+    -fx-background-color: #dbeafe;
+    -fx-border-color: transparent transparent #93c5fd #2563eb;
+    -fx-border-width: 0 0 1px 4px;
+}
+
+.rec-table .table-cell {
+    -fx-text-fill: #334155;
+    -fx-font-size: 13px;
+    -fx-padding: 12px 14px;
+    -fx-alignment: CENTER_LEFT;
+    -fx-border-color: transparent;
+}
+
+/* BADGES */
+.rec-badge {
+    -fx-padding: 6 10;
+    -fx-background-radius: 999;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+.badge-green {
+    -fx-background-color: #dcfce7;
+    -fx-text-fill: #15803d;
+}
+
+.badge-orange {
+    -fx-background-color: #fef3c7;
+    -fx-text-fill: #d97706;
+}
+
+.badge-red {
+    -fx-background-color: #fee2e2;
+    -fx-text-fill: #dc2626;
+}
+
+.badge-blue {
+    -fx-background-color: #e0f2fe;
+    -fx-text-fill: #0369a1;
+}
+
+/* ACTION BUTTONS */
+.action-reply-btn {
+    -fx-background-color: #dbeafe;
+    -fx-text-fill: #2563eb;
+    -fx-font-weight: 800;
+    -fx-background-radius: 10;
+    -fx-padding: 7 12;
+    -fx-cursor: hand;
+}
+
+.action-view-btn {
+    -fx-background-color: #f0fdfa;
+    -fx-text-fill: #0f766e;
+    -fx-font-weight: 800;
+    -fx-background-radius: 10;
+    -fx-padding: 7 12;
+    -fx-cursor: hand;
+}
+
+.action-done-btn {
+    -fx-background-color: #dcfce7;
+    -fx-text-fill: #15803d;
+    -fx-font-weight: 800;
+    -fx-background-radius: 10;
+    -fx-padding: 7 12;
+    -fx-cursor: hand;
+}
+
+/* FOOTER */
+.rec-footer-note {
+    -fx-background-color: #f0fdfa;
+    -fx-background-radius: 16px;
+    -fx-border-color: #99f6e4;
+    -fx-border-radius: 16px;
+    -fx-border-width: 1px;
+    -fx-padding: 12px 14px;
+}
+
+.footer-note-icon {
+    -fx-text-fill: #0f766e;
+    -fx-font-size: 16px;
+    -fx-font-weight: 800;
+}
+
+.rec-footer-text {
+    -fx-text-fill: #0f766e;
+    -fx-font-size: 13px;
+}
+
+/* POPUP */
+.responses-popup-root {
+    -fx-background-color: #f8fafc;
+}
+
+.popup-title {
+    -fx-text-fill: #0f172a;
+    -fx-font-size: 25px;
+    -fx-font-weight: 900;
+}
+
+.popup-subtitle {
+    -fx-text-fill: #64748b;
+    -fx-font-size: 14px;
+}
+
+.responses-table {
+    -fx-background-color: white;
+    -fx-border-color: #e2e8f0;
+    -fx-border-radius: 16px;
+    -fx-background-radius: 16px;
+}
+
+.popup-primary-btn {
+    -fx-background-color: linear-gradient(to right, #0891b2, #2563eb);
+    -fx-text-fill: white;
+    -fx-font-weight: 800;
+    -fx-background-radius: 12;
+    -fx-padding: 10 18;
+}
+
+.popup-secondary-btn {
+    -fx-background-color: #e5e7eb;
+    -fx-text-fill: #0f172a;
+    -fx-font-weight: 800;
+    -fx-background-radius: 12;
+    -fx-padding: 10 18;
+}

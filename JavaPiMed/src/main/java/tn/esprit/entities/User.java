@@ -46,6 +46,9 @@ public class User {
     private int faceFailedAttempts;
     private LocalDateTime faceLockedUntil;
     private String faceReferenceEmbedding;
+    private String brevoApiKey;
+    private String brevoSenderEmail;
+    private String brevoSenderName;
 
     @Override
     public String toString() {
@@ -477,6 +480,30 @@ public class User {
 
     public void setFaceReferenceEmbedding(String faceReferenceEmbedding) {
         this.faceReferenceEmbedding = faceReferenceEmbedding;
+    }
+
+    public String getBrevoApiKey() {
+        return brevoApiKey;
+    }
+
+    public void setBrevoApiKey(String brevoApiKey) {
+        this.brevoApiKey = brevoApiKey;
+    }
+
+    public String getBrevoSenderEmail() {
+        return brevoSenderEmail;
+    }
+
+    public void setBrevoSenderEmail(String brevoSenderEmail) {
+        this.brevoSenderEmail = brevoSenderEmail;
+    }
+
+    public String getBrevoSenderName() {
+        return brevoSenderName;
+    }
+
+    public void setBrevoSenderName(String brevoSenderName) {
+        this.brevoSenderName = brevoSenderName;
     }
 
 }

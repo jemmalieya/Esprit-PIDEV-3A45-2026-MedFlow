@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>reCAPTCHA</title>
+	<style>
+		html, body {
+			margin: 0;
+			padding: 0;
+			background: transparent;
+			font-family: Arial, sans-serif;
+		}
+		body {
+			min-height: 90px;
+			display: flex;
+			align-items: flex-start;
+			justify-content: center;
+		}
+		#captcha {
+			min-height: 78px;
+		}
+	</style>
+	<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+</head>
+<body>
+<div id="captcha" class="g-recaptcha"></div>
+<script>
+(function () {
+	const params = new URLSearchParams(window.location.search);
+	const siteKey = params.get("siteKey");
+	const captchaDiv = document.getElementById("captcha");
+	let lastDeliveredToken = "";
+
+	if (!siteKey) {
+		captchaDiv.innerHTML = "<small>reCAPTCHA key missing.</small>";
+		return;
+	}
+
+	function notifyJavaToken(token) {
+		if (!token || token === lastDeliveredToken) {
+			return;
+		}
+		lastDeliveredToken = token;
+		if (window.javaRecaptcha && typeof window.javaRecaptcha.onToken === "function") {
+			window.javaRecaptcha.onToken(token);
+		}
+	}
+
+	captchaDiv.setAttribute("data-sitekey", siteKey);
+	captchaDiv.setAttribute("data-callback", "onRecaptchaSuccess");
+	captchaDiv.setAttribute("data-expired-callback", "onRecaptchaExpired");
+	captchaDiv.setAttribute("data-error-callback", "onRecaptchaError");
+
+	window.onRecaptchaSuccess = function (token) {
+		notifyJavaToken(token);
+	};
+
+	window.onRecaptchaExpired = function () {
+		lastDeliveredToken = "";
+		if (window.javaRecaptcha && typeof window.javaRecaptcha.onExpired === "function") {
+			window.javaRecaptcha.onExpired();
+		}
+	};
+
+	window.onRecaptchaError = function () {
+		if (window.javaRecaptcha && typeof window.javaRecaptcha.onError === "function") {
+			window.javaRecaptcha.onError("Erreur de chargement reCAPTCHA.");
+		}
+	};
+
+	window.resetRecaptcha = function () {
+		lastDeliveredToken = "";
+		if (window.grecaptcha) {
+			window.grecaptcha.reset();
+		}
+	};
+
+	window.getRecaptchaResponseValue = function () {
+		if (window.grecaptcha) {
+			const token = window.grecaptcha.getResponse();
+			if (token) {
+				return token;
+			}
+		}
+		const textarea = document.querySelector("textarea[name='g-recaptcha-response']");
+		if (textarea && textarea.value) {
+			return textarea.value;
+		}
+		return "";
+	};
+
+	function notifyHeight() {
+		if (window.javaRecaptcha && typeof window.javaRecaptcha.onHeightChanged === "function") {
+			var h = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight, 86);
+			window.javaRecaptcha.onHeightChanged(h);
+		}
+	}
+
+	function syncTokenToJava() {
+		var token = window.getRecaptchaResponseValue();
+		if (token) {
+			notifyJavaToken(token);
+		}
+	}
+
+	setInterval(notifyHeight, 250);
+	setInterval(syncTokenToJava, 400);
+	notifyHeight();
+})();
+</script>
+</body>
+</html>
+
+
+

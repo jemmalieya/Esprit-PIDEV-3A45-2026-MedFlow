@@ -50,7 +50,10 @@
                             <TitledPane text="Utilisateurs" expanded="false" styleClass="sidebar-dropdown">
                                 <content>
                                     <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Patients" onAction="#openPatients" styleClass="sub-nav-button"/>
                                         <Button text="Tous les utilisateurs" onAction="#openUsers" styleClass="sub-nav-button"/>
+                                        <Button text="Demandes de rôle" onAction="#openRoles" styleClass="sub-nav-button"/>
+                                        <Button text="Comptes et permissions" onAction="#openUserRoles" styleClass="sub-nav-button"/>
                                     </VBox>
                                 </content>
                             </TitledPane>
@@ -93,8 +96,6 @@
                                 <content>
                                     <VBox spacing="6" styleClass="dropdown-content">
                                         <Button text="Liste des réclamations" onAction="#openReclamations" styleClass="sub-nav-button"/>
-                                        <Button text="Réponses admin" onAction="#openReponsesReclamations" styleClass="sub-nav-button"/>
-                                        <Button text="Réclamations urgentes" onAction="#openReclamationsUrgentes" styleClass="sub-nav-button"/>
                                         <Button text="Statistiques réclamations" onAction="#openStatsReclamations" styleClass="sub-nav-button"/>
                                     </VBox>
                                 </content>
@@ -104,8 +105,6 @@
                                 <content>
                                     <VBox spacing="6" styleClass="dropdown-content">
                                         <Button text="Liste des posts" onAction="#openPosts" styleClass="sub-nav-button"/>
-                                        <Button text="Commentaires" onAction="#openBlogComments" styleClass="sub-nav-button"/>
-                                        <Button text="Modération blog" onAction="#openBlogModeration" styleClass="sub-nav-button"/>
                                         <Button text="Posts en attente" onAction="#openPostsEnAttente" styleClass="sub-nav-button"/>
                                         <Button text="Statistiques blog" onAction="#openStatsBlog" styleClass="sub-nav-button"/>
                                     </VBox>

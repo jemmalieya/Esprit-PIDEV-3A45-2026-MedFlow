@@ -2,6 +2,7 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.Separator?>
@@ -19,10 +20,10 @@
             prefWidth="1500.0"
             prefHeight="880.0"
             styleClass="app-root"
-            stylesheets="@CSS/admin-welcome.css,@CSS/pending-posts-center.css"
+            stylesheets="@CSS/admin-welcome.css,@CSS/reclamations-admin.css"
             xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="tn.esprit.controllers.PendingPostsAdminController">
+            fx:controller="tn.esprit.controllers.ReclamationsAdminController">
 
     <left>
         <BorderPane prefWidth="320.0" styleClass="sidebar">
@@ -47,7 +48,7 @@
                                 <Insets top="4" right="18" bottom="16" left="18"/>
                             </padding>
 
-                            <Button text="Accueil Admin" onAction="#openDashboard" styleClass="nav-button-active"/>
+                            <Button text="Accueil Admin" onAction="#openDashboard" styleClass="nav-button"/>
 
                             <TitledPane text="Utilisateurs" expanded="false" styleClass="sidebar-dropdown">
                                 <content>
@@ -60,7 +61,7 @@
                                 </content>
                             </TitledPane>
 
-                            <TitledPane text="Produits" expanded="true" styleClass="sidebar-dropdown">
+                            <TitledPane text="Produits" expanded="false" styleClass="sidebar-dropdown">
                                 <content>
                                     <VBox spacing="6" styleClass="dropdown-content">
                                         <Button text="Liste des produits" onAction="#openProduits" styleClass="sub-nav-button"/>
@@ -94,20 +95,23 @@
                                 </content>
                             </TitledPane>
 
-                            <TitledPane text="Réclamations" expanded="false" styleClass="sidebar-dropdown">
+                            <TitledPane text="Réclamations" expanded="true" styleClass="sidebar-dropdown">
                                 <content>
                                     <VBox spacing="6" styleClass="dropdown-content">
-                                        <Button text="Liste des réclamations" onAction="#openReclamations" styleClass="sub-nav-button"/>
+                                        <Button text="Liste des réclamations"
+                                                onAction="#openReclamations"
+                                                styleClass="sub-nav-button"
+                                                style="-fx-background-color: rgba(20, 184, 166, 0.25); -fx-text-fill: white;"/>
                                         <Button text="Statistiques réclamations" onAction="#openStatsReclamations" styleClass="sub-nav-button"/>
                                     </VBox>
                                 </content>
                             </TitledPane>
 
-                            <TitledPane text="Blog et Posts" expanded="true" styleClass="sidebar-dropdown">
+                            <TitledPane text="Blog et Posts" expanded="false" styleClass="sidebar-dropdown">
                                 <content>
                                     <VBox spacing="6" styleClass="dropdown-content">
                                         <Button text="Liste des posts" onAction="#openPosts" styleClass="sub-nav-button"/>
-                                        <Button text="Posts en attente" styleClass="sub-nav-button" style="-fx-background-color: rgba(20, 184, 166, 0.25); -fx-text-fill: white;"/>
+                                        <Button text="Posts en attente" onAction="#openPostsEnAttente" styleClass="sub-nav-button"/>
                                         <Button text="Statistiques blog" onAction="#openStatsBlog" styleClass="sub-nav-button"/>
                                     </VBox>
                                 </content>
@@ -129,7 +133,6 @@
                     <Button text="Retour Site" onAction="#goBackSite" styleClass="back-site-button"/>
                 </VBox>
             </bottom>
-
         </BorderPane>
     </left>
 
@@ -142,8 +145,8 @@
             <Button text="Menu" styleClass="menu-button"/>
 
             <VBox spacing="3">
-                <Label text="Modération des Posts" styleClass="page-title"/>
-                <Label text="Validez et modérez les posts envoyés par les patients" styleClass="page-subtitle"/>
+                <Label text="Gestion des Réclamations" styleClass="page-title"/>
+                <Label text="Suivez, filtrez et traitez les réclamations des patients" styleClass="page-subtitle"/>
             </VBox>
 
             <Region HBox.hgrow="ALWAYS"/>
@@ -156,104 +159,128 @@
     </top>
 
     <center>
-        <ScrollPane fitToWidth="true" hbarPolicy="NEVER" styleClass="content-scroll">
+        <ScrollPane fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" styleClass="content-scroll">
             <content>
-                <VBox spacing="24" styleClass="simple-home-content">
+                <VBox spacing="24" styleClass="reclamations-admin-content">
                     <padding>
                         <Insets top="34" right="38" bottom="45" left="38"/>
                     </padding>
 
-                    <!-- Welcome Card -->
-                    <VBox id="welcomeBanner" spacing="16" styleClass="simple-welcome-card">
+                    <VBox spacing="16" styleClass="rec-hero-card">
                         <HBox spacing="16" alignment="CENTER_LEFT">
-                            <StackPane prefWidth="64" prefHeight="64" styleClass="welcome-icon-container">
-                                <Label text="📰" styleClass="welcome-icon"/>
+                            <StackPane prefWidth="68" prefHeight="68" styleClass="rec-hero-icon-box">
+                                <Label text="💬" styleClass="rec-hero-icon"/>
                             </StackPane>
+
                             <VBox spacing="8" HBox.hgrow="ALWAYS">
-                                <Label text="Posts en Attente de Modération" styleClass="simple-welcome-title"/>
-                                <Label text="Gérez et modérez les posts soumis par les patients avec précision et efficacité." styleClass="simple-welcome-text"/>
+                                <Label text="Centre de suivi des réclamations" styleClass="rec-hero-title"/>
+                                <Label text="Consultez les réclamations, répondez aux patients et marquez les dossiers comme traités."
+                                       wrapText="true"
+                                       styleClass="rec-hero-subtitle"/>
                             </VBox>
                         </HBox>
-                        <Label text="Utilisez les boutons d'action pour approuver ou refuser les publications. Chaque décision contribue à maintenir la qualité de notre plateforme médicale."
-                               wrapText="true"
-                               styleClass="simple-welcome-subtext"/>
-                        <HBox spacing="12" alignment="CENTER_LEFT" styleClass="welcome-stats">
-                            <Label text="⚡ Réponse rapide" styleClass="welcome-stat-badge"/>
-                            <Label text="🛡️ Modération sécurisée" styleClass="welcome-stat-badge"/>
-                            <Label text="📊 Statistiques en temps réel" styleClass="welcome-stat-badge"/>
+
+                        <HBox spacing="12" alignment="CENTER_LEFT">
+                            <Label text="🛡️ Espace admin" styleClass="rec-hero-badge"/>
+                            <Label text="⚡ Réponse rapide" styleClass="rec-hero-badge"/>
+                            <Label text="📌 Priorité auto" styleClass="rec-hero-badge"/>
+                            <Label text="📊 Suivi clair" styleClass="rec-hero-badge"/>
                         </HBox>
                     </VBox>
 
-                    <!-- Statistics Section Title -->
-                    <Label text="Statistiques" styleClass="simple-section-title"/>
-
-                    <!-- Statistics Cards -->
                     <HBox spacing="18">
-                        <VBox spacing="16.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
-                            <StackPane prefWidth="46.0" prefHeight="46.0" styleClass="stat-badge blue-badge">
-                                <Label text="📋" styleClass="stat-emoji"/>
+                        <VBox spacing="12" styleClass="rec-stat-card blue-card" HBox.hgrow="ALWAYS">
+                            <StackPane prefWidth="48" prefHeight="48" styleClass="rec-stat-icon blue-icon">
+                                <Label text="📋" styleClass="rec-stat-emoji"/>
                             </StackPane>
-                            <Label fx:id="totalPendingLabel" text="0" styleClass="stat-number"/>
-                            <Label text="Posts en attente" styleClass="stat-text"/>
+                            <Label fx:id="totalReclamationsLabel" text="0" styleClass="rec-stat-number"/>
+                            <Label text="Total réclamations" styleClass="rec-stat-text"/>
                         </VBox>
 
-                        <VBox spacing="16.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
-                            <StackPane prefWidth="46.0" prefHeight="46.0" styleClass="stat-badge green-badge">
-                                <Label text="✅" styleClass="stat-emoji"/>
+                        <VBox spacing="12" styleClass="rec-stat-card orange-card" HBox.hgrow="ALWAYS">
+                            <StackPane prefWidth="48" prefHeight="48" styleClass="rec-stat-icon orange-icon">
+                                <Label text="⏳" styleClass="rec-stat-emoji"/>
                             </StackPane>
-                            <Label fx:id="approvedTodayLabel" text="0" styleClass="stat-number"/>
-                            <Label text="Approuvés aujourd'hui" styleClass="stat-text"/>
+                            <Label fx:id="enAttenteLabel" text="0" styleClass="rec-stat-number"/>
+                            <Label text="En attente" styleClass="rec-stat-text"/>
                         </VBox>
 
-                        <VBox spacing="16.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
-                            <StackPane prefWidth="46.0" prefHeight="46.0" styleClass="stat-badge red-badge">
-                                <Label text="❌" styleClass="stat-emoji"/>
+                        <VBox spacing="12" styleClass="rec-stat-card green-card" HBox.hgrow="ALWAYS">
+                            <StackPane prefWidth="48" prefHeight="48" styleClass="rec-stat-icon green-icon">
+                                <Label text="✅" styleClass="rec-stat-emoji"/>
                             </StackPane>
-                            <Label fx:id="rejectedTodayLabel" text="0" styleClass="stat-number"/>
-                            <Label text="Refusés aujourd'hui" styleClass="stat-text"/>
+                            <Label fx:id="traiteesLabel" text="0" styleClass="rec-stat-number"/>
+                            <Label text="Traitées" styleClass="rec-stat-text"/>
+                        </VBox>
+
+                        <VBox spacing="12" styleClass="rec-stat-card red-card" HBox.hgrow="ALWAYS">
+                            <StackPane prefWidth="48" prefHeight="48" styleClass="rec-stat-icon red-icon">
+                                <Label text="🚨" styleClass="rec-stat-emoji"/>
+                            </StackPane>
+                            <Label fx:id="critiquesLabel" text="0" styleClass="rec-stat-number"/>
+                            <Label text="Priorité élevée" styleClass="rec-stat-text"/>
                         </VBox>
                     </HBox>
 
-                    <!-- Search Section -->
-                    <VBox spacing="16" styleClass="posts-list-card">
+                    <VBox spacing="18" styleClass="reclamations-table-card">
                         <HBox alignment="CENTER_LEFT" spacing="12">
                             <VBox spacing="4">
-                                <Label text="Liste des posts à modérer" styleClass="posts-list-title"/>
-                                <Label text="Consultez rapidement les publications en attente et choisissez une action."
-                                       styleClass="posts-list-subtitle"/>
+                                <Label text="Liste des réclamations" styleClass="rec-section-title"/>
+                                <Label text="Visualisez les demandes, priorités, statuts et actions disponibles."
+                                       styleClass="rec-section-subtitle"/>
                             </VBox>
 
                             <Region HBox.hgrow="ALWAYS"/>
 
-                            <Label text="En attente" styleClass="pending-chip"/>
+                            <Button text="Actualiser" onAction="#refreshData" styleClass="secondary-action-btn"/>
                         </HBox>
 
-                        <TextField fx:id="searchField"
-                                   promptText="Rechercher par titre, contenu, catégorie ou auteur..."
-                                   styleClass="moderation-search-field"/>
+                        <HBox spacing="14" alignment="CENTER_LEFT">
+                            <TextField fx:id="searchField"
+                                       promptText="Rechercher par référence, type, statut, priorité, description..."
+                                       HBox.hgrow="ALWAYS"
+                                       styleClass="rec-filter-field"/>
 
-                        <VBox styleClass="modern-table-wrapper">
-                            <TableView fx:id="pendingPostsTable"
-                                       prefHeight="360"
-                                       fixedCellSize="58"
+                            <ComboBox fx:id="statusFilter"
+                                      promptText="Statut"
+                                      prefWidth="170"
+                                      styleClass="rec-filter-combo"/>
+
+                            <ComboBox fx:id="priorityFilter"
+                                      promptText="Priorité"
+                                      prefWidth="170"
+                                      styleClass="rec-filter-combo"/>
+                        </HBox>
+
+                        <VBox styleClass="rec-table-wrapper">
+                            <TableView fx:id="reclamationTable"
+                                       prefHeight="430"
+                                       fixedCellSize="60"
                                        VBox.vgrow="ALWAYS"
-                                       styleClass="modern-posts-table">
+                                       styleClass="rec-table">
 
                                 <columns>
-                                    <TableColumn fx:id="titleCol" prefWidth="260.0" minWidth="190.0" text="TITRE"/>
-                                    <TableColumn fx:id="categoryCol" prefWidth="145.0" minWidth="110.0" text="CATÉGORIE"/>
-                                    <TableColumn fx:id="contentCol" prefWidth="380.0" minWidth="250.0" text="CONTENU"/>
-                                    <TableColumn fx:id="dateCol" prefWidth="175.0" minWidth="145.0" text="DATE"/>
-                                    <TableColumn fx:id="userCol" prefWidth="185.0" minWidth="140.0" text="AUTEUR"/>
-                                    <TableColumn fx:id="actionsCol" prefWidth="220.0" minWidth="190.0" text="ACTIONS"/>
+                                    <TableColumn fx:id="referenceCol" text="RÉFÉRENCE" prefWidth="170"/>
+                                    <TableColumn fx:id="typeCol" text="TYPE" prefWidth="170"/>
+                                    <TableColumn fx:id="statutCol" text="STATUT" prefWidth="160"/>
+                                    <TableColumn fx:id="prioriteCol" text="PRIORITÉ" prefWidth="160"/>
+                                    <TableColumn fx:id="descriptionCol" text="DESCRIPTION" prefWidth="520"/>
+                                    <TableColumn fx:id="dateCol" text="DATE" prefWidth="220"/>
                                 </columns>
                             </TableView>
                         </VBox>
+
+                        <HBox alignment="CENTER_LEFT" spacing="10" styleClass="rec-footer-note">
+                            <Label text="ℹ" styleClass="footer-note-icon"/>
+                            <Label text="Astuce : une réclamation avec priorité élevée doit être traitée rapidement."
+                                   wrapText="true"
+                                   styleClass="rec-footer-text"/>
+                        </HBox>
                     </VBox>
+
                 </VBox>
             </content>
         </ScrollPane>
     </center>
 
 </BorderPane>
-

@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.TitledPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane fx:id="rootPane"
+            prefWidth="1500.0"
+            prefHeight="880.0"
+            styleClass="app-root"
+            stylesheets="@CSS/admin-produits.css"
+            xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="tn.esprit.controllers.AdminProduitController">
+
+    <left>
+        <BorderPane prefWidth="320.0" styleClass="sidebar">
+
+            <top>
+                <VBox spacing="8">
+                    <padding>
+                        <Insets top="26" right="20" bottom="16" left="20"/>
+                    </padding>
+
+                    <Label text="MedFlow Admin" styleClass="brand-title"/>
+                    <Label text="ESPACE ADMINISTRATION" styleClass="brand-subtitle"/>
+                    <Separator styleClass="side-separator"/>
+                </VBox>
+            </top>
+
+            <center>
+                <ScrollPane fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" styleClass="sidebar-scroll">
+                    <content>
+                        <VBox spacing="10">
+                            <padding>
+                                <Insets top="4" right="18" bottom="16" left="18"/>
+                            </padding>
+
+                            <Button text="Accueil Admin" onAction="#openDashboard" styleClass="nav-button"/>
+
+                            <TitledPane text="Utilisateurs" expanded="false" styleClass="sidebar-dropdown">
+                                <content>
+                                    <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Patients" onAction="#openPatients" styleClass="sub-nav-button"/>
+                                        <Button text="Tous les utilisateurs" onAction="#openUsers" styleClass="sub-nav-button"/>
+                                        <Button text="Demandes de rôle" onAction="#openRoles" styleClass="sub-nav-button"/>
+                                    </VBox>
+                                </content>
+                            </TitledPane>
+
+                            <TitledPane text="Produits" expanded="true" styleClass="sidebar-dropdown">
+                                <content>
+                                    <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Liste des produits" onAction="#openProduits" styleClass="sub-nav-button-active"/>
+                                        <Button text="Commandes" onAction="#openCommandes" styleClass="sub-nav-button"/>
+                                        <Button text="Détection Épidémie" onAction="#openDetection" styleClass="sub-nav-button"/>
+                                        <Button text="Statistiques produits" onAction="#openStatsProduits" styleClass="sub-nav-button"/>
+                                    </VBox>
+                                </content>
+                            </TitledPane>
+
+                            <TitledPane text="Événements" expanded="false" styleClass="sidebar-dropdown">
+                                <content>
+                                    <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Liste des événements" onAction="#openEvents" styleClass="sub-nav-button"/>
+                                        <Button text="Participants demandes" onAction="#openEventParticipants" styleClass="sub-nav-button"/>
+                                        <Button text="Ressources" onAction="#openRessources" styleClass="sub-nav-button"/>
+                                        <Button text="Stats événements" onAction="#openStatsEvents" styleClass="sub-nav-button"/>
+                                    </VBox>
+                                </content>
+                            </TitledPane>
+
+                            <TitledPane text="Consultations" expanded="false" styleClass="sidebar-dropdown">
+                                <content>
+                                    <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Consultations par Docteur" onAction="#openConsultations" styleClass="sub-nav-button"/>
+                                        <Button text="Statistiques consultations" onAction="#openStatsConsultations" styleClass="sub-nav-button"/>
+                                    </VBox>
+                                </content>
+                            </TitledPane>
+
+                            <TitledPane text="Réclamations" expanded="false" styleClass="sidebar-dropdown">
+                                <content>
+                                    <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Liste des réclamations" onAction="#openReclamations" styleClass="sub-nav-button"/>
+                                        <Button text="Statistiques réclamations" onAction="#openStatsReclamations" styleClass="sub-nav-button"/>
+                                    </VBox>
+                                </content>
+                            </TitledPane>
+
+                            <TitledPane text="Blog et Posts" expanded="false" styleClass="sidebar-dropdown">
+                                <content>
+                                    <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Liste des posts" onAction="#openPosts" styleClass="sub-nav-button"/>
+                                        <Button text="Commentaires" onAction="#openBlogComments" styleClass="sub-nav-button"/>
+                                        <Button text="Modération blog" onAction="#openBlogModeration" styleClass="sub-nav-button"/>
+                                    </VBox>
+                                </content>
+                            </TitledPane>
+
+                            <Button text="Déconnexion" onAction="#logout" styleClass="logout-button"/>
+                        </VBox>
+                    </content>
+                </ScrollPane>
+            </center>
+
+            <bottom>
+                <VBox spacing="10">
+                    <padding>
+                        <Insets top="12" right="18" bottom="22" left="18"/>
+                    </padding>
+
+                    <Separator styleClass="side-separator"/>
+                    <Button text="Retour Site" onAction="#goBackSite" styleClass="back-site-button"/>
+                </VBox>
+            </bottom>
+
+        </BorderPane>
+    </left>
+
+    <top>
+        <HBox alignment="CENTER_LEFT" spacing="18" styleClass="top-bar">
+            <padding>
+                <Insets top="18" right="28" bottom="18" left="28"/>
+            </padding>
+
+            <Button text="Menu" styleClass="menu-button"/>
+
+            <VBox spacing="3">
+                <Label text="Gestion des Produits" styleClass="page-title"/>
+                <Label fx:id="dateLabel" text="Admin • Produits" styleClass="page-subtitle"/>
+            </VBox>
+
+            <Region HBox.hgrow="ALWAYS"/>
+
+            <TextField fx:id="topSearchField" promptText="Rechercher..." styleClass="search-field"/>
+            <Button text="Notif" styleClass="icon-button"/>
+            <Button text="Param" styleClass="icon-button"/>
+            <Label text="A" styleClass="avatar-label"/>
+        </HBox>
+    </top>
+
+    <center>
+        <ScrollPane fitToWidth="true" hbarPolicy="NEVER" styleClass="content-scroll">
+            <content>
+                <VBox spacing="24" styleClass="page-content">
+                    <padding>
+                        <Insets top="28" right="34" bottom="40" left="34"/>
+                    </padding>
+
+                    <HBox alignment="CENTER_LEFT" spacing="10" styleClass="produit-breadcrumb">
+                        <Label text="Gestion des Produits" styleClass="produit-breadcrumb-title"/>
+                        <Label text="|" styleClass="produit-breadcrumb-sep"/>
+                        <Label text="Admin" styleClass="produit-breadcrumb-active"/>
+                        <Label text="›" styleClass="produit-breadcrumb-sep"/>
+                        <Label text="Produits" styleClass="produit-breadcrumb-muted"/>
+                    </HBox>
+
+                    <HBox spacing="22" alignment="CENTER_LEFT" styleClass="produit-kpi-row">
+
+                        <VBox styleClass="stat-total">
+                            <Label text="Total Produits" styleClass="stat-title"/>
+                            <Label fx:id="totalProduitsLabel" text="0" styleClass="stat-value"/>
+                            <Label text="Catalogue total" styleClass="stat-subtitle"/>
+                        </VBox>
+
+                        <VBox styleClass="stat-disponible">
+                            <Label text="Disponibles" styleClass="stat-title"/>
+                            <Label fx:id="disponiblesLabel" text="0" styleClass="stat-value"/>
+                            <Label text="Produits actifs" styleClass="stat-subtitle"/>
+                        </VBox>
+
+                        <VBox styleClass="stat-rupture">
+                            <Label text="En Rupture" styleClass="stat-title"/>
+                            <Label fx:id="ruptureLabel" text="0" styleClass="stat-value"/>
+                            <Label text="Stock à revoir" styleClass="stat-subtitle"/>
+                        </VBox>
+
+                        <VBox styleClass="stat-stock">
+                            <Label text="Unités en Stock" styleClass="stat-title"/>
+                            <Label fx:id="stockTotalLabel" text="0" styleClass="stat-value"/>
+                            <Label text="Inventaire total" styleClass="stat-subtitle"/>
+                        </VBox>
+
+                    </HBox>
+
+                    <HBox alignment="CENTER_LEFT" spacing="14" styleClass="filter-card">
+                        <TextField fx:id="searchField" promptText="Rechercher un produit..." styleClass="filter-input"/>
+                        <ComboBox fx:id="sortCombo" promptText="Trier..." styleClass="filter-combo"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Label fx:id="resultCountLabel" text="0 produit(s)" styleClass="result-label"/>
+                    </HBox>
+
+                    <VBox spacing="0" styleClass="table-card">
+
+                        <HBox alignment="CENTER_LEFT" styleClass="table-title-row">
+                            <Label text="Liste Complète des Produits" styleClass="table-title"/>
+                            <Region HBox.hgrow="ALWAYS"/>
+                            <Label text="Cliquez sur l'œil pour voir les détails" styleClass="table-help"/>
+                        </HBox>
+
+                        <HBox alignment="CENTER_LEFT" styleClass="table-header">
+                            <Label text="IMAGE" prefWidth="110" styleClass="header-cell"/>
+                            <Label text="PRODUIT" prefWidth="250" styleClass="header-cell"/>
+                            <Label text="CATÉGORIE" prefWidth="170" styleClass="header-cell"/>
+                            <Label text="PRIX" prefWidth="120" styleClass="header-cell"/>
+                            <Label text="STOCK" prefWidth="140" styleClass="header-cell"/>
+                            <Label text="STATUT" prefWidth="180" styleClass="header-cell"/>
+                            <Label text="DÉTAILS" prefWidth="120" styleClass="header-cell"/>
+                        </HBox>
+
+                        <VBox fx:id="produitsRowsContainer" spacing="0"/>
+
+                    </VBox>
+
+                </VBox>
+            </content>
+        </ScrollPane>
+    </center>
+
+</BorderPane>

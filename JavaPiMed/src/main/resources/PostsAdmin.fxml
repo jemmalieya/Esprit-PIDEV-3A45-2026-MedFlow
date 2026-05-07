@@ -1,0 +1,296 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.TitledPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane fx:id="rootPane"
+            prefWidth="1500.0"
+            prefHeight="880.0"
+            styleClass="app-root"
+            stylesheets="@CSS/admin-welcome.css,@CSS/posts-admin.css"
+            xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="tn.esprit.controllers.AdminPostsController">
+
+    <left>
+        <BorderPane prefWidth="320.0" styleClass="sidebar">
+
+            <top>
+                <VBox spacing="8">
+                    <padding>
+                        <Insets top="26" right="20" bottom="16" left="20"/>
+                    </padding>
+
+                    <Label text="MedFlow Admin" styleClass="brand-title"/>
+                    <Label text="ESPACE ADMINISTRATION" styleClass="brand-subtitle"/>
+                    <Separator styleClass="side-separator"/>
+                </VBox>
+            </top>
+
+            <center>
+                <ScrollPane fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" styleClass="sidebar-scroll">
+                    <content>
+                        <VBox spacing="10">
+                            <padding>
+                                <Insets top="4" right="18" bottom="16" left="18"/>
+                            </padding>
+
+                            <Button text="Accueil Admin" onAction="#openDashboard" styleClass="nav-button"/>
+
+                            <TitledPane text="Utilisateurs" expanded="false" styleClass="sidebar-dropdown">
+                                <content>
+                                    <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Patients" onAction="#openPatients" styleClass="sub-nav-button"/>
+                                        <Button text="Tous les utilisateurs" onAction="#openUsers" styleClass="sub-nav-button"/>
+                                        <Button text="Demandes de rôle" onAction="#openRoles" styleClass="sub-nav-button"/>
+                                        <Button text="Comptes et permissions" onAction="#openUserRoles" styleClass="sub-nav-button"/>
+                                    </VBox>
+                                </content>
+                            </TitledPane>
+
+                            <TitledPane text="Produits" expanded="false" styleClass="sidebar-dropdown">
+                                <content>
+                                    <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Liste des produits" onAction="#openProduits" styleClass="sub-nav-button"/>
+                                        <Button text="Commandes" onAction="#openCommandes" styleClass="sub-nav-button"/>
+                                        <Button text="Détection Épidémie" onAction="#openDetection" styleClass="sub-nav-button"/>
+                                        <Button text="Stock et ruptures" onAction="#openStockRupture" styleClass="sub-nav-button"/>
+                                        <Button text="Statistiques produits" onAction="#openStatsProduits" styleClass="sub-nav-button"/>
+                                    </VBox>
+                                </content>
+                            </TitledPane>
+
+                            <TitledPane text="Événements" expanded="false" styleClass="sidebar-dropdown">
+                                <content>
+                                    <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Liste des événements" onAction="#openEvents" styleClass="sub-nav-button"/>
+                                        <Button text="Participants demandes" onAction="#openEventParticipants" styleClass="sub-nav-button"/>
+                                        <Button text="Ressources" onAction="#openRessources" styleClass="sub-nav-button"/>
+                                        <Button text="Stats événements" onAction="#openStatsEvents" styleClass="sub-nav-button"/>
+                                        <Button text="Stats ressources" onAction="#openStatsRessources" styleClass="sub-nav-button"/>
+                                    </VBox>
+                                </content>
+                            </TitledPane>
+
+                            <TitledPane text="Consultations" expanded="false" styleClass="sidebar-dropdown">
+                                <content>
+                                    <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Consultations par Docteur" onAction="#openConsultations" styleClass="sub-nav-button"/>
+                                        <Button text="Rendez-vous" onAction="#openRendezVous" styleClass="sub-nav-button"/>
+                                        <Button text="Statistiques consultations" onAction="#openStatsConsultations" styleClass="sub-nav-button"/>
+                                    </VBox>
+                                </content>
+                            </TitledPane>
+
+                            <TitledPane text="Réclamations" expanded="false" styleClass="sidebar-dropdown">
+                                <content>
+                                    <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Liste des réclamations" onAction="#openReclamations" styleClass="sub-nav-button"/>
+                                        <Button text="Statistiques réclamations" onAction="#openStatsReclamations" styleClass="sub-nav-button"/>
+                                    </VBox>
+                                </content>
+                            </TitledPane>
+
+                            <TitledPane text="Blog et Posts" expanded="true" styleClass="sidebar-dropdown">
+                                <content>
+                                    <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Tous les posts"
+                                                onAction="#openPosts"
+                                                styleClass="sub-nav-button"
+                                                style="-fx-background-color: rgba(20, 184, 166, 0.25); -fx-text-fill: white;"/>
+
+                                        <Button text="Posts en attente"
+                                                onAction="#openPostsEnAttente"
+                                                styleClass="sub-nav-button"/>
+
+                                        <Button text="Statistiques blog"
+                                                onAction="#openStatsBlog"
+                                                styleClass="sub-nav-button"/>
+                                    </VBox>
+                                </content>
+                            </TitledPane>
+
+                            <Button text="Déconnexion" onAction="#logout" styleClass="logout-button"/>
+                        </VBox>
+                    </content>
+                </ScrollPane>
+            </center>
+
+            <bottom>
+                <VBox spacing="10">
+                    <padding>
+                        <Insets top="12" right="18" bottom="22" left="18"/>
+                    </padding>
+
+                    <Separator styleClass="side-separator"/>
+                    <Button text="Retour Site" onAction="#goBackSite" styleClass="back-site-button"/>
+                </VBox>
+            </bottom>
+
+        </BorderPane>
+    </left>
+
+    <top>
+        <HBox alignment="CENTER_LEFT" spacing="18" styleClass="top-bar">
+            <padding>
+                <Insets top="18" right="28" bottom="18" left="28"/>
+            </padding>
+
+            <Button text="Menu" styleClass="menu-button"/>
+
+            <VBox spacing="3">
+                <Label text="Gestion de tous les Posts" styleClass="page-title"/>
+                <Label text="Consultez, filtrez et gérez toutes les publications du blog MedFlow"
+                       styleClass="page-subtitle"/>
+            </VBox>
+
+            <Region HBox.hgrow="ALWAYS"/>
+
+            <TextField promptText="Rechercher..." styleClass="search-field"/>
+            <Button text="Notif" styleClass="icon-button"/>
+            <Button text="Param" styleClass="icon-button"/>
+            <Label text="A" styleClass="avatar-label"/>
+        </HBox>
+    </top>
+
+    <center>
+        <ScrollPane fitToWidth="true" hbarPolicy="NEVER" styleClass="content-scroll">
+            <content>
+                <VBox spacing="24" styleClass="posts-admin-content">
+                    <padding>
+                        <Insets top="34" right="38" bottom="45" left="38"/>
+                    </padding>
+
+                    <VBox spacing="16" styleClass="posts-hero-card">
+                        <HBox spacing="16" alignment="CENTER_LEFT">
+                            <StackPane prefWidth="68" prefHeight="68" styleClass="hero-icon-box">
+                                <Label text="📰" styleClass="hero-icon"/>
+                            </StackPane>
+
+                            <VBox spacing="8" HBox.hgrow="ALWAYS">
+                                <Label text="Administration des publications" styleClass="posts-hero-title"/>
+                                <Label text="Visualisez tous les posts, suivez leur statut et gardez un contrôle clair sur le contenu publié."
+                                       wrapText="true"
+                                       styleClass="posts-hero-subtitle"/>
+                            </VBox>
+                        </HBox>
+
+                        <HBox spacing="12" alignment="CENTER_LEFT">
+                            <Label text="📋 Vue globale" styleClass="hero-badge"/>
+                            <Label text="🛡️ Gestion admin" styleClass="hero-badge"/>
+                            <Label text="⚡ Actions rapides" styleClass="hero-badge"/>
+                            <Label text="📊 Suivi moderne" styleClass="hero-badge"/>
+                        </HBox>
+                    </VBox>
+
+                    <HBox spacing="18">
+                        <VBox spacing="12" styleClass="post-stat-card blue-card" HBox.hgrow="ALWAYS">
+                            <StackPane prefWidth="48" prefHeight="48" styleClass="post-stat-icon blue-icon">
+                                <Label text="📝" styleClass="post-stat-emoji"/>
+                            </StackPane>
+                            <Label fx:id="totalPostsLabel" text="0" styleClass="post-stat-number"/>
+                            <Label text="Tous les posts" styleClass="post-stat-text"/>
+                        </VBox>
+
+                        <VBox spacing="12" styleClass="post-stat-card green-card" HBox.hgrow="ALWAYS">
+                            <StackPane prefWidth="48" prefHeight="48" styleClass="post-stat-icon green-icon">
+                                <Label text="✅" styleClass="post-stat-emoji"/>
+                            </StackPane>
+                            <Label fx:id="publishedPostsLabel" text="0" styleClass="post-stat-number"/>
+                            <Label text="Posts publiés" styleClass="post-stat-text"/>
+                        </VBox>
+
+                        <VBox spacing="12" styleClass="post-stat-card orange-card" HBox.hgrow="ALWAYS">
+                            <StackPane prefWidth="48" prefHeight="48" styleClass="post-stat-icon orange-icon">
+                                <Label text="⏳" styleClass="post-stat-emoji"/>
+                            </StackPane>
+                            <Label fx:id="pendingPostsLabel" text="0" styleClass="post-stat-number"/>
+                            <Label text="En attente" styleClass="post-stat-text"/>
+                        </VBox>
+
+                        <VBox spacing="12" styleClass="post-stat-card red-card" HBox.hgrow="ALWAYS">
+                            <StackPane prefWidth="48" prefHeight="48" styleClass="post-stat-icon red-icon">
+                                <Label text="❌" styleClass="post-stat-emoji"/>
+                            </StackPane>
+                            <Label fx:id="rejectedPostsLabel" text="0" styleClass="post-stat-number"/>
+                            <Label text="Refusés" styleClass="post-stat-text"/>
+                        </VBox>
+                    </HBox>
+
+                    <VBox spacing="18" styleClass="posts-table-card">
+
+                        <HBox alignment="CENTER_LEFT" spacing="12">
+                            <VBox spacing="4">
+                                <Label text="Liste complète des posts" styleClass="posts-section-title"/>
+                                <Label text="Retrouvez ici toutes les publications avec leurs informations principales."
+                                       styleClass="posts-section-subtitle"/>
+                            </VBox>
+
+                            <Region HBox.hgrow="ALWAYS"/>
+
+                            <Button text="Actualiser" onAction="#refreshData" styleClass="secondary-action-btn"/>
+                            <Button text="Exporter PDF" onAction="#exportPdf" styleClass="primary-action-btn"/>
+                        </HBox>
+
+                        <HBox spacing="14" alignment="CENTER_LEFT">
+                            <TextField fx:id="searchField"
+                                       promptText="Rechercher par titre, contenu ou catégorie..."
+                                       HBox.hgrow="ALWAYS"
+                                       styleClass="posts-filter-field"/>
+
+                            <ComboBox fx:id="statusFilter"
+                                      promptText="Statut"
+                                      prefWidth="160"
+                                      styleClass="posts-filter-combo"/>
+
+                            <ComboBox fx:id="categoryFilter"
+                                      promptText="Catégorie"
+                                      prefWidth="180"
+                                      styleClass="posts-filter-combo"/>
+                        </HBox>
+
+                        <VBox styleClass="all-posts-table-wrapper">
+                            <TableView fx:id="postsTable"
+                                       prefHeight="430"
+                                       fixedCellSize="58"
+                                       VBox.vgrow="ALWAYS"
+                                       styleClass="all-posts-table">
+
+                                <columns>
+                                    <TableColumn fx:id="titleCol" text="TITRE" prefWidth="300"/>
+                                    <TableColumn fx:id="categoryCol" text="CATÉGORIE" prefWidth="170"/>
+                                    <TableColumn fx:id="statusCol" text="STATUT" prefWidth="150"/>
+                                    <TableColumn fx:id="dateCol" text="DATE" prefWidth="200"/>
+                                    <TableColumn fx:id="commentsCol" text="COMMENTAIRES" prefWidth="160"/>
+                                    <TableColumn fx:id="actionsCol" text="ACTIONS" prefWidth="160"/>
+                                </columns>
+                            </TableView>
+                        </VBox>
+
+                        <HBox alignment="CENTER_LEFT" spacing="10" styleClass="table-footer-note">
+                            <Label text="ℹ" styleClass="footer-note-icon"/>
+                            <Label text="Astuce : utilisez la recherche et les filtres pour retrouver rapidement un post précis."
+                                   wrapText="true"
+                                   styleClass="table-footer-text"/>
+                        </HBox>
+                    </VBox>
+
+                </VBox>
+            </content>
+        </ScrollPane>
+    </center>
+
+</BorderPane>

@@ -185,43 +185,69 @@ public class DashboardBIServiceEvenement {
                 return;
             }
 
-            if (data.brouillons > 0) {
-                recommandations.add(data.brouillons + " evenement(s) en brouillon: finaliser les fiches et publier les plus complets.");
-            }
-            if (data.annules > 0) {
-                recommandations.add(data.annules + " annulation(s): verifier les motifs recurrents avant de relancer des evenements similaires.");
-            }
-            if (data.evenementsAVenir < 3) {
-                recommandations.add("Calendrier faible: programmer au moins 3 evenements a venir pour maintenir l'activite.");
-            } else {
-                recommandations.add("Calendrier actif: prioriser la promotion des evenements les plus proches.");
-            }
-            if (data.tauxPublication < 50.0) {
-                recommandations.add("Taux de publication bas: reduire le temps entre creation, validation et mise en ligne.");
-            } else if (data.tauxPublication >= 80.0) {
-                recommandations.add("Bon taux de publication: concentrer l'effort sur les inscriptions et la visibilite.");
-            }
-            if (data.capaciteTotale > 0) {
-                int capaciteMoyenne = Math.round(data.capaciteTotale / (float) data.totalEvenements);
-                recommandations.add("Capacite moyenne " + capaciteMoyenne + " places: ajuster la promotion selon le remplissage attendu.");
-            }
-
+            double tauxBrouillon = data.totalEvenements == 0 ? 0 : (data.brouillons * 100.0 / data.totalEvenements);
+            double tauxAnnulation = data.totalEvenements == 0 ? 0 : (data.annules * 100.0 / data.totalEvenements);
+            int capaciteMoyenne = data.totalEvenements == 0 ? 0 : Math.round(data.capaciteTotale / (float) data.totalEvenements);
             Map.Entry<String, Integer> typeDominant = plusGrandSegment(data.parType);
-            if (typeDominant != null && typeDominant.getValue() >= 2) {
-                recommandations.add("Type dominant \"" + typeDominant.getKey() + "\": tester un format different pour diversifier l'offre.");
+            Map.Entry<String, Integer> villeDominante = plusGrandSegment(data.parVille);
+            Map.Entry<LocalDate, Integer> jourCharge = plusGrandSegmentLocalDate(data.eventsParJour);
+
+            if (data.tauxPublication < 60.0) {
+                recommandations.add(String.format(Locale.US,
+                        "Publication a renforcer: %.1f%% seulement des evenements sont visibles. Priorite aux fiches completes pour accelerer la mise en ligne.",
+                        data.tauxPublication));
+            } else {
+                recommandations.add(String.format(Locale.US,
+                        "Visibilite correcte: %.1f%% des evenements sont publies. Orientez maintenant l'effort vers la promotion et l'inscription.",
+                        data.tauxPublication));
             }
 
-            Map.Entry<String, Integer> villeDominante = plusGrandSegment(data.parVille);
-            if (villeDominante != null && villeDominante.getValue() >= 2) {
-                recommandations.add("Ville la plus active \"" + villeDominante.getKey() + "\": renforcer la communication locale.");
+            if (tauxBrouillon >= 25.0) {
+                recommandations.add(String.format(Locale.US,
+                        "Trop de brouillons: %.1f%% du portefeuille n'est pas finalise. Lancez une revue hebdomadaire des dates, lieux et contacts manquants.",
+                        tauxBrouillon));
+            }
+
+            if (tauxAnnulation > 0) {
+                recommandations.add(String.format(Locale.US,
+                        "Annulations a analyser: %.1f%% des evenements ont ete annules. Comparez les motifs pour separer meteo, logistique, lieu et faible mobilisation.",
+                        tauxAnnulation));
+            }
+
+            if (data.evenementsAVenir < 3) {
+                recommandations.add("Couverture future faible: moins de 3 evenements a venir. Ajoutez rapidement des dates pour eviter une rupture de calendrier.");
+            } else {
+                recommandations.add("Calendrier a venir present: securisez d'abord les evenements les plus proches avec rappels, staff et verifications terrain.");
+            }
+
+            if (capaciteMoyenne > 0) {
+                recommandations.add("Capacite moyenne de " + capaciteMoyenne + " places: comparez-la par type pour eviter les salles sous-utilisees ou saturees.");
+            }
+
+            if (jourCharge != null && jourCharge.getValue() > 1) {
+                recommandations.add("Journee chargee le " + jourCharge.getKey() + ": "
+                        + jourCharge.getValue() + " evenements le meme jour. Verifiez les conflits de staff, materiel et communication.");
+            }
+
+            if (typeDominant != null && typeDominant.getValue() > 0) {
+                double partType = typeDominant.getValue() * 100.0 / data.totalEvenements;
+                recommandations.add(String.format(Locale.US,
+                        "Le type \"%s\" represente %.1f%% de la periode. Gardez ce format s'il fonctionne, mais ajoutez 1 ou 2 formats complementaires pour diversifier l'offre.",
+                        typeDominant.getKey(), partType));
+            }
+
+            if (villeDominante != null && villeDominante.getValue() > 0) {
+                double partVille = villeDominante.getValue() * 100.0 / data.totalEvenements;
+                recommandations.add(String.format(Locale.US,
+                        "La ville \"%s\" concentre %.1f%% des evenements. Verifiez si cette concentration est voulue ou si d'autres villes manquent de programmation.",
+                        villeDominante.getKey(), partVille));
             }
 
             if (!data.topEvenements.isEmpty()) {
                 Evenement top = data.topEvenements.get(0);
-                if (top.getNb_participants_max_event() > 0) {
-                    recommandations.add("Evenement prioritaire: \"" + safe(top.getTitre_event()) + "\" avec "
-                            + top.getNb_participants_max_event() + " places a valoriser.");
-                }
+                recommandations.add("Evenement prioritaire: \"" + safe(top.getTitre_event()) + "\" porte la plus grande capacite ("
+                        + Math.max(0, top.getNb_participants_max_event())
+                        + " places). Preparez une communication et un accueil adaptes.");
             }
 
             if (recommandations.isEmpty()) {
@@ -235,6 +261,16 @@ public class DashboardBIServiceEvenement {
                     .toList();
             return;
         }
+    }
+
+    private Map.Entry<LocalDate, Integer> plusGrandSegmentLocalDate(Map<LocalDate, Integer> values) {
+        if (values == null || values.isEmpty()) {
+            return null;
+        }
+
+        return values.entrySet().stream()
+                .max(Map.Entry.comparingByValue())
+                .orElse(null);
     }
 
     private Map.Entry<String, Integer> plusGrandSegment(Map<String, Integer> values) {

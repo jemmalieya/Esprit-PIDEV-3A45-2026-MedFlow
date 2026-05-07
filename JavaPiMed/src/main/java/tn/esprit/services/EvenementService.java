@@ -285,15 +285,17 @@ public class EvenementService implements IGeneralService<Evenement> {
         return null;
     }
 
-    public boolean evenementExisteDeja(Date dateDebut) {
+    public boolean evenementExisteDeja(String titre, Date dateDebut) {
         String sql = """
         SELECT COUNT(*)
         FROM evenement
         WHERE date_debut_event = ?
+          AND LOWER(TRIM(titre_event)) = LOWER(TRIM(?))
     """;
 
         try (PreparedStatement pst = cn.prepareStatement(sql)) {
             pst.setDate(1, dateDebut);
+            pst.setString(2, titre == null ? "" : titre.trim());
 
             ResultSet rs = pst.executeQuery();
             if (rs.next()) {
@@ -305,17 +307,19 @@ public class EvenementService implements IGeneralService<Evenement> {
 
         return false;
     }
-    public boolean evenementExisteDejaPourModification(int id, java.sql.Date dateDebut) {
+    public boolean evenementExisteDejaPourModification(int id, String titre, java.sql.Date dateDebut) {
         String sql = """
         SELECT COUNT(*)
         FROM evenement
         WHERE date_debut_event = ?
+          AND LOWER(TRIM(titre_event)) = LOWER(TRIM(?))
           AND id <> ?
     """;
 
         try (PreparedStatement pst = cn.prepareStatement(sql)) {
             pst.setDate(1, dateDebut);
-            pst.setInt(2, id);
+            pst.setString(2, titre == null ? "" : titre.trim());
+            pst.setInt(3, id);
 
             ResultSet rs = pst.executeQuery();
             if (rs.next()) {
@@ -326,6 +330,21 @@ public class EvenementService implements IGeneralService<Evenement> {
         }
 
         return false;
+    }
+
+    public void modifierCapacite(int eventId, int nouvelleCapacite) throws SQLException {
+        String sql = """
+                UPDATE evenement
+                SET nb_participants_max_event = ?, date_mise_a_jour_event = ?
+                WHERE id = ?
+                """;
+
+        try (PreparedStatement ps = cn.prepareStatement(sql)) {
+            ps.setInt(1, Math.max(0, nouvelleCapacite));
+            ps.setDate(2, new java.sql.Date(new java.util.Date().getTime()));
+            ps.setInt(3, eventId);
+            ps.executeUpdate();
+        }
     }
 
     public void archiver(Evenement e) {

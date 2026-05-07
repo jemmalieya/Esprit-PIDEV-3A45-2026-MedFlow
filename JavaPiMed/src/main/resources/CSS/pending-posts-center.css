@@ -1,0 +1,407 @@
+/* ===========================================
+   PENDING POSTS ADMIN - MODERN CENTER DESIGN
+   =========================================== */
+
+.simple-home-content {
+    -fx-background-color: linear-gradient(to bottom, #f8fafc 0%, #f1f5f9 100%);
+}
+
+/* ========== WELCOME CARD ========== */
+.simple-welcome-card {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, rgba(102, 126, 234, 0.95) 0%, rgba(118, 75, 162, 0.95) 100%);
+    -fx-background-radius: 24px;
+    -fx-border-radius: 24px;
+    -fx-border-color: rgba(255, 255, 255, 0.2);
+    -fx-border-width: 1px;
+    -fx-padding: 32px;
+    -fx-effect: dropshadow(gaussian, rgba(102, 126, 234, 0.3), 20, 0.15, 0, 8);
+}
+
+.simple-welcome-title {
+    -fx-text-fill: white;
+    -fx-font-size: 28px;
+    -fx-font-weight: 800;
+    -fx-font-family: "Segoe UI", Arial, sans-serif;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 2, 0, 0, 1);
+}
+
+.simple-welcome-text {
+    -fx-text-fill: rgba(255, 255, 255, 0.9);
+    -fx-font-size: 16px;
+    -fx-font-weight: 500;
+    -fx-font-family: "Segoe UI", Arial, sans-serif;
+}
+
+.simple-welcome-subtext {
+    -fx-text-fill: rgba(255, 255, 255, 0.7);
+    -fx-font-size: 14px;
+    -fx-font-weight: 400;
+    -fx-font-family: "Segoe UI", Arial, sans-serif;
+}
+
+/* ========== SECTION TITLES ========== */
+.simple-section-title {
+    -fx-text-fill: #1e293b;
+    -fx-font-size: 22px;
+    -fx-font-weight: 700;
+    -fx-font-family: "Segoe UI", Arial, sans-serif;
+    -fx-padding: 0 0 8px 0;
+    -fx-border-color: transparent transparent #667eea transparent;
+    -fx-border-width: 0 0 3px 0;
+}
+
+/* ========== STATISTICS CARDS ========== */
+.stat-card {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #ffffff 0%, #f8fafc 100%);
+    -fx-background-radius: 20px;
+    -fx-border-radius: 20px;
+    -fx-border-color: rgba(226, 232, 240, 0.8);
+    -fx-border-width: 1px;
+    -fx-padding: 24px 20px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.08), 12, 0.12, 0, 4);
+    -fx-cursor: default;
+}
+
+.stat-card:hover {
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.12), 16, 0.15, 0, 6);
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #fefefe 0%, #f5f7fa 100%);
+}
+
+.stat-badge {
+    -fx-background-radius: 50%;
+    -fx-pref-width: 56px;
+    -fx-pref-height: 56px;
+    -fx-min-width: 56px;
+    -fx-min-height: 56px;
+    -fx-max-width: 56px;
+    -fx-max-height: 56px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.1), 8, 0.2, 0, 2);
+}
+
+.stat-badge:hover {
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.15), 12, 0.25, 0, 3);
+}
+
+.blue-badge {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #3b82f6 0%, #1d4ed8 100%);
+}
+
+.green-badge {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #10b981 0%, #059669 100%);
+}
+
+.red-badge {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #ef4444 0%, #dc2626 100%);
+}
+
+.stat-emoji {
+    -fx-font-size: 24px;
+    -fx-font-family: "Segoe UI Emoji", "Segoe UI Symbol";
+}
+
+.stat-number {
+    -fx-font-size: 36px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #1e293b;
+    -fx-font-family: "Segoe UI", Arial, sans-serif;
+}
+
+.stat-text {
+    -fx-font-size: 14px;
+    -fx-font-weight: 600;
+    -fx-text-fill: #64748b;
+    -fx-font-family: "Segoe UI", Arial, sans-serif;
+    -fx-text-alignment: center;
+}
+
+/* ========== SEARCH FIELD ========== */
+.search-field {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #ffffff 0%, #f8fafc 100%);
+    -fx-border-color: #e2e8f0;
+    -fx-border-radius: 16px;
+    -fx-background-radius: 16px;
+    -fx-padding: 16px 20px;
+    -fx-font-size: 14px;
+    -fx-font-family: "Segoe UI", Arial, sans-serif;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.05), 8, 0.1, 0, 2);
+}
+
+.search-field:focused {
+    -fx-border-color: #667eea;
+    -fx-border-width: 2px;
+    -fx-effect: dropshadow(gaussian, rgba(102, 126, 234, 0.2), 12, 0.15, 0, 4);
+    -fx-background-color: #fefefe;
+}
+
+.search-field .text-field {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+/* ========== MODERN POSTS LIST CARD ========== */
+
+.posts-list-card {
+    -fx-background-color: white;
+    -fx-background-radius: 24px;
+    -fx-border-radius: 24px;
+    -fx-border-color: #e2e8f0;
+    -fx-border-width: 1px;
+    -fx-padding: 24px;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.08), 18, 0.12, 0, 6);
+}
+
+.posts-list-title {
+    -fx-text-fill: #0f172a;
+    -fx-font-size: 24px;
+    -fx-font-weight: 800;
+    -fx-font-family: "Segoe UI", Arial, sans-serif;
+}
+
+.posts-list-subtitle {
+    -fx-text-fill: #64748b;
+    -fx-font-size: 13px;
+    -fx-font-family: "Segoe UI", Arial, sans-serif;
+}
+
+.pending-chip {
+    -fx-background-color: #fff7ed;
+    -fx-text-fill: #ea580c;
+    -fx-font-size: 12px;
+    -fx-font-weight: 800;
+    -fx-padding: 8px 16px;
+    -fx-background-radius: 999px;
+    -fx-border-color: #fed7aa;
+    -fx-border-radius: 999px;
+}
+
+/* ========== SEARCH FIELD TABLE ========== */
+
+.moderation-search-field {
+    -fx-background-color: #f8fafc;
+    -fx-border-color: #e2e8f0;
+    -fx-border-radius: 16px;
+    -fx-background-radius: 16px;
+    -fx-padding: 14px 18px;
+    -fx-font-size: 14px;
+    -fx-text-fill: #0f172a;
+    -fx-prompt-text-fill: #94a3b8;
+    -fx-font-family: "Segoe UI", Arial, sans-serif;
+}
+
+.moderation-search-field:focused {
+    -fx-background-color: white;
+    -fx-border-color: #14b8a6;
+    -fx-border-width: 2px;
+    -fx-effect: dropshadow(gaussian, rgba(20, 184, 166, 0.20), 12, 0.15, 0, 3);
+}
+
+/* ========== MODERN TABLE ========== */
+
+.modern-table-wrapper {
+    -fx-background-color: #f8fafc;
+    -fx-background-radius: 20px;
+    -fx-border-radius: 20px;
+    -fx-border-color: #e2e8f0;
+    -fx-border-width: 1px;
+    -fx-padding: 0;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.06), 12, 0.10, 0, 4);
+}
+
+.modern-posts-table {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-background-radius: 20px;
+    -fx-border-radius: 20px;
+    -fx-table-cell-border-color: transparent;
+    -fx-padding: 0;
+}
+
+.modern-posts-table .column-header-background {
+    -fx-background-color: linear-gradient(to right, #0891b2, #2563eb);
+    -fx-background-radius: 20px 20px 0 0;
+    -fx-padding: 0;
+}
+
+.modern-posts-table .column-header {
+    -fx-background-color: transparent;
+    -fx-pref-height: 46px;
+    -fx-border-color: transparent;
+}
+
+.modern-posts-table .column-header .label {
+    -fx-text-fill: white;
+    -fx-font-size: 12px;
+    -fx-font-weight: 900;
+    -fx-alignment: CENTER_LEFT;
+    -fx-padding: 0 0 0 8px;
+    -fx-font-family: "Segoe UI", Arial, sans-serif;
+}
+
+.modern-posts-table .filler {
+    -fx-background-color: transparent;
+}
+
+.modern-posts-table .table-row-cell {
+    -fx-background-color: white;
+    -fx-border-color: transparent transparent #e5e7eb transparent;
+    -fx-border-width: 0 0 1px 0;
+    -fx-cell-size: 58px;
+}
+
+.modern-posts-table .table-row-cell:odd {
+    -fx-background-color: #f8fafc;
+}
+
+.modern-posts-table .table-row-cell:hover {
+    -fx-background-color: #ecfeff;
+}
+
+.modern-posts-table .table-row-cell:selected {
+    -fx-background-color: #ccfbf1;
+    -fx-border-color: transparent transparent #14b8a6 #14b8a6;
+    -fx-border-width: 0 0 1px 4px;
+}
+
+.modern-posts-table .table-row-cell:empty {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.modern-posts-table .table-row-cell:empty .table-cell {
+    -fx-border-color: transparent;
+    -fx-background-color: transparent;
+}
+
+.modern-posts-table .table-cell {
+    -fx-text-fill: #334155;
+    -fx-font-size: 13px;
+    -fx-font-family: "Segoe UI", Arial, sans-serif;
+    -fx-padding: 12px 14px;
+    -fx-alignment: CENTER_LEFT;
+    -fx-border-color: transparent;
+}
+
+.modern-posts-table .table-row-cell:selected .table-cell {
+    -fx-text-fill: #0f172a;
+    -fx-font-weight: 700;
+}
+
+/* Boutons Approuver / Refuser dans la colonne Actions */
+.modern-posts-table .button {
+    -fx-min-width: 82px;
+    -fx-pref-height: 32px;
+    -fx-background-radius: 10px;
+    -fx-border-radius: 10px;
+    -fx-font-size: 12px;
+    -fx-font-weight: 800;
+    -fx-padding: 7px 10px;
+    -fx-cursor: hand;
+    -fx-font-family: "Segoe UI", Arial, sans-serif;
+}
+
+.modern-posts-table .button:hover {
+    -fx-scale-x: 1.03;
+    -fx-scale-y: 1.03;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.20), 8, 0.15, 0, 3);
+}
+
+/* Scrollbars du tableau */
+.modern-posts-table .scroll-bar:vertical,
+.modern-posts-table .scroll-bar:horizontal {
+    -fx-background-color: transparent;
+}
+
+.modern-posts-table .scroll-bar:vertical .thumb,
+.modern-posts-table .scroll-bar:horizontal .thumb {
+    -fx-background-color: #cbd5e1;
+    -fx-background-radius: 999px;
+}
+
+.modern-posts-table .scroll-bar:vertical .thumb:hover,
+.modern-posts-table .scroll-bar:horizontal .thumb:hover {
+    -fx-background-color: #14b8a6;
+}
+
+/* ========== SCROLLBAR STYLING ========== */
+.content-scroll .scroll-bar:vertical {
+    -fx-background-color: transparent;
+    -fx-pref-width: 8px;
+}
+
+.content-scroll .scroll-bar:vertical .thumb {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #cbd5e1 0%, #94a3b8 100%);
+    -fx-background-radius: 4px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.1), 2, 0.1, 0, 1);
+}
+
+.content-scroll .scroll-bar:vertical .thumb:hover {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #667eea 0%, #764ba2 100%);
+}
+
+.content-scroll .scroll-bar:vertical .track {
+    -fx-background-color: transparent;
+}
+
+/* ========== WELCOME CARD ENHANCED ========== */
+.welcome-icon-container {
+    -fx-background-color: rgba(255, 255, 255, 0.2);
+    -fx-background-radius: 20px;
+    -fx-border-color: rgba(255, 255, 255, 0.3);
+    -fx-border-radius: 20px;
+    -fx-border-width: 2px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.1), 8, 0.2, 0, 2);
+}
+
+.welcome-icon {
+    -fx-font-size: 32px;
+    -fx-font-family: "Segoe UI Emoji", "Segoe UI Symbol";
+}
+
+.welcome-stats {
+    -fx-padding: 8px 0 0 0;
+}
+
+.welcome-stat-badge {
+    -fx-background-color: rgba(255, 255, 255, 0.15);
+    -fx-background-radius: 20px;
+    -fx-border-color: rgba(255, 255, 255, 0.25);
+    -fx-border-radius: 20px;
+    -fx-border-width: 1px;
+    -fx-padding: 6px 12px;
+    -fx-text-fill: white;
+    -fx-font-size: 11px;
+    -fx-font-weight: 600;
+    -fx-font-family: "Segoe UI Emoji", "Segoe UI";
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.1), 4, 0.1, 0, 1);
+    -fx-cursor: default;
+}
+
+.welcome-stat-badge:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.25);
+}
+
+/* ========== EMPTY STATE ========== */
+.empty-state {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #f8fafc 0%, #f1f5f9 100%);
+    -fx-background-radius: 16px;
+    -fx-padding: 48px 24px;
+    -fx-alignment: CENTER;
+    -fx-spacing: 16px;
+    -fx-border-color: rgba(226, 232, 240, 0.5);
+    -fx-border-radius: 16px;
+    -fx-border-width: 1px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.05), 8, 0.1, 0, 2);
+}
+
+.empty-state .label {
+    -fx-text-fill: #64748b;
+    -fx-font-size: 16px;
+    -fx-font-weight: 500;
+    -fx-font-family: "Segoe UI", Arial, sans-serif;
+}
+
+.empty-state-icon {
+    -fx-font-size: 48px;
+    -fx-text-fill: #cbd5e1;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.1), 4, 0.1, 0, 1);
+}

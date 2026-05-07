@@ -17,6 +17,13 @@
         <jcefmaven.version>143.0.14</jcefmaven.version>
     </properties>
     <dependencies>
+                <!-- Local JCEF dependency (install jcef.jar into local repo or change coordinates) -->
+        <dependency>
+            <groupId>org.jcef</groupId>
+            <artifactId>jcef</artifactId>
+            <version>1.0</version>
+        </dependency>        
+
         <dependency>
             <groupId>mysql</groupId>
             <artifactId>mysql-connector-java</artifactId>
@@ -197,7 +204,37 @@
 
     </dependencies>
 
-
-
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.15.0</version>
+                <configuration>
+                    <source>17</source>
+                    <target>17</target>
+                    <compilerArgs>
+                        <arg>--add-opens</arg>
+                        <arg>javafx.graphics/javafx.scene=ALL-UNNAMED</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.1.0</version>
+                <configuration>
+                    <mainClass>tn.esprit.main.Main</mainClass>
+                    <arguments></arguments>
+                    <systemProperties>
+                        <systemProperty>
+                            <key>java.library.path</key>
+                            <value>${java.library.path}</value>
+                        </systemProperty>
+                    </systemProperties>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>

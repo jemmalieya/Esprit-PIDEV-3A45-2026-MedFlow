@@ -11,11 +11,17 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
+import javafx.geometry.Insets;
+import javafx.scene.Node;
 import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonBar;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Control;
 import javafx.scene.control.Label;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.DialogPane;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
@@ -23,6 +29,7 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Window;
@@ -74,6 +81,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
@@ -518,6 +526,13 @@ public class ConsultationController implements Initializable {
             String mode = modeComboBox != null ? modeComboBox.getValue() : null;
             String motif = motifArea != null ? motifArea.getText() : null;
 
+            // Collect all validation errors
+            List<String> errors = collectBookingValidationErrors(patientId, idStaff, selectedDateTime, mode, motif);
+            if (!errors.isEmpty()) {
+                showDetailedErrors("Booking Cannot Be Completed", errors);
+                return;
+            }
+
             saveAppointment(patientId, idStaff, selectedDateTime, mode, motif);
             reloadReservedSlotsForSelectedDoctor();
             showInfo("Success", "Appointment saved successfully.");
@@ -607,6 +622,83 @@ public class ConsultationController implements Initializable {
         editingRendezVousId = null;
         clearModifyForm();
         hideModifyForm();
+    }
+
+    /**
+     * Collects all booking validation errors into a list of detailed, user-friendly messages.
+     */
+    private List<String> collectBookingValidationErrors(int patientId, int idStaff, LocalDateTime dateTime, 
+                                                       String mode, String motif) {
+        List<String> errors = new ArrayList<>();
+
+        // Check for null or missing fields
+        if (dateTime == null) {
+            errors.add("❌ Date & Time: Please select a date and time slot from the calendar");
+        }
+
+        if (mode == null || mode.isBlank()) {
+            errors.add("❌ Booking Mode: Please choose a booking mode (Presentiel or En ligne)");
+        }
+
+        if (motif == null || motif.isBlank()) {
+            errors.add("❌ Reason for Visit: Please enter a reason for the appointment");
+        }
+
+        // Check if doctor exists first
+        if (idStaff <= 0) {
+            errors.add("👨‍⚕️ Doctor: Please select a valid doctor");
+        } else {
+            User doctor = userService.recupererParId(idStaff);
+            if (doctor == null) {
+                errors.add("👨‍⚕️ Doctor: The selected doctor does not exist. Please choose another doctor");
+            } else {
+                // Only check availability if doctor exists and dateTime is valid
+                if (dateTime != null && selectedDoctorId != null && selectedDoctorId > 0) {
+                    LocalDateTime slotHour = dateTime.withMinute(0).withSecond(0).withNano(0);
+                    if (selectedDoctorReservedSlots.contains(slotHour)) {
+                        String doctorName = buildDoctorDisplayName(doctor);
+                        errors.add("📅 Doctor Availability: " + doctorName + " is already booked at this time. Please select another time slot");
+                    }
+                }
+            }
+        }
+
+        // If dateTime exists, check if it's in the past
+        if (dateTime != null && dateTime.isBefore(LocalDateTime.now())) {
+            errors.add("⏰ Date & Time: The appointment date/time cannot be in the past");
+        }
+
+        // Check for duplicate booking
+        if (dateTime != null && mode != null && !mode.isBlank() && motif != null && !motif.isBlank()) {
+            String cleanedMode = mode.trim();
+            String cleanedMotif = motif.trim();
+            if (hasDuplicateRendezVous(null, Timestamp.valueOf(dateTime), patientId, idStaff, cleanedMode, cleanedMotif)) {
+                errors.add("🔄 Duplicate Booking: You already have a booking with the same details (date, time, doctor, mode, and reason)");
+            }
+        }
+
+        return errors;
+    }
+
+    /**
+     * Displays detailed error messages in a user-friendly dialog.
+     */
+    private void showDetailedErrors(String title, List<String> errors) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setHeaderText("Please fix the following issues:");
+        
+        // Create a formatted error message
+        StringBuilder errorMessage = new StringBuilder();
+        for (int i = 0; i < errors.size(); i++) {
+            errorMessage.append(errors.get(i));
+            if (i < errors.size() - 1) {
+                errorMessage.append("\n\n");
+            }
+        }
+
+        alert.setContentText(errorMessage.toString());
+        alert.showAndWait();
     }
 
     private void saveAppointment(int patientId, int idStaff, LocalDateTime dateTime, String mode, String motif) {
@@ -822,17 +914,7 @@ public class ConsultationController implements Initializable {
         }
 
         if (canAutoBookRendezVous()) {
-            try {
-                confirmAppointmentFromAi();
-                appendAiAssistantMessage("Your rendez-vous request was booked from the Dialogflow intent.", false);
-                setAiAssistantStatus("RendezVous booked");
-            } catch (IllegalArgumentException ex) {
-                appendAiAssistantMessage(ex.getMessage(), false);
-                setAiAssistantStatus("More details needed");
-            } catch (Exception ex) {
-                appendAiAssistantMessage("I detected the intent, but booking failed: " + ex.getMessage(), false);
-                setAiAssistantStatus("Booking failed");
-            }
+            showBookingConfirmationDialog(userMessage);
             return;
         }
 
@@ -866,9 +948,151 @@ public class ConsultationController implements Initializable {
             motifArea.setText(motif);
             validateMotif();
         }
+        
+        // Collect all validation errors
+        List<String> errors = collectBookingValidationErrors(patientId, idStaff, selectedDateTime, mode, motif);
+        if (!errors.isEmpty()) {
+            // Format errors for AI message display
+            StringBuilder errorText = new StringBuilder("Booking failed. Please fix the following issues:\n");
+            for (String error : errors) {
+                errorText.append("• ").append(error).append("\n");
+            }
+            throw new IllegalArgumentException(errorText.toString().trim());
+        }
+        
         saveAppointment(patientId, idStaff, selectedDateTime, mode, motif);
         reloadReservedSlotsForSelectedDoctor();
         loadMyBookings();
+    }
+
+    private void showBookingConfirmationDialog(String userMessage) {
+        String doctorId = doctorField1 != null ? doctorField1.getText() : "Unknown";
+        String mode = modeComboBox != null ? modeComboBox.getValue() : "Not specified";
+        String dateTime = selectedDateTime != null ? dateTimeFormatter.format(selectedDateTime) : "Not specified";
+        String motif = motifArea != null ? motifArea.getText() : "Not specified";
+        String doctorName = resolveDoctorName(doctorId);
+
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Booking Confirmation");
+        dialog.setHeaderText(null);
+
+        DialogPane dialogPane = dialog.getDialogPane();
+        dialogPane.getStyleClass().add("booking-confirmation-dialog");
+        dialogPane.getStylesheets().addAll(
+                getClass().getResource("/CSS/booking.css").toExternalForm(),
+                getClass().getResource("/CSS/ai-assistant.css").toExternalForm()
+        );
+
+        ButtonType confirmButton = new ButtonType("Confirm Booking", ButtonBar.ButtonData.OK_DONE);
+        ButtonType modifyButton = new ButtonType("Modify Details", ButtonBar.ButtonData.OTHER);
+        ButtonType cancelButton = ButtonType.CANCEL;
+        dialogPane.getButtonTypes().setAll(confirmButton, modifyButton, cancelButton);
+
+        Label kicker = new Label("AI extracted your request");
+        kicker.getStyleClass().add("booking-dialog-kicker");
+
+        Label title = new Label("Please review before we save it");
+        title.getStyleClass().add("booking-dialog-title");
+        title.setWrapText(true);
+
+        Label description = new Label("You can confirm the values below or choose Modify Details to edit the form before saving.");
+        description.getStyleClass().add("booking-dialog-description");
+        description.setWrapText(true);
+
+        VBox summaryCard = new VBox(10,
+                createBookingDetailRow("Doctor", doctorName),
+                createBookingDetailRow("Mode", mode),
+                createBookingDetailRow("Date & Time", dateTime),
+                createBookingDetailRow("Reason", motif)
+        );
+        summaryCard.getStyleClass().add("booking-dialog-card");
+
+        Label requestLabel = new Label("Original request");
+        requestLabel.getStyleClass().add("booking-dialog-note-label");
+
+        Label requestValue = new Label(valueOrDash(userMessage));
+        requestValue.getStyleClass().add("booking-dialog-note");
+        requestValue.setWrapText(true);
+
+        VBox content = new VBox(12, kicker, title, description, summaryCard, requestLabel, requestValue);
+        content.setPadding(new Insets(6, 4, 0, 4));
+        dialogPane.setContent(content);
+
+        dialog.setOnShown(event -> {
+            Node confirmButtonNode = dialogPane.lookupButton(confirmButton);
+            if (confirmButtonNode != null) {
+                confirmButtonNode.getStyleClass().add("booking-dialog-confirm-button");
+            }
+            Node modifyButtonNode = dialogPane.lookupButton(modifyButton);
+            if (modifyButtonNode != null) {
+                modifyButtonNode.getStyleClass().add("booking-dialog-modify-button");
+            }
+            Node cancelButtonNode = dialogPane.lookupButton(cancelButton);
+            if (cancelButtonNode != null) {
+                cancelButtonNode.getStyleClass().add("booking-dialog-cancel-button");
+            }
+        });
+
+        Optional<ButtonType> result = dialog.showAndWait();
+        if (result.isEmpty()) {
+            return;
+        }
+
+        if (result.get() == confirmButton) {
+            try {
+                confirmAppointmentFromAi();
+                appendAiAssistantMessage("Your rendez-vous request was booked successfully.", false);
+                setAiAssistantStatus("RendezVous booked");
+            } catch (IllegalArgumentException ex) {
+                appendAiAssistantMessage("Booking failed: " + ex.getMessage(), false);
+                setAiAssistantStatus("Booking error");
+            } catch (Exception ex) {
+                appendAiAssistantMessage("I detected the intent, but booking failed: " + ex.getMessage(), false);
+                setAiAssistantStatus("Booking failed");
+            }
+            return;
+        }
+
+        if (result.get() == modifyButton) {
+            appendAiAssistantMessage("I filled the booking form with the extracted details. Edit anything you want, then click Confirm Appointment.", false);
+            setAiAssistantStatus("Review and modify the form above");
+            showBookingPage();
+        }
+    }
+
+    private HBox createBookingDetailRow(String label, String value) {
+        Label fieldLabel = new Label(label);
+        fieldLabel.getStyleClass().add("booking-dialog-field-label");
+
+        Label fieldValue = new Label(valueOrDash(value));
+        fieldValue.getStyleClass().add("booking-dialog-field-value");
+        fieldValue.setWrapText(true);
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        HBox row = new HBox(12, fieldLabel, spacer, fieldValue);
+        row.getStyleClass().add("booking-dialog-row");
+        return row;
+    }
+
+    private String resolveDoctorName(String staffIdStr) {
+        if (staffIdStr == null || staffIdStr.isBlank()) {
+            return "Unknown";
+        }
+        
+        try {
+            int staffId = Integer.parseInt(staffIdStr);
+            User staff = userService.recupererParId(staffId);
+            if (staff != null && staff.getNom() != null) {
+                String firstName = staff.getPrenom() != null ? staff.getPrenom() : "";
+                String lastName = staff.getNom();
+                return (firstName + " " + lastName).trim();
+            }
+        } catch (NumberFormatException ignored) {
+        }
+        
+        return "Dr. #" + staffIdStr;
     }
 
     private void appendAiAssistantMessage(String message, boolean fromUser) {
@@ -2126,8 +2350,8 @@ public class ConsultationController implements Initializable {
         }
 
         File target = choosePdfDestination(
-                "Save medical record PDF",
-                String.format("fiche-medicale-%d.pdf", ficheMedicale.getId())
+            "Save medical record PDF",
+            "fiche-medicale.pdf"
         );
         if (target == null) {
             return;
@@ -2149,8 +2373,8 @@ public class ConsultationController implements Initializable {
 
         FicheMedicale resolvedFiche = ficheMedicale != null ? ficheMedicale : findMedicalRecordById(prescription.getFiche_medicale_id());
         File target = choosePdfDestination(
-                "Save prescription PDF",
-                String.format("prescription-%d.pdf", prescription.getId())
+            "Save prescription PDF",
+            "prescription.pdf"
         );
         if (target == null) {
             return;
@@ -2199,7 +2423,7 @@ public class ConsultationController implements Initializable {
             summary.setSpacingAfter(14f);
             summary.addCell(createInfoCell("Patient", formatUserName(patient), labelFont, valueFont));
             summary.addCell(createInfoCell("Doctor", formatDoctorName(doctor, rendezVous), labelFont, valueFont));
-            summary.addCell(createInfoCell("Rendez-vous", rendezVous == null ? "-" : "#" + rendezVous.getId(), labelFont, valueFont));
+            summary.addCell(createInfoCell("Rendez-vous", rendezVous == null ? "-" : formatTimestampForPdf(rendezVous.getDatetime()), labelFont, valueFont));
             summary.addCell(createInfoCell("Date", formatTimestampForPdf(recordTimestampForSort(ficheMedicale)), labelFont, valueFont));
             summary.addCell(createInfoCell("Mode", rendezVous == null ? "-" : valueOrDash(rendezVous.getMode()), labelFont, valueFont));
             summary.addCell(createInfoCell("Duration", ficheMedicale.getDuree_minutes() == null ? "-" : ficheMedicale.getDuree_minutes() + " min", labelFont, valueFont));
@@ -2240,9 +2464,9 @@ public class ConsultationController implements Initializable {
             summary.setSpacingAfter(14f);
             summary.addCell(createInfoCell("Patient", formatUserName(patient), labelFont, valueFont));
             summary.addCell(createInfoCell("Doctor", formatDoctorName(doctor, rendezVous), labelFont, valueFont));
-            summary.addCell(createInfoCell("Prescription ID", "#" + prescription.getId(), labelFont, valueFont));
-            summary.addCell(createInfoCell("Fiche medicale", ficheMedicale == null ? "-" : "#" + ficheMedicale.getId(), labelFont, valueFont));
-            summary.addCell(createInfoCell("Rendez-vous", rendezVous == null ? "-" : "#" + rendezVous.getId(), labelFont, valueFont));
+            // Do not show internal numeric IDs in the exported PDF per user preference
+            summary.addCell(createInfoCell("Fiche medicale", ficheMedicale == null ? "-" : formatTimestampForPdf(recordTimestampForSort(ficheMedicale)), labelFont, valueFont));
+            summary.addCell(createInfoCell("Rendez-vous", rendezVous == null ? "-" : formatTimestampForPdf(rendezVous.getDatetime()), labelFont, valueFont));
             summary.addCell(createInfoCell("Date", formatTimestampForPdf(prescription.getCreated_at()), labelFont, valueFont));
             document.add(summary);
 
@@ -2262,6 +2486,11 @@ public class ConsultationController implements Initializable {
             addTextSection(document, "Instructions", valueOrDash(prescription.getInstructions()), sectionTitleFont, valueFont);
             if (ficheMedicale != null) {
                 addTextSection(document, "Diagnostic associe", valueOrDash(ficheMedicale.getDiagnostic()), sectionTitleFont, valueFont);
+            }
+            // add signature from related fiche medicale if present
+            Font mutedFont = new Font(Font.FontFamily.HELVETICA, 10, Font.NORMAL, new BaseColor(100, 116, 139));
+            if (ficheMedicale != null) {
+                addSignatureSection(document, ficheMedicale.getSignature(), sectionTitleFont, valueFont, mutedFont);
             }
 
             document.close();

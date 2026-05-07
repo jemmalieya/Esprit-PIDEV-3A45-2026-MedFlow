@@ -57,6 +57,8 @@ public class AdminWelcomeController {
 
     @FXML
     public void initialize() {
+        ensureStylesheetLoaded();
+
         String date = LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
 
         if (dateLabel != null) {
@@ -84,6 +86,22 @@ public class AdminWelcomeController {
         }
 
         Platform.runLater(this::playEntranceAnimation);
+    }
+
+    private void ensureStylesheetLoaded() {
+        if (rootPane == null) {
+            return;
+        }
+
+        URL stylesheetUrl = getClass().getResource("/CSS/admin-welcome.css");
+        if (stylesheetUrl == null) {
+            return;
+        }
+
+        String stylesheet = stylesheetUrl.toExternalForm();
+        if (!rootPane.getStylesheets().contains(stylesheet)) {
+            rootPane.getStylesheets().add(stylesheet);
+        }
     }
 
     private void playEntranceAnimation() {
@@ -201,8 +219,9 @@ public class AdminWelcomeController {
 
     @FXML
     private void openRendezVous() {
-        goTo("/FXML/RendezVousAdmin.fxml");
+        goTo("/FXML/ConsultationsParDocteur.fxml");
     }
+
 
     @FXML
     private void openStatsConsultations() {

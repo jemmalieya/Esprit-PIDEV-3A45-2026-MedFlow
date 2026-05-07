@@ -8,7 +8,7 @@
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.control.TitledPane?>
 <?import javafx.scene.layout.BorderPane?>
-<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
@@ -17,10 +17,10 @@
             prefWidth="1500.0"
             prefHeight="880.0"
             styleClass="app-root"
-            stylesheets="@CSS/admin-welcome.css"
+            stylesheets="@../CSS/admin-welcome.css"
             xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="tn.esprit.controllers.AdminWelcomeController">
+            fx:controller="tn.esprit.controllers.ConsultationsParDocteurController">
 
     <left>
         <BorderPane prefWidth="320.0" styleClass="sidebar">
@@ -95,6 +95,8 @@
                                 <content>
                                     <VBox spacing="6" styleClass="dropdown-content">
                                         <Button text="Liste des réclamations" onAction="#openReclamations" styleClass="sub-nav-button"/>
+                                        <Button text="Réponses admin" onAction="#openReponsesReclamations" styleClass="sub-nav-button"/>
+                                        <Button text="Réclamations urgentes" onAction="#openReclamationsUrgentes" styleClass="sub-nav-button"/>
                                         <Button text="Statistiques réclamations" onAction="#openStatsReclamations" styleClass="sub-nav-button"/>
                                     </VBox>
                                 </content>
@@ -104,6 +106,8 @@
                                 <content>
                                     <VBox spacing="6" styleClass="dropdown-content">
                                         <Button text="Liste des posts" onAction="#openPosts" styleClass="sub-nav-button"/>
+                                        <Button text="Commentaires" onAction="#openBlogComments" styleClass="sub-nav-button"/>
+                                        <Button text="Modération blog" onAction="#openBlogModeration" styleClass="sub-nav-button"/>
                                         <Button text="Posts en attente" onAction="#openPostsEnAttente" styleClass="sub-nav-button"/>
                                         <Button text="Statistiques blog" onAction="#openStatsBlog" styleClass="sub-nav-button"/>
                                     </VBox>
@@ -139,13 +143,13 @@
             <Button text="Menu" styleClass="menu-button"/>
 
             <VBox spacing="3">
-                <Label text="Centre de Gestion Admin" styleClass="page-title"/>
+                <Label text="Consultations par Docteur" styleClass="page-title"/>
                 <Label fx:id="dateLabel" text="Bienvenue dans votre espace d'administration" styleClass="page-subtitle"/>
             </VBox>
 
             <Region HBox.hgrow="ALWAYS"/>
 
-            <TextField fx:id="searchField" promptText="Rechercher..." styleClass="search-field"/>
+            <TextField fx:id="searchField" promptText="Rechercher un docteur..." styleClass="search-field"/>
             <Button text="Notif" styleClass="icon-button"/>
             <Button text="Param" styleClass="icon-button"/>
             <Label text="A" styleClass="avatar-label"/>
@@ -155,74 +159,56 @@
     <center>
         <ScrollPane fitToWidth="true" hbarPolicy="NEVER" styleClass="content-scroll">
             <content>
-                <VBox spacing="24" styleClass="simple-home-content">
+                <VBox spacing="24" styleClass="consultations-page">
                     <padding>
                         <Insets top="34" right="38" bottom="45" left="38"/>
                     </padding>
 
-                    <VBox id="welcomeBanner" spacing="12" styleClass="simple-welcome-card">
-                        <Label text="Bienvenue Admin" styleClass="simple-welcome-title"/>
-                        <Label text="Bienvenue dans votre espace d’administration MedFlow." styleClass="simple-welcome-text"/>
-                        <Label text="Cette page vous permet d’accéder rapidement aux différentes gestions de la plateforme."
+                    <VBox spacing="12" styleClass="simple-welcome-card consultation-animate" id="consultationHeroBanner">
+                        <Label text="Consultations par docteur" styleClass="simple-welcome-title"/>
+                        <Label text="Chaque carte représente un docteur avec le rôle STAFF et le type RESP_PATIENTS. Sélectionnez un docteur pour consulter ses rendez-vous, fiches médicales et prescriptions."
+                               wrapText="true"
+                               styleClass="simple-welcome-text"/>
+                        <Label text="Le panneau ci-dessous affiche uniquement les données associées au docteur sélectionné."
                                wrapText="true"
                                styleClass="simple-welcome-subtext"/>
                     </VBox>
 
-                    <Label text="Choisir une gestion" styleClass="simple-section-title"/>
+                    <VBox spacing="16" styleClass="consultation-panel consultation-animate">
+                        <HBox alignment="CENTER_LEFT" spacing="12">
+                            <VBox spacing="3">
+                                <Label text="Docteurs disponibles" styleClass="simple-section-title"/>
+                                <Label text="Liste des utilisateurs STAFF / RESP_PATIENTS" styleClass="page-subtitle"/>
+                            </VBox>
+                            <Region HBox.hgrow="ALWAYS"/>
+                            <Label fx:id="doctorCountLabel" text="0" styleClass="consultation-count-pill"/>
+                        </HBox>
 
-                    <GridPane hgap="18" vgap="18">
-
-                        <VBox id="cardProduits" GridPane.columnIndex="0" GridPane.rowIndex="0" styleClass="simple-card">
-                            <Label text="Produits" styleClass="simple-card-title"/>
-                            <Label text="Gérer les produits et le stock." wrapText="true" styleClass="simple-card-text"/>
-                            <Button id="btnProduits" text="Ouvrir" onAction="#openProduits" styleClass="simple-card-button"/>
-                        </VBox>
-
-                        <VBox id="cardCommandes" GridPane.columnIndex="1" GridPane.rowIndex="0" styleClass="simple-card">
-                            <Label text="Commandes" styleClass="simple-card-title"/>
-                            <Label text="Suivre les commandes." wrapText="true" styleClass="simple-card-text"/>
-                            <Button id="btnCommandes" text="Ouvrir" onAction="#openCommandes" styleClass="simple-card-button"/>
-                        </VBox>
-
-                        <VBox id="cardEvenements" GridPane.columnIndex="2" GridPane.rowIndex="0" styleClass="simple-card">
-                            <Label text="Événements" styleClass="simple-card-title"/>
-                            <Label text="Gérer les événements." wrapText="true" styleClass="simple-card-text"/>
-                            <Button id="btnEvenements" text="Ouvrir" onAction="#openEvents" styleClass="simple-card-button"/>
-                        </VBox>
-
-                        <VBox id="cardConsultations" GridPane.columnIndex="0" GridPane.rowIndex="1" styleClass="simple-card">
-                            <Label text="Consultations" styleClass="simple-card-title"/>
-                            <Label text="Voir les consultations." wrapText="true" styleClass="simple-card-text"/>
-                            <Button id="btnConsultations" text="Ouvrir" onAction="#openConsultations" styleClass="simple-card-button"/>
-                        </VBox>
-
-                        <VBox id="cardReclamations" GridPane.columnIndex="1" GridPane.rowIndex="1" styleClass="simple-card">
-                            <Label text="Réclamations" styleClass="simple-card-title"/>
-                            <Label text="Traiter les réclamations." wrapText="true" styleClass="simple-card-text"/>
-                            <Button id="btnReclamations" text="Ouvrir" onAction="#openReclamations" styleClass="simple-card-button"/>
-                        </VBox>
-
-                        <VBox id="cardBlog" GridPane.columnIndex="2" GridPane.rowIndex="1" styleClass="simple-card">
-                            <Label text="Blog et Posts" styleClass="simple-card-title"/>
-                            <Label text="Gérer les publications." wrapText="true" styleClass="simple-card-text"/>
-                            <Button id="btnBlog" text="Ouvrir" onAction="#openPosts" styleClass="simple-card-button"/>
-                        </VBox>
-
-                        <VBox id="cardUsers" GridPane.columnIndex="0" GridPane.rowIndex="2" styleClass="simple-card">
-                            <Label text="Utilisateurs" styleClass="simple-card-title"/>
-                            <Label text="Gérer les comptes." wrapText="true" styleClass="simple-card-text"/>
-                            <Button id="btnUsers" text="Ouvrir" onAction="#openUsers" styleClass="simple-card-button"/>
-                        </VBox>
-
-                    </GridPane>
-
-                    <VBox id="infoBoxColor" spacing="10" styleClass="simple-info-box">
-                        <Label text="Information" styleClass="simple-info-title"/>
-                        <Label text="Vous pouvez utiliser les cartes au centre ou les menus à gauche pour naviguer dans l’espace admin."
-                               wrapText="true"
-                               styleClass="simple-info-text"/>
+                        <FlowPane fx:id="doctorCardsContainer" hgap="18" vgap="18" prefWrapLength="1300" styleClass="doctor-grid"/>
                     </VBox>
 
+                    <VBox spacing="16" styleClass="consultation-panel consultation-animate">
+                        <HBox alignment="CENTER_LEFT" spacing="12">
+                            <VBox spacing="3">
+                                <Label text="Données du docteur" styleClass="simple-section-title"/>
+                                <Label fx:id="selectedDoctorLabel" text="Aucun docteur sélectionné" styleClass="page-subtitle"/>
+                            </VBox>
+                            <Region HBox.hgrow="ALWAYS"/>
+                            <Label fx:id="recordsSummaryLabel" text="Aucun élément" styleClass="consultation-count-pill"/>
+                        </HBox>
+
+                        <HBox spacing="10" styleClass="record-switcher">
+                            <Button fx:id="rendezVousButton" text="Rendez-vous" styleClass="record-switch-button"/>
+                            <Button fx:id="fichesButton" text="Fiches médicales" styleClass="record-switch-button"/>
+                            <Button fx:id="prescriptionsButton" text="Prescriptions" styleClass="record-switch-button"/>
+                        </HBox>
+
+                        <ScrollPane fx:id="recordsScrollPane" fitToWidth="true" hbarPolicy="NEVER" prefViewportHeight="560" styleClass="records-scroll">
+                            <content>
+                                <VBox fx:id="recordsContainer" spacing="14" styleClass="record-list"/>
+                            </content>
+                        </ScrollPane>
+                    </VBox>
                 </VBox>
             </content>
         </ScrollPane>

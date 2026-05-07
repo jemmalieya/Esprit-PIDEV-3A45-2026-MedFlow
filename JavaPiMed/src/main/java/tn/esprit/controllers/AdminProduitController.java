@@ -595,21 +595,26 @@ public class AdminProduitController {
 
     @FXML
     private void openEvents() {
-        goTo("/EvenementsAdmin.fxml");
+        AdminEvenementController.showSection(AdminEvenementController.Section.LIST_EVENTS);
+        goTo("/AdminEvenement.fxml");
     }
 
     @FXML
     private void openEventParticipants() {
-        goTo("/ParticipantsEvenement.fxml");
+        AdminEvenementController.showSection(AdminEvenementController.Section.PARTICIPANT_REQUESTS);
+        goTo("/AdminEvenement.fxml");
     }
 
     @FXML
     private void openRessources() {
-        goTo("/RessourcesAdmin.fxml");
+        AdminEvenementController.showSection(AdminEvenementController.Section.RESOURCES);
+        goTo("/AdminEvenement.fxml");
     }
 
     @FXML
     private void openStatsEvents() {
+        AdminEvenementController.showSection(AdminEvenementController.Section.EVENT_STATS);
+        goTo("/AdminEvenement.fxml");
         goTo("/StatsEvenements.fxml");
     }
 

@@ -2,13 +2,13 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.Separator?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.control.TitledPane?>
 <?import javafx.scene.layout.BorderPane?>
-<?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
@@ -17,10 +17,10 @@
             prefWidth="1500.0"
             prefHeight="880.0"
             styleClass="app-root"
-            stylesheets="@CSS/admin-welcome.css"
+            stylesheets="@CSS/admin-commandes.css"
             xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="tn.esprit.controllers.AdminWelcomeController">
+            fx:controller="tn.esprit.controllers.AdminCommandeController">
 
     <left>
         <BorderPane prefWidth="320.0" styleClass="sidebar">
@@ -45,7 +45,7 @@
                                 <Insets top="4" right="18" bottom="16" left="18"/>
                             </padding>
 
-                            <Button text="Accueil Admin" onAction="#openDashboard" styleClass="nav-button-active"/>
+                            <Button text="Accueil Admin" onAction="#openDashboard" styleClass="nav-button"/>
 
                             <TitledPane text="Utilisateurs" expanded="false" styleClass="sidebar-dropdown">
                                 <content>
@@ -53,7 +53,6 @@
                                         <Button text="Patients" onAction="#openPatients" styleClass="sub-nav-button"/>
                                         <Button text="Tous les utilisateurs" onAction="#openUsers" styleClass="sub-nav-button"/>
                                         <Button text="Demandes de rôle" onAction="#openRoles" styleClass="sub-nav-button"/>
-                                        <Button text="Comptes et permissions" onAction="#openUserRoles" styleClass="sub-nav-button"/>
                                     </VBox>
                                 </content>
                             </TitledPane>
@@ -62,9 +61,8 @@
                                 <content>
                                     <VBox spacing="6" styleClass="dropdown-content">
                                         <Button text="Liste des produits" onAction="#openProduits" styleClass="sub-nav-button"/>
-                                        <Button text="Commandes" onAction="#openCommandes" styleClass="sub-nav-button"/>
+                                        <Button text="Commandes" onAction="#openCommandes" styleClass="sub-nav-button-active"/>
                                         <Button text="Détection Épidémie" onAction="#openDetection" styleClass="sub-nav-button"/>
-                                        <Button text="Stock et ruptures" onAction="#openStockRupture" styleClass="sub-nav-button"/>
                                         <Button text="Statistiques produits" onAction="#openStatsProduits" styleClass="sub-nav-button"/>
                                     </VBox>
                                 </content>
@@ -77,7 +75,6 @@
                                         <Button text="Participants demandes" onAction="#openEventParticipants" styleClass="sub-nav-button"/>
                                         <Button text="Ressources" onAction="#openRessources" styleClass="sub-nav-button"/>
                                         <Button text="Stats événements" onAction="#openStatsEvents" styleClass="sub-nav-button"/>
-                                        <Button text="Stats ressources" onAction="#openStatsRessources" styleClass="sub-nav-button"/>
                                     </VBox>
                                 </content>
                             </TitledPane>
@@ -86,7 +83,6 @@
                                 <content>
                                     <VBox spacing="6" styleClass="dropdown-content">
                                         <Button text="Consultations par Docteur" onAction="#openConsultations" styleClass="sub-nav-button"/>
-                                        <Button text="Rendez-vous" onAction="#openRendezVous" styleClass="sub-nav-button"/>
                                         <Button text="Statistiques consultations" onAction="#openStatsConsultations" styleClass="sub-nav-button"/>
                                     </VBox>
                                 </content>
@@ -105,8 +101,8 @@
                                 <content>
                                     <VBox spacing="6" styleClass="dropdown-content">
                                         <Button text="Liste des posts" onAction="#openPosts" styleClass="sub-nav-button"/>
-                                        <Button text="Posts en attente" onAction="#openPostsEnAttente" styleClass="sub-nav-button"/>
-                                        <Button text="Statistiques blog" onAction="#openStatsBlog" styleClass="sub-nav-button"/>
+                                        <Button text="Commentaires" onAction="#openBlogComments" styleClass="sub-nav-button"/>
+                                        <Button text="Modération blog" onAction="#openBlogModeration" styleClass="sub-nav-button"/>
                                     </VBox>
                                 </content>
                             </TitledPane>
@@ -140,13 +136,13 @@
             <Button text="Menu" styleClass="menu-button"/>
 
             <VBox spacing="3">
-                <Label text="Centre de Gestion Admin" styleClass="page-title"/>
-                <Label fx:id="dateLabel" text="Bienvenue dans votre espace d'administration" styleClass="page-subtitle"/>
+                <Label text="Gestion des Commandes" styleClass="page-title"/>
+                <Label fx:id="dateLabel" text="Admin • Commandes" styleClass="page-subtitle"/>
             </VBox>
 
             <Region HBox.hgrow="ALWAYS"/>
 
-            <TextField fx:id="searchField" promptText="Rechercher..." styleClass="search-field"/>
+            <TextField fx:id="topSearchField" promptText="Rechercher..." styleClass="search-field"/>
             <Button text="Notif" styleClass="icon-button"/>
             <Button text="Param" styleClass="icon-button"/>
             <Label text="A" styleClass="avatar-label"/>
@@ -156,72 +152,100 @@
     <center>
         <ScrollPane fitToWidth="true" hbarPolicy="NEVER" styleClass="content-scroll">
             <content>
-                <VBox spacing="24" styleClass="simple-home-content">
+                <VBox spacing="22" styleClass="page-content">
                     <padding>
-                        <Insets top="34" right="38" bottom="45" left="38"/>
+                        <Insets top="24" right="24" bottom="36" left="24"/>
                     </padding>
 
-                    <VBox id="welcomeBanner" spacing="12" styleClass="simple-welcome-card">
-                        <Label text="Bienvenue Admin" styleClass="simple-welcome-title"/>
-                        <Label text="Bienvenue dans votre espace d’administration MedFlow." styleClass="simple-welcome-text"/>
-                        <Label text="Cette page vous permet d’accéder rapidement aux différentes gestions de la plateforme."
-                               wrapText="true"
-                               styleClass="simple-welcome-subtext"/>
-                    </VBox>
+                    <HBox alignment="CENTER_LEFT" spacing="10" styleClass="commande-breadcrumb">
+                        <Label text="Gestion des Commandes" styleClass="commande-breadcrumb-title"/>
+                        <Label text="|" styleClass="commande-breadcrumb-sep"/>
+                        <Label text="Admin" styleClass="commande-breadcrumb-active"/>
+                        <Label text="›" styleClass="commande-breadcrumb-sep"/>
+                        <Label text="Commandes" styleClass="commande-breadcrumb-muted"/>
+                    </HBox>
 
-                    <Label text="Choisir une gestion" styleClass="simple-section-title"/>
+                    <HBox spacing="12" alignment="CENTER_LEFT" styleClass="commande-kpi-row">
 
-                    <GridPane hgap="18" vgap="18">
-
-                        <VBox id="cardProduits" GridPane.columnIndex="0" GridPane.rowIndex="0" styleClass="simple-card">
-                            <Label text="Produits" styleClass="simple-card-title"/>
-                            <Label text="Gérer les produits et le stock." wrapText="true" styleClass="simple-card-text"/>
-                            <Button id="btnProduits" text="Ouvrir" onAction="#openProduits" styleClass="simple-card-button"/>
+                        <VBox styleClass="cmd-stat-total">
+                            <Label text="Total" styleClass="cmd-stat-title"/>
+                            <Label fx:id="totalCommandesValueLabel" text="0" styleClass="cmd-stat-value"/>
+                            <Label text="Commandes" styleClass="cmd-stat-subtitle"/>
                         </VBox>
 
-                        <VBox id="cardCommandes" GridPane.columnIndex="1" GridPane.rowIndex="0" styleClass="simple-card">
-                            <Label text="Commandes" styleClass="simple-card-title"/>
-                            <Label text="Suivre les commandes." wrapText="true" styleClass="simple-card-text"/>
-                            <Button id="btnCommandes" text="Ouvrir" onAction="#openCommandes" styleClass="simple-card-button"/>
+                        <VBox styleClass="cmd-stat-attente">
+                            <Label text="En Attente" styleClass="cmd-stat-title"/>
+                            <Label fx:id="attenteLabel" text="0" styleClass="cmd-stat-value"/>
+                            <Label text="À vérifier" styleClass="cmd-stat-subtitle"/>
                         </VBox>
 
-                        <VBox id="cardEvenements" GridPane.columnIndex="2" GridPane.rowIndex="0" styleClass="simple-card">
-                            <Label text="Événements" styleClass="simple-card-title"/>
-                            <Label text="Gérer les événements." wrapText="true" styleClass="simple-card-text"/>
-                            <Button id="btnEvenements" text="Ouvrir" onAction="#openEvents" styleClass="simple-card-button"/>
+                        <VBox styleClass="cmd-stat-cours">
+                            <Label text="En Cours" styleClass="cmd-stat-title"/>
+                            <Label fx:id="coursLabel" text="0" styleClass="cmd-stat-value"/>
+                            <Label text="Traitement" styleClass="cmd-stat-subtitle"/>
                         </VBox>
 
-                        <VBox id="cardConsultations" GridPane.columnIndex="0" GridPane.rowIndex="1" styleClass="simple-card">
-                            <Label text="Consultations" styleClass="simple-card-title"/>
-                            <Label text="Voir les consultations." wrapText="true" styleClass="simple-card-text"/>
-                            <Button id="btnConsultations" text="Ouvrir" onAction="#openConsultations" styleClass="simple-card-button"/>
+                        <VBox styleClass="cmd-stat-livraison">
+                            <Label text="Livraison" styleClass="cmd-stat-title"/>
+                            <Label fx:id="livraisonLabel" text="0" styleClass="cmd-stat-value"/>
+                            <Label text="En route" styleClass="cmd-stat-subtitle"/>
                         </VBox>
 
-                        <VBox id="cardReclamations" GridPane.columnIndex="1" GridPane.rowIndex="1" styleClass="simple-card">
-                            <Label text="Réclamations" styleClass="simple-card-title"/>
-                            <Label text="Traiter les réclamations." wrapText="true" styleClass="simple-card-text"/>
-                            <Button id="btnReclamations" text="Ouvrir" onAction="#openReclamations" styleClass="simple-card-button"/>
+                        <VBox styleClass="cmd-stat-livree">
+                            <Label text="Livrées" styleClass="cmd-stat-title"/>
+                            <Label fx:id="livreesLabel" text="0" styleClass="cmd-stat-value"/>
+                            <Label text="Terminées" styleClass="cmd-stat-subtitle"/>
                         </VBox>
 
-                        <VBox id="cardBlog" GridPane.columnIndex="2" GridPane.rowIndex="1" styleClass="simple-card">
-                            <Label text="Blog et Posts" styleClass="simple-card-title"/>
-                            <Label text="Gérer les publications." wrapText="true" styleClass="simple-card-text"/>
-                            <Button id="btnBlog" text="Ouvrir" onAction="#openPosts" styleClass="simple-card-button"/>
+                        <VBox styleClass="cmd-stat-annulee">
+                            <Label text="Annulées" styleClass="cmd-stat-title"/>
+                            <Label fx:id="annuleesLabel" text="0" styleClass="cmd-stat-value"/>
+                            <Label text="Refusées" styleClass="cmd-stat-subtitle"/>
                         </VBox>
 
-                        <VBox id="cardUsers" GridPane.columnIndex="0" GridPane.rowIndex="2" styleClass="simple-card">
-                            <Label text="Utilisateurs" styleClass="simple-card-title"/>
-                            <Label text="Gérer les comptes." wrapText="true" styleClass="simple-card-text"/>
-                            <Button id="btnUsers" text="Ouvrir" onAction="#openUsers" styleClass="simple-card-button"/>
+                    </HBox>
+
+                    <HBox spacing="18" styleClass="money-row">
+                        <VBox styleClass="money-purple-card" HBox.hgrow="ALWAYS">
+                            <Label text="Chiffre d’Affaires Total" styleClass="money-title"/>
+                            <Label fx:id="caTotalLabel" text="0,00 DT" styleClass="money-value"/>
+                            <Label text="Toutes les commandes payées" styleClass="money-subtitle"/>
                         </VBox>
 
-                    </GridPane>
+                        <VBox styleClass="money-pink-card" HBox.hgrow="ALWAYS">
+                            <Label text="CA ce Mois" styleClass="money-title"/>
+                            <Label fx:id="caMoisLabel" text="0,00 DT" styleClass="money-value"/>
+                            <Label text="Mois courant" styleClass="money-subtitle"/>
+                        </VBox>
+                    </HBox>
 
-                    <VBox id="infoBoxColor" spacing="10" styleClass="simple-info-box">
-                        <Label text="Information" styleClass="simple-info-title"/>
-                        <Label text="Vous pouvez utiliser les cartes au centre ou les menus à gauche pour naviguer dans l’espace admin."
-                               wrapText="true"
-                               styleClass="simple-info-text"/>
+                    <HBox alignment="CENTER_LEFT" spacing="14" styleClass="filter-card">
+                        <TextField fx:id="searchCommandeField" promptText="Rechercher une commande, un client, un statut..." styleClass="filter-input"/>
+                        <ComboBox fx:id="filtreStatutCombo" promptText="Filtrer statut..." styleClass="filter-combo"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Label fx:id="resultCountLabel" text="0 commande(s)" styleClass="result-label"/>
+                    </HBox>
+
+                    <VBox spacing="0" styleClass="table-card">
+
+                        <HBox alignment="CENTER_LEFT" styleClass="table-title-row">
+                            <Label text="Liste Complète des Commandes" styleClass="table-title"/>
+                            <Region HBox.hgrow="ALWAYS"/>
+                            <Label text="Cliquez sur Voir pour les détails" styleClass="table-help"/>
+                        </HBox>
+
+                        <HBox alignment="CENTER_LEFT" styleClass="table-header">
+                            <Label text="#ID" prefWidth="64" styleClass="header-cell"/>
+                            <Label text="CLIENT" prefWidth="260" styleClass="header-cell"/>
+                            <Label text="DATE" prefWidth="125" styleClass="header-cell"/>
+                            <Label text="MONTANT" prefWidth="112" styleClass="header-cell"/>
+                            <Label text="STATUT" prefWidth="125" styleClass="header-cell"/>
+                            <Label text="PAIEMENT" prefWidth="120" styleClass="header-cell"/>
+                            <Label text="DÉTAILS" prefWidth="78" styleClass="header-cell"/>
+                        </HBox>
+
+                        <VBox fx:id="commandesRowsContainer" spacing="0"/>
+
                     </VBox>
 
                 </VBox>

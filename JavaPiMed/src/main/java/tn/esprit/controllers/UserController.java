@@ -370,6 +370,10 @@ public class UserController {
                                 byte[] pdf = DecisionPdfService.buildAccountBanPdf(user, reason, adminName);
                                 EmailService.sendAccountBanEmail(user, reason, pdf, buildDecisionPdfName("ban", user));
                             }
+                            // Envoi email lors du déban
+                            if (banned) {
+                                EmailService.sendSimpleUnbanEmail(user.getEmailUser());
+                            }
                             applySort();
                             userTable.refresh();
                             updateStats();

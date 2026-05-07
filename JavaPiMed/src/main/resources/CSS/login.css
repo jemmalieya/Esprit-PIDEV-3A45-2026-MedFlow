@@ -252,6 +252,112 @@
     -fx-background-color: white;
 }
 
+/* ── reCAPTCHA (modal trigger + status) ── */
+.recaptcha-row {
+    -fx-background-color: linear-gradient(rgba(255,255,255,0.06), rgba(0, 170, 210, 0.06));
+    -fx-border-color: rgba(0, 200, 235, 0.35);
+    -fx-border-width: 1;
+    -fx-border-radius: 14;
+    -fx-background-radius: 14;
+    -fx-padding: 10 12;
+}
+
+.recaptcha-open-btn {
+    -fx-background-color: linear-gradient(to right, rgba(0, 190, 225, 0.30), rgba(0, 145, 195, 0.26));
+    -fx-text-fill: #e9fcff;
+    -fx-font-size: 12px;
+    -fx-font-weight: 800;
+    -fx-padding: 8 14;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-border-color: rgba(0, 200, 235, 0.42);
+    -fx-border-width: 1;
+    -fx-cursor: hand;
+}
+
+.recaptcha-open-btn:hover {
+    -fx-background-color: linear-gradient(to right, rgba(0, 206, 236, 0.42), rgba(0, 155, 208, 0.35));
+    -fx-border-color: rgba(120, 238, 255, 0.72);
+}
+
+.recaptcha-open-btn:pressed {
+    -fx-scale-x: 0.98;
+    -fx-scale-y: 0.98;
+}
+
+.recaptcha-state {
+    -fx-padding: 5 10;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+    -fx-font-size: 11px;
+    -fx-font-weight: 800;
+}
+
+.recaptcha-pending {
+    -fx-background-color: rgba(220, 140, 40, 0.15);
+    -fx-border-color: rgba(255, 183, 77, 0.48);
+    -fx-text-fill: #ffd89c;
+}
+
+.recaptcha-ok {
+    -fx-background-color: rgba(22, 163, 74, 0.18);
+    -fx-border-color: rgba(74, 222, 128, 0.42);
+    -fx-text-fill: #98f5c0;
+}
+
+.recaptcha-modal-root {
+    -fx-background-color: linear-gradient(#081a2b, #0b2236, #0a1d30);
+    -fx-padding: 16;
+    -fx-border-color: rgba(0, 210, 245, 0.34);
+    -fx-border-width: 1;
+    -fx-border-radius: 16;
+    -fx-background-radius: 16;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.50), 28, 0.24, 0, 8);
+}
+
+.recaptcha-modal-header {
+    -fx-alignment: CENTER_LEFT;
+}
+
+.recaptcha-modal-title {
+    -fx-text-fill: #effcff;
+    -fx-font-size: 16px;
+    -fx-font-weight: 900;
+}
+
+.recaptcha-modal-subtitle {
+    -fx-text-fill: rgba(170, 226, 245, 0.88);
+    -fx-font-size: 12px;
+    -fx-font-weight: 600;
+}
+
+.recaptcha-modal-close {
+    -fx-background-color: rgba(255,255,255,0.08);
+    -fx-text-fill: #d8f8ff;
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-padding: 7 12;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-border-color: rgba(0, 200, 235, 0.34);
+    -fx-border-width: 1;
+    -fx-cursor: hand;
+}
+
+.recaptcha-modal-close:hover {
+    -fx-background-color: rgba(255,255,255,0.14);
+    -fx-border-color: rgba(130, 230, 252, 0.62);
+}
+
+.recaptcha-web-holder {
+    -fx-background-color: rgba(0,0,0,0.16);
+    -fx-border-color: rgba(0, 210, 245, 0.26);
+    -fx-border-width: 1;
+    -fx-border-radius: 12;
+    -fx-background-radius: 12;
+    -fx-padding: 10;
+}
+
 /* ── Action buttons ── */
 .primary-action {
     -fx-background-color: linear-gradient(to right, #00bcd6, #0094b8);
@@ -603,6 +709,41 @@
 
 .auth-page-light .registration-type-combo .list-cell {
     -fx-text-fill: #124f68;
+}
+
+.auth-page-light .recaptcha-row {
+    -fx-background-color: linear-gradient(rgba(255,255,255,0.88), rgba(232, 249, 255, 0.84));
+    -fx-border-color: rgba(0, 150, 190, 0.38);
+}
+
+.auth-page-light .recaptcha-open-btn {
+    -fx-background-color: linear-gradient(to right, rgba(0, 175, 210, 0.22), rgba(0, 145, 190, 0.20));
+    -fx-text-fill: #135a73;
+    -fx-border-color: rgba(0, 145, 185, 0.45);
+}
+
+.auth-page-light .recaptcha-modal-root {
+    -fx-background-color: linear-gradient(#f5fcff, #e8f7fd, #e4f4fb);
+    -fx-border-color: rgba(0, 150, 190, 0.34);
+}
+
+.auth-page-light .recaptcha-modal-title {
+    -fx-text-fill: #10455b;
+}
+
+.auth-page-light .recaptcha-modal-subtitle {
+    -fx-text-fill: rgba(22, 86, 108, 0.86);
+}
+
+.auth-page-light .recaptcha-modal-close {
+    -fx-background-color: rgba(255,255,255,0.86);
+    -fx-text-fill: #175c74;
+    -fx-border-color: rgba(0, 140, 180, 0.36);
+}
+
+.auth-page-light .recaptcha-web-holder {
+    -fx-background-color: rgba(255,255,255,0.78);
+    -fx-border-color: rgba(0, 145, 185, 0.32);
 }
 
 .auth-page-light .staff-info-label {

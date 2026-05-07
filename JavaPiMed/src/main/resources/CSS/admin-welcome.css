@@ -1,3 +1,14 @@
+.root {
+    -fx-font-family: "Segoe UI", Arial, sans-serif;
+    -fx-background-color: linear-gradient(to bottom, #f8fbff, #eef6ff);
+}
+
+.app-root {
+    -fx-background-color: linear-gradient(to bottom, #f8fbff, #eef6ff);
+}
+
+/* SIDEBAR */
+
 .sidebar {
     -fx-background-color: linear-gradient(to bottom, #061625, #0a263c, #0f344d);
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.28), 22, 0, 0, 4);

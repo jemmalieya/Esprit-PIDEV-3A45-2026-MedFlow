@@ -126,7 +126,7 @@ public class AdminWelcomeController {
 
     @FXML
     private void openUsers() {
-        goTo("/FXML/UtilisateursAdmin.fxml");
+        goTo("/BackFXML/BAdminUsers.fxml");
     }
 
     @FXML
@@ -151,7 +151,7 @@ public class AdminWelcomeController {
 
     @FXML
     private void openDetection() {
-        goTo("/FXML/DetectionEpidemie.fxml");
+        goTo("/DetectionEpidemie.fxml");
     }
 
     @FXML
@@ -211,47 +211,29 @@ public class AdminWelcomeController {
 
     @FXML
     private void openReclamations() {
-        goTo("/FXML/ReclamationsAdmin.fxml");
+        goTo("/ReclamationsAdmin.fxml");
     }
 
-    @FXML
-    private void openReponsesReclamations() {
-        goTo("/FXML/ReponsesReclamationsAdmin.fxml");
-    }
-
-    @FXML
-    private void openReclamationsUrgentes() {
-        goTo("/FXML/ReclamationsUrgentes.fxml");
-    }
 
     @FXML
     private void openStatsReclamations() {
-        goTo("/FXML/StatsReclamations.fxml");
+        goTo("/StatsReclamations.fxml");
     }
 
     @FXML
     private void openPosts() {
-        goTo("/FXML/PostsAdmin.fxml");
+        goTo("/PostsAdmin.fxml");
     }
 
-    @FXML
-    private void openBlogComments() {
-        goTo("/FXML/CommentairesAdmin.fxml");
-    }
-
-    @FXML
-    private void openBlogModeration() {
-        goTo("/FXML/ModerationBlog.fxml");
-    }
 
     @FXML
     private void openPostsEnAttente() {
-        goTo("/FXML/PostsEnAttente.fxml");
+        goTo("/PendingPostsAdmin.fxml");
     }
 
     @FXML
     private void openStatsBlog() {
-        goTo("/FXML/StatsBlog.fxml");
+        goTo("/BlogStatAdmin.fxml");
     }
 
     @FXML
@@ -276,7 +258,7 @@ public class AdminWelcomeController {
 
     @FXML
     private void goBackSite() {
-        goTo("/AdminWelcome.fxml");
+        goTo("/FXML/Home.fxml");
     }
 
     @FXML

@@ -615,6 +615,7 @@ public class AdminProduitController {
     private void openStatsEvents() {
         AdminEvenementController.showSection(AdminEvenementController.Section.EVENT_STATS);
         goTo("/AdminEvenement.fxml");
+        goTo("/StatsEvenements.fxml");
     }
 
     @FXML
@@ -654,7 +655,7 @@ public class AdminProduitController {
 
     @FXML
     private void goBackSite() {
-        goTo("/AdminWelcome.fxml");
+        goTo("/FrontFXML/Accueil.fxml");
     }
 
     @FXML

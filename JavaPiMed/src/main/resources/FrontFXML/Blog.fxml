@@ -65,12 +65,6 @@
 
                             <Region HBox.hgrow="ALWAYS"/>
 
-                            <Button text="Exporter PDF"
-                                    onAction="#handleExportPdf"
-                                    styleClass="new-post-btn"
-                                    prefWidth="140"
-                                    minWidth="140"/>
-
                             <Button text="⏳"
                                     onAction="#showMyPendingPostsPopup"
                                     styleClass="header-icon-btn"/>

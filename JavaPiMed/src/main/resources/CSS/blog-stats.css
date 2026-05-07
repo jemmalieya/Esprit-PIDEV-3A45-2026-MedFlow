@@ -1,0 +1,212 @@
+.blog-stats-root {
+    -fx-background-color: #f5f8fc;
+}
+
+.blog-stats-content {
+    -fx-background-color: #f5f8fc;
+}
+
+.blog-hero-card {
+    -fx-background-color: linear-gradient(to right, #0891b2, #2563eb, #4f46e5);
+    -fx-background-radius: 26;
+    -fx-padding: 30;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.18), 24, 0, 0, 8);
+}
+
+.blog-hero-title {
+    -fx-text-fill: white;
+    -fx-font-size: 31px;
+    -fx-font-weight: 800;
+}
+
+.blog-hero-subtitle {
+    -fx-text-fill: rgba(255, 255, 255, 0.90);
+    -fx-font-size: 15px;
+}
+
+.blog-hero-tags {
+    -fx-padding: 8 0 0 0;
+}
+
+.hero-chip {
+    -fx-background-color: rgba(255, 255, 255, 0.18);
+    -fx-text-fill: white;
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-padding: 7 13;
+    -fx-background-radius: 999;
+    -fx-border-color: rgba(255, 255, 255, 0.28);
+    -fx-border-radius: 999;
+}
+
+.stat-kpi-card {
+    -fx-background-color: white;
+    -fx-background-radius: 22;
+    -fx-padding: 22;
+    -fx-min-width: 210;
+    -fx-pref-width: 260;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.08), 18, 0, 0, 6);
+    -fx-border-width: 1;
+    -fx-border-radius: 22;
+}
+
+.stat-kpi-title {
+    -fx-font-size: 13px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #64748b;
+    -fx-text-transform: uppercase;
+}
+
+.stat-kpi-value {
+    -fx-font-size: 36px;
+    -fx-font-weight: 900;
+    -fx-text-fill: #0f172a;
+}
+
+.stat-kpi-caption {
+    -fx-font-size: 13px;
+    -fx-text-fill: #64748b;
+}
+
+.kpi-blue {
+    -fx-border-color: #bfdbfe;
+}
+
+.kpi-green {
+    -fx-border-color: #bbf7d0;
+}
+
+.kpi-orange {
+    -fx-border-color: #fed7aa;
+}
+
+.kpi-purple {
+    -fx-border-color: #ddd6fe;
+}
+
+.chart-card {
+    -fx-background-color: white;
+    -fx-background-radius: 24;
+    -fx-padding: 22;
+    -fx-pref-width: 520;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.08), 18, 0, 0, 6);
+    -fx-border-color: #e5e7eb;
+    -fx-border-width: 1;
+    -fx-border-radius: 24;
+}
+
+.large-chart-card {
+    -fx-pref-width: 760;
+}
+
+.side-insight-card {
+    -fx-pref-width: 360;
+    -fx-background-color: linear-gradient(to bottom, #ffffff, #eff6ff);
+}
+
+.chart-title {
+    -fx-text-fill: #0f172a;
+    -fx-font-size: 19px;
+    -fx-font-weight: 900;
+}
+
+.chart-subtitle {
+    -fx-text-fill: #64748b;
+    -fx-font-size: 13px;
+}
+
+.insight-title {
+    -fx-text-fill: #0f172a;
+    -fx-font-size: 15px;
+    -fx-font-weight: 900;
+}
+
+.insight-text {
+    -fx-text-fill: #475569;
+    -fx-font-size: 14px;
+    -fx-line-spacing: 3px;
+}
+
+.insight-note {
+    -fx-background-color: #dbeafe;
+    -fx-text-fill: #1d4ed8;
+    -fx-font-size: 13px;
+    -fx-font-weight: 700;
+    -fx-padding: 12 14;
+    -fx-background-radius: 14;
+}
+
+.modern-chart {
+    -fx-background-color: transparent;
+    -fx-padding: 6 0 0 0;
+}
+
+.modern-chart .chart-plot-background {
+    -fx-background-color: #f8fafc;
+    -fx-background-radius: 16;
+}
+
+.modern-chart .chart-vertical-grid-lines,
+.modern-chart .chart-horizontal-grid-lines {
+    -fx-stroke: #e5e7eb;
+}
+
+.modern-chart .axis {
+    -fx-tick-label-fill: #64748b;
+    -fx-font-size: 11px;
+}
+
+.modern-chart .axis-label {
+    -fx-text-fill: #475569;
+    -fx-font-weight: 700;
+}
+
+.default-color0.chart-bar {
+    -fx-bar-fill: linear-gradient(to top, #0891b2, #38bdf8);
+    -fx-background-radius: 8 8 0 0;
+}
+
+.default-color0.chart-series-line {
+    -fx-stroke: #2563eb;
+    -fx-stroke-width: 3px;
+}
+
+.default-color0.chart-line-symbol {
+    -fx-background-color: #2563eb, white;
+    -fx-background-radius: 7px;
+    -fx-padding: 5px;
+}
+
+.modern-pie-chart {
+    -fx-background-color: transparent;
+    -fx-padding: 8;
+}
+
+.modern-pie-chart .chart-title {
+    -fx-text-fill: #0f172a;
+}
+
+.modern-pie-chart .chart-pie-label {
+    -fx-fill: #334155;
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+}
+
+.modern-pie-chart .chart-legend {
+    -fx-background-color: transparent;
+}
+
+.modern-pie-chart .chart-legend-item {
+    -fx-text-fill: #475569;
+    -fx-font-size: 12px;
+}
+
+.sub-nav-button-active {
+    -fx-background-color: linear-gradient(to right, rgba(14, 165, 233, 0.28), rgba(37, 99, 235, 0.22));
+    -fx-text-fill: white;
+    -fx-font-weight: 800;
+    -fx-background-radius: 12;
+    -fx-padding: 10 14;
+    -fx-alignment: CENTER_LEFT;
+    -fx-cursor: hand;
+}

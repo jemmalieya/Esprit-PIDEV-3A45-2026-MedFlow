@@ -1,0 +1,343 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.chart.BarChart?>
+<?import javafx.scene.chart.CategoryAxis?>
+<?import javafx.scene.chart.LineChart?>
+<?import javafx.scene.chart.NumberAxis?>
+<?import javafx.scene.chart.PieChart?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.TitledPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane fx:id="rootPane"
+            prefWidth="1500.0"
+            prefHeight="880.0"
+            styleClass="app-root"
+            stylesheets="@CSS/admin-welcome.css,@CSS/stats-reclamations.css"
+            xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="tn.esprit.controllers.StatsReclamationsController">
+
+    <left>
+        <BorderPane prefWidth="320.0" styleClass="sidebar">
+
+            <top>
+                <VBox spacing="8">
+                    <padding>
+                        <Insets top="26" right="20" bottom="16" left="20"/>
+                    </padding>
+
+                    <Label text="MedFlow Admin" styleClass="brand-title"/>
+                    <Label text="ESPACE ADMINISTRATION" styleClass="brand-subtitle"/>
+                    <Separator styleClass="side-separator"/>
+                </VBox>
+            </top>
+
+            <center>
+                <ScrollPane fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" styleClass="sidebar-scroll">
+                    <content>
+                        <VBox spacing="10">
+                            <padding>
+                                <Insets top="4" right="18" bottom="16" left="18"/>
+                            </padding>
+
+                            <Button text="Accueil Admin" onAction="#openDashboard" styleClass="nav-button"/>
+
+                            <TitledPane text="Utilisateurs" expanded="false" styleClass="sidebar-dropdown">
+                                <content>
+                                    <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Patients" onAction="#openPatients" styleClass="sub-nav-button"/>
+                                        <Button text="Tous les utilisateurs" onAction="#openUsers" styleClass="sub-nav-button"/>
+                                        <Button text="Demandes de rôle" onAction="#openRoles" styleClass="sub-nav-button"/>
+                                        <Button text="Comptes et permissions" onAction="#openUserRoles" styleClass="sub-nav-button"/>
+                                    </VBox>
+                                </content>
+                            </TitledPane>
+
+                            <TitledPane text="Produits" expanded="false" styleClass="sidebar-dropdown">
+                                <content>
+                                    <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Liste des produits" onAction="#openProduits" styleClass="sub-nav-button"/>
+                                        <Button text="Commandes" onAction="#openCommandes" styleClass="sub-nav-button"/>
+                                        <Button text="Détection Épidémie" onAction="#openDetection" styleClass="sub-nav-button"/>
+                                        <Button text="Stock et ruptures" onAction="#openStockRupture" styleClass="sub-nav-button"/>
+                                        <Button text="Statistiques produits" onAction="#openStatsProduits" styleClass="sub-nav-button"/>
+                                    </VBox>
+                                </content>
+                            </TitledPane>
+
+                            <TitledPane text="Événements" expanded="false" styleClass="sidebar-dropdown">
+                                <content>
+                                    <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Liste des événements" onAction="#openEvents" styleClass="sub-nav-button"/>
+                                        <Button text="Participants demandes" onAction="#openEventParticipants" styleClass="sub-nav-button"/>
+                                        <Button text="Ressources" onAction="#openRessources" styleClass="sub-nav-button"/>
+                                        <Button text="Stats événements" onAction="#openStatsEvents" styleClass="sub-nav-button"/>
+                                        <Button text="Stats ressources" onAction="#openStatsRessources" styleClass="sub-nav-button"/>
+                                    </VBox>
+                                </content>
+                            </TitledPane>
+
+                            <TitledPane text="Consultations" expanded="false" styleClass="sidebar-dropdown">
+                                <content>
+                                    <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Consultations par Docteur" onAction="#openConsultations" styleClass="sub-nav-button"/>
+                                        <Button text="Rendez-vous" onAction="#openRendezVous" styleClass="sub-nav-button"/>
+                                        <Button text="Statistiques consultations" onAction="#openStatsConsultations" styleClass="sub-nav-button"/>
+                                    </VBox>
+                                </content>
+                            </TitledPane>
+
+                            <TitledPane text="Réclamations" expanded="true" styleClass="sidebar-dropdown">
+                                <content>
+                                    <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Liste des réclamations"
+                                                onAction="#openReclamations"
+                                                styleClass="sub-nav-button"/>
+
+                                        <Button text="Statistiques réclamations"
+                                                onAction="#openStatsReclamations"
+                                                styleClass="sub-nav-button"
+                                                style="-fx-background-color: rgba(20, 184, 166, 0.25); -fx-text-fill: white;"/>
+                                    </VBox>
+                                </content>
+                            </TitledPane>
+
+                            <TitledPane text="Blog et Posts" expanded="false" styleClass="sidebar-dropdown">
+                                <content>
+                                    <VBox spacing="6" styleClass="dropdown-content">
+                                        <Button text="Liste des posts" onAction="#openPosts" styleClass="sub-nav-button"/>
+                                        <Button text="Posts en attente" onAction="#openPostsEnAttente" styleClass="sub-nav-button"/>
+                                        <Button text="Statistiques blog" onAction="#openStatsBlog" styleClass="sub-nav-button"/>
+                                    </VBox>
+                                </content>
+                            </TitledPane>
+
+                            <Button text="Déconnexion" onAction="#logout" styleClass="logout-button"/>
+                        </VBox>
+                    </content>
+                </ScrollPane>
+            </center>
+
+            <bottom>
+                <VBox spacing="10">
+                    <padding>
+                        <Insets top="12" right="18" bottom="22" left="18"/>
+                    </padding>
+
+                    <Separator styleClass="side-separator"/>
+                    <Button text="Retour Site" onAction="#goBackSite" styleClass="back-site-button"/>
+                </VBox>
+            </bottom>
+
+        </BorderPane>
+    </left>
+
+    <top>
+        <HBox alignment="CENTER_LEFT" spacing="18" styleClass="top-bar">
+            <padding>
+                <Insets top="18" right="28" bottom="18" left="28"/>
+            </padding>
+
+            <Button text="Menu" styleClass="menu-button"/>
+
+            <VBox spacing="3">
+                <Label text="Statistiques Réclamations" styleClass="page-title"/>
+                <Label text="Analyse des statuts, priorités, types et évolution des réclamations" styleClass="page-subtitle"/>
+            </VBox>
+
+            <Region HBox.hgrow="ALWAYS"/>
+
+            <TextField promptText="Rechercher..." styleClass="search-field"/>
+            <Button text="Notif" styleClass="icon-button"/>
+            <Button text="Param" styleClass="icon-button"/>
+            <Label text="A" styleClass="avatar-label"/>
+        </HBox>
+    </top>
+
+    <center>
+        <ScrollPane fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" styleClass="content-scroll">
+            <content>
+                <VBox spacing="24" styleClass="stats-rec-content">
+                    <padding>
+                        <Insets top="34" right="38" bottom="45" left="38"/>
+                    </padding>
+
+                    <VBox spacing="16" styleClass="stats-hero-card">
+                        <HBox spacing="16" alignment="CENTER_LEFT">
+                            <StackPane prefWidth="68" prefHeight="68" styleClass="stats-hero-icon-box">
+                                <Label text="📊" styleClass="stats-hero-icon"/>
+                            </StackPane>
+
+                            <VBox spacing="8" HBox.hgrow="ALWAYS">
+                                <Label text="Tableau de bord des réclamations" styleClass="stats-hero-title"/>
+                                <Label text="Suivez les indicateurs clés pour mieux traiter les demandes patients et détecter les réclamations urgentes."
+                                       wrapText="true"
+                                       styleClass="stats-hero-subtitle"/>
+                            </VBox>
+                        </HBox>
+
+                        <HBox spacing="12" alignment="CENTER_LEFT">
+                            <Label text="📌 Statuts" styleClass="stats-hero-badge"/>
+                            <Label text="🚨 Priorités" styleClass="stats-hero-badge"/>
+                            <Label text="📈 Évolution" styleClass="stats-hero-badge"/>
+                            <Label text="💬 Types" styleClass="stats-hero-badge"/>
+                        </HBox>
+                    </VBox>
+
+                    <HBox spacing="18">
+                        <VBox spacing="12" styleClass="stats-kpi-card blue-card" HBox.hgrow="ALWAYS">
+                            <StackPane prefWidth="48" prefHeight="48" styleClass="stats-kpi-icon blue-icon">
+                                <Label text="📋" styleClass="stats-kpi-emoji"/>
+                            </StackPane>
+                            <Label fx:id="totalLabel" text="0" styleClass="stats-kpi-number"/>
+                            <Label text="Total réclamations" styleClass="stats-kpi-text"/>
+                        </VBox>
+
+                        <VBox spacing="12" styleClass="stats-kpi-card orange-card" HBox.hgrow="ALWAYS">
+                            <StackPane prefWidth="48" prefHeight="48" styleClass="stats-kpi-icon orange-icon">
+                                <Label text="⏳" styleClass="stats-kpi-emoji"/>
+                            </StackPane>
+                            <Label fx:id="pendingLabel" text="0" styleClass="stats-kpi-number"/>
+                            <Label text="En attente" styleClass="stats-kpi-text"/>
+                        </VBox>
+
+                        <VBox spacing="12" styleClass="stats-kpi-card green-card" HBox.hgrow="ALWAYS">
+                            <StackPane prefWidth="48" prefHeight="48" styleClass="stats-kpi-icon green-icon">
+                                <Label text="✅" styleClass="stats-kpi-emoji"/>
+                            </StackPane>
+                            <Label fx:id="doneLabel" text="0" styleClass="stats-kpi-number"/>
+                            <Label text="Traitées" styleClass="stats-kpi-text"/>
+                        </VBox>
+
+                        <VBox spacing="12" styleClass="stats-kpi-card red-card" HBox.hgrow="ALWAYS">
+                            <StackPane prefWidth="48" prefHeight="48" styleClass="stats-kpi-icon red-icon">
+                                <Label text="🚨" styleClass="stats-kpi-emoji"/>
+                            </StackPane>
+                            <Label fx:id="highPriorityLabel" text="0" styleClass="stats-kpi-number"/>
+                            <Label text="Priorité élevée" styleClass="stats-kpi-text"/>
+                        </VBox>
+                    </HBox>
+
+                    <HBox spacing="18">
+                        <VBox spacing="12" styleClass="stats-kpi-card purple-card" HBox.hgrow="ALWAYS">
+                            <StackPane prefWidth="48" prefHeight="48" styleClass="stats-kpi-icon purple-icon">
+                                <Label text="📌" styleClass="stats-kpi-emoji"/>
+                            </StackPane>
+                            <Label fx:id="typesLabel" text="0" styleClass="stats-kpi-number"/>
+                            <Label text="Types différents" styleClass="stats-kpi-text"/>
+                        </VBox>
+
+                        <VBox spacing="12" styleClass="stats-kpi-card cyan-card" HBox.hgrow="ALWAYS">
+                            <StackPane prefWidth="48" prefHeight="48" styleClass="stats-kpi-icon cyan-icon">
+                                <Label text="📈" styleClass="stats-kpi-emoji"/>
+                            </StackPane>
+                            <Label fx:id="todayLabel" text="0" styleClass="stats-kpi-number"/>
+                            <Label text="Aujourd'hui" styleClass="stats-kpi-text"/>
+                        </VBox>
+
+                        <VBox spacing="12" styleClass="stats-kpi-card dark-card" HBox.hgrow="ALWAYS">
+                            <StackPane prefWidth="48" prefHeight="48" styleClass="stats-kpi-icon dark-icon">
+                                <Label text="⚡" styleClass="stats-kpi-emoji"/>
+                            </StackPane>
+                            <Label fx:id="resolutionRateLabel" text="0%" styleClass="stats-kpi-number"/>
+                            <Label text="Taux traité" styleClass="stats-kpi-text"/>
+                        </VBox>
+                    </HBox>
+
+                    <HBox spacing="14" alignment="CENTER_LEFT" styleClass="stats-filter-card">
+                        <Label text="Filtrer les statistiques" styleClass="filter-title"/>
+
+                        <Region HBox.hgrow="ALWAYS"/>
+
+                        <ComboBox fx:id="periodFilter"
+                                  prefWidth="180"
+                                  styleClass="stats-filter-combo"/>
+
+                        <Button text="Actualiser" onAction="#refreshData" styleClass="stats-refresh-btn"/>
+                    </HBox>
+
+                    <GridPane hgap="22" vgap="22">
+                        <VBox spacing="14" GridPane.columnIndex="0" GridPane.rowIndex="0" styleClass="chart-card">
+                            <Label text="Répartition par statut" styleClass="chart-title"/>
+                            <Label text="Nombre de réclamations selon leur état" styleClass="chart-subtitle"/>
+
+                            <PieChart fx:id="statusPieChart"
+                                      labelsVisible="true"
+                                      legendVisible="true"
+                                      prefHeight="330"
+                                      styleClass="modern-pie"/>
+                        </VBox>
+
+                        <VBox spacing="14" GridPane.columnIndex="1" GridPane.rowIndex="0" styleClass="chart-card">
+                            <Label text="Répartition par priorité" styleClass="chart-title"/>
+                            <Label text="Analyse des niveaux d'urgence" styleClass="chart-subtitle"/>
+
+                            <BarChart fx:id="priorityBarChart"
+                                      legendVisible="false"
+                                      animated="true"
+                                      prefHeight="330"
+                                      styleClass="modern-chart">
+                                <xAxis>
+                                    <CategoryAxis label="Priorité"/>
+                                </xAxis>
+                                <yAxis>
+                                    <NumberAxis label="Nombre"/>
+                                </yAxis>
+                            </BarChart>
+                        </VBox>
+
+                        <VBox spacing="14" GridPane.columnIndex="0" GridPane.rowIndex="1" styleClass="chart-card">
+                            <Label text="Réclamations par type" styleClass="chart-title"/>
+                            <Label text="Les sujets les plus fréquents" styleClass="chart-subtitle"/>
+
+                            <BarChart fx:id="typeBarChart"
+                                      legendVisible="false"
+                                      animated="true"
+                                      prefHeight="330"
+                                      styleClass="modern-chart">
+                                <xAxis>
+                                    <CategoryAxis label="Type"/>
+                                </xAxis>
+                                <yAxis>
+                                    <NumberAxis label="Nombre"/>
+                                </yAxis>
+                            </BarChart>
+                        </VBox>
+
+                        <VBox spacing="14" GridPane.columnIndex="1" GridPane.rowIndex="1" styleClass="chart-card">
+                            <Label text="Évolution des réclamations" styleClass="chart-title"/>
+                            <Label text="Nombre de réclamations par date" styleClass="chart-subtitle"/>
+
+                            <LineChart fx:id="evolutionLineChart"
+                                       animated="true"
+                                       createSymbols="true"
+                                       prefHeight="330"
+                                       styleClass="modern-chart">
+                                <xAxis>
+                                    <CategoryAxis label="Date"/>
+                                </xAxis>
+                                <yAxis>
+                                    <NumberAxis label="Nombre"/>
+                                </yAxis>
+                            </LineChart>
+                        </VBox>
+                    </GridPane>
+
+                </VBox>
+            </content>
+        </ScrollPane>
+    </center>
+
+</BorderPane>

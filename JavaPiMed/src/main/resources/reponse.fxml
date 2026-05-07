@@ -79,12 +79,6 @@
                                 styleClass="submenu-link"/>
                         <Label text="BLOG :" styleClass="submenu-title"/>
 
-                        <Button text="📰 Posts en attente"
-                                onAction="#openPendingPostsAdminPage"
-                                maxWidth="Infinity"
-                                alignment="CENTER_LEFT"
-                                styleClass="submenu-link"/>
-
                         <Button text="📰 Statistique Blog"
                                 onAction="#openBlogStats"
                                 maxWidth="Infinity"

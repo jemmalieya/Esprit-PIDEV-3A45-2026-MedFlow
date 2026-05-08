@@ -130,6 +130,8 @@ public class LoginController {
     private static final double RECAPTCHA_MODAL_WIDTH = 640;
     private static final double RECAPTCHA_MODAL_MIN_HEIGHT = 720;
     private static final double RECAPTCHA_MODAL_MAX_HEIGHT = 720;
+    // Désactivation temporaire demandée: garder le code, ne plus afficher le widget.
+    private static final boolean RECAPTCHA_TEMP_DISABLED = true;
 
     private final UserService userService = new UserService();
     private final TotpService totpService = new TotpService();
@@ -191,7 +193,14 @@ public class LoginController {
             Platform.runLater(this::revealLoginPanel);
         }
 
-        setupRecaptchaWidget();
+        if (isRecaptchaEnabledForUi()) {
+            setupRecaptchaWidget();
+        } else {
+            if (recaptchaContainer != null) {
+                recaptchaContainer.setManaged(false);
+                recaptchaContainer.setVisible(false);
+            }
+        }
     }
 
     @FXML
@@ -352,7 +361,7 @@ public class LoginController {
             return;
         }
 
-        if (recaptchaService.isConfigured()) {
+        if (isRecaptchaEnabledForUi() && recaptchaService.isConfigured()) {
             if (recaptchaToken == null || recaptchaToken.isBlank()) {
                 showStatus("Veuillez valider le reCAPTCHA.", false);
                 openRecaptchaModal();
@@ -442,10 +451,17 @@ public class LoginController {
 
     @FXML
     private void handleOpenRecaptchaModal(ActionEvent event) {
+        if (!isRecaptchaEnabledForUi()) {
+            return;
+        }
         openRecaptchaModal();
     }
 
     private void openRecaptchaModal() {
+        if (!isRecaptchaEnabledForUi()) {
+            return;
+        }
+
         if (recaptchaWidgetUrl == null || recaptchaWidgetUrl.isBlank()) {
             showStatus("reCAPTCHA indisponible pour le moment.", false);
             return;
@@ -1588,5 +1604,9 @@ public class LoginController {
         statusLabel.setVisible(false);
         statusLabel.setManaged(false);
         statusLabel.getStyleClass().removeAll("status-error", "status-success");
+    }
+
+    private boolean isRecaptchaEnabledForUi() {
+        return !RECAPTCHA_TEMP_DISABLED;
     }
 }

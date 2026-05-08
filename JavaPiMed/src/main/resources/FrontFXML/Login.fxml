@@ -97,6 +97,8 @@
                 <Hyperlink onAction="#handleForgotPassword" styleClass="login-link" text="Mot de passe oublie ?"/>
             </HBox>
 
+            <!-- reCAPTCHA temporairement masque (bloc conserve pour reactivation) -->
+            <!--
             <VBox fx:id="recaptchaContainer" spacing="4.0">
                 <Label text="Verification anti-bot" styleClass="field-label-login"/>
                 <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="recaptcha-row">
@@ -105,6 +107,7 @@
                     <Label fx:id="recaptchaStateLabel" styleClass="recaptcha-state recaptcha-pending" text="Non verifie"/>
                 </HBox>
             </VBox>
+            -->
 
             <!-- Status -->
             <Label fx:id="statusLabel" managed="false" styleClass="status-message"

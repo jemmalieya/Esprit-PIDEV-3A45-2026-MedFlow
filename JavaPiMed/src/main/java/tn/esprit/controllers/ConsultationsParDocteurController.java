@@ -64,6 +64,18 @@ public class ConsultationsParDocteurController {
     private Label dateLabel;
 
     @FXML
+    private Label totalDoctorsLabel;
+
+    @FXML
+    private Label totalRendezVousLabel;
+
+    @FXML
+    private Label totalFichesLabel;
+
+    @FXML
+    private Label totalPrescriptionsLabel;
+
+    @FXML
     private Label doctorCountLabel;
 
     @FXML
@@ -137,8 +149,26 @@ public class ConsultationsParDocteurController {
         allDoctors.clear();
         allDoctors.addAll(userService.getStaffByRoleAndType("STAFF", "RESP_PATIENTS"));
 
+        int totalDoctors = allDoctors.size();
+        int totalRendezVous = rendezVousService.recuperer().size();
+        int totalFiches = ficheMedicaleService.recuperer().size();
+        int totalPrescriptions = prescriptionService.recuperer().size();
+
+        if (totalDoctorsLabel != null) {
+            totalDoctorsLabel.setText(String.valueOf(totalDoctors));
+        }
+        if (totalRendezVousLabel != null) {
+            totalRendezVousLabel.setText(String.valueOf(totalRendezVous));
+        }
+        if (totalFichesLabel != null) {
+            totalFichesLabel.setText(String.valueOf(totalFiches));
+        }
+        if (totalPrescriptionsLabel != null) {
+            totalPrescriptionsLabel.setText(String.valueOf(totalPrescriptions));
+        }
+
         if (doctorCountLabel != null) {
-            doctorCountLabel.setText(String.valueOf(allDoctors.size()));
+            doctorCountLabel.setText(String.valueOf(totalDoctors));
         }
 
         if (selectedDoctorId == null && !allDoctors.isEmpty()) {

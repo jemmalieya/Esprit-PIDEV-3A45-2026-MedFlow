@@ -237,7 +237,7 @@ public class UserService implements IGeneralService<User> {
 
     @Override
     public User recupererParId(int id) {
-        return null;
+        return  findById(id);
     }
 
 

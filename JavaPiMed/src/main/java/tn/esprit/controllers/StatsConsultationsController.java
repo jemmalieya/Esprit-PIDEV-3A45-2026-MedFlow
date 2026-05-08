@@ -19,7 +19,6 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
@@ -100,9 +99,6 @@ public class StatsConsultationsController {
 
     @FXML
     private Label busiestMonthLabel;
-
-    @FXML
-    private FlowPane statCardsContainer;
 
     @FXML
     private LineChart<String, Number> monthlyAppointmentsChart;

@@ -75,6 +75,21 @@
     -fx-font-weight: 600;
 }
 
+.stats-page .stats-kpi-row .stat-title,
+.stats-page .stats-kpi-row .stat-value,
+.stats-page .stats-kpi-row .stat-value-money,
+.stats-page .stats-kpi-row .stat-subtitle {
+    -fx-text-fill: #0b1f38;
+}
+
+.stats-page .stats-kpi-row .stat-title {
+    -fx-opacity: 0.92;
+}
+
+.stats-page .stats-kpi-row .stat-subtitle {
+    -fx-opacity: 0.78;
+}
+
 .kpi-doctors {
     -fx-background-color: linear-gradient(to bottom right, #0ea5e9, #14b8a6);
 }
@@ -282,4 +297,41 @@
 /* Also ensure tick marks and axis labels are dark */
 .consultation-stat-panel .chart-card .axis .tick-mark {
     -fx-stroke: #0f2742 !important;
+}
+
+/* Fallback for charts not wrapped in .chart-card (e.g. monthly line chart container) */
+.stats-page .consultation-stat-panel .chart .chart-legend,
+.stats-page .consultation-stat-panel .chart .chart-legend-item,
+.stats-page .consultation-stat-panel .chart .chart-legend-item .label,
+.stats-page .consultation-stat-panel .chart .chart-legend-item .text,
+.stats-page .consultation-stat-panel .chart .chart-pie-label,
+.stats-page .consultation-stat-panel .chart .axis-label,
+.stats-page .consultation-stat-panel .chart .axis .tick-label,
+.stats-page .consultation-stat-panel .chart .tick-label,
+.stats-page .consultation-stat-panel .chart .chart-title {
+    -fx-text-fill: #0f2742 !important;
+    -fx-fill: #0f2742 !important;
+}
+
+.stats-page .consultation-stat-panel .chart .chart-legend .label * {
+    -fx-text-fill: #0f2742 !important;
+    -fx-fill: #0f2742 !important;
+}
+
+.stats-page .consultation-stat-panel .chart .axis .tick-mark {
+    -fx-stroke: #0f2742 !important;
+}
+
+/* Final hard override: legend labels next to color dots (especially PieChart bottom legends) */
+.stats-page .chart-legend,
+.stats-page .chart-legend-item,
+.stats-page .chart-legend-item .label,
+.stats-page .chart-legend-item .text,
+.stats-page .chart-legend-item .label .text,
+.stats-page .pie-chart .chart-legend-item,
+.stats-page .pie-chart .chart-legend-item .label,
+.stats-page .pie-chart .chart-legend-item .text {
+    -fx-text-fill: #1e293b !important;
+    -fx-fill: #1e293b !important;
+    -fx-opacity: 1 !important;
 }

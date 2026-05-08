@@ -13,7 +13,6 @@
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.control.TitledPane?>
 <?import javafx.scene.layout.BorderPane?>
-<?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
@@ -22,7 +21,7 @@
             prefWidth="1500.0"
             prefHeight="880.0"
             styleClass="app-root"
-            stylesheets="@../CSS/admin-welcome.css,@../CSS/stats-consultations.css"
+            stylesheets="@../CSS/admin-welcome.css,@../CSS/stats-consultations.css,@../CSS/stat-produit.css"
             xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="tn.esprit.controllers.StatsConsultationsController">
@@ -164,10 +163,18 @@
     <center>
         <ScrollPane fitToWidth="true" hbarPolicy="NEVER" styleClass="content-scroll">
             <content>
-                <VBox spacing="24" styleClass="stats-page">
+                <VBox spacing="22" styleClass="page-content stats-page">
                     <padding>
-                        <Insets top="34" right="38" bottom="45" left="38"/>
+                        <Insets top="24" right="24" bottom="36" left="24"/>
                     </padding>
+
+                    <HBox alignment="CENTER_LEFT" spacing="10" styleClass="stats-breadcrumb">
+                        <Label text="Statistiques consultations" styleClass="stats-breadcrumb-title"/>
+                        <Label text="|" styleClass="stats-breadcrumb-sep"/>
+                        <Label text="Admin" styleClass="stats-breadcrumb-active"/>
+                        <Label text="›" styleClass="stats-breadcrumb-sep"/>
+                        <Label text="Consultations" styleClass="stats-breadcrumb-muted"/>
+                    </HBox>
 
                     <VBox spacing="12" styleClass="simple-welcome-card stats-hero consultation-stat-panel" id="statsHeroBanner">
                         <Label text="Tableau de bord des consultations" styleClass="simple-welcome-title"/>
@@ -180,52 +187,56 @@
                                styleClass="simple-welcome-subtext"/>
                     </VBox>
 
-                    <FlowPane fx:id="statCardsContainer" hgap="18" vgap="18" prefWrapLength="1400" styleClass="stats-kpi-grid">
-                        <VBox styleClass="stats-kpi-card kpi-doctors consultation-stat-panel" spacing="8">
-                            <Label text="Docteurs actifs" styleClass="stats-kpi-title"/>
-                            <Label fx:id="totalDoctorsLabel" text="0" styleClass="stats-kpi-value"/>
-                            <Label text="users avec rôle STAFF et type RESP_PATIENTS" wrapText="true" styleClass="stats-kpi-note"/>
+                    <HBox spacing="16" alignment="CENTER_LEFT" styleClass="stats-kpi-row">
+
+                        <VBox styleClass="stat-users">
+                            <Label text="Docteurs actifs" styleClass="stat-title"/>
+                            <Label fx:id="totalDoctorsLabel" text="0" styleClass="stat-value"/>
+                            <Label text="Users STAFF / RESP_PATIENTS" styleClass="stat-subtitle"/>
                         </VBox>
 
-                        <VBox styleClass="stats-kpi-card kpi-rdv consultation-stat-panel" spacing="8">
-                            <Label text="Rendez-vous" styleClass="stats-kpi-title"/>
-                            <Label fx:id="totalRendezVousLabel" text="0" styleClass="stats-kpi-value"/>
-                            <Label text="Volume total de rendez-vous enregistrés" wrapText="true" styleClass="stats-kpi-note"/>
+                        <VBox styleClass="stat-products">
+                            <Label text="Rendez-vous" styleClass="stat-title"/>
+                            <Label fx:id="totalRendezVousLabel" text="0" styleClass="stat-value"/>
+                            <Label text="Total enregistrés" styleClass="stat-subtitle"/>
                         </VBox>
 
-                        <VBox styleClass="stats-kpi-card kpi-fiches consultation-stat-panel" spacing="8">
-                            <Label text="Fiches médicales" styleClass="stats-kpi-title"/>
-                            <Label fx:id="totalFichesLabel" text="0" styleClass="stats-kpi-value"/>
-                            <Label fx:id="ficheCoverageLabel" text="0% couverture" wrapText="true" styleClass="stats-kpi-note"/>
+                        <VBox styleClass="stat-orders">
+                            <Label text="Fiches médicales" styleClass="stat-title"/>
+                            <Label fx:id="totalFichesLabel" text="0" styleClass="stat-value"/>
+                            <Label fx:id="ficheCoverageLabel" text="0% couverture" styleClass="stat-subtitle"/>
                         </VBox>
 
-                        <VBox styleClass="stats-kpi-card kpi-prescriptions consultation-stat-panel" spacing="8">
-                            <Label text="Prescriptions" styleClass="stats-kpi-title"/>
-                            <Label fx:id="totalPrescriptionsLabel" text="0" styleClass="stats-kpi-value"/>
-                            <Label fx:id="prescriptionCoverageLabel" text="0% prescription" wrapText="true" styleClass="stats-kpi-note"/>
+                        <VBox styleClass="stat-revenue">
+                            <Label text="Prescriptions" styleClass="stat-title"/>
+                            <Label fx:id="totalPrescriptionsLabel" text="0" styleClass="stat-value"/>
+                            <Label fx:id="prescriptionCoverageLabel" text="0% prescription" styleClass="stat-subtitle"/>
                         </VBox>
 
-                        <VBox styleClass="stats-kpi-card kpi-duration consultation-stat-panel" spacing="8">
-                            <Label text="Durée moyenne" styleClass="stats-kpi-title"/>
-                            <Label fx:id="averageDurationLabel" text="-" styleClass="stats-kpi-value"/>
-                            <Label text="Durée moyenne des fiches médicales" wrapText="true" styleClass="stats-kpi-note"/>
+                    </HBox>
+
+                    <HBox spacing="16" alignment="CENTER_LEFT" styleClass="stats-kpi-row">
+                        <VBox styleClass="stat-orders">
+                            <Label text="Durée moyenne" styleClass="stat-title"/>
+                            <Label fx:id="averageDurationLabel" text="-" styleClass="stat-value-money"/>
+                            <Label text="Durée moyenne des fiches" styleClass="stat-subtitle"/>
                         </VBox>
 
-                        <VBox styleClass="stats-kpi-card kpi-urgent consultation-stat-panel" spacing="8">
-                            <Label text="Cas urgents" styleClass="stats-kpi-title"/>
-                            <Label fx:id="urgentLabel" text="0" styleClass="stats-kpi-value"/>
-                            <Label text="Rendez-vous marqués urgents" wrapText="true" styleClass="stats-kpi-note"/>
+                        <VBox styleClass="stat-revenue">
+                            <Label text="Cas urgents" styleClass="stat-title"/>
+                            <Label fx:id="urgentLabel" text="0" styleClass="stat-value"/>
+                            <Label text="Rendez-vous urgents" styleClass="stat-subtitle"/>
                         </VBox>
-                    </FlowPane>
+                    </HBox>
 
-                    <VBox spacing="18" styleClass="consultation-stat-panel chart-shell">
-                        <HBox alignment="CENTER_LEFT" spacing="12">
+                    <VBox spacing="0" styleClass="chart-card-large consultation-stat-panel">
+                        <HBox alignment="CENTER_LEFT" styleClass="chart-title-row">
                             <VBox spacing="3">
-                                <Label text="Tendance mensuelle" styleClass="simple-section-title"/>
+                                <Label text="Tendance mensuelle" styleClass="chart-title"/>
                                 <Label fx:id="busiestMonthLabel" text="Mois le plus actif: -" styleClass="page-subtitle"/>
                             </VBox>
                             <Region HBox.hgrow="ALWAYS"/>
-                            <Label text="12 derniers mois" styleClass="consultation-count-pill"/>
+                            <Label text="12 derniers mois" styleClass="chart-pill"/>
                         </HBox>
 
                         <LineChart fx:id="monthlyAppointmentsChart" createSymbols="true" animated="true" title="Rendez-vous créés par mois">
@@ -238,14 +249,14 @@
                         </LineChart>
                     </VBox>
 
-                    <VBox spacing="18" styleClass="consultation-stat-panel chart-shell">
-                        <HBox alignment="CENTER_LEFT" spacing="12">
+                    <VBox spacing="18" styleClass="chart-card-large consultation-stat-panel">
+                        <HBox alignment="CENTER_LEFT" styleClass="chart-title-row">
                             <VBox spacing="3">
-                                <Label text="Distribution opérationnelle" styleClass="simple-section-title"/>
+                                <Label text="Distribution opérationnelle" styleClass="chart-title"/>
                                 <Label fx:id="topDoctorLabel" text="Docteur le plus sollicité: -" styleClass="page-subtitle"/>
                             </VBox>
                             <Region HBox.hgrow="ALWAYS"/>
-                            <Label text="État global" styleClass="consultation-count-pill"/>
+                            <Label text="État global" styleClass="chart-pill"/>
                         </HBox>
 
                         <HBox spacing="18" styleClass="chart-row">
@@ -260,14 +271,14 @@
                         </HBox>
                     </VBox>
 
-                    <VBox spacing="18" styleClass="consultation-stat-panel chart-shell">
-                        <HBox alignment="CENTER_LEFT" spacing="12">
+                    <VBox spacing="18" styleClass="chart-card-large consultation-stat-panel">
+                        <HBox alignment="CENTER_LEFT" styleClass="chart-title-row">
                             <VBox spacing="3">
-                                <Label text="Charge et prescription" styleClass="simple-section-title"/>
+                                <Label text="Charge et prescription" styleClass="chart-title"/>
                                 <Label text="Lecture croisée des fiches, prescriptions et urgences" styleClass="page-subtitle"/>
                             </VBox>
                             <Region HBox.hgrow="ALWAYS"/>
-                            <Label text="Top 8" styleClass="consultation-count-pill"/>
+                            <Label text="Top 8" styleClass="chart-pill"/>
                         </HBox>
 
                         <HBox spacing="18" styleClass="chart-row">

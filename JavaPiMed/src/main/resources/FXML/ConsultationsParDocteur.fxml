@@ -17,7 +17,7 @@
             prefWidth="1500.0"
             prefHeight="880.0"
             styleClass="app-root"
-            stylesheets="@../CSS/admin-welcome.css"
+            stylesheets="@../CSS/admin-welcome.css,@../CSS/consultations-par-docteur.css,@../CSS/stat-produit.css"
             xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="tn.esprit.controllers.ConsultationsParDocteurController">
@@ -159,10 +159,18 @@
     <center>
         <ScrollPane fitToWidth="true" hbarPolicy="NEVER" styleClass="content-scroll">
             <content>
-                <VBox spacing="24" styleClass="consultations-page">
+                <VBox spacing="22" styleClass="page-content consultations-page">
                     <padding>
-                        <Insets top="34" right="38" bottom="45" left="38"/>
+                        <Insets top="24" right="24" bottom="36" left="24"/>
                     </padding>
+
+                    <HBox alignment="CENTER_LEFT" spacing="10" styleClass="stats-breadcrumb">
+                        <Label text="Consultations par Docteur" styleClass="stats-breadcrumb-title"/>
+                        <Label text="|" styleClass="stats-breadcrumb-sep"/>
+                        <Label text="Admin" styleClass="stats-breadcrumb-active"/>
+                        <Label text="›" styleClass="stats-breadcrumb-sep"/>
+                        <Label text="Consultations" styleClass="stats-breadcrumb-muted"/>
+                    </HBox>
 
                     <VBox spacing="12" styleClass="simple-welcome-card consultation-animate" id="consultationHeroBanner">
                         <Label text="Consultations par docteur" styleClass="simple-welcome-title"/>
@@ -174,27 +182,55 @@
                                styleClass="simple-welcome-subtext"/>
                     </VBox>
 
-                    <VBox spacing="16" styleClass="consultation-panel consultation-animate">
-                        <HBox alignment="CENTER_LEFT" spacing="12">
+                    <HBox spacing="16" alignment="CENTER_LEFT" styleClass="stats-kpi-row">
+
+                        <VBox styleClass="stat-users">
+                            <Label text="Docteurs actifs" styleClass="stat-title"/>
+                            <Label fx:id="totalDoctorsLabel" text="0" styleClass="stat-value"/>
+                            <Label text="Users STAFF / RESP_PATIENTS" styleClass="stat-subtitle"/>
+                        </VBox>
+
+                        <VBox styleClass="stat-products">
+                            <Label text="Rendez-vous" styleClass="stat-title"/>
+                            <Label fx:id="totalRendezVousLabel" text="0" styleClass="stat-value"/>
+                            <Label text="Total enregistrés" styleClass="stat-subtitle"/>
+                        </VBox>
+
+                        <VBox styleClass="stat-orders">
+                            <Label text="Fiches médicales" styleClass="stat-title"/>
+                            <Label fx:id="totalFichesLabel" text="0" styleClass="stat-value"/>
+                            <Label text="Consultations suivies" styleClass="stat-subtitle"/>
+                        </VBox>
+
+                        <VBox styleClass="stat-revenue">
+                            <Label text="Prescriptions" styleClass="stat-title"/>
+                            <Label fx:id="totalPrescriptionsLabel" text="0" styleClass="stat-value"/>
+                            <Label text="Ordonnances liées" styleClass="stat-subtitle"/>
+                        </VBox>
+
+                    </HBox>
+
+                    <VBox spacing="16" styleClass="latest-card consultation-animate">
+                        <HBox alignment="CENTER_LEFT" styleClass="chart-title-row">
                             <VBox spacing="3">
-                                <Label text="Docteurs disponibles" styleClass="simple-section-title"/>
+                                <Label text="Docteurs disponibles" styleClass="chart-title"/>
                                 <Label text="Liste des utilisateurs STAFF / RESP_PATIENTS" styleClass="page-subtitle"/>
                             </VBox>
                             <Region HBox.hgrow="ALWAYS"/>
-                            <Label fx:id="doctorCountLabel" text="0" styleClass="consultation-count-pill"/>
+                            <Label fx:id="doctorCountLabel" text="0" styleClass="chart-pill"/>
                         </HBox>
 
                         <FlowPane fx:id="doctorCardsContainer" hgap="18" vgap="18" prefWrapLength="1300" styleClass="doctor-grid"/>
                     </VBox>
 
-                    <VBox spacing="16" styleClass="consultation-panel consultation-animate">
-                        <HBox alignment="CENTER_LEFT" spacing="12">
+                    <VBox spacing="16" styleClass="latest-card consultation-animate">
+                        <HBox alignment="CENTER_LEFT" styleClass="chart-title-row">
                             <VBox spacing="3">
-                                <Label text="Données du docteur" styleClass="simple-section-title"/>
+                                <Label text="Données du docteur" styleClass="chart-title"/>
                                 <Label fx:id="selectedDoctorLabel" text="Aucun docteur sélectionné" styleClass="page-subtitle"/>
                             </VBox>
                             <Region HBox.hgrow="ALWAYS"/>
-                            <Label fx:id="recordsSummaryLabel" text="Aucun élément" styleClass="consultation-count-pill"/>
+                            <Label fx:id="recordsSummaryLabel" text="Aucun élément" styleClass="chart-pill"/>
                         </HBox>
 
                         <HBox spacing="10" styleClass="record-switcher">

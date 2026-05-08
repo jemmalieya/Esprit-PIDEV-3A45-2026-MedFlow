@@ -12,6 +12,53 @@
     -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.10), 22, 0, 0, 6);
 }
 
+#consultationHeroBanner {
+    -fx-background-color:
+        linear-gradient(to bottom right, rgba(6, 22, 37, 0.98), rgba(15, 52, 77, 0.96) 45%, rgba(14, 165, 233, 0.92)),
+        linear-gradient(to right, #061625, #0f344d, #0ea5e9);
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 28;
+    -fx-border-color: rgba(255, 255, 255, 0.24);
+    -fx-border-radius: 28;
+    -fx-border-width: 1.2;
+    -fx-padding: 24 28 22 28;
+    -fx-effect: dropshadow(gaussian, rgba(8, 15, 24, 0.24), 22, 0, 0, 8);
+}
+
+#consultationHeroBanner .simple-welcome-title,
+#consultationHeroBanner .simple-welcome-text,
+#consultationHeroBanner .simple-welcome-subtext {
+    -fx-text-fill: white;
+}
+
+#consultationHeroBanner .simple-welcome-title {
+    -fx-font-size: 38px;
+    -fx-font-weight: 900;
+}
+
+#consultationHeroBanner .simple-welcome-text {
+    -fx-opacity: 0.98;
+}
+
+#consultationHeroBanner .simple-welcome-subtext {
+    -fx-opacity: 0.96;
+}
+
+.consultations-page .stats-kpi-row .stat-title,
+.consultations-page .stats-kpi-row .stat-value,
+.consultations-page .stats-kpi-row .stat-value-money,
+.consultations-page .stats-kpi-row .stat-subtitle {
+    -fx-text-fill: #0b1f38;
+}
+
+.consultations-page .stats-kpi-row .stat-title {
+    -fx-opacity: 0.92;
+}
+
+.consultations-page .stats-kpi-row .stat-subtitle {
+    -fx-opacity: 0.78;
+}
+
 .consultation-count-pill {
     -fx-background-color: linear-gradient(to right, #0ea5e9, #14b8a6);
     -fx-background-radius: 999;

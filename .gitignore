@@ -23,3 +23,8 @@
 hs_err_pid*
 replay_pid*
 JavaPiMed/src/.idea/
+
+# Local secret files - DO NOT COMMIT
+JavaPiMed/src/main/resources/Keys/
+JavaPiMed/src/main/resources/Keys/*.json
+

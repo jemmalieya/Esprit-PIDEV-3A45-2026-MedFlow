@@ -31,6 +31,56 @@ The project focuses on applying Object-Oriented Programming (OOP) principles, st
 - Maven
 - SQL / Database Integration
 
+## Advanced Features
+
+In addition to the standard CRUD operations, MedFlow includes several advanced functionalities that improve automation, security, accessibility, and user experience.
+
+### Artificial Intelligence
+
+- **AI Blog Assistant** using Google Gemini to improve and generate better blog content.
+- **AI Event Analysis** using Groq to analyze events and provide intelligent recommendations.
+- **Speech-to-Text for Reclamations** using Groq Whisper to convert complaint audio into text.
+- **Appointment Urgency Detection** using AI to classify consultation requests by urgency level.
+- **AI Product Recommendations** for suggesting pharmacy products based on user behavior and available stock.
+- **AI Prescription Suggestions** to assist doctors with medication suggestions based on diagnosis.
+- **Dialogflow Assistant** for natural language appointment booking and voice-based interaction.
+
+### External API Integrations
+
+- **Stripe** for secure online payments.
+- **Brevo** for automatic email notifications.
+- **Twilio** for SMS notifications.
+- **Cloudinary** for image storage and management.
+- **OCR.Space and PDFBox** for extracting text from medical documents and scanned PDFs.
+- **OpenFDA** for checking possible drug interactions.
+- **LocationIQ / OpenStreetMap** for event location and geocoding.
+- **OpenWeatherMap** for weather information related to events.
+- **Google Perspective API** for detecting toxic or inappropriate comments.
+- **Google reCAPTCHA** for bot protection.
+
+### Advanced Business Logic
+
+- Appointment management with urgency level and status tracking.
+- Pharmacy stock control and drug interaction verification.
+- Event risk analysis and participant notification system.
+- Blog comment moderation and anti-spam filtering.
+- Security risk detection for suspicious user activity.
+- Automatic invoice and PDF generation.
+
+### Accessibility
+
+- Offline speech-to-text support using Vosk.
+- Text-to-speech support for reading content aloud.
+- Voice-enabled assistant for easier interaction.
+- Accessible video room management for online events.
+
+### Notifications and Automation
+
+- Automatic email confirmations.
+- SMS order notifications.
+- Event status notifications.
+- Security alert logic.
+
 ---
 
 ## Architecture

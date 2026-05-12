@@ -42,6 +42,8 @@ In addition to the standard CRUD operations, MedFlow includes several advanced f
 - **Speech-to-Text for Reclamations** using Groq Whisper to convert complaint audio into text.
 - **Appointment Urgency Detection** using AI to classify consultation requests by urgency level.
 - **AI Product Recommendations** for suggesting pharmacy products based on user behavior and available stock.
+- **AI Product Recommendations** for suggesting pharmacy products based on user behavior and available stock.
+- **AI Pharmacy Assistant** to help analyze pharmacy needs, suggest suitable products, support order decisions, and improve the user experience in the pharmacy module.
 - **AI Prescription Suggestions** to assist doctors with medication suggestions based on diagnosis.
 - **Dialogflow Assistant** for natural language appointment booking and voice-based interaction.
 

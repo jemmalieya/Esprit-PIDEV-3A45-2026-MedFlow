@@ -5,9 +5,12 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 
 public class MyDataBase {
-    String url="jdbc:mysql://localhost:3306/medflow";
-    String user="root";
-    String password="";
+   // String url="jdbc:mysql://localhost:3306/medflow";
+    //String user="root";
+   // String password="";
+   String url = "jdbc:mysql://192.168.1.174:3306/medflow?useSSL=false&serverTimezone=UTC";
+    String user = "medflow_user";
+    String password = "medflow123";
     private Connection cnx;
     static MyDataBase myDB;
     private MyDataBase()  {

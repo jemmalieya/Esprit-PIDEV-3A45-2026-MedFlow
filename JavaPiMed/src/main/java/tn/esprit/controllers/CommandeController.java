@@ -872,7 +872,7 @@ public class CommandeController {
         if (filtreStatutCombo != null) {
             filtreStatutCombo.getItems().setAll(
                     "Tous", "Confirmée", "En cours", "En attente",
-                    "Livraison", "Finalisée", "Annulée"
+                    "En livraison", "Finalisée", "Annulée"
             );
             filtreStatutCombo.setValue("Tous");
             filtreStatutCombo.setOnAction(e -> refreshBackCommandeRows());
@@ -1101,7 +1101,7 @@ public class CommandeController {
         if (nouveauStatutCombo != null) {
             nouveauStatutCombo.getItems().setAll(
                     "En attente", "Confirmée", "En cours",
-                    "Livraison", "Finalisée", "Annulée"
+                    "En livraison", "Finalisée", "Annulée"
             );
             nouveauStatutCombo.setValue(normalizeStatut(commandeSelectionneeBack.getStatut_commande()));
         }
@@ -1210,9 +1210,15 @@ public class CommandeController {
             return;
         }
 
+        // N'autorise de démarrer la livraison que si la commande est déjà "En cours"
+        if (!isStatutEnCours(statut)) {
+            showCommandeToast("Transition invalide : la commande doit être 'En cours' pour demarrer la livraison.", "commande-toast-warning", "⚠");
+            return;
+        }
+
         try {
-            commandeSelectionneeBack.setStatut_commande("Livraison");
-            service.modifier(commandeSelectionneeBack);
+                    commandeSelectionneeBack.setStatut_commande("En livraison");
+                service.modifier(commandeSelectionneeBack);
 
             try {
                 Integer etaMinutes = calculerEtaMinutesPourCommande(commandeSelectionneeBack);
@@ -1430,8 +1436,30 @@ public class CommandeController {
         if (commandeSelectionneeBack == null || nouveauStatutCombo == null) return;
 
         try {
-            commandeSelectionneeBack.setStatut_commande(nouveauStatutCombo.getValue());
+            String current = commandeSelectionneeBack.getStatut_commande();
+            String next = nouveauStatutCombo.getValue();
+
+            if (!canTransition(current, next)) {
+                showCommandeToast(
+                        "Transition invalide : impossible de passer de '" + normalizeStatut(current) + "' à '" + normalizeStatut(next) + "'.",
+                        "commande-toast-warning",
+                        "⚠"
+                );
+                return;
+            }
+
+            commandeSelectionneeBack.setStatut_commande(next);
             service.modifier(commandeSelectionneeBack);
+
+            // Si on passe en livraison, reproduire le comportement de commencerLivraison (calcul ETA + envoi email)
+            if (coreIndex(coreStateKey(next)) == 2) {
+                try {
+                    Integer etaMinutes = calculerEtaMinutesPourCommande(commandeSelectionneeBack);
+                    EmailServiceProduit.sendCommandeLivraisonStartedEmail(commandeSelectionneeBack, etaMinutes);
+                } catch (Exception mailEx) {
+                    mailEx.printStackTrace();
+                }
+            }
 
             showCommandeToast("Statut mis à jour avec succès.", "commande-toast-success", "✔");
             populateBackDetails();
@@ -1828,7 +1856,7 @@ public class CommandeController {
         if (s.contains("confirm")) return "Confirmée";
         if (s.contains("cours")) return "En cours";
         if (s.contains("attente")) return "En attente";
-        if (s.contains("livraison")) return "Livraison";
+        if (s.contains("livraison")) return "En livraison";
         if (s.contains("final")) return "Finalisée";
         if (s.contains("termin")) return "Terminée";
         if (s.contains("annul")) return "Annulée";
@@ -1844,6 +1872,68 @@ public class CommandeController {
         if (statut == null) return false;
         String s = statut.toLowerCase();
         return s.contains("termine") || s.contains("final");
+    }
+
+    // Retourne true si le statut signifie que la commande est en cours (étape précédente à Livraison)
+    private boolean isStatutEnCours(String statut) {
+        return statut != null && statut.toLowerCase().contains("cours");
+    }
+
+    /**
+     * Mapping simplifié des états "core" pour imposer une suite stricte :
+     * en_attente (0) -> en_cours (1) -> livraison (2) -> livree (3)
+     * Toute autre valeur est considérée "other".
+     */
+    private String coreStateKey(String statut) {
+        if (statut == null) return "other";
+        String s = statut.toLowerCase();
+        if (s.contains("attente")) return "en_attente";
+        if (s.contains("cours")) return "en_cours";
+        if (s.contains("livraison")) return "livraison";
+        if (s.contains("final") || s.contains("termin") || s.contains("livre")) return "livree";
+        return "other";
+    }
+
+    private int coreIndex(String key) {
+        return switch (key) {
+            case "en_attente" -> 0;
+            case "en_cours" -> 1;
+            case "livraison" -> 2;
+            case "livree" -> 3;
+            default -> -1;
+        };
+    }
+
+    /**
+     * Autorise uniquement les transitions strictes entre états core :
+     * on ne peut avancer que d'un pas (ex: en_attente -> en_cours, en_cours -> livraison, livraison -> livree).
+     * Si la cible n'est pas un état core, la transition est autorisée (ex: Annulée) mais
+     * si la cible est core elle doit être l'étape suivante immédiate.
+     */
+    private boolean canTransition(String currentStatut, String nextStatut) {
+        String curKey = coreStateKey(currentStatut);
+        String nextKey = coreStateKey(nextStatut);
+        int curIdx = coreIndex(curKey);
+        int nextIdx = coreIndex(nextKey);
+
+        // même état -> pas de changement
+        if (curIdx >= 0 && nextIdx >= 0 && curIdx == nextIdx) return false;
+
+        // si la cible est un état core
+        if (nextIdx >= 0) {
+            // si l'état courant n'est pas un core connu, n'autorise la progression que si on va à la première étape
+            if (curIdx < 0) {
+                return nextIdx == 0; // only allow starting at en_attente
+            }
+            // n'autorise que l'étape suivante immédiate
+            return nextIdx == curIdx + 1;
+        }
+
+        // cible non-core (ex: Annulée...) : autoriser sauf si on est déjà livré
+        if (curIdx == 3) {
+            return false; // ne pas autoriser de changement si déjà livré
+        }
+        return true;
     }
 
     private String getBadgeClass(String statut) {
@@ -2373,13 +2463,13 @@ public class CommandeController {
             }
 //NA7I
            User user = SessionManager.getCurrentUser();
-            boolean smsEnvoye = smsService.envoyerSmsConfirmationCommande(user, commande);
+           /* boolean smsEnvoye = smsService.envoyerSmsConfirmationCommande(user, commande);
 
             if (smsEnvoye) {
                 System.out.println("SMS de confirmation envoyé.");
             } else {
                 System.out.println("Échec envoi SMS.");
-            }
+            }*/
 
             commandeSelectionneeFront = commande;
             CartSession.viderPanier();
@@ -2402,14 +2492,14 @@ public class CommandeController {
                     "commande-toast-success",
                     "✅"
             ));
-           Platform.runLater(() -> showToastOnStage(
+           /*Platform.runLater(() -> showToastOnStage(
                     stage,
                     smsEnvoye
                             ? "Paiement effectué avec succès. SMS de confirmation envoyé."
                             : "Paiement effectué avec succès. Échec de l'envoi du SMS.",
                     smsEnvoye ? "commande-toast-success" : "commande-toast-warning",
                     smsEnvoye ? "✅" : "⚠"
-            ));
+            ));*/
 
         } catch (Exception e) {
             e.printStackTrace();

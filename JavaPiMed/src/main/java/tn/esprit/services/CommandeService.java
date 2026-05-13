@@ -596,7 +596,7 @@ LEFT JOIN user u ON c.user_id = u.id
 
             String sqlCommande = "UPDATE commande SET statut_commande = ?, stripe_session_id = ?, paid_at = ? WHERE id_commande = ?";
             try (PreparedStatement ps = cn.prepareStatement(sqlCommande)) {
-                ps.setString(1, "Payée");
+                ps.setString(1, "En cours");
                 ps.setString(2, stripeSessionId);
                 ps.setTimestamp(3, Timestamp.valueOf(LocalDateTime.now()));
                 ps.setInt(4, commandeId);
@@ -621,7 +621,7 @@ LEFT JOIN user u ON c.user_id = u.id
             cn.commit();
             cn.setAutoCommit(true);
 
-            System.out.println("Commande marquée payée avec succès.");
+            System.out.println("Commande marquée en cours avec succès.");
             return true;
 
         } catch (SQLException ex) {

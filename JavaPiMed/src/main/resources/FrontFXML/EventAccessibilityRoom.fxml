@@ -68,7 +68,8 @@
                                         <StackPane fx:id="roomBrowserHost" prefWidth="980.0" prefHeight="580.0"/>
                                     </children>
                                 </StackPane>
-                                <VBox spacing="12.0"
+                                <VBox fx:id="roomLinkEditorBox"
+                                      spacing="12.0"
                                       style="-fx-background-color: linear-gradient(to right, #e7f8ff, #eefbf5); -fx-background-radius: 22; -fx-padding: 20; -fx-border-color: rgba(14,143,176,0.16); -fx-border-radius: 22;">
                                     <children>
                                         <Label text="Lien d'appel video"
@@ -82,7 +83,8 @@
                                                style="-fx-background-color: rgba(255,255,255,0.92); -fx-background-radius: 16; -fx-padding: 14; -fx-text-fill: #163848; -fx-font-size: 14px; -fx-font-weight: 700;"/>
                                         <HBox spacing="12.0">
                                             <children>
-                                                <Button text="Enregistrer le lien"
+                                                <Button fx:id="saveRoomLinkButton"
+                                                        text="Enregistrer le lien"
                                                         onAction="#saveRoomLink"
                                                         style="-fx-background-color: #22a66f; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: 800; -fx-background-radius: 16; -fx-padding: 14 20;"/>
                                                 <Button text="Rejoindre l'appel"

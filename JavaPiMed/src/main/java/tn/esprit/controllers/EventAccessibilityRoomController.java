@@ -14,15 +14,19 @@ import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import tn.esprit.entities.Evenement;
 import tn.esprit.entities.Ressource;
+import tn.esprit.entities.User;
 import tn.esprit.services.AccessibilityRoomService;
 import tn.esprit.services.EmbeddedChromiumService;
+import tn.esprit.tools.SessionManager;
 
 import java.awt.Desktop;
 import java.net.URI;
 import java.nio.file.Path;
+import java.time.LocalDate;
 import java.util.List;
 
 public class EventAccessibilityRoomController {
@@ -35,6 +39,8 @@ public class EventAccessibilityRoomController {
     @FXML private Label roomStatusLabel;
     @FXML private Label roomUrlLabel;
     @FXML private TextField roomUrlInput;
+    @FXML private VBox roomLinkEditorBox;
+    @FXML private javafx.scene.control.Button saveRoomLinkButton;
     @FXML private StackPane roomBrowserHost;
     @FXML private TextArea transcriptArea;
     @FXML private FlowPane resourcesFlow;
@@ -46,6 +52,8 @@ public class EventAccessibilityRoomController {
     private EmbeddedChromiumService.BrowserWindowSession roomBrowserSession;
     private EmbeddedChromiumService.BrowserSession captionsBrowserSession;
     private Stage captionsStage;
+    private boolean roomManagerAccess;
+    private boolean roomJoinAccess;
 
     @FXML
     public void initialize() {
@@ -57,6 +65,11 @@ public class EventAccessibilityRoomController {
 
         roomUrl = accessibilityRoomService.buildRoomUrl(evenement);
         accessibilityRoomService.ensureRoomResource(evenement);
+        roomManagerAccess = isCurrentUserEventManager();
+        roomJoinAccess = isCurrentUserAllowedToJoin();
+        if (!roomJoinAccess) {
+            roomUrl = "";
+        }
 
         if (eventTitleLabel != null) {
             eventTitleLabel.setText(text(evenement.getTitre_event()));
@@ -65,7 +78,9 @@ public class EventAccessibilityRoomController {
             eventMetaLabel.setText(text(evenement.getVille_event()) + " | " + dateText(evenement));
         }
         if (roomStatusLabel != null) {
-            roomStatusLabel.setText(roomUrl.isBlank()
+            roomStatusLabel.setText(!roomJoinAccess
+                    ? "La salle live est disponible pour les patients uniquement le jour de l'evenement."
+                    : roomUrl.isBlank()
                     ? "Aucun lien d'appel video n'est configure pour cet evenement."
                     : "Appel pret. Rejoignez la reunion dans l'application.");
         }
@@ -74,6 +89,18 @@ public class EventAccessibilityRoomController {
         }
         if (roomUrlInput != null) {
             roomUrlInput.setText(roomUrl);
+            roomUrlInput.setEditable(roomManagerAccess);
+            roomUrlInput.setDisable(!roomManagerAccess);
+            roomUrlInput.setVisible(roomManagerAccess);
+            roomUrlInput.setManaged(roomManagerAccess);
+        }
+        if (roomLinkEditorBox != null) {
+            roomLinkEditorBox.setVisible(roomJoinAccess);
+            roomLinkEditorBox.setManaged(roomJoinAccess);
+        }
+        if (saveRoomLinkButton != null) {
+            saveRoomLinkButton.setVisible(roomManagerAccess);
+            saveRoomLinkButton.setManaged(roomManagerAccess);
         }
 
         if (roomBrowserHost != null) {
@@ -121,6 +148,10 @@ public class EventAccessibilityRoomController {
 
     @FXML
     private void saveRoomLink() {
+        if (!roomManagerAccess) {
+            showAlert(Alert.AlertType.WARNING, "Acces refuse", "Seul un responsable connecte peut enregistrer le lien de la salle.");
+            return;
+        }
         try {
             String candidate = roomUrlInput == null ? "" : roomUrlInput.getText();
             accessibilityRoomService.saveRoomLink(evenement, candidate);
@@ -139,6 +170,10 @@ public class EventAccessibilityRoomController {
 
     @FXML
     private void openInBrowser() {
+        if (!roomJoinAccess) {
+            showAlert(Alert.AlertType.WARNING, "Acces refuse", "La salle live est disponible pour les patients uniquement le jour de l'evenement.");
+            return;
+        }
         if (roomUrl == null || roomUrl.isBlank()) {
             showAlert(Alert.AlertType.INFORMATION, "Lien salle", "Aucun lien d'appel video n'est configure pour cet evenement.");
             return;
@@ -156,6 +191,18 @@ public class EventAccessibilityRoomController {
 
     @FXML
     private void launchRoom() {
+        if (!roomJoinAccess) {
+            roomStatusLabel.setText("La salle live est disponible pour les patients uniquement le jour de l'evenement.");
+            return;
+        }
+        if (isPastEvent()) {
+            roomStatusLabel.setText("La salle live n'est plus disponible car la date de l'evenement est depassee.");
+            return;
+        }
+        if (!isOnlineStatus()) {
+            roomStatusLabel.setText("Passez d'abord l'evenement au statut En ligne pour ouvrir la salle.");
+            return;
+        }
         if (roomUrl == null || roomUrl.isBlank()) {
             roomStatusLabel.setText("Ajoutez d'abord un lien d'appel video dans la fiche evenement.");
             return;
@@ -171,6 +218,10 @@ public class EventAccessibilityRoomController {
 
     @FXML
     private void copyRoomLink() {
+        if (!roomJoinAccess) {
+            roomStatusLabel.setText("Acces indisponible hors jour d'evenement.");
+            return;
+        }
         if (roomUrl == null || roomUrl.isBlank()) {
             roomStatusLabel.setText("Aucun lien d'appel video a copier.");
             return;
@@ -412,6 +463,71 @@ public class EventAccessibilityRoomController {
 
     private String text(String value) {
         return value == null || value.isBlank() ? "-" : value;
+    }
+
+    private boolean isCurrentUserEventManager() {
+        User user = SessionManager.getCurrentUser();
+        if (user == null) {
+            return false;
+        }
+
+        String role = text(user.getRoleSysteme()).trim().toUpperCase();
+        return "ADMIN".equals(role) || "BADMIN".equals(role) || "STAFF".equals(role);
+    }
+
+    private boolean isCurrentUserAllowedToJoin() {
+        return SessionManager.isLoggedIn() && isOnlineStatus() && !isPastEvent() && isJoinDay();
+    }
+
+    private boolean isOnlineStatus() {
+        return evenement != null
+                && evenement.getStatut_event() != null
+                && evenement.getStatut_event().toLowerCase().contains("ligne");
+    }
+
+    private boolean isPastEvent() {
+        if (evenement == null) {
+            return false;
+        }
+
+        java.util.Date endDate = evenement.getDate_fin_event() != null ? evenement.getDate_fin_event() : evenement.getDate_debut_event();
+        if (endDate == null) {
+            return false;
+        }
+
+        LocalDate eventDate = endDate instanceof java.sql.Date sqlDate
+                ? sqlDate.toLocalDate()
+                : endDate.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+        return eventDate.isBefore(LocalDate.now());
+    }
+
+    private boolean isJoinDay() {
+        if (evenement == null) {
+            return false;
+        }
+
+        LocalDate today = LocalDate.now();
+        LocalDate startDate = evenement.getDate_debut_event() instanceof java.sql.Date sqlStart
+                ? sqlStart.toLocalDate()
+                : evenement.getDate_debut_event() == null
+                ? null
+                : evenement.getDate_debut_event().toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+        LocalDate endDate = evenement.getDate_fin_event() instanceof java.sql.Date sqlEnd
+                ? sqlEnd.toLocalDate()
+                : evenement.getDate_fin_event() == null
+                ? null
+                : evenement.getDate_fin_event().toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+
+        if (startDate == null && endDate == null) {
+            return false;
+        }
+        if (startDate == null) {
+            startDate = endDate;
+        }
+        if (endDate == null) {
+            endDate = startDate;
+        }
+        return !today.isBefore(startDate) && !today.isAfter(endDate);
     }
 
     private void showAlert(Alert.AlertType type, String title, String content) {

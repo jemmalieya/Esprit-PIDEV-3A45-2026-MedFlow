@@ -159,7 +159,8 @@
                                 <HBox spacing="10" alignment="CENTER_LEFT">
                                     <Label text="Accessibilite live" styleClass="card-title"/>
                                     <Region HBox.hgrow="ALWAYS"/>
-                                    <Button text="Rejoindre l'appel video"
+                                    <Button fx:id="accessibilityJoinButton"
+                                            text="Rejoindre l'appel video"
                                             onAction="#ouvrirSalleAccessibilite"
                                             styleClass="confirm-button"/>
                                 </HBox>

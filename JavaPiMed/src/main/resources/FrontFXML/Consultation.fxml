@@ -34,18 +34,18 @@
 
                     <!-- HEADER -->
                     <VBox spacing="6" styleClass="page-header">
-                        <Label text="Booking Appointments" styleClass="page-title"/>
-                        <Label text="Choose the date, the booking mode and the reason. Confirm your appointment in a clean and modern workflow."
+                           <Label text="Prise de rendez-vous" styleClass="page-title"/>
+                           <Label text="Choisissez la date, le mode de rendez-vous et le motif. Confirmez votre rendez-vous dans un parcours clair et moderne."
                                wrapText="true"
                                styleClass="page-subtitle"/>
                     </VBox>
 
                     <!-- PAGE NAVIGATION BUTTONS -->
                     <HBox spacing="12" alignment="CENTER_LEFT">
-                        <Button text="📅 Booking" styleClass="page-nav-button-active" onAction="#handleShowBookingPage" fx:id="bookingPageBtn"/>
-                        <Button text="📋 My Bookings" styleClass="page-nav-button" onAction="#handleShowMyBookingsPage" fx:id="myBookingsPageBtn"/>
-                        <Button text="📋 My Medical Records n Reports" styleClass="page-nav-button" onAction="#handleShowMyRecords" fx:id="myRecordsPageBtn"/>
-                        <Button text="🤖 AI Assistant" styleClass="page-nav-button" onAction="#handleShowAiAssistantPage" fx:id="aiAssistantPageBtn"/>
+                        <Button text="📅 Réservation" styleClass="page-nav-button-active" onAction="#handleShowBookingPage" fx:id="bookingPageBtn"/>
+                        <Button text="📋 Mes rendez-vous" styleClass="page-nav-button" onAction="#handleShowMyBookingsPage" fx:id="myBookingsPageBtn"/>
+                        <Button text="📋 Mes dossiers médicaux et rapports" styleClass="page-nav-button" onAction="#handleShowMyRecords" fx:id="myRecordsPageBtn"/>
+                        <Button text="🤖 Assistant IA" styleClass="page-nav-button" onAction="#handleShowAiAssistantPage" fx:id="aiAssistantPageBtn"/>
                     </HBox>
 
                     <!-- PAGES CONTAINER (StackPane to switch between pages) -->
@@ -56,14 +56,14 @@
                             <HBox spacing="22">
                                 <!-- LEFT CARD -->
                                 <VBox spacing="18" HBox.hgrow="ALWAYS" styleClass="booking-card">
-                            <Label text="Select appointment date" styleClass="card-title"/>
+                            <Label text="Sélectionner la date du rendez-vous" styleClass="card-title"/>
 
                             <StackPane styleClass="calendar-box">
                                 <VBox spacing="10" prefHeight="300">
                                     <!-- Week Navigation -->
                                     <HBox spacing="16" alignment="CENTER">
                                         <Button text="←" styleClass="calendar-nav-button" onAction="#handlePreviousWeek"/>
-                                        <Label fx:id="monthYearLabel" text="07 Apr 2026 - 11 Apr 2026" styleClass="calendar-month-label"/>
+                                        <Label fx:id="monthYearLabel" text="07 avr. 2026 - 11 avr. 2026" styleClass="calendar-month-label"/>
                                         <Button text="→" styleClass="calendar-nav-button" onAction="#handleNextWeek"/>
                                     </HBox>
 
@@ -78,43 +78,43 @@
                                     </ScrollPane>
                                 </VBox>
                             </StackPane>
-                            <Label fx:id="appointmentDateValidationLabel" text="Select a date and time slot from the calendar." wrapText="true" styleClass="validation-message validation-message-error"/>
+                            <Label fx:id="appointmentDateValidationLabel" text="Sélectionnez une date et un créneau horaire dans le calendrier." wrapText="true" styleClass="validation-message validation-message-error"/>
                         </VBox>
 
                         <!-- RIGHT MINI SUMMARY CARD -->
                         <VBox prefWidth="300" spacing="16" styleClass="summary-card">
-                            <Label text="Appointment Summary" styleClass="card-title"/>
+                            <Label text="Résumé du rendez-vous" styleClass="card-title"/>
 
                             <VBox spacing="12" styleClass="summary-box">
-                                <VBox spacing="4">
+                                <VBox spacing="4" visible="false" managed="false">
                                     <Label text="Patient" styleClass="summary-label"/>
                                  
-                                    <TextField fx:id="patientIdField" promptText="Session patient id" editable="false" styleClass="modern-text-field"/>
+                                    <TextField fx:id="patientIdField" promptText="ID patient de la session" editable="false" styleClass="modern-text-field"/>
                                     <Label fx:id="patientIdValidationLabel" text="" wrapText="true" styleClass="validation-message"/>
 
                                 </VBox>
 
-                                <VBox spacing="4">
-                                    <Label text="Doctor" styleClass="summary-label"/>
-                                    <TextField fx:id="doctorField1" promptText="Enter doctor/staff id" styleClass="modern-text-field"/>
+                                <VBox spacing="4" visible="false" managed="false">
+                                    <Label text="Médecin" styleClass="summary-label"/>
+                                    <TextField fx:id="doctorField1" promptText="Saisir l'ID médecin/personnel" styleClass="modern-text-field"/>
                                     <Label fx:id="doctorIdValidationLabel" text="" wrapText="true" styleClass="validation-message"/>
                                    
                                 </VBox>
 
                                 <VBox spacing="4">
                                     <Label text="Mode" styleClass="summary-label"/>
-                                    <Label fx:id="selectedModeLabel" text="No mode selected" styleClass="summary-value"/>
+                                    <Label fx:id="selectedModeLabel" text="Aucun mode sélectionné" styleClass="summary-value"/>
                                     <Label fx:id="modeValidationLabel" text="" wrapText="true" styleClass="validation-message"/>
                                 </VBox>
 
                                 <VBox spacing="4">
-                                    <Label text="Selected date" styleClass="summary-label"/>
-                                    <Label fx:id="selectedDateLabel" text="No date selected" styleClass="summary-value"/>
+                                    <Label text="Date sélectionnée" styleClass="summary-label"/>
+                                    <Label fx:id="selectedDateLabel" text="Aucune date sélectionnée" styleClass="summary-value"/>
                                 </VBox>
 
                                 <VBox spacing="4">
-                                    <Label text="Selected slot" styleClass="summary-label"/>
-                                    <Label fx:id="selectedSlotLabel" text="No slot selected" styleClass="summary-value-highlight"/>
+                                    <Label text="Créneau sélectionné" styleClass="summary-label"/>
+                                    <Label fx:id="selectedSlotLabel" text="Aucun créneau sélectionné" styleClass="summary-value-highlight"/>
                                 </VBox>
                             </VBox>
 
@@ -122,11 +122,11 @@
 
                         <!-- RIGHT MINI SUMMARY CARD -->
                         <VBox prefWidth="500" spacing="16" styleClass="summary-card">
-                            <Label text="Docteurs List" styleClass="card-title"/>
+                            <Label text="Liste des médecins" styleClass="card-title"/>
 
                             <VBox spacing="12" styleClass="summary-box">
                                 <!-- DOCTOR CARDS SECTION -->
-                                <Label text="Select a Doctor" styleClass="card-title" style="-fx-padding: 16 0 0 0;"/>
+                                <Label text="Sélectionner un médecin" styleClass="card-title" style="-fx-padding: 16 0 0 0;"/>
                                 <ScrollPane hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" styleClass="doctor-cards-scroll">
                                     <VBox fx:id="doctorCardsContainer" spacing="10" styleClass="doctor-cards-container">
                                         <!-- Dynamic doctor cards injected by ConsultationController -->
@@ -139,26 +139,26 @@
 
                     <!-- FORM CARD -->
                     <VBox spacing="18" styleClass="form-card">
-                        <Label text="Appointment Details" styleClass="card-title"/>
+                        <Label text="Détails du rendez-vous" styleClass="card-title"/>
 
                         <HBox spacing="18">
                             <VBox spacing="8" HBox.hgrow="ALWAYS">
                                 <Label text="Mode" styleClass="field-label"/>
-                                <ComboBox fx:id="modeComboBox" promptText="Select booking mode" styleClass="modern-combo-box" onAction="#handleModeSelection">
+                                <ComboBox fx:id="modeComboBox" promptText="Sélectionner le mode de rendez-vous" styleClass="modern-combo-box" onAction="#handleModeSelection">
                                 </ComboBox>
                                 <Label fx:id="modeFieldValidationLabel" text="" wrapText="true" styleClass="validation-message"/>
                             </VBox>
 
                             <VBox spacing="8" HBox.hgrow="ALWAYS">
-                                <Label text="Service / Doctor" styleClass="field-label"/>
-                                <TextField fx:id="doctorField" promptText="Enter doctor or service" styleClass="modern-text-field"/>
+                                <Label text="Service / Médecin" styleClass="field-label"/>
+                                <TextField fx:id="doctorField" promptText="Saisir le médecin ou le service" styleClass="modern-text-field"/>
                             </VBox>
                         </HBox>
 
                         <VBox spacing="8">
                             <Label text="Motif" styleClass="field-label"/>
                             <TextArea fx:id="motifArea"
-                                      promptText="Describe the reason of the consultation..."
+                                      promptText="Décrivez le motif de la consultation..."
                                       prefRowCount="5"
                                       wrapText="true"
                                       styleClass="modern-text-area"/>
@@ -166,8 +166,8 @@
                         </VBox>
 
                         <HBox spacing="14" alignment="CENTER_RIGHT">
-                            <Button text="Cancel" styleClass="cancel-button"/>
-                            <Button text="Confirm Appointment" styleClass="confirm-button" onAction="#handleConfirmAppointmentV2"/>
+                            <Button text="Annuler" styleClass="cancel-button"/>
+                            <Button text="Confirmer le rendez-vous" styleClass="confirm-button" onAction="#handleConfirmAppointmentV2"/>
                         </HBox>
                     </VBox>
                         </VBox>
@@ -176,19 +176,19 @@
                         <VBox spacing="24" styleClass="page-content" fx:id="myBookingsPage">
                             <HBox spacing="20" HBox.hgrow="ALWAYS" alignment="TOP_LEFT">
                                 <VBox spacing="18" styleClass="booking-card" HBox.hgrow="ALWAYS">
-                                    <Label text="My Appointments" styleClass="card-title"/>
-                                    <Label text="Manage your rendez-vous for the current session patient." styleClass="helper-text"/>
+                                    <Label text="Mes rendez-vous" styleClass="card-title"/>
+                                    <Label text="Gérez vos rendez-vous pour le patient de la session en cours." styleClass="helper-text"/>
                                     <HBox spacing="12" alignment="CENTER_LEFT">
-                                        <TextField fx:id="myBookingsSearchField" promptText="Search rendez-vous..." styleClass="modern-text-field" HBox.hgrow="ALWAYS"/>
-                                        <ComboBox fx:id="myBookingsSortComboBox" promptText="Tri..." prefWidth="190" styleClass="modern-combo-box"/>
+                                        <TextField fx:id="myBookingsSearchField" promptText="Rechercher un rendez-vous..." styleClass="modern-text-field" HBox.hgrow="ALWAYS"/>
+                                        <ComboBox fx:id="myBookingsSortComboBox" promptText="Trier..." prefWidth="190" styleClass="modern-combo-box"/>
                                     </HBox>
                                     <TableView fx:id="myBookingsTable" VBox.vgrow="ALWAYS" styleClass="my-bookings-table">
                                         <columns>
                                             <TableColumn fx:id="colId" text="ID" prefWidth="70"/>
-                                            <TableColumn fx:id="colDateTime" text="Date &amp; Time" prefWidth="210"/>
+                                            <TableColumn fx:id="colDateTime" text="Date &amp; heure" prefWidth="210"/>
                                             <TableColumn fx:id="colMode" text="Mode" prefWidth="110"/>
                                             <TableColumn fx:id="colMotif" text="Motif" prefWidth="230"/>
-                                            <TableColumn fx:id="colStaff" text="Staff" prefWidth="80"/>
+                                            <TableColumn fx:id="colStaff" text="Personnel" prefWidth="80"/>
                                             <TableColumn fx:id="colStatut" text="Statut" prefWidth="110"/>
                                             <TableColumn fx:id="colActions" text="Actions" prefWidth="180"/>
                                         </columns>
@@ -196,41 +196,41 @@
                                 </VBox>
 
                                 <VBox fx:id="modifyFormCard" prefWidth="500" spacing="16" styleClass="summary-card" visible="false" managed="false">
-                                    <Label text="Modify Form" styleClass="card-title"/>
+                                    <Label text="Formulaire de modification" styleClass="card-title"/>
 
                                     <VBox spacing="12" styleClass="summary-box">
                                         <VBox spacing="6">
-                                            <Label text="Patient ID" styleClass="field-label"/>
+                                            <Label text="ID patient" styleClass="field-label"/>
                                             <TextField fx:id="modifyPatientIdField" editable="false" styleClass="modern-text-field"/>
                                         </VBox>
 
                                         <VBox spacing="6">
-                                            <Label text="Doctor/Staff ID" styleClass="field-label"/>
-                                            <TextField fx:id="modifyStaffIdField" promptText="Enter doctor/staff id" styleClass="modern-text-field"/>
+                                            <Label text="ID médecin/personnel" styleClass="field-label"/>
+                                            <TextField fx:id="modifyStaffIdField" promptText="Saisir l'ID médecin/personnel" styleClass="modern-text-field"/>
                                             <Label fx:id="modifyStaffIdValidationLabel" text="" wrapText="true" styleClass="validation-message"/>
                                         </VBox>
 
                                         <VBox spacing="6">
                                             <Label text="Mode" styleClass="field-label"/>
-                                            <ComboBox fx:id="modifyModeComboBox" promptText="Select booking mode" styleClass="modern-combo-box"/>
+                                            <ComboBox fx:id="modifyModeComboBox" promptText="Sélectionner le mode de rendez-vous" styleClass="modern-combo-box"/>
                                             <Label fx:id="modifyModeValidationLabel" text="" wrapText="true" styleClass="validation-message"/>
                                         </VBox>
 
                                         <VBox spacing="6">
-                                            <Label text="Date Time" styleClass="field-label"/>
+                                            <Label text="Date et heure" styleClass="field-label"/>
                                             <TextField fx:id="modifyDateTimeField" promptText="yyyy-MM-dd HH:mm" styleClass="modern-text-field"/>
                                             <Label fx:id="modifyDateTimeValidationLabel" text="" wrapText="true" styleClass="validation-message"/>
                                         </VBox>
 
                                         <VBox spacing="6">
                                             <Label text="Motif" styleClass="field-label"/>
-                                            <TextArea fx:id="modifyMotifArea" promptText="Edit motif..." prefRowCount="4" wrapText="true" styleClass="modern-text-area"/>
+                                            <TextArea fx:id="modifyMotifArea" promptText="Modifier le motif..." prefRowCount="4" wrapText="true" styleClass="modern-text-area"/>
                                             <Label fx:id="modifyMotifValidationLabel" text="" wrapText="true" styleClass="validation-message"/>
                                         </VBox>
 
                                         <HBox spacing="10" alignment="CENTER_RIGHT">
-                                            <Button text="Cancel" styleClass="cancel-button" onAction="#handleCancelModify"/>
-                                            <Button text="Confirm Modify" styleClass="confirm-button" onAction="#handleConfirmModify"/>
+                                            <Button text="Annuler" styleClass="cancel-button" onAction="#handleCancelModify"/>
+                                            <Button text="Confirmer la modification" styleClass="confirm-button" onAction="#handleConfirmModify"/>
                                         </HBox>
                                     </VBox>
                                 </VBox>
@@ -242,42 +242,42 @@
                         <VBox spacing="24" styleClass="page-content" fx:id="myRecordsPage" visible="false" managed="false">
                             <HBox spacing="20" HBox.hgrow="ALWAYS" alignment="TOP_LEFT">
                                 <VBox spacing="18" styleClass="booking-card" HBox.hgrow="ALWAYS">
-                                    <Label text="My Medical Records" styleClass="card-title"/>
-                                    <Label text="Medical records linked to your booked rendez-vous." styleClass="helper-text"/>
+                                    <Label text="Mes dossiers médicaux" styleClass="card-title"/>
+                                    <Label text="Dossiers médicaux liés à vos rendez-vous réservés." styleClass="helper-text"/>
                                     <HBox spacing="12" alignment="CENTER_LEFT">
-                                        <TextField fx:id="myRecordsSearchField" promptText="Search medical records..." styleClass="modern-text-field" HBox.hgrow="ALWAYS"/>
-                                        <ComboBox fx:id="myRecordsSortComboBox" promptText="Tri..." prefWidth="190" styleClass="modern-combo-box"/>
+                                        <TextField fx:id="myRecordsSearchField" promptText="Rechercher des dossiers médicaux..." styleClass="modern-text-field" HBox.hgrow="ALWAYS"/>
+                                        <ComboBox fx:id="myRecordsSortComboBox" promptText="Trier..." prefWidth="190" styleClass="modern-combo-box"/>
                                     </HBox>
                                     <TableView fx:id="myRecordsTable" VBox.vgrow="ALWAYS" styleClass="my-bookings-table">
                                         <columns>
                                             <TableColumn fx:id="recordColId" text="ID" prefWidth="70"/>
                                             <TableColumn fx:id="recordColRdvId" text="Rendez-vous" prefWidth="110"/>
-                                            <TableColumn fx:id="recordColDateTime" text="Date &amp; Time" prefWidth="170"/>
+                                            <TableColumn fx:id="recordColDateTime" text="Date &amp; heure" prefWidth="170"/>
                                             <TableColumn fx:id="recordColDiagnostic" text="Diagnostic" prefWidth="200"/>
                                             <TableColumn fx:id="recordColObservations" text="Observations" prefWidth="220"/>
-                                            <TableColumn fx:id="recordColResults" text="Results" prefWidth="220"/>
-                                            <TableColumn fx:id="recordColDuration" text="Duration" prefWidth="110"/>
+                                            <TableColumn fx:id="recordColResults" text="Résultats" prefWidth="220"/>
+                                            <TableColumn fx:id="recordColDuration" text="Durée" prefWidth="110"/>
                                             <TableColumn fx:id="recordColSignature" text="Signature" prefWidth="140"/>
                                             <TableColumn fx:id="recordColActions" text="Action" prefWidth="90"/>
-                                            <TableColumn fx:id="recordColDownloadPdf" text="Download PDF" prefWidth="150"/>
+                                            <TableColumn fx:id="recordColDownloadPdf" text="Télécharger PDF" prefWidth="150"/>
                                         </columns>
                                     </TableView>
 
                                     <VBox fx:id="recordDetailsPanel" spacing="14" visible="false" managed="false" styleClass="summary-card">
-                                        <Label text="Prescriptions of selected fiche medicale" styleClass="card-title"/>
-                                        <Label fx:id="recordDetailsSummaryLabel" text="Select the arrow in the Action column to view prescriptions." styleClass="helper-text" wrapText="true"/>
+                                        <Label text="Prescriptions de la fiche médicale sélectionnée" styleClass="card-title"/>
+                                        <Label fx:id="recordDetailsSummaryLabel" text="Sélectionnez la flèche dans la colonne Action pour voir les prescriptions." styleClass="helper-text" wrapText="true"/>
 
                                         <TableView fx:id="recordPrescriptionsTable" VBox.vgrow="ALWAYS" styleClass="my-bookings-table">
                                             <columns>
                                                 <TableColumn fx:id="recordPrescriptionNomColumn" text="Médicament" prefWidth="160"/>
-                                                <TableColumn fx:id="recordPrescriptionDoseColumn" text="Dose" prefWidth="100"/>
+                                                <TableColumn fx:id="recordPrescriptionDoseColumn" text="Dosage" prefWidth="100"/>
                                                 <TableColumn fx:id="recordPrescriptionFrequenceColumn" text="Fréquence" prefWidth="130"/>
                                                 <TableColumn fx:id="recordPrescriptionInstructionsColumn" text="Instructions" prefWidth="220"/>
-                                                <TableColumn fx:id="recordPrescriptionDownloadColumn" text="Download PDF" prefWidth="150"/>
+                                                <TableColumn fx:id="recordPrescriptionDownloadColumn" text="Télécharger PDF" prefWidth="150"/>
                                             </columns>
                                         </TableView>
 
-                                        <Label fx:id="recordNoPrescriptionsLabel" text="There is no prescription for this fiche medicale." styleClass="empty-state-message" visible="false" managed="false" wrapText="true"/>
+                                        <Label fx:id="recordNoPrescriptionsLabel" text="Il n'y a aucune prescription pour cette fiche médicale." styleClass="empty-state-message" visible="false" managed="false" wrapText="true"/>
                                     </VBox>
                                 </VBox>
                             </HBox>
@@ -287,22 +287,22 @@
                         <VBox spacing="24" styleClass="page-content" fx:id="aiAssistantPage" visible="false" managed="false">
                             <VBox spacing="10" styleClass="booking-card ai-hero-card">
                                 <HBox spacing="12" alignment="CENTER_LEFT">
-                                    <Label text="AI Assistant" styleClass="ai-kicker"/>
-                                    <Label text="Conversation preview" styleClass="ai-kicker ai-kicker-muted"/>
+                                    <Label text="Assistant IA" styleClass="ai-kicker"/>
+                                    <Label text="Aperçu de la conversation" styleClass="ai-kicker ai-kicker-muted"/>
                                 </HBox>
                                 
-                                <Label fx:id="aiAssistantStatusLabel" text="Ready for Dialogflow intent detection" styleClass="helper-text"/>
+                                <Label fx:id="aiAssistantStatusLabel" text="Prêt pour la détection d'intentions Dialogflow" styleClass="helper-text"/>
                             </VBox>
 
                             <HBox spacing="20" HBox.hgrow="ALWAYS" alignment="TOP_LEFT">
                                 <VBox spacing="18" styleClass="booking-card ai-conversation-card" HBox.hgrow="ALWAYS">
                                     <HBox spacing="12" alignment="CENTER_LEFT" styleClass="ai-panel-header">
                                         <VBox spacing="2" HBox.hgrow="ALWAYS">
-                                            <Label text="Conversation history" styleClass="card-title"/>
-                                            <Label text="User and AI messages stay visible here as a running log." styleClass="helper-text" wrapText="true"/>
+                                            <Label text="Historique de conversation" styleClass="card-title"/>
+                                            <Label text="Les messages de l'utilisateur et de l'IA restent visibles ici comme journal continu." styleClass="helper-text" wrapText="true"/>
                                         </VBox>
                                         <Button fx:id="aiVoiceOutputToggleButton"
-                                                text="🔊 Voice On"
+                                                text="🔊 Voix activée"
                                                 styleClass="ai-chip"
                                                 onAction="#handleToggleAiVoiceOutput"/>
                                         <Label text="Session active" styleClass="ai-status-badge"/>
@@ -317,7 +317,7 @@
                                     <HBox spacing="10" alignment="CENTER_LEFT" styleClass="ai-message-composer-bar">
                                         <TextField fx:id="aiMessageInput"
                                                    HBox.hgrow="ALWAYS"
-                                                   promptText="Type a message..."
+                                                   promptText="Saisir un message..."
                                                    styleClass="ai-message-composer-input"
                                                    onAction="#handleSendAiMessage"/>
                                         <Label fx:id="aiRecordingIndicator" text="● REC" visible="false" style="-fx-text-fill: #d32f2f; -fx-font-weight: bold; -fx-padding: 0 8 0 8;"/>
@@ -332,34 +332,34 @@
                                     </HBox>
 
                                     <HBox spacing="10" styleClass="ai-chip-row">
-                                        <Button text="Symptom summary" styleClass="ai-chip"/>
-                                        <Button text="Follow-up note" styleClass="ai-chip"/>
-                                        <Button text="Voice recap" styleClass="ai-chip"/>
-                                        <Button text="Book visit" styleClass="ai-chip"/>
+                                        <Button text="Résumé des symptômes" styleClass="ai-chip"/>
+                                        <Button text="Note de suivi" styleClass="ai-chip"/>
+                                        <Button text="Récap vocal" styleClass="ai-chip"/>
+                                        <Button text="Réserver une visite" styleClass="ai-chip"/>
                                     </HBox>
                                 </VBox>
 
                                 <VBox prefWidth="360" spacing="16" styleClass="ai-sidebar-column">
                                     <VBox spacing="12" styleClass="summary-card ai-tool-card">
-                                        <Label text="Voice note" styleClass="card-title"/>
-                                        <Label text="Design placeholder for audio capture and transcription." styleClass="helper-text" wrapText="true"/>
+                                        <Label text="Note vocale" styleClass="card-title"/>
+                                        <Label text="Espace réservé pour la capture audio et la transcription." styleClass="helper-text" wrapText="true"/>
                                         <HBox spacing="10" alignment="CENTER_LEFT" styleClass="ai-voice-preview">
                                             <Label text="🎙" styleClass="ai-voice-icon"/>
                                             <VBox spacing="2" HBox.hgrow="ALWAYS">
-                                                <Label text="Tap to record" styleClass="ai-voice-title"/>
-                                                <Label text="Waveform, timer, and transcription would appear here later." styleClass="helper-text" wrapText="true"/>
+                                                <Label text="Appuyer pour enregistrer" styleClass="ai-voice-title"/>
+                                                <Label text="La forme d'onde, le minuteur et la transcription apparaîtront ici plus tard." styleClass="helper-text" wrapText="true"/>
                                             </VBox>
                                         </HBox>
-                                        <Button text="Record voice message" styleClass="ai-voice-button"/>
+                                        <Button text="Enregistrer un message vocal" styleClass="ai-voice-button"/>
                                     </VBox>
 
                                     <VBox spacing="12" styleClass="summary-card ai-tool-card">
-                                        <Label text="Session glance" styleClass="card-title"/>
-                                        <Label text="History is shown as a clear timeline with user and AI sides." styleClass="helper-text" wrapText="true"/>
+                                        <Label text="Aperçu de session" styleClass="card-title"/>
+                                        <Label text="L'historique est affiché sous forme de chronologie claire entre l'utilisateur et l'IA." styleClass="helper-text" wrapText="true"/>
                                         <HBox spacing="8" alignment="CENTER_LEFT">
-                                            <Label text="Text" styleClass="ai-mini-pill"/>
-                                            <Label text="Voice" styleClass="ai-mini-pill"/>
-                                            <Label text="History" styleClass="ai-mini-pill"/>
+                                            <Label text="Texte" styleClass="ai-mini-pill"/>
+                                            <Label text="Voix" styleClass="ai-mini-pill"/>
+                                            <Label text="Historique" styleClass="ai-mini-pill"/>
                                         </HBox>
                                     </VBox>
                                 </VBox>

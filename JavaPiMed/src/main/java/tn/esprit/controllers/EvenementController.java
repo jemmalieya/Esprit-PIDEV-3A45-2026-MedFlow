@@ -278,6 +278,7 @@ public class EvenementController {
     @FXML private FlowPane aiFrontRecommendationsContainer;
     @FXML private FlowPane accessibilityResourcesContainer;
     @FXML private Label accessibilityStatusLabel;
+    @FXML private Button accessibilityJoinButton;
     @FXML private Label aiFrontStatusLabel;
     @FXML private FlowPane participationsContainer;
     @FXML private Label participationSummaryLabel;
@@ -1194,6 +1195,7 @@ public class EvenementController {
 
         try {
             String previousStatus = safeValue(evenementAModifier.getStatut_event());
+            boolean previousOnline = eventNotificationService.isOnlineStatus(previousStatus);
             Date dateDebut = Date.valueOf(getDateDebutPicker().getValue());
             String titre = safeValue(getTitreField() == null ? "" : getTitreField().getText());
 
@@ -1225,6 +1227,9 @@ public class EvenementController {
                         evenementAModifier,
                         participationService.getDemandes(evenementAModifier)
                 );
+            }
+            if (eventNotificationService.isOnlineStatus(evenementAModifier.getStatut_event())) {
+                promptAndSendOnlineEventEmails(previousOnline);
             }
 
             evenementAModifier = null;
@@ -2990,10 +2995,30 @@ public class EvenementController {
     }
 
     private void chargerAccessibiliteFront(Evenement ev) {
+        boolean canManageRoom = canManageLiveRoomManagementFromFront(ev);
+        boolean canJoinRoom = canJoinLiveRoomFromFront(ev);
+        boolean roomAvailable = isLiveRoomAvailable(ev);
+
+        if (accessibilityJoinButton != null) {
+            accessibilityJoinButton.setVisible(canJoinRoom);
+            accessibilityJoinButton.setManaged(canJoinRoom);
+            accessibilityJoinButton.setDisable(!roomAvailable);
+        }
+
         if (accessibilityStatusLabel != null) {
-            accessibilityStatusLabel.setText(accessibilityRoomService.hasConfiguredRoomLink(ev)
-                    ? "Lien d'appel video configure, transcription et liens d'assistance rattaches aux ressources."
-                    : "Aucun lien d'appel video configure pour cet evenement.");
+            if (canJoinRoom && roomAvailable) {
+                accessibilityStatusLabel.setText(accessibilityRoomService.hasConfiguredRoomLink(ev)
+                        ? "Salle live disponible aujourd'hui pour cet evenement en ligne."
+                        : "La salle live sera disponible ici des qu'un lien sera configure.");
+            } else if (canManageRoom && !roomAvailable) {
+                accessibilityStatusLabel.setText("Le responsable peut configurer le lien ici, mais l'ouverture de la salle reste bloquee tant que l'evenement n'est pas en ligne.");
+            } else if (isLiveRoomJoinDay(ev)) {
+                accessibilityStatusLabel.setText("Connectez-vous pour rejoindre la salle live de cet evenement.");
+            } else if (!roomAvailable) {
+                accessibilityStatusLabel.setText("La salle live apparaitra pour les patients le jour de l'evenement.");
+            } else {
+                accessibilityStatusLabel.setText("La salle live n'est pas disponible pour ce profil.");
+            }
         }
 
         if (accessibilityResourcesContainer == null) {
@@ -3029,6 +3054,14 @@ public class EvenementController {
     private void ouvrirSalleAccessibilite() {
         if (evenementSelectionneFront == null) {
             showAlert(Alert.AlertType.ERROR, "Accessibilite", "Aucun evenement n'est selectionne.");
+            return;
+        }
+        if (!canJoinLiveRoomFromFront(evenementSelectionneFront)) {
+            showAlert(Alert.AlertType.WARNING, "Acces refuse", "La salle live est disponible pour les patients uniquement le jour de l'evenement.");
+            return;
+        }
+        if (isPastEvent(evenementSelectionneFront)) {
+            showAlert(Alert.AlertType.INFORMATION, "Salle live", "La salle live n'est plus disponible pour un evenement termine.");
             return;
         }
 
@@ -4975,6 +5008,103 @@ public class EvenementController {
 
         LocalDate startDate = convertToLocalDate(evenement.getDate_debut_event());
         return startDate != null && startDate.isBefore(today);
+    }
+
+    private boolean isCurrentUserEventManager() {
+        User user = SessionManager.getCurrentUser();
+        if (user == null) {
+            return false;
+        }
+
+        String role = safeValue(user.getRoleSysteme()).trim().toUpperCase(Locale.ROOT);
+        return "ADMIN".equals(role) || "BADMIN".equals(role) || "STAFF".equals(role);
+    }
+
+    private boolean isLiveRoomAvailable(Evenement evenement) {
+        return evenement != null
+                && eventNotificationService.isOnlineStatus(evenement.getStatut_event())
+                && !isPastEvent(evenement);
+    }
+
+    private boolean isLiveRoomJoinDay(Evenement evenement) {
+        if (evenement == null) {
+            return false;
+        }
+
+        LocalDate today = LocalDate.now();
+        LocalDate startDate = convertToLocalDate(evenement.getDate_debut_event());
+        LocalDate endDate = convertToLocalDate(evenement.getDate_fin_event());
+        if (startDate == null && endDate == null) {
+            return false;
+        }
+        if (startDate == null) {
+            startDate = endDate;
+        }
+        if (endDate == null) {
+            endDate = startDate;
+        }
+        return !today.isBefore(startDate) && !today.isAfter(endDate);
+    }
+
+    private boolean canManageLiveRoomFromFront(Evenement evenement) {
+        return isCurrentUserEventManager() && isLiveRoomAvailable(evenement);
+    }
+
+    private boolean canManageLiveRoomManagementFromFront(Evenement evenement) {
+        return isCurrentUserEventManager() && evenement != null && !isPastEvent(evenement);
+    }
+
+    private boolean canJoinLiveRoomFromFront(Evenement evenement) {
+        return SessionManager.isLoggedIn()
+                && evenement != null
+                && isLiveRoomAvailable(evenement)
+                && isLiveRoomJoinDay(evenement);
+    }
+
+    private void promptAndSendOnlineEventEmails(boolean previousOnline) {
+        List<ParticipationDemande> demandes = participationService.getDemandes(evenementAModifier);
+        long acceptedWithEmail = demandes.stream()
+                .filter(demande -> demande != null
+                        && ParticipationDemande.STATUS_ACCEPTED.equals(safeValue(demande.getStatus()))
+                        && !safeValue(demande.getEmail()).isBlank())
+                .count();
+
+        if (acceptedWithEmail <= 0) {
+            showAlert(Alert.AlertType.INFORMATION, "Emails participants", "Aucun participant accepte avec email n'est disponible pour cet evenement.");
+            return;
+        }
+
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setTitle("Notifier les participants");
+        confirm.setHeaderText(null);
+        confirm.setContentText((previousOnline
+                ? "Cet evenement en ligne a ete modifie. "
+                : "Cet evenement vient de passer en ligne. ")
+                + "Envoyer un email a " + acceptedWithEmail + " participant(s) ?");
+        ButtonType sendNow = new ButtonType("Envoyer");
+        ButtonType skip = new ButtonType("Ignorer");
+        confirm.getButtonTypes().setAll(sendNow, skip);
+
+        Optional<ButtonType> result = confirm.showAndWait();
+        if (result.isEmpty() || result.get() != sendNow) {
+            return;
+        }
+
+        String roomUrl = accessibilityRoomService.buildRoomUrl(evenementAModifier);
+        EventNotificationService.EmailBatchResult batchResult =
+                eventNotificationService.sendOnlineEmailsNow(evenementAModifier, demandes, roomUrl, previousOnline);
+
+        if (batchResult.failed() <= 0) {
+            showAlert(Alert.AlertType.INFORMATION, "Emails participants", batchResult.sent() + " email(s) ont ete envoye(s).");
+            return;
+        }
+
+        String details = batchResult.errors().isEmpty() ? "Erreur inconnue." : batchResult.errors().get(0);
+        showAlert(
+                Alert.AlertType.WARNING,
+                "Emails participants",
+                batchResult.sent() + " email(s) envoye(s), " + batchResult.failed() + " en echec.\n" + details
+        );
     }
 
     private String formatNotificationTimestamp(LocalDateTime createdAt) {

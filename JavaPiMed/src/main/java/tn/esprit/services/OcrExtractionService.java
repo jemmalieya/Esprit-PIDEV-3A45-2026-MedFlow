@@ -289,6 +289,9 @@ public class OcrExtractionService {
 
     private static void parsePrescriptionSmart(String text, JsonObject result) {
         PrescriptionTableRow row = extractPrescriptionTableRow(text);
+        if (!hasPrescriptionCoreData(row)) {
+            row = extractPrescriptionTableRowAlternate(text);
+        }
         result.addProperty("nomMedicament", row.nomMedicament);
         result.addProperty("dose", row.dose);
         result.addProperty("frequence", row.frequence);
@@ -297,6 +300,16 @@ public class OcrExtractionService {
         result.addProperty("instructions", extractPrescriptionInstructionSection(text));
 
         result.addProperty("diagnosticAssocie", extractPrescriptionDiagnosticSection(text));
+    }
+
+    private static boolean hasPrescriptionCoreData(PrescriptionTableRow row) {
+        if (row == null) {
+            return false;
+        }
+        return !cleanValue(row.nomMedicament).isEmpty()
+                || !cleanValue(row.dose).isEmpty()
+                || !cleanValue(row.frequence).isEmpty()
+                || !cleanValue(row.duree).isEmpty();
     }
 
     private static String extractSectionByHeadings(String text, String[] startAliases, String[] endAliases) {
@@ -525,6 +538,88 @@ public class OcrExtractionService {
         return row;
     }
 
+    private static PrescriptionTableRow extractPrescriptionTableRowAlternate(String text) {
+        PrescriptionTableRow row = new PrescriptionTableRow();
+        if (text == null || text.isBlank()) {
+            return row;
+        }
+
+        String[] lines = normalizeLines(text);
+        String tableCandidate = findPrescriptionRowCandidateAlternate(lines);
+        if (!tableCandidate.isEmpty()) {
+            row = parsePrescriptionRowAlternate(tableCandidate);
+            if (hasPrescriptionCoreData(row)) {
+                return row;
+            }
+        }
+
+        // Last-resort fallback for exports where table cells are flattened into one line.
+        return parsePrescriptionRowAlternate(cleanOcrText(text));
+    }
+
+    private static String findPrescriptionRowCandidateAlternate(String[] lines) {
+        for (int i = 0; i < lines.length; i++) {
+            String headerLine = cleanValue(lines[i]);
+            if (headerLine.isEmpty()) {
+                continue;
+            }
+
+            if (!looksLikePrescriptionHeader(normalize(headerLine))) {
+                continue;
+            }
+
+            for (int j = i + 1; j < lines.length && j <= i + 8; j++) {
+                String candidate = cleanValue(lines[j]);
+                if (candidate.isEmpty()) {
+                    continue;
+                }
+
+                String normalizedCandidate = normalize(candidate);
+                if (looksLikeSectionHeading(normalizedCandidate)) {
+                    break;
+                }
+
+                if (looksLikePrescriptionHeader(normalizedCandidate)) {
+                    continue;
+                }
+
+                if (candidate.split("\\s+").length >= 4) {
+                    return candidate;
+                }
+            }
+        }
+
+        return "";
+    }
+
+    private static PrescriptionTableRow parsePrescriptionRowAlternate(String rowText) {
+        PrescriptionTableRow row = new PrescriptionTableRow();
+        if (rowText == null || rowText.isBlank()) {
+            return row;
+        }
+
+        String candidate = cleanValue(rowText).replaceAll("\\s+", " ");
+
+        String[] wideColumns = candidate.split("\\s{2,}|\\t+");
+        if (wideColumns.length >= 4) {
+            row.nomMedicament = cleanValue(wideColumns[0]);
+            row.dose = cleanValue(wideColumns[1]);
+            row.frequence = cleanValue(wideColumns[2]);
+            row.duree = extractLeadingNumber(wideColumns[3]);
+            return row;
+        }
+
+        String[] tokens = candidate.split("\\s+");
+        if (tokens.length >= 4) {
+            row.duree = extractLeadingNumber(tokens[tokens.length - 1]);
+            row.frequence = cleanValue(tokens[tokens.length - 2]);
+            row.dose = cleanValue(tokens[tokens.length - 3]);
+            row.nomMedicament = cleanValue(joinTokens(tokens, 0, tokens.length - 3));
+        }
+
+        return row;
+    }
+
     private static String extractBetweenSections(String text, String startPatterns, String endPatterns) {
         if (text == null || text.isBlank()) {
             return "";
@@ -704,7 +799,7 @@ public class OcrExtractionService {
             return "";
         }
 
-        return cleanValue(line.replaceFirst("(?i)" + java.util.regex.Pattern.quote(pattern), ""));
+        return cleanValue(line.replaceFirst("(?i)" + Pattern.quote(pattern), ""));
     }
 
     private static String extractFirstValueAfterLabel(String text, String patterns) {

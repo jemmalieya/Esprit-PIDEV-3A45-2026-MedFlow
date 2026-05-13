@@ -2144,19 +2144,19 @@ public class ConsultationController implements Initializable {
     private int parseRequiredInt(TextField field, String fieldName) {
         String raw = field != null ? field.getText() : null;
         if (raw == null || raw.isBlank()) {
-            throw new IllegalArgumentException(fieldName + " is required.");
+            throw new IllegalArgumentException(fieldName + " est obligatoire.");
         }
         try {
             return Integer.parseInt(raw.trim());
         } catch (NumberFormatException ex) {
-            throw new IllegalArgumentException(fieldName + " must be a number.");
+            throw new IllegalArgumentException(fieldName + " doit etre un nombre.");
         }
     }
 
     private void updateModeSummary() {
         if (selectedModeLabel != null) {
             String selectedMode = modeComboBox != null ? modeComboBox.getValue() : null;
-            selectedModeLabel.setText(selectedMode == null || selectedMode.isBlank() ? "No mode selected" : selectedMode);
+            selectedModeLabel.setText(selectedMode == null || selectedMode.isBlank() ? "Aucun mode selectionne" : selectedMode);
         }
     }
 
@@ -2177,11 +2177,11 @@ public class ConsultationController implements Initializable {
 
         Integer patientId = resolveSessionPatientId();
         if (patientId == null || patientId <= 0) {
-            applyValidationState(patientIdField, patientIdValidationLabel, false, "No logged-in user found. Please log in again.");
+            applyValidationState(patientIdField, patientIdValidationLabel, false, "Aucun utilisateur connecte trouve. Veuillez vous reconnecter.");
             return false;
         }
 
-        applyValidationState(patientIdField, patientIdValidationLabel, true, "Patient ID loaded: " + patientId + ".");
+        applyValidationState(patientIdField, patientIdValidationLabel, true, "ID patient charge: " + patientId + ".");
         return true;
     }
 
@@ -2197,7 +2197,7 @@ public class ConsultationController implements Initializable {
     private int requireSessionPatientId() {
         Integer patientId = resolveSessionPatientId();
         if (patientId == null || patientId <= 0) {
-            throw new IllegalArgumentException("No logged-in user found. Please log in again.");
+            throw new IllegalArgumentException("Aucun utilisateur connecte trouve. Veuillez vous reconnecter.");
         }
         return patientId;
     }
@@ -2209,7 +2209,7 @@ public class ConsultationController implements Initializable {
 
         String raw = doctorField1.getText();
         if (raw == null || raw.isBlank()) {
-            applyValidationState(doctorField1, doctorIdValidationLabel, false, "Doctor/Staff ID is required. Select a doctor card or enter a numeric ID.");
+            applyValidationState(doctorField1, doctorIdValidationLabel, false, "L'ID medecin/personnel est obligatoire. Selectionnez une carte medecin ou saisissez un ID numerique.");
             return false;
         }
 
@@ -2217,12 +2217,12 @@ public class ConsultationController implements Initializable {
         try {
             parsedId = Integer.parseInt(raw.trim());
         } catch (NumberFormatException ex) {
-            applyValidationState(doctorField1, doctorIdValidationLabel, false, "Doctor/Staff ID must contain digits only.");
+            applyValidationState(doctorField1, doctorIdValidationLabel, false, "L'ID medecin/personnel doit contenir uniquement des chiffres.");
             return false;
         }
 
         if (parsedId <= 0) {
-            applyValidationState(doctorField1, doctorIdValidationLabel, false, "Doctor/Staff ID must be greater than 0.");
+            applyValidationState(doctorField1, doctorIdValidationLabel, false, "L'ID medecin/personnel doit etre superieur a 0.");
             return false;
         }
 
@@ -2237,11 +2237,11 @@ public class ConsultationController implements Initializable {
         }
 
         if (doctor == null) {
-            applyValidationState(doctorField1, doctorIdValidationLabel, false, "The selected doctor does not exist. Please choose another doctor");
+            applyValidationState(doctorField1, doctorIdValidationLabel, false, "Le medecin selectionne n'existe pas. Veuillez en choisir un autre.");
             return false;
         }
 
-        applyValidationState(doctorField1, doctorIdValidationLabel, true, "Doctor selected: " + buildDoctorDisplayName(doctor) + ".");
+        applyValidationState(doctorField1, doctorIdValidationLabel, true, "Medecin selectionne: " + buildDoctorDisplayName(doctor) + ".");
         return true;
     }
 
@@ -2252,14 +2252,14 @@ public class ConsultationController implements Initializable {
 
         String selectedMode = modeComboBox.getValue();
         if (selectedMode == null || selectedMode.isBlank()) {
-            applyValidationState(modeComboBox, modeValidationLabel, false, "Choose a booking mode: Distanciel or Présentiel.");
+            applyValidationState(modeComboBox, modeValidationLabel, false, "Choisissez un mode de rendez-vous : Distanciel ou Presentiel.");
             if (modeFieldValidationLabel != null) {
                 applyValidationState(null, modeFieldValidationLabel, false, modeValidationLabel.getText());
             }
             return false;
         }
 
-        applyValidationState(modeComboBox, modeValidationLabel, true, "Mode selected: " + selectedMode + ".");
+        applyValidationState(modeComboBox, modeValidationLabel, true, "Mode selectionne : " + selectedMode + ".");
         if (modeFieldValidationLabel != null) {
             applyValidationState(null, modeFieldValidationLabel, true, modeValidationLabel.getText());
         }
@@ -2273,22 +2273,22 @@ public class ConsultationController implements Initializable {
 
         String motif = motifArea.getText();
         if (motif == null || motif.isBlank()) {
-            applyValidationState(motifArea, motifValidationLabel, false, "Motif is required. Explain why the consultation is needed.");
+            applyValidationState(motifArea, motifValidationLabel, false, "Le motif est obligatoire. Expliquez pourquoi la consultation est necessaire.");
             return false;
         }
 
         String trimmed = motif.trim();
         if (trimmed.length() < 10) {
-            applyValidationState(motifArea, motifValidationLabel, false, "Motif is too short. Write at least 10 characters.");
+            applyValidationState(motifArea, motifValidationLabel, false, "Le motif est trop court. Saisissez au moins 10 caracteres.");
             return false;
         }
 
         if (trimmed.length() > 255) {
-            applyValidationState(motifArea, motifValidationLabel, false, "Motif is too long. Keep it under 255 characters.");
+            applyValidationState(motifArea, motifValidationLabel, false, "Le motif est trop long. Limitez-le a 255 caracteres.");
             return false;
         }
 
-        applyValidationState(motifArea, motifValidationLabel, true, "Motif looks valid.");
+        applyValidationState(motifArea, motifValidationLabel, true, "Motif valide.");
         return true;
     }
 
@@ -2298,16 +2298,16 @@ public class ConsultationController implements Initializable {
         }
 
         if (selectedDateTime == null) {
-            applyValidationState(null, appointmentDateValidationLabel, false, "Select a date and time slot from the calendar.");
+            applyValidationState(null, appointmentDateValidationLabel, false, "Selectionnez une date et un creneau horaire dans le calendrier.");
             return false;
         }
 
         if (selectedDateTime.isBefore(LocalDateTime.now())) {
-            applyValidationState(null, appointmentDateValidationLabel, false, "The selected slot is in the past. Choose a future date and time.");
+            applyValidationState(null, appointmentDateValidationLabel, false, "Le creneau selectionne est dans le passe. Choisissez une date et une heure futures.");
             return false;
         }
 
-        applyValidationState(null, appointmentDateValidationLabel, true, "Date and time selected: " + dateTimeFormatter.format(selectedDateTime) + ".");
+        applyValidationState(null, appointmentDateValidationLabel, true, "Date et heure selectionnees : " + dateTimeFormatter.format(selectedDateTime) + ".");
         return true;
     }
 
@@ -2717,27 +2717,27 @@ public class ConsultationController implements Initializable {
         String input = modifyStaffIdField.getText().trim();
 
         if (input.isEmpty()) {
-            applyValidationState(modifyStaffIdField, modifyStaffIdValidationLabel, false, "Doctor/Staff ID is required.");
+            applyValidationState(modifyStaffIdField, modifyStaffIdValidationLabel, false, "L'ID medecin/personnel est obligatoire.");
             return false;
         }
 
         try {
             int staffId = Integer.parseInt(input);
             if (staffId <= 0) {
-                applyValidationState(modifyStaffIdField, modifyStaffIdValidationLabel, false, "Doctor/Staff ID must be a positive number.");
+                applyValidationState(modifyStaffIdField, modifyStaffIdValidationLabel, false, "L'ID medecin/personnel doit etre un nombre positif.");
                 return false;
             }
 
             // Check if staff exists in database
             if (userService.findById(staffId) == null) {
-                applyValidationState(modifyStaffIdField, modifyStaffIdValidationLabel, false, "No staff member was found with ID " + staffId + ".");
+                applyValidationState(modifyStaffIdField, modifyStaffIdValidationLabel, false, "Aucun membre du personnel trouve avec l'ID " + staffId + ".");
                 return false;
             }
 
-            applyValidationState(modifyStaffIdField, modifyStaffIdValidationLabel, true, "Doctor/Staff ID is valid.");
+            applyValidationState(modifyStaffIdField, modifyStaffIdValidationLabel, true, "ID medecin/personnel valide.");
             return true;
         } catch (NumberFormatException ex) {
-            applyValidationState(modifyStaffIdField, modifyStaffIdValidationLabel, false, "Doctor/Staff ID must be a numeric value.");
+            applyValidationState(modifyStaffIdField, modifyStaffIdValidationLabel, false, "L'ID medecin/personnel doit etre une valeur numerique.");
             return false;
         }
     }
@@ -2750,11 +2750,11 @@ public class ConsultationController implements Initializable {
         String mode = modifyModeComboBox.getValue();
 
         if (mode == null || mode.isBlank()) {
-            applyValidationState(modifyModeComboBox, modifyModeValidationLabel, false, "Consultation mode is required.");
+            applyValidationState(modifyModeComboBox, modifyModeValidationLabel, false, "Le mode de consultation est obligatoire.");
             return false;
         }
 
-        applyValidationState(modifyModeComboBox, modifyModeValidationLabel, true, "Mode: " + mode);
+        applyValidationState(modifyModeComboBox, modifyModeValidationLabel, true, "Mode : " + mode);
         return true;
     }
 
@@ -2766,21 +2766,21 @@ public class ConsultationController implements Initializable {
         String motif = modifyMotifArea.getText().trim();
 
         if (motif.isEmpty()) {
-            applyValidationState(modifyMotifArea, modifyMotifValidationLabel, false, "Motif is required. Explain the reason for modification.");
+            applyValidationState(modifyMotifArea, modifyMotifValidationLabel, false, "Le motif est obligatoire. Expliquez la raison de la modification.");
             return false;
         }
 
         if (motif.length() < 10) {
-            applyValidationState(modifyMotifArea, modifyMotifValidationLabel, false, "Motif is too short. Write at least 10 characters.");
+            applyValidationState(modifyMotifArea, modifyMotifValidationLabel, false, "Le motif est trop court. Saisissez au moins 10 caracteres.");
             return false;
         }
 
         if (motif.length() > 255) {
-            applyValidationState(modifyMotifArea, modifyMotifValidationLabel, false, "Motif is too long. Keep it under 255 characters.");
+            applyValidationState(modifyMotifArea, modifyMotifValidationLabel, false, "Le motif est trop long. Limitez-le a 255 caracteres.");
             return false;
         }
 
-        applyValidationState(modifyMotifArea, modifyMotifValidationLabel, true, "Motif looks valid.");
+        applyValidationState(modifyMotifArea, modifyMotifValidationLabel, true, "Motif valide.");
         return true;
     }
 
@@ -2792,7 +2792,7 @@ public class ConsultationController implements Initializable {
         String input = modifyDateTimeField.getText().trim();
 
         if (input.isEmpty()) {
-            applyValidationState(modifyDateTimeField, modifyDateTimeValidationLabel, false, "Date & time is required (format: yyyy-MM-dd HH:mm).");
+            applyValidationState(modifyDateTimeField, modifyDateTimeValidationLabel, false, "La date et l'heure sont obligatoires (format : yyyy-MM-dd HH:mm).");
             return false;
         }
 
@@ -2800,14 +2800,14 @@ public class ConsultationController implements Initializable {
             LocalDateTime dateTime = LocalDateTime.parse(input, modifyDateTimeFormatter);
 
             if (dateTime.isBefore(LocalDateTime.now())) {
-                applyValidationState(modifyDateTimeField, modifyDateTimeValidationLabel, false, "The appointment date/time must be in the future.");
+                applyValidationState(modifyDateTimeField, modifyDateTimeValidationLabel, false, "La date/heure du rendez-vous doit etre dans le futur.");
                 return false;
             }
 
-            applyValidationState(modifyDateTimeField, modifyDateTimeValidationLabel, true, "Date/time: " + modifyDateTimeFormatter.format(dateTime));
+            applyValidationState(modifyDateTimeField, modifyDateTimeValidationLabel, true, "Date/heure : " + modifyDateTimeFormatter.format(dateTime));
             return true;
         } catch (DateTimeParseException ex) {
-            applyValidationState(modifyDateTimeField, modifyDateTimeValidationLabel, false, "Invalid date format. Use yyyy-MM-dd HH:mm.");
+            applyValidationState(modifyDateTimeField, modifyDateTimeValidationLabel, false, "Format de date invalide. Utilisez yyyy-MM-dd HH:mm.");
             return false;
         }
     }

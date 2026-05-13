@@ -1,5 +1,6 @@
 package tn.esprit.controllers;
 
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -35,6 +36,7 @@ import com.google.zxing.BarcodeFormat;
 import com.google.zxing.MultiFormatWriter;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
+import org.mindrot.jbcrypt.BCrypt;
 import tn.esprit.services.TotpService;
 
 import tn.esprit.entities.User;
@@ -42,8 +44,16 @@ import tn.esprit.services.UserService;
 import tn.esprit.tools.SessionManager;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import tn.esprit.services.UserProfileGamificationService;
 
 public class NavigationController {
@@ -136,6 +146,18 @@ public class NavigationController {
     private Label profileInitialsLabel;
 
     @FXML
+    private PasswordField currentPasswordField;
+
+    @FXML
+    private PasswordField newPasswordField;
+
+    @FXML
+    private PasswordField confirmPasswordField;
+
+    @FXML
+    private Label passwordErrorLabel;
+
+    @FXML
     private ProgressBar activationScoreProgress;
 
     @FXML
@@ -190,7 +212,7 @@ public class NavigationController {
     private final UserService userService = new UserService();
     private final TotpService totpService = new TotpService();
     private final UserProfileGamificationService userProfileGamificationService = new UserProfileGamificationService();
-    private String selectedProfileImagePath;
+    private File selectedProfileImageFile;
 
     // Etat du flip de la carte sidebar
     private boolean sidebarCardShowingBack = false;
@@ -210,10 +232,16 @@ public class NavigationController {
 
     @FXML
     private void initialize() {
-        applyRolePermissions();
-        initProfileSection();
-        initSidebarUserInfo();
-        initSidebarCardFlip();
+        try {
+            applyRolePermissions();
+            initProfileSection();
+            initSidebarUserInfo();
+            initSidebarCardFlip();
+        } catch (Throwable t) {
+            // Fail-safe: never let profile/sidebar init crash the full login navigation.
+            System.err.println("[NavigationController] initialize fallback: " + t.getMessage());
+            t.printStackTrace();
+        }
     }
 
     private void initProfileSection() {
@@ -248,6 +276,8 @@ public class NavigationController {
         refreshSecurityStatus(current);
         initializePreferenceOptions();
         refreshProfileGamification(current);
+        selectedProfileImageFile = null;
+        clearPasswordChangeForm();
         setProfileMessage("", false);
 
         // Live validation listeners
@@ -278,8 +308,8 @@ public class NavigationController {
         boolean hasImage = false;
         if (imageView != null && picture != null && !picture.isEmpty()) {
             try {
-                File file = new File(picture);
-                Image img = file.exists() ? new Image(file.toURI().toString(), false) : null;
+                String imageUrl = resolveStoredImageUrl(picture);
+                Image img = imageUrl == null ? null : new Image(imageUrl, true);
                 if (img != null) {
                     imageView.setImage(img);
                     hasImage = true;
@@ -297,6 +327,135 @@ public class NavigationController {
                 initialsLabel.setVisible(false);
             }
         }
+    }
+
+    private String resolveStoredImageUrl(String storedPath) {
+        if (storedPath == null || storedPath.isBlank()) {
+            return null;
+        }
+
+        String normalized = storedPath.trim().replace("\\", "/");
+        String uploadsSubdir = resolveSymfonyUploadsSubdir();
+        boolean looksLikeBareFileName = !normalized.contains("/");
+        String lower = normalized.toLowerCase();
+        if (lower.startsWith("http://") || lower.startsWith("https://")) {
+            return normalized;
+        }
+
+        try {
+            Path raw = Paths.get(storedPath);
+            if (raw.isAbsolute() && Files.exists(raw)) {
+                return raw.toUri().toString();
+            }
+        } catch (Exception ignored) {
+        }
+
+        Path symfonyPublicDir = resolveSymfonyPublicDirPath();
+        if (symfonyPublicDir != null) {
+            Path direct = symfonyPublicDir.resolve(normalized).normalize();
+            if (Files.exists(direct)) {
+                return direct.toUri().toString();
+            }
+
+            if (looksLikeBareFileName) {
+                Path prefixed = symfonyPublicDir.resolve(uploadsSubdir).resolve(normalized).normalize();
+                if (Files.exists(prefixed)) {
+                    return prefixed.toUri().toString();
+                }
+            }
+        }
+
+        String baseUrl = resolveSymfonyBaseUrl();
+        if (baseUrl != null && !baseUrl.isBlank()) {
+            String cleanBase = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+            if (looksLikeBareFileName) {
+                return cleanBase + "/" + uploadsSubdir + "/" + normalized;
+            }
+            return cleanBase + "/" + normalized;
+        }
+
+        return null;
+    }
+
+    private String resolveSymfonyBaseUrl() {
+        String[] keys = {"symfony.base.url", "SYMFONY_BASE_URL", "symfony_base_url"};
+        for (String key : keys) {
+            String value = System.getProperty(key);
+            if (value == null || value.isBlank()) {
+                value = System.getenv(key);
+            }
+            if (value != null && !value.isBlank()) {
+                return value.trim();
+            }
+        }
+        return null;
+    }
+
+    private Path resolveSymfonyPublicDirPath() {
+        String[] keys = {"symfony.public.dir", "SYMFONY_PUBLIC_DIR", "symfony_public_dir"};
+        for (String key : keys) {
+            String value = System.getProperty(key);
+            if (value == null || value.isBlank()) {
+                value = System.getenv(key);
+            }
+            if (value != null && !value.isBlank()) {
+                try {
+                    Path p = Paths.get(value.trim()).toAbsolutePath().normalize();
+                    if (Files.exists(p)) {
+                        return p;
+                    }
+                } catch (RuntimeException ignored) {
+                    // Ignore invalid OS path values and try next alias.
+                }
+            }
+        }
+        return null;
+    }
+
+    private String resolveSymfonyUploadsSubdir() {
+        String[] keys = {"symfony.uploads.subdir", "SYMFONY_UPLOADS_SUBDIR", "symfony_uploads_subdir"};
+        for (String key : keys) {
+            String value = System.getProperty(key);
+            if (value == null || value.isBlank()) {
+                value = System.getenv(key);
+            }
+            if (value != null && !value.isBlank()) {
+                String normalized = value.trim().replace("\\", "/");
+                normalized = normalized.replaceAll("^/+", "").replaceAll("/+$", "");
+                if (!normalized.isBlank()) {
+                    return normalized;
+                }
+            }
+        }
+        return "uploads";
+    }
+
+    private String copyProfileImageToSymfonyUploads(User current, File sourceFile) throws IOException {
+        if (current == null || sourceFile == null || !sourceFile.exists()) {
+            throw new IOException("Fichier image introuvable.");
+        }
+
+        Path publicDir = resolveSymfonyPublicDirPath();
+        if (publicDir == null) {
+            throw new IOException("SYMFONY_PUBLIC_DIR non configure ou inaccessible.");
+        }
+
+        String uploadsSubdir = resolveSymfonyUploadsSubdir();
+        Path uploadsDir = publicDir.resolve(uploadsSubdir).normalize();
+        Files.createDirectories(uploadsDir);
+
+        String originalName = sourceFile.getName();
+        String extension = "";
+        int dot = originalName.lastIndexOf('.');
+        if (dot >= 0 && dot < originalName.length() - 1) {
+            extension = originalName.substring(dot).toLowerCase();
+        }
+
+        String fileName = "profile-" + current.getId() + "-" + System.currentTimeMillis() + "-" + UUID.randomUUID().toString().substring(0, 8) + extension;
+        Path target = uploadsDir.resolve(fileName).normalize();
+
+        Files.copy(sourceFile.toPath(), target, StandardCopyOption.REPLACE_EXISTING);
+        return uploadsSubdir + "/" + fileName;
     }
 
     private void initSidebarUserInfo() {
@@ -330,7 +489,11 @@ public class NavigationController {
             sidebarRoleLabel.setText(buildDisplayRole(current));
         }
 
-        updateAvatar(sidebarProfileImage, sidebarInitialsLabel, current);
+        try {
+            updateAvatar(sidebarProfileImage, sidebarInitialsLabel, current);
+        } catch (Throwable ignored) {
+            // Keep navigation usable even if avatar resolution fails.
+        }
     }
 
     private void initSidebarCardFlip() {
@@ -541,7 +704,7 @@ public class NavigationController {
         Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
         File file = chooser.showOpenDialog(stage);
         if (file != null) {
-            selectedProfileImagePath = file.getAbsolutePath();
+            selectedProfileImageFile = file;
             profileImageView.setImage(new Image(file.toURI().toString(), false));
             if (profileInitialsLabel != null) {
                 profileInitialsLabel.setVisible(false);
@@ -586,18 +749,88 @@ public class NavigationController {
         current.setTelephoneUser(tel);
         current.setAdresseUser(adresse);
         current.setDateNaissance(dateNaissance);
-        if (selectedProfileImagePath != null && !selectedProfileImagePath.isEmpty()) {
-            current.setProfilePicture(selectedProfileImagePath);
+        if (selectedProfileImageFile != null) {
+            try {
+                String relativePath = copyProfileImageToSymfonyUploads(current, selectedProfileImageFile);
+                current.setProfilePicture(relativePath);
+            } catch (IOException ioException) {
+                setProfileMessage("Echec copie image vers Symfony public/uploads: " + ioException.getMessage(), true);
+                return;
+            }
         }
 
         try {
             userService.modifier(current);
             setProfileMessage("Profil enregistre avec succes.", false);
+            selectedProfileImageFile = null;
             initSidebarUserInfo();
             refreshProfileGamification(current);
         } catch (Exception e) {
             setProfileMessage("Echec de sauvegarde profil: " + e.getMessage(), true);
         }
+    }
+
+    @FXML
+    private void handlePasswordChange(ActionEvent event) {
+        User current = SessionManager.getCurrentUser();
+        if (current == null) {
+            setProfileMessage("Aucun utilisateur connecte.", true);
+            return;
+        }
+
+        String currentPassword = currentPasswordField == null ? "" : String.valueOf(currentPasswordField.getText());
+        String newPassword = newPasswordField == null ? "" : String.valueOf(newPasswordField.getText());
+        String confirmPassword = confirmPasswordField == null ? "" : String.valueOf(confirmPasswordField.getText());
+
+        if (currentPassword.isBlank()) {
+            showFieldError(passwordErrorLabel, "Le mot de passe actuel est obligatoire.");
+            setProfileMessage("Veuillez renseigner le mot de passe actuel.", true);
+            return;
+        }
+
+        String passwordError = validateNewPassword(newPassword);
+        if (passwordError != null) {
+            showFieldError(passwordErrorLabel, passwordError);
+            setProfileMessage("Le nouveau mot de passe ne respecte pas les contraintes.", true);
+            return;
+        }
+
+        if (newPassword.equals(currentPassword)) {
+            showFieldError(passwordErrorLabel, "Le nouveau mot de passe doit etre different de l'actuel.");
+            setProfileMessage("Choisissez un mot de passe different.", true);
+            return;
+        }
+
+        if (!newPassword.equals(confirmPassword)) {
+            showFieldError(passwordErrorLabel, "La confirmation ne correspond pas au nouveau mot de passe.");
+            setProfileMessage("Confirmation du mot de passe invalide.", true);
+            return;
+        }
+
+        if (current.getEmailUser() == null || current.getEmailUser().isBlank()) {
+            showFieldError(passwordErrorLabel, "Impossible de verifier le compte courant.");
+            setProfileMessage("Compte invalide: email manquant.", true);
+            return;
+        }
+
+        User auth = userService.authenticate(current.getEmailUser(), currentPassword);
+        if (auth == null) {
+            showFieldError(passwordErrorLabel, "Le mot de passe actuel est incorrect.");
+            setProfileMessage("Echec de verification du mot de passe actuel.", true);
+            return;
+        }
+
+        String hashed = BCrypt.hashpw(newPassword, BCrypt.gensalt(12));
+        if (!userService.updateUserPassword(current.getId(), hashed)) {
+            showFieldError(passwordErrorLabel, "Erreur lors de la mise a jour du mot de passe.");
+            setProfileMessage("Impossible de mettre a jour le mot de passe.", true);
+            return;
+        }
+
+        current.setPassword(hashed);
+        showFieldError(passwordErrorLabel, "");
+        clearPasswordChangeForm();
+        setProfileMessage("Mot de passe mis a jour avec succes.", false);
     }
 
     private void initializePreferenceOptions() {
@@ -649,46 +882,78 @@ public class NavigationController {
         prefSummaryLabel.setText("Alertes securite e-mail: " + sec + " | Alertes login push: " + push);
     }
 
+    private static final class GamificationSnapshot {
+        private final UserProfileGamificationService.ActivationScoreResponse score;
+        private final UserProfileGamificationService.NextBestActionsResponse actions;
+        private final UserProfileGamificationService.BadgesResponse badges;
+        private final UserProfileGamificationService.PreferencesResponse preferences;
+
+        private GamificationSnapshot(
+                UserProfileGamificationService.ActivationScoreResponse score,
+                UserProfileGamificationService.NextBestActionsResponse actions,
+                UserProfileGamificationService.BadgesResponse badges,
+                UserProfileGamificationService.PreferencesResponse preferences
+        ) {
+            this.score = score;
+            this.actions = actions;
+            this.badges = badges;
+            this.preferences = preferences;
+        }
+    }
+
     private void refreshProfileGamification(User user) {
         if (user == null || activationScoreProgress == null) {
             return;
         }
 
-        try {
-            UserProfileGamificationService.ActivationScoreResponse scoreResponse =
-                    userProfileGamificationService.getActivationScore(user.getId());
+        CompletableFuture
+                .supplyAsync(() -> {
+                    try {
+                        UserProfileGamificationService.ActivationScoreResponse scoreResponse =
+                                userProfileGamificationService.getActivationScore(user.getId());
+                        UserProfileGamificationService.NextBestActionsResponse actionsResponse =
+                                userProfileGamificationService.getNextBestActions(user.getId());
+                        UserProfileGamificationService.BadgesResponse badgesResponse =
+                                userProfileGamificationService.getBadges(user.getId());
+                        UserProfileGamificationService.PreferencesResponse preferencesResponse =
+                                userProfileGamificationService.patchPreferences(
+                                        user.getId(),
+                                        new UserProfileGamificationService.PreferencesPatch(null, null, null, null, null, null)
+                                );
 
-            double targetProgress = Math.max(0, Math.min(100, scoreResponse.activationScore())) / 100.0;
-            animateActivationProgress(targetProgress);
-            if (activationScoreValueLabel != null) {
-                activationScoreValueLabel.setText(scoreResponse.activationScore() + "%");
-            }
-            if (activationLevelValueLabel != null) {
-                activationLevelValueLabel.setText(scoreResponse.level());
-            }
+                        return new GamificationSnapshot(scoreResponse, actionsResponse, badgesResponse, preferencesResponse);
+                    } catch (Exception e) {
+                        return null;
+                    }
+                })
+                .thenAccept(snapshot -> Platform.runLater(() -> {
+                    if (snapshot == null) {
+                        setProfileMessage("Impossible de charger les donnees de securite profile.", true);
+                        return;
+                    }
 
-            UserProfileGamificationService.NextBestActionsResponse actionsResponse =
-                    userProfileGamificationService.getNextBestActions(user.getId());
-            renderNextActions(actionsResponse.actions());
+                    double targetProgress = Math.max(0, Math.min(100, snapshot.score.activationScore())) / 100.0;
+                    animateActivationProgress(targetProgress);
+                    if (activationScoreValueLabel != null) {
+                        activationScoreValueLabel.setText(snapshot.score.activationScore() + "%");
+                    }
+                    if (activationLevelValueLabel != null) {
+                        activationLevelValueLabel.setText(snapshot.score.level());
+                    }
 
-            UserProfileGamificationService.BadgesResponse badgesResponse =
-                    userProfileGamificationService.getBadges(user.getId());
-            renderBadges(badgesResponse.badges());
+                    List<UserProfileGamificationService.NextAction> actions = snapshot.actions.actions();
+                    renderNextActions(actions);
 
-            if (!gamificationAnimated) {
-                animateGamificationPanels();
-                gamificationAnimated = true;
-            }
+                    List<UserProfileGamificationService.BadgeStatus> badges = snapshot.badges.badges();
+                    renderBadges(badges);
 
-            UserProfileGamificationService.PreferencesResponse preferencesResponse =
-                    userProfileGamificationService.patchPreferences(
-                            user.getId(),
-                            new UserProfileGamificationService.PreferencesPatch(null, null, null, null, null, null)
-                    );
-            applyPreferencesToControls(preferencesResponse.preferences());
-        } catch (Exception e) {
-            setProfileMessage("Impossible de charger les donnees de securite profile.", true);
-        }
+                    if (!gamificationAnimated) {
+                        animateGamificationPanels();
+                        gamificationAnimated = true;
+                    }
+
+                    applyPreferencesToControls(snapshot.preferences.preferences());
+                }));
     }
 
     private void animateActivationProgress(double targetProgress) {
@@ -1016,6 +1281,41 @@ public class NavigationController {
 
         setProfileMessage("", false);
         return true;
+    }
+
+    private String validateNewPassword(String password) {
+        if (password == null || password.isBlank()) {
+            return "Le nouveau mot de passe est obligatoire.";
+        }
+        if (password.length() < 8) {
+            return "Minimum 8 caracteres requis.";
+        }
+        if (!password.matches(".*[A-Z].*")) {
+            return "Ajoutez au moins 1 lettre majuscule.";
+        }
+        if (!password.matches(".*[a-z].*")) {
+            return "Ajoutez au moins 1 lettre minuscule.";
+        }
+        if (!password.matches(".*\\d.*")) {
+            return "Ajoutez au moins 1 chiffre.";
+        }
+        if (!password.matches(".*[^A-Za-z0-9].*")) {
+            return "Ajoutez au moins 1 caractere special.";
+        }
+        return null;
+    }
+
+    private void clearPasswordChangeForm() {
+        if (currentPasswordField != null) {
+            currentPasswordField.clear();
+        }
+        if (newPasswordField != null) {
+            newPasswordField.clear();
+        }
+        if (confirmPasswordField != null) {
+            confirmPasswordField.clear();
+        }
+        showFieldError(passwordErrorLabel, "");
     }
 
     @FXML

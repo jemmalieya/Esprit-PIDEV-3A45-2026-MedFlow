@@ -89,6 +89,65 @@ public class EventNotificationService {
         return created;
     }
 
+    public int sendOnlineEmails(Evenement evenement, List<ParticipationDemande> demandes, String roomUrl, boolean update) {
+        if (evenement == null || demandes == null || demandes.isEmpty()) {
+            return 0;
+        }
+
+        int sent = 0;
+        for (ParticipationDemande demande : demandes) {
+            if (demande == null
+                    || !ParticipationDemande.STATUS_ACCEPTED.equals(safe(demande.getStatus()))
+                    || safe(demande.getEmail()).isBlank()) {
+                continue;
+            }
+
+            EmailEventService.sendEventOnlineEmail(
+                    demande.getEmail(),
+                    demande.getDisplayName(),
+                    evenement,
+                    roomUrl,
+                    update
+            );
+            sent++;
+        }
+        return sent;
+    }
+
+    public EmailBatchResult sendOnlineEmailsNow(Evenement evenement, List<ParticipationDemande> demandes, String roomUrl, boolean update) {
+        if (evenement == null || demandes == null || demandes.isEmpty()) {
+            return new EmailBatchResult(0, 0, List.of());
+        }
+
+        int sent = 0;
+        int failed = 0;
+        List<String> errors = new ArrayList<>();
+
+        for (ParticipationDemande demande : demandes) {
+            if (demande == null
+                    || !ParticipationDemande.STATUS_ACCEPTED.equals(safe(demande.getStatus()))
+                    || safe(demande.getEmail()).isBlank()) {
+                continue;
+            }
+
+            try {
+                EmailEventService.sendEventOnlineEmailNow(
+                        demande.getEmail(),
+                        demande.getDisplayName(),
+                        evenement,
+                        roomUrl,
+                        update
+                );
+                sent++;
+            } catch (Exception ex) {
+                failed++;
+                errors.add(demande.getEmail() + " -> " + ex.getMessage());
+            }
+        }
+
+        return new EmailBatchResult(sent, failed, errors);
+    }
+
     public List<NotificationItem> getNotificationsForUser(int userId) {
         List<NotificationItem> notifications = new ArrayList<>();
         if (userId <= 0) return notifications;
@@ -215,6 +274,13 @@ public class EventNotificationService {
             String notificationType,
             boolean read,
             LocalDateTime createdAt
+    ) {
+    }
+
+    public record EmailBatchResult(
+            int sent,
+            int failed,
+            List<String> errors
     ) {
     }
 }

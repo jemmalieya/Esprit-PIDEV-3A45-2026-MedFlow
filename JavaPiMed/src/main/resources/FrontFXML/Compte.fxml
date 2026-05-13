@@ -6,6 +6,7 @@
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.DatePicker?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
 <?import javafx.scene.control.ProgressBar?>
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.control.TextField?>
@@ -156,6 +157,18 @@
                                             <Button text="Desactiver Face Login" onAction="#handleDisableFaceLogin" styleClass="profile-secondary-btn"/>
                                         </children>
                                     </HBox>
+
+                                    <VBox spacing="6.0" styleClass="profile-mini-surface,actions-surface">
+                                        <Label text="Changer le mot de passe" styleClass="field-label"/>
+                                        <PasswordField fx:id="currentPasswordField" prefHeight="40" promptText="Mot de passe actuel" styleClass="modern-text-field"/>
+                                        <PasswordField fx:id="newPasswordField" prefHeight="40" promptText="Nouveau mot de passe" styleClass="modern-text-field"/>
+                                        <PasswordField fx:id="confirmPasswordField" prefHeight="40" promptText="Confirmer le nouveau mot de passe" styleClass="modern-text-field"/>
+                                        <Label fx:id="passwordErrorLabel" text="" styleClass="field-error" visible="false" managed="false" wrapText="true"/>
+                                        <HBox spacing="10" alignment="CENTER_LEFT">
+                                            <Button text="Mettre a jour le mot de passe" onAction="#handlePasswordChange" styleClass="profile-primary-btn"/>
+                                            <Label text="Contraintes: 8+ caracteres, majuscule, minuscule, chiffre, special." styleClass="profile-help-text" wrapText="true"/>
+                                        </HBox>
+                                    </VBox>
 
                                     <VBox spacing="8.0" styleClass="profile-mini-surface,score-surface">
                                         <Label text="Progression profil securite" styleClass="field-label"/>

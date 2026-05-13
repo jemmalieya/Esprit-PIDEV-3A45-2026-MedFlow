@@ -46,6 +46,6 @@ build/
 ### Local secrets ###
 src/main/resources/brevo.properties
 src/main/resources/hf.properties
-src/main/resources/Keys/medflow-ai-assistant-d37b0bde49a5.json
+src/main/resources/Keys/medflow-ai-assistant-9c4f3de43009.json
 src/main/resources/dialogflow.properties
 models/

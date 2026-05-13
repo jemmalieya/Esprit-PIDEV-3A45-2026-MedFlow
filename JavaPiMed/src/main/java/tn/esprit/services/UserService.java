@@ -862,6 +862,33 @@ public class UserService implements IGeneralService<User> {
         return false;
     }
 
+    /**
+     * Met a jour uniquement le mot de passe depuis l'espace "Mon Compte".
+     *
+     * @param userId id de l'utilisateur
+     * @param hashedPassword mot de passe hashé (BCrypt)
+     * @return true si la mise a jour a reussi
+     */
+    public boolean updateUserPassword(int userId, String hashedPassword) {
+        if (userId <= 0 || hashedPassword == null || hashedPassword.isBlank()) {
+            return false;
+        }
+
+        String snakeSql = "UPDATE user SET password = ? WHERE id = ?";
+        String camelSql = "UPDATE user SET password = ? WHERE id = ?";
+        for (String sql : new String[]{snakeSql, camelSql}) {
+            try (PreparedStatement ps = cnx.prepareStatement(sql)) {
+                ps.setString(1, hashedPassword);
+                ps.setInt(2, userId);
+                if (ps.executeUpdate() > 0) {
+                    return true;
+                }
+            } catch (SQLException ignored) {
+            }
+        }
+        return false;
+    }
+
     public List<User> getStaffByRoleAndType(String roleSysteme, String typeStaff) {
         List<User> users = new ArrayList<>();
 
